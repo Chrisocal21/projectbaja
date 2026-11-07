@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef } from 're
 import { useFrame, useThree } from '@react-three/fiber';
 import { game } from './game/store.js';
 import GameObjects from './game/GameObjects.jsx';
+import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
 import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } from './terrain.js';
 import * as TC from './worlds/testcenter.js';
@@ -37,7 +38,7 @@ function Terrain() {
     const g = new THREE.PlaneGeometry(WORLD, WORLD, seg, seg);
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position;
-    const col = new Float32Array(pos.count * 3);
+    const col = new Float32Array(pos.count * 3), kind = new Float32Array(pos.count * 2);
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
@@ -45,15 +46,18 @@ function Terrain() {
       pos.setY(i, y);
       const slope = Math.abs(terrainHeight(x + 1, z) - y) + Math.abs(terrainHeight(x, z + 1) - y);
       const noise = (Math.sin(x * 1.7) * Math.sin(z * 1.9) * 0.025 + Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.05 + Math.sin(x * 4.1) * Math.sin(z * 3.7) * 0.012);
+      kind.set(kindOf(surfaceAt(x, z)), i * 2);
       c.set(surfaceAt(x, z).color).multiplyScalar(1 - Math.min(0.35, slope * 0.25));
       c.offsetHSL(0, 0, noise);
       col.set([c.r, c.g, c.b], i * 3);
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aGround', new THREE.BufferAttribute(kind, 2));
     g.computeVertexNormals();
     return g;
   }, []);
-  return <mesh geometry={geo} receiveShadow><meshStandardMaterial vertexColors roughness={1} /></mesh>;
+  const mat = useMemo(() => applyGroundDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), { grain: 0.34, bump: 0.8, macro: 0.2, perVertex: true }), []);
+  return <mesh geometry={geo} material={mat} receiveShadow />;
 }
 
 const ITEMS = (() => {
