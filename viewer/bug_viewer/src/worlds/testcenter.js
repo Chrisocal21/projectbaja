@@ -135,16 +135,20 @@ export const SITES = {
   garage: { id: 'garage', x: -100, z: 20,   rot: Math.atan2(100, -20),      r: 17 },
   barn:   { id: 'barn',   x: 80,   z: 150,  rot: Math.atan2(-80, -150),     r: 22 },
   gas:    { id: 'gas',    x: 110,  z: -20,  rot: Math.atan2(-110, 20),      r: 21 },
+  warehouse: { id: 'warehouse', x: 240, z: 60, rot: -Math.PI / 2,           r: 22 },
+  shack1: { id: 'shack1', x: 50,   z: 300,  rot: 2.2,                       r: 9 },
+  shack2: { id: 'shack2', x: -322, z: 92,   rot: -0.6,                      r: 9 },
 };
 /** local site coordinates -> world x, z */
 export const toWorld = (s, lx, lz) => { const c = Math.cos(s.rot), n = Math.sin(s.rot); return [s.x + lx * c + lz * n, s.z - lx * n + lz * c]; };
-for (const [k, s] of Object.entries(SITES)) { s.y = desert(s.x, s.z); paintDisc(s.x, s.z, s.r, 12, s.y, k === 'garage' ? 'concrete' : k === 'gas' ? 'asphalt' : 'dirt'); }
+for (const [k, s] of Object.entries(SITES)) { s.y = desert(s.x, s.z); paintDisc(s.x, s.z, s.r, 12, s.y, k === 'garage' || k === 'warehouse' ? 'concrete' : k === 'gas' ? 'asphalt' : 'dirt'); }
 const follow = { centerH: p => desert(p.x, p.z) };
 export const townRoads = [
   makePath([[80, -112], [72, -98], [60, -80], [46, -62], [32, -46]], false),                               // lot -> plaza
   makePath([[-46, 9], [-58, 12], [-70, 14], [-80, 15]], false),                                           // plaza -> garage
   makePath([[22, 41], [34, 62], [46, 86], [58, 108], [66, 124]], false),                                  // plaza -> barn
   makePath([[46, -8], [60, -10], [74, -13], [86, -15]], false),                                           // plaza -> gas station
+  makePath([[184, 52], [196, 56], [207, 59]], false),                                                       // dirt road -> warehouse
 ];
 for (const p of townRoads) paint(p, { core: 3.6, shoulder: 6, ...follow, classify: ad => (ad <= 2.4 ? SID.dirt : SID.gravel) });
 export const trails = [
@@ -184,13 +188,14 @@ export const spawns = [
   { key: '6', name: 'Your garage', ...garageDrive() },
   { key: '7', name: 'Barn', ...siteFront('barn', 12) },
   { key: '8', name: 'Gas station', ...siteFront('gas', 10) },
+  { key: '9', name: 'Old warehouse', ...siteFront('warehouse', 14) },
 ];
 export function areaAt(x, z) {
   if (Math.hypot(x, z) < 45) return 'Plaza';
   if (z < -85 && x < 25) return 'Circuit zone';
   if (Math.abs(x - 170) < 40) return 'Dirt road zone';
   const near = (k, r) => Math.hypot(x - SITES[k].x, z - SITES[k].z) < r;
-  if (near('lot', 48)) return "Honest Al's"; if (near('garage', 30)) return 'Your garage'; if (near('barn', 34)) return 'The barn'; if (near('gas', 32)) return 'Gas station';
+  if (near('lot', 48)) return "Honest Al's"; if (near('garage', 30)) return 'Your garage'; if (near('barn', 34)) return 'The barn'; if (near('gas', 32)) return 'Gas station'; if (near('warehouse', 34)) return 'Old warehouse'; if (near('shack1', 18) || near('shack2', 18)) return 'Old shack';
   if (z > 70 && x < -20) return 'Off-road zone';
   return 'Open desert';
 }

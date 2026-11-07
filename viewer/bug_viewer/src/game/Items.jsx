@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held } from './items.js';
+import { containers } from './loot.js';
 import { height } from '../worlds/testcenter.js';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
@@ -44,7 +45,8 @@ export default function Items() {
     g.rotation.set(0, camera.rotation.y, 0);
   });
   return <>
-    {loose.map(it => <group key={it.uid} position={[it.x, height(it.x, it.z), it.z]} rotation={[0, it.uid * 1.7, 0]}><Crate item={it} /></group>)}
+    {loose.map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + (it.y || 0), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
+    {containers.map(c => <group key={c.id} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>)}
     <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={0.75} />}</group>
   </>;
 }
@@ -59,4 +61,28 @@ export function Cargo() {
     {cab.map((it, i) => <group key={it.uid} position={CAB[i % 4]}><Crate item={it} scale={0.8} /></group>)}
     {roof.map(it => { const d = DIM[sizeOf(it.kind, it.id)][2] * 0.85, p = z + d / 2; z += d + 0.05; return <group key={it.uid} position={[0, 1.66, p]}><Crate item={it} scale={0.85} /></group>; })}
   </>;
+}
+
+const M = ({ c, r = 0.6, m = 0 }) => <meshStandardMaterial color={c} roughness={r} metalness={m} />;
+/** toolbox / tool chest / cardboard box / wooden crate; `open` once it has been searched */
+function Container({ type, open }) {
+  if (type === 'toolbox') return <group>
+    <mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.56, 0.22, 0.26]} /><M c="#b3261e" r={0.45} m={0.5} /></mesh>
+    <group position={[0, 0.22, -0.13]} rotation={[open ? -1.9 : 0, 0, 0]}><mesh position={[0, 0.03, 0.13]} castShadow><boxGeometry args={[0.57, 0.06, 0.27]} /><M c="#c22d24" r={0.45} m={0.5} /></mesh></group>
+    {!open && <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.24, 0.03, 0.03]} /><M c="#222" m={0.6} /></mesh>}
+  </group>;
+  if (type === 'drawer') return <group>
+    <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[0.72, 1, 0.5]} /><M c="#a32a22" r={0.5} m={0.45} /></mesh>
+    {[0.2, 0.42, 0.64, 0.86].map((y, i) => <mesh key={y} position={[0, y, 0.255 + (open && i === 3 ? 0.3 : 0)]}><boxGeometry args={[0.66, 0.18, open && i === 3 ? 0.5 : 0.02]} /><M c="#8c221b" r={0.5} m={0.45} /></mesh>)}
+    {[0.2, 0.42, 0.64, 0.86].map((y, i) => <mesh key={'h' + y} position={[0, y, 0.275 + (open && i === 3 ? 0.55 : 0)]}><boxGeometry args={[0.3, 0.025, 0.025]} /><M c="#ccc" m={0.8} r={0.3} /></mesh>)}
+  </group>;
+  if (type === 'box') return <group>
+    <mesh position={[0, 0.2, 0]} castShadow receiveShadow><boxGeometry args={[0.55, 0.4, 0.5]} /><M c="#b08a58" r={0.95} /></mesh>
+    {[-1, 1].map(sd => <mesh key={sd} position={[sd * 0.14, 0.4, 0]} rotation={[0, 0, open ? sd * 2.2 : 0]}><boxGeometry args={[0.27, 0.01, 0.5]} /><M c="#a47f50" r={0.95} /></mesh>)}
+  </group>;
+  return <group>
+    <mesh position={[0, 0.43, 0]} castShadow receiveShadow><boxGeometry args={[0.92, 0.86, 0.92]} /><M c="#8a6a42" r={0.95} /></mesh>
+    {[0.1, 0.43, 0.76].map(y => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[0.95, 0.09, 0.95]} /><M c="#6e5233" r={0.95} /></mesh>)}
+    <mesh position={open ? [0.62, 0.45, 0] : [0, 0.89, 0]} rotation={open ? [0, 0, 1.35] : [0, 0, 0]} castShadow><boxGeometry args={[0.96, 0.06, 0.96]} /><M c="#7a5c38" r={0.95} /></mesh>
+  </group>;
 }

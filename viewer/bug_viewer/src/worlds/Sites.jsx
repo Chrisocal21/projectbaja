@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SITES, height } from './testcenter.js';
 import { GARAGE, BARN, BOULDERS, CACTI } from './siteData.js';
+import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
 
 const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, w, h) => {
@@ -47,7 +48,6 @@ function Garage() {
     <Box p={[-3, 0.35, -d + 0.8]} s={[5, 0.7, 0.9]} color="#a33a2e" rough={0.6} metal={0.3} />
     <Box p={[-3, 2.0, -d + 0.14]} s={[5.4, 1.5, 0.06]} color="#8b8f8a" />
     {Array.from({ length: 14 }, (_, i) => <Box key={i} p={[-5.4 + i * 0.36, 2.0 + ((i * 7) % 5) * 0.2 - 0.35, -d + 0.22]} s={[0.07, 0.38 + (i % 3) * 0.1, 0.05]} color={['#c9ccd0', '#d84a38', '#e8b43a', '#3a3f44'][i % 4]} metal={0.6} rough={0.4} cast={false} />)}
-    <Box p={[-1.2, 1.15, -d + 0.8]} s={[0.5, 0.22, 0.4]} color="#2d2f31" metal={0.6} />
     {/* engine on a stand */}
     <group position={[4.8, 0, -4.8]}><Box p={[0, 0.5, 0]} s={[1.2, 0.08, 0.9]} color="#444" metal={0.5} /><Box p={[0, 0.9, 0]} s={[0.95, 0.7, 0.7]} color="#5a5d60" metal={0.7} rough={0.5} />
       {[-0.28, 0.28].map(x => <Box key={x} p={[x, 1.32, 0]} s={[0.28, 0.2, 0.62]} color="#6c7073" metal={0.6} rough={0.5} />)}</group>
@@ -100,7 +100,7 @@ function Barn() {
     {bale([-6.6, 0.4, -8.5], 0.1, 'a')}{bale([-6.5, 0.4, -6.6], -0.05, 'b')}{bale([-6.55, 1.17, -7.6], 0.08, 'c')}{bale([-6.5, 0.4, -4.4], 0.2, 'd')}
     {bale([6.4, 0.4, -9], 1.6, 'e')}{bale([6.5, 0.4, -7.1], 1.5, 'f')}{bale([6.5, 1.17, -8], 1.57, 'g')}
     {[[5.9, 4.5], [-6, 6.5], [-6.2, 7.8]].map(([x, z], i) => <mesh key={i} position={[x, 0.55, z]} castShadow><cylinderGeometry args={[0.45, 0.45, 1.1, 14]} /><meshStandardMaterial color={['#6e3a24', '#2f4a63', '#6b6f3a'][i]} metalness={0.4} roughness={0.7} /></mesh>)}
-    <Box p={[0, 0.5, -d + 0.8]} s={[2.4, 1, 0.8]} color="#6b4a2a" rough={1} /><Box p={[2.6, 0.35, -d + 0.8]} s={[0.9, 0.7, 0.9]} color="#7a5a34" rough={1} />
+    <Box p={[0, 0.5, -d + 0.8]} s={[2.4, 1, 0.8]} color="#6b4a2a" rough={1} />
     <mesh position={[-1.2, 0.012, -2]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[2.4, 20]} /><meshBasicMaterial color="#6e5a3a" transparent opacity={0.35} depthWrite={false} /></mesh>
     <group position={[0, 5.2, -2]}><mesh><cylinderGeometry args={[0.16, 0.16, 0.34, 10]} /><meshStandardMaterial color="#ffd48a" emissive="#ffb35a" emissiveIntensity={2} /></mesh></group>
     <pointLight position={[0, 4.6, -2]} intensity={55} distance={22} decay={1.5} color="#ffc27a" />
@@ -145,6 +145,62 @@ function GasStation() {
   </group>;
 }
 
+/** a run-down steel warehouse: 24 x 16 m, roll door open in +z, broken skylights. Pallet racks + benches come from loot.js */
+function Warehouse() {
+  const W = 12, D = 8, H = 6.5, t = 0.2, door = 4.2;
+  const metal = useMemo(() => { const m = metalTex('#8a8f86', 21); m.repeat.set(5, 1.4); return m; }, []);
+  const roof = useMemo(() => { const m = metalTex('#6c706b', 23); m.repeat.set(4, 3); return m; }, []);
+  const gable = useMemo(() => { const sh = new THREE.Shape(); sh.moveTo(-W, H - 0.05); sh.lineTo(W, H - 0.05); sh.lineTo(0, H + 1.05); sh.lineTo(-W, H - 0.05); return new THREE.ExtrudeGeometry(sh, { depth: 0.2, bevelEnabled: false }); }, []);
+  const sign = useMemo(() => signTex([['SALVAGE & SURPLUS', 54, '#e8dcb0'], ['closed · keep out', 32, '#c8372b']], '#2c3234', '#fff', '#8a8f86'), []);
+  return <group>
+    <Box p={[0, 0.06, 0]} s={[W * 2, 0.12, D * 2]} color="#7e7f7a" rough={1} cast={false} />
+    <Box p={[0, H / 2, -D]} s={[W * 2, H, t]} color="#fff" map={metal} /><Box p={[-W, H / 2, 0]} s={[t, H, D * 2]} color="#fff" map={metal} /><Box p={[W, H / 2, 0]} s={[t, H, D * 2]} color="#fff" map={metal} />
+    <Box p={[-(W + door) / 2, H / 2, D]} s={[W - door, H, t]} color="#fff" map={metal} /><Box p={[(W + door) / 2, H / 2, D]} s={[W - door, H, t]} color="#fff" map={metal} />
+    <Box p={[0, (H + 4.6) / 2, D]} s={[door * 2, H - 4.6, t]} color="#fff" map={metal} /><Box p={[0, 4.4, D - 0.2]} s={[door * 2, 0.45, 0.4]} color="#3a3f42" metal={0.4} />
+    {[-1, 1].map(sd => <Box key={sd} p={[sd * W * 0.5, H + 0.35, 0]} s={[W + 0.4, 0.2, D * 2 + 0.6]} color="#fff" map={roof} rot={[0, 0, -sd * 0.1]} />)}
+    {[-D - 0.1, D - 0.1].map(z => <mesh key={z} geometry={gable} position={[0, 0, z]}><meshStandardMaterial map={metal} side={THREE.DoubleSide} roughness={0.9} /></mesh>)}
+    {[-6, 0, 6].map(x => <mesh key={x} position={[x, H + 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[1.6, 6]} /><meshStandardMaterial color="#c8d4c8" transparent opacity={0.35} side={THREE.DoubleSide} /></mesh>)}
+    {[-8, -3, 3, 8].map((x, i) => <Box key={x} p={[x, 4.6, D + 0.12]} s={[2, 1, 0.05]} color={i % 2 ? '#1c2326' : '#2c383c'} rough={0.3} cast={false} />)}
+    <mesh position={[0, 5.6, D + 0.13]}><planeGeometry args={[6.5, 1.2]} /><meshStandardMaterial map={sign} roughness={0.8} /></mesh>
+    {/* clutter: drums, pallets, a dead engine block, tire pile */}
+    {[[-3, 5.5], [-2.2, 6.1], [-3.7, 6.3]].map(([x, z], i) => <mesh key={i} position={[x, 0.55, z]} castShadow><cylinderGeometry args={[0.36, 0.36, 1.0, 14]} /><meshStandardMaterial color={['#2f5d86', '#6e3a24', '#3f6b3a'][i]} metalness={0.4} roughness={0.7} /></mesh>)}
+    {[[10.5, 6.5], [-9.5, -4]].map(([x, z], i) => <group key={i} position={[x, 0, z]}>{[0, 1, 2].map(k => <Box key={k} p={[0, 0.08 + k * 0.15, 0]} s={[1.2, 0.12, 1.0]} color="#9c7a48" rough={1} />)}</group>)}
+    {[0, 1, 2, 3, 4].map(k => <Tire key={k} p={[10.6 + (k % 2) * 0.3, 0.6 + k * 0.28, -6]} rot={[0, 0, 0]} />)}
+    <pointLight position={[0, H - 1, 0]} intensity={60} distance={30} decay={1.5} color="#e8eadc" />
+  </group>;
+}
+
+/** a tumbledown plank shack (5.2 x 4.4 m), doorway in +z */
+function Shack() {
+  const planks = useMemo(() => { const m = wood('#7a6a58', '#2a2018', true, 31); m.repeat.set(1.4, 1); return m; }, []);
+  const roof = useMemo(() => metalTex('#6f5a48', 33), []);
+  const W = 2.6, D = 2.2, H = 2.6, door = 1.15;
+  return <group>
+    <Box p={[0, 0.05, 0]} s={[W * 2, 0.1, D * 2]} color="#6e5c48" rough={1} cast={false} />
+    <Box p={[0, H / 2, -D]} s={[W * 2, H, 0.15]} color="#fff" map={planks} /><Box p={[-W, H / 2, 0]} s={[0.15, H, D * 2]} color="#fff" map={planks} /><Box p={[W, H / 2, 0]} s={[0.15, H, D * 2]} color="#fff" map={planks} />
+    <Box p={[-(W + door) / 2, H / 2, D]} s={[W - door, H, 0.15]} color="#fff" map={planks} /><Box p={[(W + door) / 2, H / 2, D]} s={[W - door, H, 0.15]} color="#fff" map={planks} />
+    <Box p={[0, H - 0.25, D]} s={[door * 2, 0.5, 0.15]} color="#fff" map={planks} />
+    <Box p={[0, H + 0.25, 0.1]} s={[W * 2 + 0.6, 0.08, D * 2 + 0.9]} color="#fff" map={roof} rot={[0.12, 0, 0.03]} />
+    <Box p={[door + 0.75, 1.05, D + 0.55]} s={[1.0, 2.0, 0.06]} color="#fff" map={planks} rot={[0, -1.2, 0]} />
+    <pointLight position={[0, H - 0.4, 0]} intensity={10} distance={8} decay={1.6} color="#ffd9a0" />
+  </group>;
+}
+
+/** workbenches and pallet racks that loot sits on */
+function Furniture() {
+  const top = useMemo(() => wood('#7d5f3d', '#33220f', false, 41), []);
+  return <>{furniture.map((f, i) => <group key={i} position={[f.x, f.y, f.z]} rotation={[0, f.wry, 0]}>
+    {f.type === 'bench' ? <>
+      <Box p={[0, 0.92, 0]} s={[f.len, 0.08, 0.8]} color="#fff" map={top} />
+      {[-1, 1].map(sd => <Box key={sd} p={[sd * (f.len / 2 - 0.12), 0.45, 0]} s={[0.1, 0.9, 0.7]} color="#4a4f52" metal={0.4} />)}
+      <Box p={[0, 0.25, 0]} s={[f.len - 0.3, 0.05, 0.7]} color="#5b4630" />
+    </> : <>
+      {[-1, 1].flatMap(sd => [-0.45, 0.45].map(z => <Box key={sd + '' + z} p={[sd * (f.len / 2 - 0.05), 1.3, z]} s={[0.1, 2.6, 0.1]} color="#2f5f9e" metal={0.5} />))}
+      {[0.1, 1.55].map(y => <Box key={y} p={[0, y, 0]} s={[f.len, 0.07, 1.0]} color="#d9962f" metal={0.4} />)}
+    </>}
+  </group>)}</>;
+}
+
 function Placed({ site, children }) { return <group position={[site.x, site.y, site.z]} rotation={[0, site.rot, 0]}>{children}</group>; }
 
 /** boulders + cacti scattered over the open desert (the same positions the car and the walker collide with) */
@@ -184,6 +240,10 @@ export default function Sites() {
     <Placed site={SITES.garage}><Garage /></Placed>
     <Placed site={SITES.barn}><Barn /></Placed>
     <Placed site={SITES.gas}><GasStation /></Placed>
+    <Placed site={SITES.warehouse}><Warehouse /></Placed>
+    <Placed site={SITES.shack1}><Shack /></Placed>
+    <Placed site={SITES.shack2}><Shack /></Placed>
+    <Furniture />
     <Scenery /><Mesas />
   </>;
 }

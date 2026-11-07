@@ -1,6 +1,7 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack } from './items.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar } from './items.js';
+import { containerById, CONTAINER_RULES } from './loot.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ onNew, onContinue, onDev }) {
@@ -113,8 +114,33 @@ export function HudOverlay() {
     <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
     {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
     {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
-    {game.onFoot && !game.dev && <div className="hud-carry">{held() ? <>In hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G to put down</> : 'Hands empty'}<br />Car space: cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · no roof rack'}</div>}
+    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack}<br />Car: cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · no roof rack'} · Tab inventory</div>}
   </>;
+}
+
+const Row = ({ it, children }) => <div className="inv-row"><span>{nameOfItem(it)}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : ''}</small></span><span className="inv-btns">{children}</span></div>;
+
+/** what's inside a toolbox / chest / box / crate you just opened */
+export function ContainerPanel({ id, onClose }) {
+  useGame();
+  const c = containerById[id], list = boxItems(id);
+  return <div className="overlay"><div className="card inv"><h2>{CONTAINER_RULES[c.type].label.toUpperCase()}</h2>
+    {list.length ? list.map(it => <Row key={it.uid} it={it}><button onClick={() => takeFromBox(it.uid)}>Take</button></Row>) : <p className="hint">Nothing (else) in here.</p>}
+    <div className="menu">{list.length > 1 && <button onClick={() => list.forEach(it => takeFromBox(it.uid))}>Take all</button>}<button className="big" onClick={onClose}>Close (Esc)</button></div>
+    <p className="hint">Small parts go in your pack. Anything bigger has to be carried in your hands, one at a time.</p></div></div>;
+}
+
+/** Tab: hands, pack, and the car's storage when you're standing next to it */
+export function InventoryPanel({ onClose }) {
+  useGame();
+  const h = held(), pack = packItems(), car = carItems(), near = game.nearCar;
+  return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
+    <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{near && <button onClick={() => stowInCar(h.uid)}>Put in car</button>}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
+    <div className="inv-sec">PACK <span>{used('pack')}/{CAPACITY.pack} · small parts only</span></div>
+    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
+    <div className="inv-sec">CAR <span>cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · fit a roof rack for more'}</span></div>
+    {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <button onClick={() => takeFromCar(it.uid)}>Take</button> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
+    <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
 }
 
 /** garage only: choose a fitted part to unbolt and carry off */

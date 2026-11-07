@@ -2,15 +2,13 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, openCrate, setPrompt } from './store.js';
-import { lootCrate } from './items.js';
 import * as TC from '../worlds/testcenter.js';
-import { lootSpots } from '../worlds/siteData.js';
 
 const at = (path, f) => { const p = path.pts[Math.floor(path.pts.length * f)]; return [p.x, p.z]; };
 
 /** Where the shop and the loot crates sit in each world. */
 export function placesFor(kind) {
-  if (kind === 'test') return { shop: { x: 16, z: 18, rot: -2.2 }, crates: [[-18, -14], [24, -22], [-30, 22], [-200, -304], [-250, -304], at(TC.dirtRoad, 0.3), at(TC.dirtRoad, 0.7), at(TC.offroad, 0.25), at(TC.offroad, 0.6), [200, -120], ...lootSpots()] };
+  if (kind === 'test') return { shop: { x: 16, z: 18, rot: -2.2 }, crates: [] };   // loot is found inside buildings now (game/loot.js), never floating
   if (kind === 'open') return { shop: { x: 14, z: -16, rot: -2.2 }, crates: [[28, 14], [-34, 40], [52, -34], [-62, -52], [10, 90], [-90, 20]] };
   return { shop: { x: -22, z: 10, rot: 0.6 }, crates: [[20, -15], [40, 70], [-30, 60], [70, 40], [-60, -30]] };   // pro pad
 }
@@ -51,7 +49,7 @@ function Crates({ spots, height, kind, bodyId }) {
       const live = !(game.crates[c.id] > now); g.visible = live;
       if (!live || game.paused) return;
       g.rotation.y = t * 1.2 + i; g.position.y = c.y + 1.1 + Math.sin(t * 2 + i) * 0.15;
-      if (Math.hypot(game.pos.x - c.x, game.pos.z - c.z) < 3.6) { game.crates[c.id] = now + 60000; g.visible = false; if (game.dev) openCrate(bodyId); else lootCrate(bodyId, c.x + 1.6, c.z + 1.6); }
+      if (Math.hypot(game.pos.x - c.x, game.pos.z - c.z) < 3.6) { game.crates[c.id] = now + 60000; g.visible = false; openCrate(bodyId); }
     });
   });
   return <>{list.map((c, i) => <group key={c.id} ref={el => (refs.current[i] = el)} position={[c.x, c.y + 1.1, c.z]}>

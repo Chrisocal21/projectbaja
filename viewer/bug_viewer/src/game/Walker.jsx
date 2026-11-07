@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { OBSTACLES, TARGETS } from '../worlds/siteData.js';
-import { held, nameOfItem, sizeOf, inGarageZone } from './items.js';
+import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
+import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
 
 const PROMPTS = {
@@ -12,12 +13,13 @@ const PROMPTS = {
 export const promptText = id => {
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
+  if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? `Press E — Pick up ${nameOfItem(it)}` : ''; }
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
   if (id === 'enter' && game.inGarage) return 'Press E — Get in  ·  X — Take a part off';
-  if (id === 'enter' && game.items.some(i => i.loc === 'car')) return 'Press E — Get in  ·  F — Unload the car';
+  if (id === 'enter' && carItems().length) return 'Press E — Get in  ·  F — Take from the car  ·  Tab — Inventory';
   return PROMPTS[id] || '';
 };
 const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (!body) return false; return it.kind === 'part' ? partState(partById[it.id], body) === 'ok' : it.kind === 'wheel' ? wheelSetFits(wheelById[it.id], b.body) : true; };
@@ -84,7 +86,8 @@ export default function Walker({ world, sun }) {
     if (!nearPump) game.fueled = false;
     game.nearCar = !!pose && foot && Math.hypot(pose.x - px, pose.z - pz) < 4.6;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
-    if (foot) for (const it of game.items) if (it.loc === 'world' && !held()) consider('item:' + it.uid, it.x, it.z, 2.8, true, 0.5);
+    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, 2.4, true, 0.5);
+    if (foot) for (const c of containers) consider('box:' + c.id, c.x, c.z, 2.2, true, 0.55);
     if (pose) {
       const h = foot && held();
       if (h && game.nearCar) { best = game.inGarage && fitsCar(h) ? 'install' : 'load'; }

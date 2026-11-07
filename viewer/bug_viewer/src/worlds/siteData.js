@@ -1,6 +1,7 @@
 // Solid obstacles, loot spots and "press E" targets for the story sites and the scenery scattered over the Test Center map.
 import { SITES, toWorld, height, isRoad, baseHeight } from './testcenter.js';
 import { LOT_CIRCLES, LOT_SPOTS } from '../lot/CarLot.jsx';
+import { LOOT_COLLIDERS } from '../game/loot.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const TALL = 99;
@@ -35,6 +36,11 @@ solid.push(...wall(B, [-BARN_W, -BARN_D], [BARN_W, -BARN_D]), ...wall(B, [-BARN_
 solid.push(...wall(S, [-8, -15.5], [8, -15.5]), ...wall(S, [-8, -15.5], [-8, -8.5]), ...wall(S, [8, -15.5], [8, -8.5]), ...wall(S, [-8, -8.5], [8, -8.5]),
   blob(S, -7, 0.5, 0.45), blob(S, 7, 0.5, 0.45), blob(S, -7, 8.5, 0.45), blob(S, 7, 8.5, 0.45),
   blob(S, -3.6, 4.5, 0.85), blob(S, 3.6, 4.5, 0.85), blob(S, 12, -4, 1), blob(S, 13, -2.6, 0.7), blob(S, -13, -10, 1.2));
+// old warehouse (24 x 16, roll door in +z) and two shacks (5.2 x 4.4, doorway in +z)
+const WH = SITES.warehouse;
+solid.push(...wall(WH, [-12, -8], [12, -8]), ...wall(WH, [-12, -8], [-12, 8]), ...wall(WH, [12, -8], [12, 8]), ...wall(WH, [-12, 8], [-4.2, 8]), ...wall(WH, [4.2, 8], [12, 8]), blob(WH, -3, 5.5, 0.9), blob(WH, 10.5, 6.5, 0.8));
+for (const k of ['shack1', 'shack2']) { const s = SITES[k]; solid.push(...wall(s, [-2.6, -2.2], [2.6, -2.2], 0.45, 0.8), ...wall(s, [-2.6, -2.2], [-2.6, 2.2], 0.45, 0.8), ...wall(s, [2.6, -2.2], [2.6, 2.2], 0.45, 0.8), ...wall(s, [-2.6, 2.2], [-1.15, 2.2], 0.45, 0.8), ...wall(s, [1.15, 2.2], [2.6, 2.2], 0.45, 0.8)); }
+solid.push(...LOOT_COLLIDERS);
 // the car lot's fence, office and props, moved into the world
 const lot = SITES.lot;
 for (const [x, z, r] of LOT_CIRCLES) { const [wx, wz] = toWorld(lot, x, z); solid.push([wx, wz, r, TALL]); }
@@ -56,14 +62,6 @@ const scenery = [...BOULDERS.map(b => [b.x, b.z, b.s * 1.05, height(b.x, b.z) + 
 
 /** [x, z, radius, top] circles the car and the walker collide with */
 export const OBSTACLES = [...solid, ...scenery];
-
-// ---- loot ----
-export const lootSpots = () => {
-  const out = [];
-  for (const [lx, lz] of [[-6, -9], [5.5, -9.5], [-4.5, -3], [5, -1], [-5.5, 8], [0, -6]]) out.push(toWorld(B, lx, lz));
-  out.push(toWorld(S, 11, -8), toWorld(G, 4, -3.5));
-  return out;
-};
 
 // ---- things you can walk / drive up to and press E on. car: usable from the driver's seat; face: must be looking at it ----
 const T = (id, s, lx, lz, rad, opt = {}) => { const [x, z] = toWorld(s, lx, lz); return { id, x, z, r: rad, face: true, car: false, ...opt }; };
