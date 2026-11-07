@@ -201,11 +201,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v = Math.max(-9, Math.min(MAXV * 1.1, st.v));
 
       // --- steering ---
-      const maxSteer = Math.max(0.09, Math.min(0.72 / (1 + Math.abs(st.v) * 0.03), 7 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
+      const maxSteer = Math.max(0.09, Math.min(0.72 / (1 + Math.abs(st.v) * 0.012), 7 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
-      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu;
+      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu, tmuNow = sf.mu;
       const dN = MASS * (st.ax || 0) * 0.6 / L;                                   // longitudinal weight transfer
       const Nf = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('F')).reduce((sum, w) => sum + w.load, 0)
         : Math.max(500, MASS * G * cb / L - dN);
@@ -226,6 +226,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.lateralV += ((FyF * cs + FyR) / MASS - st.v * st.yr) * dt;
       st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.12) * dt;   // extra yaw damping: planted, no spin-outs
       st.v += st.lateralV * st.yr * dt;
+      // go where the wheels point: pull the body's turn rate toward the wheels' geometric turn rate (capped by what the tires can give),
+      // and bleed off sideways drift so the velocity follows the nose
+      const gf = Math.min(1, Math.max(0.3, tmuNow / 0.9)), yrWant = st.v * Math.tan(st.steer) / L, yrCap = 1.15 * G * gf / Math.max(Math.abs(st.v), 4);
+      st.yr += (Math.max(-yrCap, Math.min(yrCap, yrWant)) - st.yr) * Math.min(1, 6 * gf * dt);
+      st.lateralV -= st.lateralV * Math.min(1, 2.5 * gf * dt);
       const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
       if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); st.lateralV -= st.lateralV * (1 - w) * Math.min(1, dt * 12); }
       if (st.v < 0.5) { st.yr = (st.v / L) * Math.tan(st.steer); st.lateralV = 0; }
