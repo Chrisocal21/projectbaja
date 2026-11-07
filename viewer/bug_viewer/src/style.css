@@ -53,3 +53,16 @@
 .hud-prompt{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);background:#000a;border:1px solid #5be08a;color:#c9f5d4;padding:9px 18px;border-radius:8px;font-weight:700;pointer-events:none}
 .hud-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);background:#000b;border:1px solid #ffd23f;color:#ffe9a0;padding:10px 20px;border-radius:8px;font-weight:700;font-size:16px;pointer-events:none}
 .presets button:disabled,.toolbar button:disabled{opacity:.4;cursor:not-allowed}
+
+.card.shop{width:min(1100px,95vw);height:86vh;display:flex;flex-direction:column;padding:18px 20px}
+.shop-head{gap:14px}.shop-head h2{margin:0;flex:1}.shop-head .cash{color:#7be08a;font:700 20px system-ui}
+.shop-body{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr;gap:16px;margin-top:14px}
+.shop-side{display:flex;flex-direction:column;min-height:0}.shop-tabs{display:flex;gap:6px}.shop-tabs button{flex:1;text-align:center!important;padding:9px!important}.shop-tabs button.on{border-color:#ca9b58;background:#423526;color:#f4d3a1}
+.shop-side .shop-list{flex:1;overflow:auto;margin-top:8px}
+.shop-row{cursor:pointer;padding:9px 8px;border-radius:6px}.shop-row:hover{background:#18252a}.shop-row.sel{background:#243238;outline:1px solid #ca9b58}
+.shop-row .price{font-style:normal;color:#9be8ad;font-weight:700}.shop-row .tag{font-style:normal;font-size:10px;letter-spacing:1px;color:#74898c}.shop-row .tag.on{color:#f4d3a1}
+.shop-view{display:flex;flex-direction:column;min-height:0;border:1px solid #2c3d41;border-radius:10px;overflow:hidden}
+.shop-stage{flex:1;position:relative;background:#172124;min-height:0}.shop-stage canvas{position:absolute!important;inset:0}
+.shop-info{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;background:#11191c;border-top:1px solid #2c3d41}.shop-info strong{display:block;font-size:16px}.shop-info small{display:block;color:#8aa0a3;font-size:12px;margin-top:3px}
+.shop-info button{min-width:130px;text-align:center}.shop-info .buy{border-color:#4f9a64;color:#9be8ad;font-weight:700}.shop-info button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:800px){.shop-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}

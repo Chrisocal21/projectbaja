@@ -1,5 +1,5 @@
 import React from 'react';
-import { slots } from '../build.js';
+import { slots, partById, wheelById } from '../build.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ bodyLabel, onPlay, onGarage }) {
@@ -37,22 +37,41 @@ export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports
   </div></div>;
 }
 
-export function ShopPanel({ bodyId, onBuy, onClose }) {
+export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onClose }) {
   useGame();
+  const [tab, setTab] = React.useState('part'), [sel, setSel] = React.useState(null);
   const cat = catalogFor(bodyId), slotLabel = Object.fromEntries(slots.map(s => [s.id, s.label]));
-  const Row = ({ kind, it }) => {
-    const own = owns(kind, it.id), price = priceOf(kind, it.id);
-    return <div className="shop-row"><span>{nameOf(kind, it.id, bodyId)}{kind === 'part' && <small>{slotLabel[it.slot] || it.slot}{it.perf?.topMph ? ` · +${it.perf.topMph} mph` : ''}</small>}</span>
-      {own ? <button onClick={() => onBuy(kind, it.id, true)}>Equip</button> : <button className="buy" disabled={game.cash < price} onClick={() => onBuy(kind, it.id)}>${price}</button>}</div>;
-  };
+  const items = tab === 'part' ? cat.part : tab === 'wheel' ? cat.wheel : cat.rim;
+  const cur = sel && sel.kind === tab ? sel : null;
+  const equipped = (kind, id) => (kind === 'part' ? build.parts[partById[id].slot] === id : kind === 'wheel' ? build.wheels === id : build.rim === id);
+  const own = cur ? owns(cur.kind, cur.id) : false, price = cur ? priceOf(cur.kind, cur.id) : 0, isOn = cur ? equipped(cur.kind, cur.id) : false;
+  const it = cur && cur.kind === 'part' ? partById[cur.id] : null;
   return <div className="overlay"><div className="card shop">
-    <div className="shop-head"><h2>BAJA PARTS <span>${game.cash}</span></h2><button onClick={onClose}>Leave shop</button></div>
-    <div className="shop-list">
-      <small>ENGINE &amp; BODY PARTS</small>{cat.part.map(it => <Row key={it.id} kind="part" it={it} />)}
-      <small>TIRES</small>{cat.wheel.map(it => <Row key={it.id} kind="wheel" it={it} />)}
-      <small>RIMS</small>{cat.rim.map(it => <Row key={it.id} kind="rim" it={it} />)}
+    <div className="shop-head"><h2>BAJA PARTS</h2><span className="cash">${game.cash}</span><button onClick={onClose}>Leave shop</button></div>
+    <div className="shop-body">
+      <div className="shop-side">
+        <div className="shop-tabs">{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+        <div className="shop-list">{items.map(x => {
+          const o = owns(tab, x.id), on = equipped(tab, x.id);
+          return <div key={x.id} className={`shop-row${cur?.id === x.id ? ' sel' : ''}`} onClick={() => setSel({ kind: tab, id: x.id })}>
+            <span>{nameOf(tab, x.id, bodyId)}<small>{tab === 'part' ? `${slotLabel[x.slot] || x.slot}${x.perf?.topMph ? ` · +${x.perf.topMph} mph` : ''}` : tab === 'wheel' ? (x.grip?.note || 'Tire set') : 'Rim style'}</small></span>
+            <em className={on ? 'tag on' : o ? 'tag' : 'price'}>{on ? 'EQUIPPED' : o ? 'OWNED' : `$${priceOf(tab, x.id)}`}</em></div>;
+        })}</div>
+      </div>
+      <div className="shop-view">
+        <div className="shop-stage">{renderPreview(cur ? previewOf(cur.kind, cur.id) : build, cur && cur.kind !== 'part')}</div>
+        <div className="shop-info">
+          {cur ? <>
+            <div><strong>{nameOf(cur.kind, cur.id, bodyId)}</strong>{it?.perf && <small>{it.perf.topMph ? `+${it.perf.topMph} mph top speed` : ''}{it.perf.power ? ` · ${Math.round((it.perf.power - 1) * 100)}% more power` : ''}</small>}
+              {cur.kind === 'wheel' && wheelById[cur.id]?.grip && <small>{wheelById[cur.id].grip.note}</small>}
+              {cur.kind === 'rim' && <small>Shown on Rugged tires. Colour it in the customizer.</small>}</div>
+            {isOn ? <button disabled>Equipped</button> : own ? <button className="buy" onClick={() => onBuy(cur.kind, cur.id, true)}>Equip</button>
+              : <button className="buy" disabled={game.cash < price} onClick={() => onBuy(cur.kind, cur.id)}>{game.cash < price ? `Need $${price}` : `Buy $${price}`}</button>}
+          </> : <small>Click an item to preview it on your car. Drag to rotate.</small>}
+        </div>
+      </div>
     </div>
-    {game.unlockAll && <p className="hint">Everything is unlocked (testing). Untick “Unlock everything” in the pause menu to try real buying.</p>}
+    {game.unlockAll && <p className="hint">Everything is unlocked (testing). Untick "Unlock everything" in the pause menu to try real buying.</p>}
   </div></div>;
 }
 

@@ -22,13 +22,13 @@ const CAT_TITLES = { Body: 'BODY PANELS', Protection: 'BUMPERS & CAGE', Mechanic
 const categories = [...new Set(slots.map(s => s.category))];
 const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n.toLocaleString('en-US');
 
-function CameraReset({ resetKey }) {
+function CameraReset({ resetKey, cam }) {
   const { camera, controls } = useThree();
-  useEffect(() => { camera.position.set(...CAMERA_POSITION); controls?.target.set(0, 0.8, 0); controls?.update(); }, [camera, controls, resetKey]);
+  useEffect(() => { camera.position.set(...(cam?.pos || CAMERA_POSITION)); controls?.target.set(...(cam?.target || [0, 0.8, 0])); controls?.update(); }, [camera, controls, resetKey, cam]);
   return null;
 }
 
-function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, world, hud }) {
+function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, world, hud, cam }) {
   const r = useMemo(() => resolve(build), [build]);
   if (drive && pro) return <Canvas shadows key={`pro-${JSON.stringify(build)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={[1, 2]}>
     <Suspense fallback={null}><ProDrive hud={hud} dims={r.dims} bodyId={build.body}><BuildModel build={build} wireframe={wireframe} drive /></ProDrive></Suspense>
@@ -50,7 +50,7 @@ function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, dri
     </Suspense>
     {showGrid && <Grid position={[0, -0.035, 0]} args={[30, 30]} cellSize={0.5} sectionSize={2} cellColor="#546365" sectionColor="#748587" fadeDistance={22} fadeStrength={2} infiniteGrid />}
     <OrbitControls makeDefault autoRotate={autoRotate} autoRotateSpeed={1.2} minDistance={2.7} maxDistance={18} maxPolarAngle={Math.PI / 2.05} target={[0, 0.8, 0]} />
-    <CameraReset resetKey={resetKey} />
+    <CameraReset resetKey={resetKey} cam={cam} />
   </Canvas>;
 }
 
@@ -103,6 +103,14 @@ function App() {
   const equip = (kind, id, equipOnly) => {
     if (!equipOnly) { if (!buy(kind, id)) return; say('Purchased!'); }
     update(kind === 'part' ? setPart(build, partById[id].slot, id) : kind === 'wheel' ? setWheels(build, id) : setRim(build, id));
+  };
+  const previewOf = (kind, id) => {
+    if (kind === 'part') return setPart(build, partById[id].slot, id);
+    if (kind === 'wheel') return setWheels(build, id);
+    const nb = setRim(build, id);   // rims only show on Rugged tires: borrow one for the preview
+    if (resolve(nb).tire) return nb;
+    const w = wheelSets.find(x => wheelSetFits(x, body.id) && resolve(setWheels(nb, x.id)).tire);
+    return w ? setWheels(nb, w.id) : nb;
   };
   useEffect(() => { try { history.replaceState(null, '', `#${encodeBuild(build)}`); } catch {} }, [build]);
 
@@ -184,7 +192,7 @@ function App() {
     {pro && <ProDebug />}
     {panel === 'pause' && <PauseMenu onResume={resume} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
-    {panel === 'shop' && <ShopPanel bodyId={body.id} onBuy={equip} onClose={resume} />}
+    {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} onBuy={equip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

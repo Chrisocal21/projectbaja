@@ -62,7 +62,7 @@ function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels 
 
 function Rim({ rim, color }) {
   const geo = useMemo(() => rimGeometry(rim.style), [rim.style]);
-  return <mesh geometry={geo}><meshStandardMaterial color={color} metalness={0.75} roughness={0.35} side={THREE.DoubleSide} /></mesh>;
+  return <mesh geometry={geo}><meshStandardMaterial color={color} metalness={0.4} roughness={0.4} side={THREE.DoubleSide} /></mesh>;
 }
 
 /** One instance of a single-tire GLB (0.95 m across, axle on Z) mounted on a wheel position. */

@@ -1,8 +1,20 @@
 [
- { "type": "rim", "id": "steel", "label": "Steel", "style": "steel", "defaultColor": "#9a9aa0" },
- { "type": "rim", "id": "beadlock", "label": "Beadlock", "style": "beadlock", "defaultColor": "#202022" },
- { "type": "rim", "id": "fivespoke", "label": "5-spoke", "style": "fivespoke", "defaultColor": "#b8b8bd" },
- { "type": "rim", "id": "mesh", "label": "Mesh", "style": "mesh", "defaultColor": "#cfcfd4" },
- { "type": "rim", "id": "deepdish", "label": "Deep dish", "style": "deepdish", "defaultColor": "#d8d8dc" },
- { "type": "rim", "id": "turbine", "label": "Turbine", "style": "turbine", "defaultColor": "#2a2a2e" }
+ {"type": "rim", "id": "steel", "label": "Steel", "style": "steel", "defaultColor": "#9a9aa0"},
+ {"type": "rim", "id": "beadlock", "label": "Beadlock", "style": "beadlock", "defaultColor": "#202022"},
+ {"type": "rim", "id": "crawler", "label": "Crawler beadlock", "style": "crawler", "defaultColor": "#2b2b2e"},
+ {"type": "rim", "id": "fivespoke", "label": "5-spoke", "style": "fivespoke", "defaultColor": "#b8b8bd"},
+ {"type": "rim", "id": "sixspoke", "label": "6-spoke", "style": "sixspoke", "defaultColor": "#8e9096"},
+ {"type": "rim", "id": "tenspoke", "label": "10-spoke", "style": "tenspoke", "defaultColor": "#cfcfd4"},
+ {"type": "rim", "id": "twinspoke", "label": "Twin-spoke", "style": "twinspoke", "defaultColor": "#d8d8dc"},
+ {"type": "rim", "id": "sevenstar", "label": "7-star", "style": "sevenstar", "defaultColor": "#c2c2c8"},
+ {"type": "rim", "id": "split", "label": "Split-spoke", "style": "split", "defaultColor": "#aeb0b6"},
+ {"type": "rim", "id": "trophy", "label": "Trophy 3-spoke", "style": "trophy", "defaultColor": "#1e1e20"},
+ {"type": "rim", "id": "hex", "label": "Hex", "style": "hex", "defaultColor": "#7b7e84"},
+ {"type": "rim", "id": "mesh", "label": "Mesh", "style": "mesh", "defaultColor": "#cfcfd4"},
+ {"type": "rim", "id": "sunburst", "label": "Sunburst", "style": "sunburst", "defaultColor": "#b9b9be"},
+ {"type": "rim", "id": "deepdish", "label": "Deep dish", "style": "deepdish", "defaultColor": "#d8d8dc"},
+ {"type": "rim", "id": "turbine", "label": "Turbine", "style": "turbine", "defaultColor": "#2a2a2e"},
+ {"type": "rim", "id": "retro", "label": "Retro 5-leaf", "style": "retro", "defaultColor": "#c9c9cf"},
+ {"type": "rim", "id": "slotted", "label": "Slotted", "style": "slotted", "defaultColor": "#6b6e74"},
+ {"type": "rim", "id": "aero", "label": "Aero disc", "style": "aero", "defaultColor": "#e2e2e6"}
 ]
