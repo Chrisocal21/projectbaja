@@ -11,9 +11,9 @@ const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
-export const nameOfItem = it => it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+export const nameOfItem = it => it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -43,7 +43,7 @@ const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete i
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
 /** can the player take this right now (pack or free hands)? */
-export const canCarry = (kind, id) => (sizeOf(kind, id) === 1 && used('pack') + 1 <= CAPACITY.pack) || !held();
+export const canCarry = (kind, id) => sizeOf(kind, id) <= 4 && ((sizeOf(kind, id) === 1 && used('pack') + 1 <= CAPACITY.pack) || !held());
 /** hand a brand-new item to the player (detached part, store purchase). Check canCarry first. */
 export function giveToPlayer(kind, id, extra = {}) { const it = { uid: uid(), kind, id, loc: 'world', ...extra }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
 function takeOnto(it) {
@@ -59,6 +59,7 @@ export function dropNearPlayer(kind, id) { const p = near(1.8, 1.4); spawnItem(k
 
 export function pickUp(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
   commit(); say(`${nameOfItem(it)} → ${where === 'pack' ? 'pack' : 'hands'}`);
 }
@@ -135,4 +136,6 @@ export function seedWorld(bodyId) {
   for (const s of spots) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
   save();
 }
+/** the yard in front of the garage, where a lifted-off body shell is set down */
+export function yardSpot(k = 0) { const [x, z] = toWorld(SITES.garage, -4 + (k % 3) * 4.5, 13 + Math.floor(k / 3) * 5); return { x, z }; }
 export const inGarageZone = (x, z) => Math.hypot(x - SITES.garage.x, z - SITES.garage.z) < 20;

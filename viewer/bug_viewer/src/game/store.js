@@ -51,7 +51,7 @@ export function interact(id) {
     const p = game.pose; if (p) game.walkStart = { x: p.x + Math.cos(p.h) * 2.6, z: p.z - Math.sin(p.h) * 2.6, yaw: p.h + Math.PI };
     game.onFoot = true; emit();
   }
-  else if (id === 'tarp') say("Al: 'That one's not running yet, kid. Give me a month.'");
+  else if (id === 'tarp') say("Al: 'The pickup? Good truck, no motor. Give me a month and she's yours.'");
   else if (id === 'al') say(lines[(game.alLine = ((game.alLine ?? -1) + 1)) % lines.length]);
   else if (id === 'pump') { if (game.fueled) say('Tank is already full.'); else if (game.cash < 25) say('Not enough cash for gas.'); else { addCash(-25); game.fueled = true; say('Tank filled up — $25'); } }
   else if (id === 'wash') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }

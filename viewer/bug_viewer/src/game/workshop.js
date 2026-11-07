@@ -34,6 +34,12 @@ export function carLocal() {
 export function planFit(it, b, zone) {
   const ctx = { zone, tools: toolsHere(), open: openCovers() };
   const body = bodyById[b.body];
+  if (it.kind === 'shell') {
+    const slot = slotById(DEF, 'shell'), r = checkFit(DEF, b, slot, { ...ctx, zone: undefined });
+    const pose = game.pose, far = pose && Math.hypot(it.x - pose.x, it.z - pose.z) > 16;
+    if (r.ok && far) return { ok: false, why: 'The shell has to be next to the chassis (within 16 m) to lower it back on.' };
+    return { ...r, slotName: 'body shell', apply: bb => ({ build: withSlot(DEF, bb, 'shell', true), drops: [] }) };
+  }
   if (it.kind === 'stock' && it.id === 'wheel') {   // a loose wheel goes on the nearest bare hub (blueprint §3.4)
     const bare = DEF.slots.filter(s => s.wheel && !isFitted(DEF, b, s.id)); if (!bare.length) return { ok: false, why: 'All four wheels are on.' };
     if ((it.set || 'stock') !== b.wheels) return { ok: false, why: `That wheel doesn't match the other tires on the car.` };
@@ -75,6 +81,7 @@ export function planDetach(slotId, b, zone) {
   let r = checkDetach(DEF, b, slot, ctx);
   const mods = slotId === 'engine' ? Object.entries(b.parts).filter(([s]) => UPGRADE_FIT[s]?.needsEngine) : [];
   if (r.ok && mods.length) r = { ok: false, why: `Take the ${mods.map(([, id]) => partById[id].label.toLowerCase()).join(', ')} off the engine first.` };
+  if (slotId === 'shell') return { ...r, item: ['shell', b.body], toYard: true, apply: bb => withSlot(DEF, bb, 'shell', false) };
   const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels }] : ['stock', slotId];
   return { ...r, item, apply: bb => { let n = withSlot(DEF, bb, slotId, false); if (slotId === 'engine') { const p = { ...n.parts }; delete p.engine; n = { ...n, parts: p }; } return n; } };
 }

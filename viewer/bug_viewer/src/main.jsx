@@ -12,11 +12,11 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
-import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, sizeOf, nameOfItem } from './game/items.js';
+import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel } from './game/ui.jsx';
+import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
@@ -97,6 +97,7 @@ function App() {
   const doDetach = slotId => {
     const b = buildRef.current, plan = planDetach(slotId, b);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
+    if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n); spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return rebuild(normalize(plan.apply(b))); }
     const [k, id, extra] = plan.item, name = nameOfItem({ kind: k, id, ...(extra || {}) });
     if (canCarry(k, id)) { giveToPlayer(k, id, extra); say(`Took off: ${name}`); }
     else if (inGarageZone(game.pos.x, game.pos.z)) { giveToGarage(k, id, extra); say(`Took off: ${name} — hands full, so it went on the garage shelves.`); }
@@ -121,7 +122,7 @@ function App() {
   const worldInteract = id => {
     if (id === 'shop') setPanel('shop');
     else if (id === 'bug') setPanel('dealer');
-    else if (id.startsWith('item:')) pickUp(+id.slice(5));
+    else if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); if (it?.kind === 'shell') setPanel('shell:' + it.uid); else pickUp(+id.slice(5)); }
     else if (id.startsWith('box:')) { searchBox(id.slice(4)); setPanel(id); }
     else if (id === 'car:fit') doFit(game.carPlan?.uid);
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
@@ -147,7 +148,7 @@ function App() {
     const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null && !game.rebuilding) setPanel('pause'); };
     const key = e => {
       const p = panelRef.current;
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('box:')) resume(); }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
@@ -180,7 +181,7 @@ function App() {
     const w = wheelSets.find(x => wheelSetFits(x, body.id) && resolve(setWheels(nb, x.id)).tire);
     return w ? setWheels(nb, w.id) : nb;
   };
-  useEffect(() => { buildRef.current = build; saveBuild(build); try { history.replaceState(null, '', `#${encodeBuild(build)}`); } catch {} }, [build]);
+  useEffect(() => { buildRef.current = build; if (mode === 'play') saveBuild(build); try { history.replaceState(null, '', `#${encodeBuild(build)}`); } catch {} }, [build, mode]);   // only a build you're playing is saved (the title/customizer must not overwrite your car)
 
   const visibleSlots = slots.filter(s => (filter === 'All' || s.category === filter) && parts.some(p => p.slot === s.id && partState(p, body) !== 'hidden'));
   const active = r.active.length + (wheelSet.kind !== 'stock' ? 1 : 0);
@@ -265,6 +266,7 @@ function App() {
     {panel === 'dealer' && <DealerPanel onBuy={() => { if (buyCar('bug', 1800)) say("Al: 'She's yours. Keys are in the ignition. Probably.'"); }} onDrive={() => { interact('enter'); resume(); }} onClose={resume} />}
     {panel?.startsWith('box:') && <ContainerPanel id={panel.slice(4)} onClose={resume} />}
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
+    {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
     {panel === 'workshop' && <WorkshopPanel build={build} onFit={doFit} onDetach={doDetach} onDetachUpgrade={doDetachUpgrade} onCover={toggleCover} onClose={resume} />}
     {panel === 'store' && <StorePanel onBuy={storeBuy} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}

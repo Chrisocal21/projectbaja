@@ -9,14 +9,14 @@ import { carLocal, fitCandidate, driveable, whyNotDrive, DEF, openCovers } from 
 import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
-  shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Peek under the tarp', al: 'Press E — Talk to Al',
+  shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
   bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
 };
 export const promptText = id => {
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
-  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? `Press E — Pick up ${nameOfItem(it)}` : ''; }
+  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Press E — Pick up ${nameOfItem(it)}`) : ''; }
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
@@ -109,7 +109,7 @@ export default function Walker({ world, sun }) {
     const cl = foot && pose ? carLocal() : null;
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
-    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, 2.4, true, 0.5);
+    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5);
     if (foot) for (const c of containers) consider('box:' + c.id, c.x, c.z, 2.2, true, 0.55);
     if (pose) {
       if (foot && cl?.near && (!best || bd > 0.9)) {

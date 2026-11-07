@@ -41,7 +41,7 @@ export function DealerPanel({ onBuy, onDrive, onClose }) {
         {owned ? <button className="buy" onClick={onDrive}>Drive it home</button> : <button className="buy" disabled={!afford} onClick={onBuy}>{afford ? 'Buy the Bug' : 'Not enough cash'}</button>}
       </div>
       <div className="car-card locked">
-        <h3>??? (under the tarp)</h3><small>"Another month, kid. Needs a motor."</small>
+        <h3>'78 Half-ton Pickup</h3><small>"Good bones, no motor. Another month, kid."</small>
         <p className="price">$2,300</p><button disabled>Not available yet</button>
       </div>
     </div>
@@ -171,6 +171,20 @@ export function WorkshopPanel({ build, onFit, onDetach, onDetachUpgrade, onCover
     {reach.filter(it => it.kind === 'part' && partById[it.id]?.slot !== 'engine' || it.kind === 'wheel' || it.kind === 'rim').map(it => { const plan = planFit(it, build); return <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{it.loc === 'car' ? 'in the car' : it.loc === 'pack' ? 'in your pack' : 'in your hands'}{plan.ok ? '' : ` · ${plan.why}`}</small></span><span className="inv-btns"><button disabled={!plan.ok} onClick={() => onFit(it.uid)}>Fit</button></span></div>; })}
     <div className="menu"><button className="big" onClick={onClose}>Close (Esc)</button></div>
     <p className="hint">Parts come off into your hands or pack. Engines need the hoist and tires the jack, both in your garage. Covers can be opened here or at the car.</p></div></div>;
+}
+
+/** a lifted-off body shell sitting in the yard */
+export function ShellPanel({ uid, onFit, onScrap, onClose }) {
+  useGame();
+  const it = game.items.find(i => i.uid === uid); if (!it) return null;
+  const plan = game.build ? planFit(it, game.build) : { ok: false, why: '' };
+  return <div className="overlay"><div className="card inv"><h2>{nameOfItem(it).toUpperCase()}</h2>
+    <p className="hint">A bare body shell. Too big to carry — it needs a trailer to go anywhere. Lower it back onto the chassis with the garage hoist, or sell it for scrap.</p>
+    <div className="menu">
+      <button className="big" disabled={!plan.ok} onClick={() => onFit(uid)}>Lower it onto the chassis{plan.ok ? '' : ` — ${plan.why}`}</button>
+      <button onClick={() => onScrap(uid)}>Scrap it ($150)</button>
+      <button onClick={onClose}>Leave it</button>
+    </div></div></div>;
 }
 
 /** Dusty's corner store */

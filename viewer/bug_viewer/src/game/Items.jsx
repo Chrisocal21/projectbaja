@@ -5,6 +5,7 @@ import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held } from './items.js';
 import { containers } from './loot.js';
 import { height } from '../worlds/testcenter.js';
+import { ShellProp } from '../BuildModel.jsx';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
 const labels = new Map();
@@ -45,7 +46,8 @@ export default function Items() {
     g.rotation.set(0, camera.rotation.y, 0);
   });
   return <>
-    {loose.map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + (it.y || 0), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
+    {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + 0.06, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
+    {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + (it.y || 0), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     {containers.map(c => <group key={c.id} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>)}
     <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={0.75} />}</group>
   </>;

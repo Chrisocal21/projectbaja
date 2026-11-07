@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { resolve, partFile } from './build.js';
+import { resolve, partFile, bodyById } from './build.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
 import { applyWeathering, kindForMaterial } from './weather.js';
@@ -10,6 +10,7 @@ import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js
 import { game, useGame } from './game/store.js';
 import { BUG } from './rules/vehicles.js';
 import ProcEngine from './Engine.jsx';
+import RollingChassis from './Chassis.jsx';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
 /** Meshes exported without normals render as raw flat facets (bright shards) - give them smooth normals. */
@@ -31,7 +32,7 @@ function inspectSelection(e, onSelect, asset) {
 }
 
 /** One GLB. `mask` hides meshes by name prefix (only when isBase), `paint` recolours matching materials. */
-function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null, opens = [] }) {
+function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null, opens = [], only = null }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   const clone = useMemo(() => {
     const c = scene.clone(true);
@@ -44,11 +45,11 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
     });
     return c;
   }, [scene]);
-  const maskKey = mask.join('|') + '#' + hide.join('|');
+  const maskKey = mask.join('|') + '#' + hide.join('|') + '#' + (only || []).join('|');
   useEffect(() => {
     clone.traverse(o => {
       if (!o.isMesh) return;
-      o.visible = !((isBase && mask.some(prefix => sourceNameFor(o).startsWith(prefix))) || hide.some(prefix => sourceNameFor(o).startsWith(prefix)));
+      o.visible = !((isBase && mask.some(prefix => sourceNameFor(o).startsWith(prefix))) || hide.some(prefix => sourceNameFor(o).startsWith(prefix))) && (!only || only.some(prefix => sourceNameFor(o).startsWith(prefix)));
       const wheel = isWheelNode(o) || (o.parent && isWheelNode(o.parent));
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
         if (!m) return;
@@ -183,16 +184,25 @@ function Fitted({ file, fit, children }) {
   return <group position={t.pos} scale={t.scale}><group quaternion={t.quat}><group position={[-t.center.x, -t.center.y, -t.center.z]}>{children}</group></group></group>;
 }
 
+/** a bare body shell (all panels, glass and trim off) standing on its own, e.g. out in the yard */
+export function ShellProp({ bodyId }) {
+  const body = bodyById[bodyId] || bodyById.classic;
+  const mask = [...(body.pieces || []).flatMap(p => p.match), ...(body.wheelHide || []), 'B_Interior'];
+  return <Model file={body.file} mask={mask} isBase />;
+}
+
 export default function BuildModel({ build, wireframe, onSelect, drive = false }) {
   const r = useMemo(() => resolve(build), [build]);
   const common = { wireframe, onSelect, channels: r.channels };
   useGame();
+  const shellOff = (build.stripped || []).includes('shell');
   const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w));
   const bareMask = bare.map(w => ({ FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' })[w]);
   const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: [...((r.body.pieces || []).find(x => x.id === c.piece)?.match || []), ...(c.extra || [])] })) : [];
   return <>
     <group position={[0, r.lift, 0]}>
-      <Model file={r.body.file} mask={[...r.masks, ...bareMask]} isBase wheelDy={-r.lift} opens={opens} {...common} />
+      {shellOff && <RollingChassis pedals={!build.hidden.includes('pedals')} />}
+      <Model file={r.body.file} mask={[...r.masks, ...bareMask]} only={shellOff ? ['B_FLWheel', 'B_FRWheel', 'B_BLWheel', 'B_BRWheel'] : null} isBase wheelDy={-r.lift} opens={opens} {...common} />
       {!(build.stripped || []).includes('engine') && <ProcEngine mods={build.parts} stockExhaust={!r.active.some(x => x.slot === 'exhaust')} />}
       {r.active.filter(p => !p.attach && !p.engineMod && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];

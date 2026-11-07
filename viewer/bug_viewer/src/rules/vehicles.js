@@ -59,7 +59,9 @@ export const BUG = {
     S('wheelRL', 'Rear-left wheel', { wheel: 'RL', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
     S('wheelRR', 'Rear-right wheel', { wheel: 'RR', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
   ],
-  storage: { cab: 4, roof: 6 },   // roof deck only with a roof rack fitted
+  storage: { cab: 4, roof: 6 },
+  // the body shell: everything with a body piece mounts on it, so it only lifts off a stripped car (garage hoist)
+  shell: { id: 'shell', name: 'Body shell', size: 9, tool: 'hoist' },   // roof deck only with a roof rack fitted
   camera: { height: 1.3, dist: 9 },
   // Al sells it with a dead battery pulled out: your first job is getting it running
   soldStripped: ['battery'],
@@ -76,5 +78,7 @@ export const UPGRADE_FIT = {
 };
 export const WHEEL_FIT = { tool: 'jack', zone: 'any' };
 
+BUG.slots.push(S('shell', 'Body shell', { tool: 'hoist', size: 9, zone: 'any' }));
+for (const s of BUG.slots) if (s.piece) s.after = [...s.after, 'shell'];
 export const VEHICLES = { bug: BUG };
 export const slotById = (def, id) => def.slots.find(s => s.id === id);

@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import { game, useGame } from '../game/store.js';
+import Pickup from '../Pickup.jsx';
 
 /** Honest Al's Used Cars: a dusty lot at the edge of the desert where the player starts, on foot, with a pocket of cash. */
 export const LOT = { x0: -30, x1: 30, z0: -20, z1: 22, gate: 3.2 };
 export const BUG_PRICE = 1800, SECOND_PRICE = 2300;
-const BUG = { x: 9, z: -4, r: 0.6 }, TARP = { x: -6, z: -6, r: -0.4 }, OFFICE = { x: -18, z: -13 };
+const BUG = { x: 9, z: -4, r: 0.6 }, TARP = { x: -6.5, z: -6, r: -0.4 }, OFFICE = { x: -18, z: -13 };
 export const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 
 export const canvasTex = (w, h, draw, repeat) => {
@@ -146,9 +147,9 @@ export default function LotSite() {
   useGame();
   const owned = game.owned.has('car:bug');
   return <>
-    <Ground /><Fence /><Office /><Bunting /><Props /><TarpCar />
+    <Ground /><Fence /><Office /><Bunting /><Props /><group position={[TARP.x, 0.06, TARP.z]} rotation={[0, TARP.r, 0]}><Pickup /></group>
     <PriceSign at={[BUG.x + 3.6, BUG.z + 3.4]} rot={-0.45} lines={owned ? [['SOLD', 120, '#fff']] : [["'71 CLASSIC BUG", 52], ['RUNS (MOSTLY)', 38, '#b2362a'], [`$${BUG_PRICE.toLocaleString()}`, 70]]} bg={owned ? '#b2362a' : '#f2e6c0'} />
-    <PriceSign at={[TARP.x + 3.6, TARP.z + 3.2]} rot={-0.2} lines={[['UNDER THE TARP', 46], ['NOT READY YET', 36, '#b2362a'], [`$${SECOND_PRICE.toLocaleString()}`, 70]]} />
+    <PriceSign at={[TARP.x + 3.6, TARP.z + 3.2]} rot={-0.2} lines={[["'78 PICKUP", 56], ['NEEDS A MOTOR', 36, '#b2362a'], [`$${SECOND_PRICE.toLocaleString()}`, 70]]} />
   </>;
 }
 export { BUG, TARP };
