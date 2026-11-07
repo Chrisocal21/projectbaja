@@ -11,7 +11,7 @@ export function terrainHeight(x, z) {
   let h = Math.sin(x * 0.045) * Math.cos(z * 0.04) * 4.5
         + Math.sin(x * 0.11 + 1.3) * Math.sin(z * 0.09) * 1.6
         + Math.sin(x * 0.31) * Math.cos(z * 0.27 + 2) * 0.35
-        + Math.sin(x * 1.3 + z * 0.4) * Math.sin(z * 1.1 - x * 0.3) * 0.16;   // rough ground so the suspension has work to do
+        + Math.sin(x * 1.3 + z * 0.4) * Math.sin(z * 1.1 - x * 0.3) * 0.3;   // rough ground so the suspension has work to do
   // flat start pad so the car spawns on level ground
   h *= smooth(10, 32, Math.hypot(x, z));
   // jump ramp: runs along +Z from z=30..42, 28m long run-up, drops off at the lip
@@ -152,6 +152,26 @@ function Gates({ race }) {
     <torusGeometry args={[3.4, 0.28, 8, 28]} /><meshBasicMaterial ref={m => (mats.current[i] = m)} transparent depthWrite={false} /></mesh>)}</>;
 }
 
+// visible coilovers: spring + shock body + chrome rod, stretching between a body mount and the moving hub
+const _geo = {};
+function shockGeo() {
+  if (_geo.spring) return _geo;
+  const pts = Array.from({ length: 181 }, (_, i) => { const t = i / 180, a = t * Math.PI * 2 * 9; return new THREE.Vector3(Math.cos(a) * 0.075, 0.08 + t * 0.84, Math.sin(a) * 0.075); });
+  _geo.spring = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 180, 0.013, 6);
+  _geo.body = new THREE.CylinderGeometry(0.045, 0.045, 1, 12).translate(0, 0.5, 0);
+  _geo.rod = new THREE.CylinderGeometry(0.02, 0.02, 1, 8).translate(0, 0.5, 0);
+  return _geo;
+}
+function makeShock() {
+  const g = shockGeo(), grp = new THREE.Group();
+  const spring = new THREE.Mesh(g.spring, new THREE.MeshStandardMaterial({ color: '#d9381e', roughness: 0.4, metalness: 0.3 }));
+  const body = new THREE.Mesh(g.body, new THREE.MeshStandardMaterial({ color: '#1c1c1e', roughness: 0.5, metalness: 0.6 }));
+  const rod = new THREE.Mesh(g.rod, new THREE.MeshStandardMaterial({ color: '#d0d0d4', roughness: 0.2, metalness: 0.9 }));
+  grp.add(spring, body, rod); grp.userData = { spring, body, rod };
+  return grp;
+}
+const _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
+
 function Vehicle({ children, hud, dims, race }) {
   const WHEELBASE = dims.wheelbase, TRACK = dims.track, CAB_EYE = dims.cabEye;
   const group = useRef();
@@ -250,6 +270,7 @@ function Vehicle({ children, hud, dims, race }) {
     const g = group.current;
     if (!rig.current && g.children.length > 0 && rigTries.current++ < 300) {          // models have loaded
       const r = buildRig(g);
+      r.shocks = r.wheels.map(w => { const m = makeShock(); g.add(m); const c = w.steer.position; w.upper = new THREE.Vector3(c.x * 0.8, c.y + 0.6, c.z); return m; });
       if (r.wheels.length || r.wheel) { rig.current = r; console.info(`[drive] rigged ${r.wheels.length} wheel groups, steering wheel: ${!!r.wheel}`); }
     }
     g.position.set(st.x, st.y + su.bob, st.z);
@@ -260,8 +281,16 @@ function Vehicle({ children, hud, dims, race }) {
         const lx = w.steer.position.x, lz = w.steer.position.z;
         const hW = terrainHeight(st.x + rx * -lx + fx * lz, st.z + rz * -lx + fz * lz);       // ground under this wheel (+X is vehicle left)
         const planeY = groundY - RIDE_HEIGHT + (lz * Math.sin(st.pitch) - (-lx) * Math.sin(st.roll));
-        w.off += ((st.air ? -0.12 : THREE.MathUtils.clamp((hW - planeY) * 1.8, -0.3, 0.3)) - w.off) * Math.min(1, dt * 16);
+        w.vel ??= 0;
+        const tgt = st.air ? -0.2 : THREE.MathUtils.clamp((hW - planeY) * 2, -0.32, 0.32);
+        w.vel += (110 * (tgt - w.off) - 7 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.34, 0.34);   // underdamped = free-flowing
         w.steer.position.y = w.y0 + w.off - su.bob; w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
+      rig.current.wheels.forEach((w, i) => {
+        const m = rig.current.shocks[i], lo = w.steer.position;
+        _d.copy(w.upper).sub(lo); const len = _d.length();
+        m.position.copy(lo); m.quaternion.setFromUnitVectors(_up, _d.normalize());
+        const u = m.userData; u.spring.scale.y = len; u.body.scale.y = len * 0.5; u.rod.position.y = len * 0.42; u.rod.scale.y = len * 0.58;
+      });
       if (rig.current.wheel) rig.current.wheel.rotation.z = -st.steer * 3.5;
     }
 
