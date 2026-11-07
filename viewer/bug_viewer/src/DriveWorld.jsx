@@ -47,9 +47,7 @@ function Terrain() {
   return <mesh geometry={geo} receiveShadow><meshStandardMaterial vertexColors roughness={1} flatShading /></mesh>;
 }
 
-function Scenery() {
-  const rocks = useRef(), cacti = useRef();
-  const items = useMemo(() => {
+const ITEMS = (() => {
     let s = 12345; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
     const r = [], c = [];
     for (let i = 0; i < 260; i++) {
@@ -58,7 +56,13 @@ function Scenery() {
       (rnd() < 0.65 ? r : c).push({ x, z, s: 0.5 + rnd() * 1.6, r: rnd() * 6 });
     }
     return { r, c };
-  }, []);
+})();
+// solid obstacles (x, z, radius) the car collides with
+const OBSTACLES = [...ITEMS.r.map(p => [p.x, p.z, p.s * 1.1]), ...ITEMS.c.map(p => [p.x, p.z, 0.3 * p.s + 0.15])];
+
+function Scenery() {
+  const rocks = useRef(), cacti = useRef();
+  const items = ITEMS;
   useEffect(() => {
     const m = new THREE.Object3D();
     items.r.forEach((p, i) => { m.position.set(p.x, terrainHeight(p.x, p.z) + p.s * 0.25, p.z); m.scale.set(p.s, p.s * 0.7, p.s * 1.2); m.rotation.set(0, p.r, 0); m.updateMatrix(); rocks.current.setMatrixAt(i, m.matrix); });
@@ -233,6 +237,16 @@ function Vehicle({ children, hud, dims, race }) {
     }
 
     st.x += fx * st.v * dt; st.z += fz * st.v * dt;
+    // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
+    for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or] of OBSTACLES) {
+      const cx = st.x + fx * off, cz = st.z + fz * off, dx = cx - ox, dz = cz - oz, min = or + 0.85;
+      if (Math.abs(dx) > min || Math.abs(dz) > min) continue;
+      const d = Math.hypot(dx, dz);
+      if (d < min && d > 1e-4) {
+        st.x += (dx / d) * (min - d); st.z += (dz / d) * (min - d);
+        if (st.v * (fx * dx + fz * dz) < 0) st.v *= 0.25;   // moving towards the obstacle
+      }
+    }
     st.x = Math.max(-HALF, Math.min(HALF, st.x)); st.z = Math.max(-HALF, Math.min(HALF, st.z));
 
     // --- wheel contact heights ---
