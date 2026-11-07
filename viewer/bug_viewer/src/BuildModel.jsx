@@ -119,7 +119,8 @@ function SpareBracket({ spare }) {
   const [cx, cy, cz] = spare.center, hubZ = cz + 0.2, mat = <meshStandardMaterial color="#2a2d30" metalness={0.55} roughness={0.45} />;
   const hub = new THREE.Vector3(cx, cy, hubZ);
   const tube = (to, r = 0.03) => { const d = to.clone().sub(hub), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); return { pos: hub.clone().add(to).multiplyScalar(0.5).toArray(), q, len: d.length(), r, to }; };
-  const anchors = [new THREE.Vector3(-0.34, cy - 0.28, -1.9), new THREE.Vector3(0.34, cy - 0.28, -1.9), new THREE.Vector3(0, 0.46, -1.94)];
+  // on the Stage 2 rear cage the arms clamp straight onto its outer tube; otherwise they reach in to the bumper bar
+  const anchors = (spare.anchors || [[-0.34, cy - 0.28, -1.9], [0.34, cy - 0.28, -1.9], [0, 0.46, -1.94]]).map(a => new THREE.Vector3(...a));
   return <group>
     <mesh position={hub.toArray()} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.16, 0.16, 0.04, 24]} />{mat}</mesh>
     {anchors.map((a, i) => { const t = tube(a); return <group key={i}>
@@ -169,7 +170,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
         const m = <Model file={f} {...common} channels={pch} material={p.material} />;
-        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.spare ? <><SpareTire spare={p.spare} r={r} /><SpareBracket spare={p.spare} /></> : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}</group>;
+        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}</group>;
       })}
     </group>
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
