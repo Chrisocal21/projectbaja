@@ -22,6 +22,24 @@ export function terrainHeight(x, z) {
   return h;
 }
 
+// ---------- ground types: grip (mu), rolling resistance multiplier (rr), colour ----------
+const SURF = {
+  dirt: { name: 'Packed dirt', mu: 0.72, rr: 1.0, color: '#a98c5a' },
+  sand: { name: 'Loose sand', mu: 0.45, rr: 2.2, color: '#d6bd86' },
+  rock: { name: 'Rock', mu: 0.85, rr: 0.8, color: '#7d7568' },
+  mud:  { name: 'Mud', mu: 0.30, rr: 3.0, color: '#5a4630' },
+};
+export function surfaceAt(x, z) {
+  const h = terrainHeight(x, z);
+  const slope = Math.abs(terrainHeight(x + 1, z) - h) + Math.abs(terrainHeight(x, z + 1) - h);
+  const n = Math.sin(x * 0.013 + 1) * Math.cos(z * 0.011) + 0.5 * Math.sin(z * 0.021 - x * 0.009);
+  if (Math.hypot(x, z) < 30) return SURF.dirt;
+  if (slope > 0.9) return SURF.rock;
+  if (h < -2.4 && n > -0.2) return SURF.mud;
+  if (n > 0.4) return SURF.dirt;
+  return SURF.sand;
+}
+
 function Terrain() {
   const geo = useMemo(() => {
     const seg = 500;
@@ -36,7 +54,7 @@ function Terrain() {
       pos.setY(i, y);
       const slope = Math.abs(terrainHeight(x + 1, z) - y) + Math.abs(terrainHeight(x, z + 1) - y);
       const noise = (Math.sin(x * 1.7) * Math.sin(z * 1.9) * 0.025 + Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.05 + Math.sin(x * 4.1) * Math.sin(z * 3.7) * 0.012);
-      c.set('#b79b63').lerp(new THREE.Color('#8a6e45'), Math.min(1, slope * 0.9)).lerp(new THREE.Color('#d8c08a'), Math.min(1, Math.max(0, (y + 2) * 0.08)));
+      c.set(surfaceAt(x, z).color).multiplyScalar(1 - Math.min(0.35, slope * 0.25));
       c.offsetHSL(0, 0, noise);
       col.set([c.r, c.g, c.b], i * 3);
     }
@@ -212,6 +230,7 @@ function Vehicle({ children, hud, dims, race }) {
 
   const sim = dt => {   // one fixed physics step
     const k = keys.current, st = s.current;
+    const sf = surfaceAt(st.x, st.z), grip = sf.mu / 0.7; st.surface = sf.name;
     if (k.KeyR) { Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0 }); race.current = newRace(); }
 
     const throttle = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
@@ -222,10 +241,10 @@ function Vehicle({ children, hud, dims, race }) {
 
     // --- longitudinal (only with traction) ---
     if (!st.air) {
-      if (throttle > 0) st.v += ACCEL * (1 - Math.max(0, st.v) / MAX_SPEED) * dt;
-      else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE : -ACCEL * 0.6) * dt;
-      if (k.Space) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), BRAKE * dt);
-      if (!throttle) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), ROLL_RES * dt);
+      if (throttle > 0) st.v += ACCEL * Math.min(1.1, grip) * (1 - Math.max(0, st.v) / MAX_SPEED) * dt;
+      else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE * Math.min(1, grip) : -ACCEL * 0.6) * dt;
+      if (k.Space) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), BRAKE * Math.min(1, grip) * dt);
+      if (!throttle) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), ROLL_RES * sf.rr * dt);
       st.v -= st.v * Math.abs(st.v) * DRAG * dt;
       // gravity along slope
       const e = 0.6;
@@ -234,7 +253,7 @@ function Vehicle({ children, hud, dims, race }) {
       st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
 
       // --- steering ---
-      const maxSteer = 0.62 / (1 + Math.abs(st.v) * 0.09);
+      const maxSteer = 0.62 / (1 + Math.abs(st.v) * 0.09) * Math.min(1, 0.4 + grip * 0.6);
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
       st.h += (st.v / WHEELBASE) * Math.tan(st.steer) * dt;
     }
@@ -358,7 +377,7 @@ function Vehicle({ children, hud, dims, race }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
