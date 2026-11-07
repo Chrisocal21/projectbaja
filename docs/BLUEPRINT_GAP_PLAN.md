@@ -51,20 +51,24 @@ Legend: ✅ have it · 🟡 partial / different · ❌ missing.
 7. **Hauling becomes physical.** Trailers hitch to the truck; the trailer carries the huge things (engines, cages, a whole donor shell). Cargo weight makes the truck slower and harder to stop.
 8. **Building your compound (later).** Grid-placed containers, sheds, a lift and garage doors at your property; pieces arrive by trailer.
 
-## Decisions we need from you
+## Decisions (owner, 2026-11-07)
 
-- **Driveable rule for the Bug:** must it be complete to drive, or can you drive a rough shell as long as engine/battery/steering/wheels are in? (Recommend: rough shell drives, which fits Baja.)
-- **Physics:** keep our own sim and adopt the blueprint's formulas (power-limited force, drag/rolling, steering curve), or switch to a physics engine with raycast wheels. (Recommend: keep ours; it already does landings and rollovers and has tests.)
-- **Inventory model:** stay with sized parts (small…huge) for parts and add *stacks* only for consumables (paint, discs, polish, scrap, repair kits)? (Recommend: yes.)
-- **Grid building:** in scope for Baja (your yard/compound), or park it?
+- **Rough shell drives.** Engine, battery, steering wheel, driver's seat and tires are needed to drive; body panels are optional.
+- **Keep our own physics.** Borrow the blueprint's formulas only where they help. Baja is a racing and driving game first, so the handling stays arcade-sim and fast, not a slow restoration-sim feel.
+- **Sized parts + stacks for consumables.** Parts stay sized items (small → huge); paint, discs, polish, scrap and repair kits become stacks.
+- **Grid building is in, as your property.** Upgrade the yard around the garage and the inside of the garage: storage racks, car lifts, an office with a computer, office decor from small to big and funny. Build fences around lots, add on to the garage you own, and build out your own car lot to store, sell or scrap vehicles.
 
 ## Build order
 
 Each phase is playable on its own and adds rule modules with node tests (`src/rules/*.js`), keeping rules out of React.
 
-1. **Vehicle as data + restoration rules.** `VehicleDef` for the Bug (physics, zones, storage, camera). Restoration slots built from the Bug's 28 named pieces plus engine/battery/wheels, with `after`, `cover`, `tool`, `carry`, `function`. Driveable rule. Hood/engine-lid open-close. Zone-aware E (hood / driver / passenger / rear). Tools as items (wrench, jack, hoist). Workshop panel. Al's Bug sold missing a battery. *(rules: `restore.js`)*
+1. **Vehicle as data + restoration rules.** ✅ *first slice done (see below)* `VehicleDef` for the Bug (physics, zones, storage, camera). Restoration slots built from the Bug's 28 named pieces plus engine/battery/wheels, with `after`, `cover`, `tool`, `carry`, `function`. Driveable rule. Hood/engine-lid open-close. Zone-aware E (hood / driver / passenger / rear). Tools as items (wrench, jack, hoist). Workshop panel. Al's Bug sold missing a battery. *(rules: `restore.js`)*
 2. **Condition and wear.** Condition on every item and fitted part. Effects wired into the sim (power, grip, brakes, sag, steer wander). Damage from impacts/terrain/slip. HUD warnings. Repair kits + bench repair. *(rules: `wear.js`)*
 3. **Second vehicle: the truck.** Pickup `VehicleDef` with an open-bed capacity model and visible cargo, cargo mass in handling, saved positions for all vehicles, "parts runner within 8 m", stacks for consumables. Dealer roster with availability over time.
 4. **Paint chain.** Per-panel `{rust, painted, color, gloss}`, shader per panel, grinder/spray/buffer, hold-E progress, colour picker.
 5. **Towing + recovery + fuel.** Trailer with hitch, recovery gated by jack/winch, real fuel and fuel tank, donor wrecks around the map to strip.
-6. **Grid building.** Compound at the garage: containers, sheds, lift, garage doors, hauled in by trailer.
+6. **Grid building: your property.** Snap-grid yard and garage upgrades: storage racks, car lifts, garage add-ons, fences, an office with a computer (buy/sell listings, part orders) and decor from small to big and funny; your own car lot to store, sell and scrap vehicles. Big pieces hauled in by trailer.
+
+## Progress
+
+- **Phase 1, first slice (2026-11-07):** `src/rules/vehicles.js` (Bug VehicleDef: zones, covers, 18 restoration slots), `src/rules/restore.js` (fit/detach/driveable rules, 7 tests), `src/game/workshop.js` (glue). E at the car is zone-aware (front hood, rear engine lid, driver/passenger doors); lids swing open; fit from hands or pack; X opens the workshop panel (fit/detach every slot, bolt-ons, lids). Tools: wrench (you start with one), floor jack, garage hoist. Al sells the Bug without its battery; Dusty's store sells batteries, wrenches and jacks. Still to do in phase 1: wheels as 4 separate hubs, more vehicle data (physics/camera) moving into the VehicleDef.

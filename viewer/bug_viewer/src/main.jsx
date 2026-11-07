@@ -12,8 +12,11 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
-import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, boxAtShop, seedWorld, searchBox } from './game/items.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, RemovePanel, ContainerPanel, InventoryPanel } from './game/ui.jsx';
+import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, sizeOf, nameOfItem } from './game/items.js';
+import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
+import { isDriveable } from './rules/restore.js';
+import { GARAGE_DRIVE } from './worlds/siteData.js';
+import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
@@ -74,24 +77,41 @@ function App() {
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
   const startPlay = (kind, w) => { Object.assign(game, { dev: true, onFoot: false, start: 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
   const startStory = cont => {
-    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize(defaultBuild())); } else if (game.build) setBuildRaw(normalize(game.build));
-    Object.assign(game, { dev: false, onFoot: !cont, start: cont ? 'garage' : 'lot', walkStart: cont ? null : WALK_START, walkPose: null, pose: null, keepPose: false, prompt: '', target: null, fueled: false });
+    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: DEF.soldStripped })); } else if (game.build) setBuildRaw(normalize(game.build));
+    const gh = GARAGE_DRIVE.h, besideCar = { x: GARAGE_DRIVE.x + Math.cos(gh) * 2.6, z: GARAGE_DRIVE.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
+    Object.assign(game, { dev: false, onFoot: true, open: new Set(), start: cont ? 'garage' : 'lot', walkStart: cont ? besideCar : WALK_START, walkPose: null, pose: null, keepPose: false, prompt: '', target: null, fueled: false });
     setPlay({ kind: 'drive', world: 'test' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
   };
   // the 3D scene is rebuilt when the car changes; keep the mouse captured through it
   const rebuild = nb => { game.rebuilding = true; update(nb); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 900); };
-  const installHeld = () => {
-    const it = held(); if (!it) return;
-    const b = buildRef.current, bd = bodyById[b.body];
-    if (it.kind === 'part' && partState(partById[it.id], bd) !== 'ok') return say("That doesn't fit this car.");
-    if (it.kind === 'wheel' && !wheelSetFits(wheelById[it.id], b.body)) return say("Those don't fit this car.");
-    const nb = it.kind === 'part' ? setPart(b, partById[it.id].slot, it.id) : it.kind === 'wheel' ? setWheels(b, it.id) : setRim(b, it.id);
-    game.items = game.items.filter(x => x !== it); dropRemoved(b, nb);
-    say(`Installed: ${nameOf(it.kind, it.id, b.body)}`); rebuild(nb);
+  // ---- restoration at the car (blueprint §3): fit from hands/pack, detach into hands/pack, open lids ----
+  const doFit = uidN => {
+    const it = game.items.find(i => i.uid === uidN); if (!it) return;
+    const b = buildRef.current, plan = planFit(it, b, panelRef.current === 'workshop' ? undefined : game.carZone);
+    if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
+    const before = isDriveable(DEF, b), res = plan.apply(b), nb = normalize(res.build);
+    game.items = game.items.filter(x => x !== it); res.drops.forEach(([k, id]) => dropNearPlayer(k, id)); dropRemoved({ ...b, parts: Object.fromEntries(Object.entries(b.parts).filter(([, id]) => !res.drops.some(d => d[1] === id))) }, nb);
+    say(!before && isDriveable(DEF, nb) ? `Fitted the ${plan.slotName.toLowerCase()} — she'll start now!` : `Fitted: ${plan.slotName}`); rebuild(nb);
   };
-  const removePart = (kind, id) => {
-    const b = buildRef.current, nb = kind === 'part' ? setPart(b, partById[id].slot, null) : kind === 'wheel' ? setWheels(b, 'stock') : setRim(b, 'steel');
-    dropRemoved(b, nb); say(`Took off: ${nameOf(kind, id, b.body)} — it's on the floor.`); setPanel(null); rebuild(nb);
+  const doDetach = slotId => {
+    const b = buildRef.current, plan = planDetach(slotId, b);
+    if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
+    if (!canCarry(...plan.item)) return say(sizeOf(...plan.item) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
+    giveToPlayer(...plan.item); say(`Took off: ${nameOfItem({ kind: plan.item[0], id: plan.item[1] })}`); rebuild(normalize(plan.apply(b)));
+  };
+  const doDetachUpgrade = catSlot => {
+    const b = buildRef.current, plan = planDetachUpgrade(catSlot, b);
+    if (!plan.ok) return say(plan.why);
+    if (!canCarry(...plan.item)) return say('Hands full — put that down first.');
+    const nb = normalize(plan.apply(b)); giveToPlayer(...plan.item);
+    for (const id of Object.values(b.parts)) if (id !== plan.item[1] && !Object.values(nb.parts).includes(id)) dropNearPlayer('part', id);   // things bolted to it come off too
+    say(`Took off: ${nameOf('part', plan.item[1], b.body)}`); rebuild(nb);
+  };
+  const storeBuy = (what, price) => {
+    if (game.cash < price) return say('Not enough cash.');
+    if (what === 'wash') return interact('wash');
+    const [k, id] = what.split(':'); if (!canCarry(k, id)) return say('Your hands are full.');
+    addCash(-price); giveToPlayer(k, id); say(`Bought: ${nameOfItem({ kind: k, id })}`);
   };
   const buyBoxed = (kind, id) => { const c = priceOf(kind, id); if (game.cash < c) return; addCash(-c); boxAtShop(kind, id); say(`Bought: ${nameOf(kind, id, build.body)} — boxed at the pickup area outside the shop.`); };
   const worldInteract = id => {
@@ -99,8 +119,11 @@ function App() {
     else if (id === 'bug') setPanel('dealer');
     else if (id.startsWith('item:')) pickUp(+id.slice(5));
     else if (id.startsWith('box:')) { searchBox(id.slice(4)); setPanel(id); }
-    else if (id === 'load') loadHeld();
-    else if (id === 'install') installHeld();
+    else if (id === 'car:fit') doFit(game.carPlan?.uid);
+    else if (id === 'car:cover') toggleCover(game.carPlan.id);
+    else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
+    else if (id === 'car:why') say(game.carPlan?.why || '');
+    else if (id === 'store') setPanel('store');
     else if (id === 'bench') { if (game.dev) setPanel('garage'); else say('Workbench: parts get fitted by hand — grab them, bring them here. (Coming soon.)'); }
     else interact(id);
   };
@@ -120,11 +143,11 @@ function App() {
     const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null && !game.rebuilding) setPanel('pause'); };
     const key = e => {
       const p = panelRef.current;
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer' || p === 'inv' || p === 'remove' || p?.startsWith('box:')) resume(); }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
-      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar && game.inGarage && !held()) setPanel('remove');
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key);
@@ -237,7 +260,8 @@ function App() {
     {panel === 'dealer' && <DealerPanel onBuy={() => { if (buyCar('bug', 1800)) say("Al: 'She's yours. Keys are in the ignition. Probably.'"); }} onDrive={() => { interact('enter'); resume(); }} onClose={resume} />}
     {panel?.startsWith('box:') && <ContainerPanel id={panel.slice(4)} onClose={resume} />}
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
-    {panel === 'remove' && <RemovePanel build={build} onRemove={removePart} onClose={resume} />}
+    {panel === 'workshop' && <WorkshopPanel build={build} onFit={doFit} onDetach={doDetach} onDetachUpgrade={doDetachUpgrade} onCover={toggleCover} onClose={resume} />}
+    {panel === 'store' && <StorePanel onBuy={storeBuy} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

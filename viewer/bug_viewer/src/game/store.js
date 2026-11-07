@@ -45,7 +45,7 @@ export function newGame() { game.cash = 2500; game.owned.clear(); game.unlockAll
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
 /** Press E on something in the world. Panels (shop, dealer, workbench) are opened by the app; everything else is handled here. */
 export function interact(id) {
-  const lines = ["Al: 'Two cars on the lot, one wallet. Pick one.'", "Al: 'The Bug's no beauty, but she's honest. Mostly.'", "Al: 'Parts? Take her to your garage and build it yourself.'"];
+  const lines = ["Al: 'Two cars on the lot, one wallet. Pick one.'", "Al: 'The Bug's no beauty, but she's honest. Mostly.'", "Al: 'Parts? Take her to your garage and build it yourself.'", "Al: 'Battery was dead so I pulled it. Dusty's gas station sells 'em.'"];
   if (id === 'enter') { game.onFoot = false; game.walkPose = null; emit(); }
   else if (id === 'exit') {
     const p = game.pose; if (p) game.walkStart = { x: p.x + Math.cos(p.h) * 2.6, z: p.z - Math.sin(p.h) * 2.6, yaw: p.h + Math.PI };
@@ -54,7 +54,7 @@ export function interact(id) {
   else if (id === 'tarp') say("Al: 'That one's not running yet, kid. Give me a month.'");
   else if (id === 'al') say(lines[(game.alLine = ((game.alLine ?? -1) + 1)) % lines.length]);
   else if (id === 'pump') { if (game.fueled) say('Tank is already full.'); else if (game.cash < 25) say('Not enough cash for gas.'); else { addCash(-25); game.fueled = true; say('Tank filled up — $25'); } }
-  else if (id === 'store') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }
+  else if (id === 'wash') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }
 }
 export function resetProgress() { game.cash = 500; game.owned.clear(); persist(); emit(); }
 

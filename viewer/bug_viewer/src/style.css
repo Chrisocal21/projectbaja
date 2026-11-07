@@ -51,6 +51,7 @@
 .hud-keys{position:absolute;left:18px;bottom:14px;color:#ffffffb0;font-size:12px;text-shadow:0 1px 3px #000;pointer-events:none}
 .hud-top{position:absolute;top:16px;left:18px;font:700 22px system-ui;color:#9be8ad;text-shadow:0 1px 4px #000;pointer-events:none}
 .card.inv{width:min(560px,94vw)}.inv-sec{margin:14px 0 4px;font:700 11px system-ui;letter-spacing:.12em;color:#9fb2b5}.inv-sec span{float:right;letter-spacing:0;font-weight:400}.inv-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #22302f}.inv-row small{display:block;color:#8aa0a3;font-size:11px}.inv-btns{display:flex;gap:6px}.inv-btns button{padding:5px 10px}
+.card.workshop{max-height:88vh;overflow:auto}.ws-bad{color:#f0a070}.ws-good{color:#9be8ad}.ws-bad small,.ws-good small{display:block;color:#8aa0a3}.ws-missing>span:first-child{color:#e6b98a}
 .hud-carry{position:absolute;right:18px;bottom:14px;text-align:right;color:#e8e2cc;font-size:12px;line-height:1.5;text-shadow:0 1px 3px #000;pointer-events:none}.hud-carry b{color:#ffd88a}
 .hud-prompt{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);background:#000a;border:1px solid #5be08a;color:#c9f5d4;padding:9px 18px;border-radius:8px;font-weight:700;pointer-events:none}
 .hud-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);background:#000b;border:1px solid #ffd23f;color:#ffe9a0;padding:10px 20px;border-radius:8px;font-weight:700;font-size:16px;pointer-events:none}

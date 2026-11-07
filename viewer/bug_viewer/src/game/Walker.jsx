@@ -5,10 +5,12 @@ import { OBSTACLES, TARGETS } from '../worlds/siteData.js';
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
+import { carLocal, fitCandidate, driveable, whyNotDrive, DEF, openCovers } from './workshop.js';
+import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Peek under the tarp', al: 'Press E — Talk to Al',
-  bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store: car wash ($120)',
+  bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
 };
 export const promptText = id => {
   if (!id) return '';
@@ -18,11 +20,25 @@ export const promptText = id => {
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
+  if (id.startsWith('car:')) { const c = game.carPlan || {}; return c.text || ''; }
   if (id === 'enter' && game.inGarage) return 'Press E — Get in  ·  X — Take a part off';
   if (id === 'enter' && carItems().length) return 'Press E — Get in  ·  F — Take from the car  ·  Tab — Inventory';
   return PROMPTS[id] || '';
 };
 const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (!body) return false; return it.kind === 'part' ? partState(partById[it.id], body) === 'ok' : it.kind === 'wheel' ? wheelSetFits(wheelById[it.id], b.body) : true; };
+/** what E does at the car from this side (blueprint §2.2 + §3.4) */
+function carAction(zone) {
+  const b = game.build; if (!b) return { type: 'none', text: '' };
+  const fc = fitCandidate(b, zone), h = held();
+  const where = zone === 'driver' || zone === 'passenger' ? '' : '';
+  if (fc?.plan.ok) return { type: 'fit', uid: fc.it.uid, text: `Press E — Bolt on the ${fc.plan.slotName.toLowerCase()}${fc.it.loc === 'pack' ? ' (from pack)' : ''}` };
+  if (fc?.plan.openCover) return { type: 'cover', id: fc.plan.openCover, text: `Press E — Open the ${DEF.covers[fc.plan.openCover].name} to fit the ${fc.plan.slotName.toLowerCase()}` };
+  if (h) return { type: 'why', why: fc?.plan.why, text: `${fc?.plan.why || ''}  ·  F — put it in the car` };
+  const cover = zone === 'rear' ? 'engineLid' : zone === 'front' ? 'hoodPanel' : null;
+  if (cover && isFitted(DEF, b, cover)) { const o = openCovers().has(cover); return { type: 'cover', id: cover, text: `Press E — ${o ? 'Close' : 'Open'} the ${DEF.covers[cover].name}  ·  X — Workshop` }; }
+  if (zone === 'driver' || zone === 'passenger') return driveable(b) ? { type: 'enter', text: `Press E — Get in  ·  X — Workshop${where}` } : { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}  ·  X — Workshop` };
+  return { type: 'none', text: 'X — Workshop' };
+}
 const SHOP = { x: 16, z: 18 }, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
@@ -84,15 +100,17 @@ export default function Walker({ world, sun }) {
       consider(t.id, t.x, t.z, t.r, t.face);
     }
     if (!nearPump) game.fueled = false;
-    game.nearCar = !!pose && foot && Math.hypot(pose.x - px, pose.z - pz) < 4.6;
+    const cl = foot && pose ? carLocal() : null;
+    game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
     if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, 2.4, true, 0.5);
     if (foot) for (const c of containers) consider('box:' + c.id, c.x, c.z, 2.2, true, 0.55);
     if (pose) {
-      const h = foot && held();
-      if (h && game.nearCar) { best = game.inGarage && fitsCar(h) ? 'install' : 'load'; }
-      else if (foot) consider(game.owned.has('car:bug') || game.dev ? 'enter' : 'bug', pose.x, pose.z, 4.6, true, 0.9);
-      else if (!best && Math.abs(game.speed) < 4) best = 'exit';
+      if (foot && cl?.near && (!best || bd > 0.9)) {
+        if (!(game.owned.has('car:bug') || game.dev)) best = 'bug';
+        else { game.carPlan = carAction(cl.zone); best = 'car:' + game.carPlan.type; }
+      }
+      else if (!foot && !best && Math.abs(game.speed) < 4) best = 'exit';
     }
     game.target = best; setPrompt(promptText(best));
   });

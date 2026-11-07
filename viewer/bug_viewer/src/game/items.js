@@ -4,12 +4,16 @@ import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld } from '../worlds/testcenter.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
+import { BUG } from '../rules/vehicles.js';
+
+export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor jack', size: 3 } };
+const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? STOCK[id]?.size || 2 : kind === 'tool' ? TOOLS[id]?.size || 1 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
-export const nameOfItem = it => labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+export const nameOfItem = it => it.kind === 'stock' ? (it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -33,6 +37,10 @@ const uid = () => Math.max(0, ...game.items.map(i => i.uid)) + 1;
 const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.spot; delete it.box; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
+/** can the player take this right now (pack or free hands)? */
+export const canCarry = (kind, id) => (sizeOf(kind, id) === 1 && used('pack') + 1 <= CAPACITY.pack) || !held();
+/** hand a brand-new item to the player (detached part, store purchase). Check canCarry first. */
+export function giveToPlayer(kind, id) { const it = { uid: uid(), kind, id, loc: 'world' }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
 function takeOnto(it) {
   if (fitsPack(it)) { at(it).loc = 'pack'; return 'pack'; }
   if (!held()) { at(it).loc = 'hand'; return 'hand'; }
@@ -106,7 +114,7 @@ export function boxAtShop(kind, id) {
 /** new game: stock the garage, then hide parts and cash around the map */
 export function seedWorld(bodyId) {
   game.items = []; game.boxes = {};
-  const cat = catalogFor(bodyId || 'classic'), pool = [...cat.part.map(p => ['part', p.id]), ...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id])];
+  const cat = catalogFor(bodyId || 'classic'), pool = [...cat.part.map(p => ['part', p.id]), ...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id]), ['stock', 'battery'], ['stock', 'headlights'], ['stock', 'seatPassenger'], ['tool', 'jack']];
   const pick = max => { const ok = pool.filter(([k, id]) => sizeOf(k, id) <= max); return ok[Math.floor(Math.random() * ok.length)]; };
   const rint = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
   let n = 0; const add = (o) => game.items.push({ uid: ++n, ...o });
@@ -118,6 +126,7 @@ export function seedWorld(bodyId) {
     const list = fixed ? fixed.items : Array.from({ length: rint(rule.n) }, () => pick(rule.max)).filter(Boolean);
     for (const [k, id] of list) add({ kind: k, id, loc: 'box', box: c.id });
   }
+  add({ kind: 'tool', id: 'wrench', loc: 'pack' });   // you start with a wrench in your pack
   for (const s of spots) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
   save();
 }

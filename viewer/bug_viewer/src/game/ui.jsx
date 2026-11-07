@@ -2,6 +2,8 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
+import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
+import { isFitted, missingToDrive } from '../rules/restore.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ onNew, onContinue, onDev }) {
@@ -143,10 +145,39 @@ export function InventoryPanel({ onClose }) {
     <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
 }
 
-/** garage only: choose a fitted part to unbolt and carry off */
-export function RemovePanel({ build, onRemove, onClose }) {
-  const rows = [...Object.entries(build.parts).map(([slot, id]) => ['part', id, slots.find(s => s.id === slot)?.label || slot]), ...(build.wheels !== 'stock' ? [['wheel', build.wheels, 'Tires']] : []), ...(build.rim !== 'steel' ? [['rim', build.rim, 'Rims']] : [])];
-  return <div className="overlay"><div className="card"><h2>TAKE A PART OFF</h2>
-    <div className="menu">{rows.length ? rows.map(([k, id, label]) => <button key={k + id} onClick={() => onRemove(k, id)}>{nameOf(k, id, build.body)} <small>— {label}</small></button>) : <p className="hint">Nothing fitted that can come off.</p>}<button onClick={onClose}>Done</button></div>
-    <p className="hint">Parts you take off land on the floor. Anything attached to them comes off too.</p></div></div>;
+/** blueprint §3.8: every slot, what's fitted, what's blocking, and fit/detach buttons that follow the same rules as doing it by hand */
+export function WorkshopPanel({ build, onFit, onDetach, onDetachUpgrade, onCover, onClose }) {
+  useGame();
+  const fitted = id => isFitted(DEF, build, id), open = openCovers();
+  const reach = [held(), ...packItems(), ...(game.nearCar ? carItems() : [])].filter(Boolean);
+  const upgrades = Object.entries(build.parts).filter(([slot]) => slot !== 'engine');
+  const need = missingToDrive(DEF, build);
+  return <div className="overlay"><div className="card inv workshop"><h2>WORKSHOP — {DEF.name.toUpperCase()}</h2>
+    <p className={need.length ? 'ws-bad' : 'ws-good'}>{need.length ? `Won't start. Missing: ${need.map(s => s.name.toLowerCase()).join(', ')}.` : 'Runs and drives.'} <small>Tools here: {[...toolsHere()].join(', ') || 'none'}</small></p>
+    <div className="inv-sec">LIDS</div>
+    {Object.entries(DEF.covers).map(([id, c]) => fitted(id) && <div key={id} className="inv-row"><span>{c.name[0].toUpperCase() + c.name.slice(1)}<small>{open.has(id) ? 'open' : 'shut'}</small></span><span className="inv-btns"><button onClick={() => onCover(id)}>{open.has(id) ? 'Close' : 'Open'}</button></span></div>)}
+    <div className="inv-sec">PARTS</div>
+    {DEF.slots.map(s => {
+      const on = fitted(s.id), pd = on ? planDetach(s.id, build) : null, cand = !on && reach.map(it => ({ it, plan: planFit(it, build) })).find(x => x.plan.slotName && ((x.it.kind === 'stock' && x.it.id === s.id) || (s.id === 'engine' && x.it.kind === 'part' && partById[x.it.id]?.slot === 'engine')));
+      const label = s.id === 'engine' && build.parts.engine ? partById[build.parts.engine].label : s.name;
+      return <div key={s.id} className={`inv-row${on ? '' : ' ws-missing'}`}><span>{label}<small>{on ? 'fitted' : 'missing'}{['start', 'drive', 'steer', 'grip'].includes(s.fn) ? ' · needed to drive' : ''}{!on && !cand ? ' · find one' : ''}{pd && !pd.ok ? ` · ${pd.why}` : ''}{cand && !cand.plan.ok ? ` · ${cand.plan.why}` : ''}</small></span>
+        <span className="inv-btns">{on ? <button disabled={!pd.ok && !pd.openCover} onClick={() => onDetach(s.id)}>Detach</button> : cand && <button disabled={!cand.plan.ok && !cand.plan.openCover} onClick={() => onFit(cand.it.uid)}>Fit{cand.it.loc === 'car' ? ' (from car)' : ''}</button>}</span></div>;
+    })}
+    {upgrades.length > 0 && <div className="inv-sec">BOLT-ONS</div>}
+    {upgrades.map(([slot, id]) => <div key={slot} className="inv-row"><span>{nameOf('part', id, build.body)}<small>{slots.find(x => x.id === slot)?.label || slot}</small></span><span className="inv-btns"><button onClick={() => onDetachUpgrade(slot)}>Detach</button></span></div>)}
+    {reach.filter(it => it.kind === 'part' && partById[it.id]?.slot !== 'engine' || it.kind === 'wheel' || it.kind === 'rim').map(it => { const plan = planFit(it, build); return <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{it.loc === 'car' ? 'in the car' : it.loc === 'pack' ? 'in your pack' : 'in your hands'}{plan.ok ? '' : ` · ${plan.why}`}</small></span><span className="inv-btns"><button disabled={!plan.ok} onClick={() => onFit(it.uid)}>Fit</button></span></div>; })}
+    <div className="menu"><button className="big" onClick={onClose}>Close (Esc)</button></div>
+    <p className="hint">Parts come off into your hands or pack. Engines need the hoist and tires the jack, both in your garage. Covers can be opened here or at the car.</p></div></div>;
+}
+
+/** Dusty's corner store */
+export function StorePanel({ onBuy, onClose }) {
+  useGame();
+  const row = (what, label, price, note) => <div key={what} className="inv-row"><span>{label}<small>{note}</small></span><span className="inv-btns"><button disabled={game.cash < price} onClick={() => onBuy(what, price)}>${price}</button></span></div>;
+  return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>DUSTY'S CORNER STORE</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
+    {row('stock:battery', '12V car battery', 60, 'small · fits in your pack')}
+    {row('tool:wrench', 'Wrench', 15, 'small · bolts most things on and off')}
+    {row('tool:jack', 'Floor jack', 90, 'large · change tires anywhere')}
+    {row('wash', 'Hand wash & wax', 120, 'cleans up the paint a bit')}
+    <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;
 }

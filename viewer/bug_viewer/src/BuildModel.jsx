@@ -7,6 +7,8 @@ import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
 import { applyWeathering, kindForMaterial } from './weather.js';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
+import { game, useGame } from './game/store.js';
+import { BUG } from './rules/vehicles.js';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
 /** Meshes exported without normals render as raw flat facets (bright shards) - give them smooth normals. */
@@ -28,7 +30,7 @@ function inspectSelection(e, onSelect, asset) {
 }
 
 /** One GLB. `mask` hides meshes by name prefix (only when isBase), `paint` recolours matching materials. */
-function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null }) {
+function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null, opens = [] }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   const clone = useMemo(() => {
     const c = scene.clone(true);
@@ -58,6 +60,23 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
       });
     });
   }, [clone, maskKey, wireframe, isBase, channels, material]);
+  // open lids (engine lid, front hood): swing the matching meshes about a hinge on the lid's top edge
+  const opensKey = opens.map(o => o.piece).join('|');
+  useEffect(() => {
+    clone.traverse(o => { if (o.userData.lidOpen) { o.matrixAutoUpdate = true; o.userData.lidOpen = false; o.updateMatrix(); } });
+    if (!opens.length) return;
+    clone.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(clone.matrixWorld).invert();
+    for (const op of opens) {
+      const meshes = []; clone.traverse(o => { if (o.isMesh && op.match.some(m => sourceNameFor(o).startsWith(m))) meshes.push(o); });
+      if (!meshes.length) continue;
+      const box = new THREE.Box3();
+      for (const m of meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld))); }
+      const p = new THREE.Vector3(0, box.max.y, op.hinge === 'front' ? box.max.z : box.min.z);
+      const H = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z).multiply(new THREE.Matrix4().makeRotationX(op.angle)).multiply(new THREE.Matrix4().makeTranslation(-p.x, -p.y, -p.z));
+      for (const m of meshes) { const Mc = inv.clone().multiply(m.matrixWorld), Pc = inv.clone().multiply(m.parent.matrixWorld).invert(); m.matrix.copy(Pc.multiply(H).multiply(Mc)); m.matrixAutoUpdate = false; m.userData.lidOpen = true; }
+    }
+  }, [clone, opensKey]);
   // wheels built into a body shell stay on the ground when the body is lifted
   useEffect(() => { clone.traverse(o => { if (isWheelNode(o)) { o.userData.y0 ??= o.position.y; o.position.y = o.userData.y0 + wheelDy; } }); }, [clone, wheelDy]);
   return <primitive object={clone} onClick={e => inspectSelection(e, onSelect, file)} />;
@@ -166,9 +185,11 @@ function Fitted({ file, fit, children }) {
 export default function BuildModel({ build, wireframe, onSelect, drive = false }) {
   const r = useMemo(() => resolve(build), [build]);
   const common = { wireframe, onSelect, channels: r.channels };
+  useGame();
+  const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: (r.body.pieces || []).find(x => x.id === c.piece)?.match || [] })) : [];
   return <>
     <group position={[0, r.lift, 0]}>
-      <Model file={r.body.file} mask={r.masks} isBase wheelDy={-r.lift} {...common} />
+      <Model file={r.body.file} mask={r.masks} isBase wheelDy={-r.lift} opens={opens} {...common} />
       {r.active.filter(p => !p.attach && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
