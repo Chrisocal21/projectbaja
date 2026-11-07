@@ -29,3 +29,27 @@
 .usebar{display:inline-block;width:70px;height:7px;background:#243236;border-radius:4px;overflow:hidden}.usebar i{display:block;height:100%}
 .pd-line{margin:6px 0;color:#9fb2b5}.pd-actions{display:flex;gap:6px;margin:6px 0}
 .pd-sliders{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:8px}.pd-sliders label span{display:flex;justify-content:space-between}.pd-sliders b{color:#c5a174}.pd-sliders input{width:100%}
+
+/* ---- game shell: title, pause, shop, HUD ---- */
+.full{position:fixed;inset:0;background:#0d1416;overflow:hidden}.full>canvas,.full>div>canvas{position:absolute!important;inset:0}
+.title-screen{position:absolute;inset:0;display:flex;align-items:center;padding:0 7vw;background:linear-gradient(90deg,rgba(8,13,15,.92) 0%,rgba(8,13,15,.55) 45%,rgba(8,13,15,0) 75%);pointer-events:none}
+.title-panel{pointer-events:auto;max-width:430px}.title-panel h1{font-size:64px;line-height:1;margin:10px 0 8px;letter-spacing:-2px}.title-panel h1 b{color:#e0a35a}.title-panel p{color:#9fb2b5;margin:0 0 22px}
+.menu{display:flex;flex-direction:column;gap:9px}.menu button,.card button,.drawer-close{border:1px solid #344448;background:#1b272a;border-radius:8px;padding:11px 14px;font-size:14px;text-align:left}.menu button:hover,.card button:hover{border-color:#ca9b58}
+.menu button.big{background:#4a3a28;border-color:#ca9b58;color:#f4d3a1;font-weight:700;font-size:16px;padding:14px 16px}
+.check{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:12px;color:#9fb2b5;cursor:pointer}.check input{accent-color:#c5a174;margin-top:2px}
+.title-foot{position:absolute;left:7vw;bottom:22px;color:#6f8588;font-size:12px}
+.overlay{position:absolute;inset:0;background:rgba(6,10,12,.62);display:grid;place-items:center;z-index:20}
+.card{background:#11191c;border:1px solid #2c3d41;border-radius:12px;padding:22px 24px;min-width:340px;max-width:92vw;max-height:88vh;overflow:auto;box-shadow:0 20px 60px #000a}.card h2{margin:0 0 14px;letter-spacing:2px;font-size:18px}
+.card .row{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:#d7b078}.card .row button{padding:6px 10px;font-size:12px}
+.tp{display:flex;flex-wrap:wrap;gap:6px}.tp small{width:100%;color:#74898c;letter-spacing:1.4px;font-size:10px}.tp button{padding:7px 10px;font-size:12px}
+.shop{width:520px}.shop-head{display:flex;justify-content:space-between;align-items:center}.shop-head h2 span{color:#7be08a;margin-left:10px}
+.shop-list small{display:block;color:#74898c;letter-spacing:1.4px;font-size:10px;margin:14px 0 6px}
+.shop-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #253034;font-size:13px}.shop-row span small{display:block;margin:2px 0 0;letter-spacing:0;text-transform:none}
+.shop-row button{padding:6px 12px;font-size:12px;min-width:70px;text-align:center}.shop-row .buy{border-color:#4f9a64;color:#9be8ad}.shop-row button:disabled{opacity:.4;cursor:not-allowed}
+.drawer{position:absolute;left:0;top:0;bottom:0;width:340px;display:flex;flex-direction:column;background:#11191c;border-right:1px solid #2a3538;z-index:20}.drawer .sidebar{flex:1;min-height:0;border-right:none}.drawer-close{margin:10px;background:#4a3a28;border-color:#ca9b58;color:#f4d3a1;font-weight:700;text-align:center}
+.full .hud{left:auto;right:22px;bottom:18px;text-align:right}.full .hud .speed{font-size:30px}
+.hud-keys{position:absolute;left:18px;bottom:14px;color:#ffffffb0;font-size:12px;text-shadow:0 1px 3px #000;pointer-events:none}
+.hud-top{position:absolute;top:16px;left:18px;font:700 22px system-ui;color:#9be8ad;text-shadow:0 1px 4px #000;pointer-events:none}
+.hud-prompt{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);background:#000a;border:1px solid #5be08a;color:#c9f5d4;padding:9px 18px;border-radius:8px;font-weight:700;pointer-events:none}
+.hud-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);background:#000b;border:1px solid #ffd23f;color:#ffe9a0;padding:10px 20px;border-radius:8px;font-weight:700;font-size:16px;pointer-events:none}
+.presets button:disabled,.toolbar button:disabled{opacity:.4;cursor:not-allowed}

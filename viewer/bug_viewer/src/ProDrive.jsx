@@ -6,6 +6,8 @@ import { STEP, createCar, stepCar, resetCar, telemetry } from './vehicle/sim.js'
 import { buggyConfig } from './vehicle/config.js';
 import { createInput } from './vehicle/input.js';
 import { proStore } from './vehicle/store.js';
+import { game } from './game/store.js';
+import GameObjects from './game/GameObjects.jsx';
 
 /** Flat tarmac test pad: 5 m grid, a 25 m skid-pad ring and a slalom, so slides and weight transfer are easy to judge. */
 function Pad() {
@@ -28,6 +30,7 @@ function Pad() {
   </>;
 }
 
+const flat = () => 0;
 function ProVehicle({ children, hud, dims }) {
   const group = useRef(), rig = useRef(null), input = useRef(null), acc = useRef(0), sun = useRef();
   const cab = useRef(false), look = useRef({ yaw: 0, pitch: 0.28, dist: 9, idle: 0 });
@@ -35,7 +38,9 @@ function ProVehicle({ children, hud, dims }) {
   const { camera, gl } = useThree();
   const car = useMemo(() => {
     const cfg = proStore.config || (proStore.config = buggyConfig());
-    const c = createCar(cfg, dims.mounts); proStore.car = c; return c;
+    const c = createCar(cfg, dims.mounts); proStore.car = c;
+    if (game.keepPose && game.pose) { c.x = game.pose.x; c.z = game.pose.z; c.h = game.pose.h; game.keepPose = false; }
+    return c;
   }, [dims]);
 
   useEffect(() => { input.current = createInput(); return () => input.current.dispose(); }, []);
@@ -47,7 +52,7 @@ function ProVehicle({ children, hud, dims }) {
   useEffect(() => {
     camera.far = 900; camera.fov = 60; camera.near = 0.1; camera.updateProjectionMatrix();
     const el = gl.domElement, l = look.current;
-    const lock = () => { if (document.pointerLockElement !== el) { try { el.requestPointerLock()?.catch?.(() => {}); } catch {} } };
+    const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { el.requestPointerLock()?.catch?.(() => {}); } catch {} } };
     const move = e => { if (document.pointerLockElement !== el) return; l.yaw -= e.movementX * 0.004; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const key = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; } };
@@ -57,7 +62,7 @@ function ProVehicle({ children, hud, dims }) {
   }, [camera, gl]);
 
   useFrame((_, rawDt) => {
-    if (!rig.current || !input.current) return;
+    if (!rig.current || !input.current || game.paused) return;
     acc.current += Math.min(rawDt, 0.1);
     let n = 0;
     while (acc.current >= STEP && n++ < 5) {
@@ -66,6 +71,7 @@ function ProVehicle({ children, hud, dims }) {
       stepCar(car, inp, STEP); acc.current -= STEP;
     }
     if (acc.current > STEP * 5) acc.current = 0;
+    game.pos.x = car.x; game.pos.z = car.z; game.pose = { x: car.x, z: car.z, h: car.h };
     const dt = Math.min(rawDt, 0.05), g = group.current;
 
     // body pose (Stage 1: lean is cosmetic; real springs arrive in Stage 3)
@@ -105,11 +111,11 @@ function ProVehicle({ children, hud, dims }) {
   </>;
 }
 
-export default function ProDrive({ children, hud, dims }) {
+export default function ProDrive({ children, hud, dims, bodyId }) {
   return <>
     <color attach="background" args={['#b9c6cf']} /><fog attach="fog" args={['#b9c6cf', 90, 420]} />
     <ambientLight intensity={0.9} /><hemisphereLight args={['#dfeaff', '#555', 1.0]} />
-    <Pad />
+    <Pad /><GameObjects kind="pro" height={flat} bodyId={bodyId} />
     <ProVehicle hud={hud} dims={dims}>{children}</ProVehicle>
   </>;
 }

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { game } from './game/store.js';
+import GameObjects from './game/GameObjects.jsx';
 import * as THREE from 'three';
 import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } from './terrain.js';
 import * as TC from './worlds/testcenter.js';
@@ -135,7 +137,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const keys = useKeys();
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
-  const s = useRef(spawnState());
+  const s = useRef(null);
+  if (!s.current) { s.current = spawnState(); if (game.keepPose && game.pose) { Object.assign(s.current, { x: game.pose.x, z: game.pose.z, h: game.pose.h, y: world.height(game.pose.x, game.pose.z) + 0.5 }); game.keepPose = false; } }
   useEffect(() => {   // number keys teleport between test-center areas
     const tp = e => { const w = world.spawns.find(p => e.code === 'Digit' + p.key); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
@@ -157,7 +160,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
   useEffect(() => {
     const el = gl.domElement, l = look.current;
-    const lock = () => { if (document.pointerLockElement !== el) { try { const r = el.requestPointerLock(); r?.catch?.(() => {}); } catch {} } };
+    const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { const r = el.requestPointerLock(); r?.catch?.(() => {}); } catch {} } };
     const move = e => { if (document.pointerLockElement !== el) return; l.yaw -= e.movementX * 0.004; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const cabKey = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; l.idle = 0; } };
@@ -315,9 +318,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
   useFrame((_, rawDt) => {
-    if (!rig.current) return;
+    if (!rig.current || game.paused) return;
     acc.current += Math.min(rawDt, 0.1);
     for (let n = 0; acc.current >= STEP && n < 5; n++) { sim(STEP); acc.current -= STEP; }
+    game.pos.x = s.current.x; game.pos.z = s.current.z; game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
     if (acc.current > STEP * 5) acc.current = 0;
   });
 
@@ -328,7 +332,7 @@ const OPEN_WORLD = { id: 'open', height: terrainHeight, surface: surfaceAt, half
 const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, spawn: { x: 0, z: 0, h: Math.PI / 2 }, gates: [], spawns: TC.spawns, area: TC.areaAt };
 const WorldCtx = createContext(OPEN_WORLD);
 
-export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test' }) {
+export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId }) {
   const world = worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
   const race = useRef(newRace());
   const sun = useRef();
@@ -340,6 +344,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
       shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
     {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : <TestCenterScene />}
+    <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
   </WorldCtx.Provider>;
 }
