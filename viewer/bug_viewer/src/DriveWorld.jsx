@@ -130,6 +130,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef(createVehicleState());
+  useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
   const cab = useRef(false);
   const rig = useRef(null);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
@@ -189,7 +190,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
 
       // --- steering ---
-      const maxSteer = 0.58 / (1 + Math.abs(st.v) * 0.06);
+      const maxSteer = Math.max(0.015, Math.min(0.58 / (1 + Math.abs(st.v) * 0.06), 0.75 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
