@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } from './terrain.js';
+import * as TC from './worlds/testcenter.js';
+import TestCenterScene from './worlds/TestCenter.jsx';
 import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 
 // ---------- terrain ----------
@@ -125,12 +127,18 @@ function Gates({ race }) {
 }
 
 function Vehicle({ children, hud, dims, race, sun }) {
+  const world = useContext(WorldCtx), HALF = world.half, GATES = world.gates;
+  const spawnState = () => { const st = createVehicleState(); st.x = world.spawn.x; st.z = world.spawn.z; st.h = world.spawn.h; st.y = world.height(st.x, st.z) + 0.3; return st; };
   const WHEELBASE = dims.wheelbase, CAB_EYE = dims.cabEye;
   const group = useRef();
   const keys = useKeys();
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
-  const s = useRef(createVehicleState());
+  const s = useRef(spawnState());
+  useEffect(() => {   // number keys teleport between test-center areas
+    const tp = e => { const w = world.spawns.find(p => e.code === 'Digit' + p.key); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
+    window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
+  }, [world]);
   useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
   const cab = useRef(false);
   const rig = useRef(null);
@@ -163,10 +171,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
   const sim = dt => {   // one fixed physics step
     const k = keys.current, st = s.current;
-    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = surfaceAt(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
+    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
     const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
     if (k.reset) {
-      Object.assign(st, createVehicleState()); race.current = newRace(); k.reset = false;
+      Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
       rig.current.wheels.forEach(w => { w.spin.rotation.x = 0; });
       camPos.current.set(0, 4, -16);
     }
@@ -186,7 +194,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v -= st.v * Math.abs(st.v) * DRAG * dt;
       // gravity along slope
       const e = 0.6;
-      const slope = (terrainHeight(st.x + fx * e, st.z + fz * e) - terrainHeight(st.x - fx * e, st.z - fz * e)) / (2 * e);
+      const slope = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e);
       st.v -= G * slope / Math.sqrt(1 + slope * slope) * dt;
       st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
 
@@ -238,7 +246,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     st.x = Math.max(-HALF, Math.min(HALF, st.x)); st.z = Math.max(-HALF, Math.min(HALF, st.z));
 
     const wasAir = st.air;
-    stepSuspension(st, dims, dt);
+    stepSuspension(st, dims, dt, world.height);
     if (wasAir && !st.air) st.v *= 0.97;
     const g = group.current;
     g.position.set(st.x, st.y, st.z);
@@ -273,7 +281,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const ang = st.h + Math.PI + l.yaw;                       // direction from car to camera
     const d = l.dist + Math.min(4, Math.abs(st.v) * 0.1), cp = Math.cos(l.pitch);
     const target = new THREE.Vector3(st.x + Math.sin(ang) * d * cp, st.y + 1.4 + Math.sin(l.pitch) * d, st.z + Math.cos(ang) * d * cp);
-    target.y = Math.max(target.y, terrainHeight(target.x, target.z) + 1.0);
+    target.y = Math.max(target.y, world.height(target.x, target.z) + 1.0);
     camPos.current.lerp(target, Math.min(1, dt * 10));
     camera.position.copy(camPos.current);
     camera.lookAt(st.x, st.y + 1.2, st.z);
@@ -282,8 +290,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const rc = race.current;
     if (!rc.running && Math.abs(st.v) > 1) rc.running = true;
     if (rc.running) rc.t += dt;
-    const [gx, gz] = GATES[rc.next];
-    if (Math.hypot(st.x - gx, st.z - gz) < 7) {
+    const [gx, gz] = GATES.length ? GATES[rc.next] : [1e9, 1e9];
+    if (GATES.length && Math.hypot(st.x - gx, st.z - gz) < 7) {
       rc.next++;
       if (rc.next >= GATES.length) {
         rc.next = 0; rc.laps++; rc.last = rc.t; rc.flash = 4;
@@ -293,7 +301,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -307,20 +315,22 @@ function Vehicle({ children, hud, dims, race, sun }) {
   return <group ref={group}>{children}</group>;
 }
 
-export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS }) {
+const OPEN_WORLD = { id: 'open', height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
+const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, spawn: { x: 0, z: 0, h: Math.PI / 2 }, gates: [], spawns: TC.spawns, area: TC.areaAt };
+const WorldCtx = createContext(OPEN_WORLD);
+
+export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test' }) {
+  const world = worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
   const race = useRef(newRace());
   const sun = useRef();
-  return <>
-    <color attach="background" args={['#cfd9e0']} />
-    <fog attach="fog" args={['#cfd9e0', 80, 380]} />
+  return <WorldCtx.Provider value={world}>
+    {world.id === 'open' && <><color attach="background" args={['#cfd9e0']} /><fog attach="fog" args={['#cfd9e0', 80, 380]} /></>}
     <ambientLight intensity={0.9} />
     <hemisphereLight args={['#dfeaff', '#8a6e45', 1.1]} />
     <directionalLight ref={sun} position={[30, 45, 20]} intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
       shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
-    <Terrain />
-    {SHOW_SCENERY && <Scenery />}
-    <Gates race={race} />
+    {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : <TestCenterScene />}
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
-  </>;
+  </WorldCtx.Provider>;
 }

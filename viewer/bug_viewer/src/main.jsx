@@ -24,13 +24,13 @@ function CameraReset({ resetKey }) {
   return null;
 }
 
-function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, hud }) {
+function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, world, hud }) {
   const r = useMemo(() => resolve(build), [build]);
   if (drive && pro) return <Canvas shadows key={`pro-${JSON.stringify(build)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={[1, 2]}>
     <Suspense fallback={null}><ProDrive hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} drive /></ProDrive></Suspense>
   </Canvas>;
-  if (drive) return <Canvas shadows key={`drive-${JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 700 }} dpr={[1, 2]}>
-    <Suspense fallback={null}><DriveWorld hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} drive /></DriveWorld></Suspense>
+  if (drive) return <Canvas shadows key={`drive-${world}-${JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 700 }} dpr={[1, 2]}>
+    <Suspense fallback={null}><DriveWorld hud={hud} dims={r.dims} worldId={world}><BuildModel build={build} wireframe={wireframe} drive /></DriveWorld></Suspense>
   </Canvas>;
   return <Canvas key="view" shadows camera={{ position: CAMERA_POSITION, fov: 43, near: 0.05, far: 100 }} dpr={[1, 2]} onPointerMissed={() => onSelect(null)}>
     <color attach="background" args={['#172124']} />
@@ -58,7 +58,7 @@ const initialBuild = () => {
 function App() {
   const [build, setBuild] = useState(initialBuild);
   const [wireframe, setWireframe] = useState(false), [spin, setSpin] = useState(false), [grid, setGrid] = useState(true);
-  const [drive, setDrive] = useState(false), [pro, setPro] = useState(false), hud = useRef(null);
+  const [drive, setDrive] = useState(false), [pro, setPro] = useState(false), [world, setWorld] = useState('test'), hud = useRef(null);
   const [resetKey, setResetKey] = useState(0), [selected, setSelected] = useState(null), [filter, setFilter] = useState('All');
   const [copied, setCopied] = useState(false), [channel, setChannel] = useState('paint'), [piecesOpen, setPiecesOpen] = useState(true);
   const r = useMemo(() => resolve(build), [build]);
@@ -143,6 +143,7 @@ function App() {
       <div className="topbar"><div><strong>3D VEHICLE VIEW</strong><span>Drag rotate · Scroll zoom · Right-click pan · Click mesh inspect</span></div>
         <div className="toolbar">
           <button className={drive && !pro ? 'toggled' : ''} onClick={() => { if (drive && !pro) setDrive(false); else { setPro(false); setDrive(true); } }}>{drive && !pro ? 'Exit drive' : 'Drive'}</button>
+          {drive && !pro && <button onClick={() => setWorld(w => (w === 'test' ? 'open' : 'test'))}>World: {world === 'test' ? 'Test center' : 'Open desert'}</button>}
           <button className={drive && pro ? 'toggled' : ''} onClick={() => { if (drive && pro) setDrive(false); else { setPro(true); setDrive(true); } }}>{drive && pro ? 'Exit pro' : 'Pro physics (beta)'}</button>
           <button onClick={() => setResetKey(k => k + 1)}>Reset camera</button>
           <button className={spin ? 'toggled' : ''} onClick={() => setSpin(s => !s)}>Auto rotate</button>
@@ -150,7 +151,7 @@ function App() {
           <button className={grid ? 'toggled' : ''} onClick={() => setGrid(g => !g)}>Grid</button>
         </div></div>
       <div className="viewport">
-        <Stage build={build} drive={drive} pro={pro} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid} resetKey={resetKey} onSelect={setSelected} />
+        <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid} resetKey={resetKey} onSelect={setSelected} />
         {drive && <div className="hud"><div ref={hud} className="speed">0 km/h</div>W/S throttle · A/D steer · Space brake · R reset · C {body.cabLabel || 'cab view'} · Mouse look · Scroll zoom · Esc free cursor{pro ? ' · Gamepad: stick steer, RT/LT, B handbrake' : ''}</div>}
         {drive && pro && <ProDebug />}
         <div className="view-label">{body.label.toUpperCase()} <span>{drive ? 'DRIVE MODE' : 'STATIC ASSET PREVIEW'}</span></div>
