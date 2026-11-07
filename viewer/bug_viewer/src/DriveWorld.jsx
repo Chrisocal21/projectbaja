@@ -63,7 +63,8 @@ const ITEMS = (() => {
     return { r, c };
 })();
 // solid obstacles (x, z, radius) the car collides with
-const OBSTACLES = [...ITEMS.r.map(p => [p.x, p.z, p.s * 1.1, terrainHeight(p.x, p.z) + p.s * 0.95]),
+const SHOW_SCENERY = false;   // rocks + cacti off for testing (flip to true to bring them back, collisions included)
+const OBSTACLES = !SHOW_SCENERY ? [] : [...ITEMS.r.map(p => [p.x, p.z, p.s * 1.1, terrainHeight(p.x, p.z) + p.s * 0.95]),
   ...ITEMS.c.map(p => [p.x, p.z, 0.3 * p.s + 0.15, terrainHeight(p.x, p.z) + p.s * 2])];
 
 function Scenery() {
@@ -190,11 +191,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
 
       // --- steering ---
-      const maxSteer = Math.max(0.03, Math.min(0.58 / (1 + Math.abs(st.v) * 0.06), 1.7 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
+      const maxSteer = Math.max(0.06, Math.min(0.72 / (1 + Math.abs(st.v) * 0.035), 2.8 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
-      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.7, mu = sf.mu;
+      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu;
       const dN = MASS * (st.ax || 0) * 0.6 / L;                                   // longitudinal weight transfer
       const Nf = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('F')).reduce((sum, w) => sum + w.load, 0)
         : Math.max(500, MASS * G * cb / L - dN);
@@ -211,7 +212,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       const aF = Math.atan2(st.lateralV + ca * st.yr, vx) - st.steer, aR = Math.atan2(st.lateralV - cb * st.yr, vx);
       const FyF = tire(aF, capF), FyR = tire(aR, capR), cs = Math.cos(st.steer);
       st.lateralV += ((FyF * cs + FyR) / MASS - st.v * st.yr) * dt;
-      st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.35) * dt;   // extra yaw damping: planted, no spin-outs
+      st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.12) * dt;   // extra yaw damping: planted, no spin-outs
       st.v += st.lateralV * st.yr * dt;
       const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
       if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); st.lateralV -= st.lateralV * (1 - w) * Math.min(1, dt * 12); }
@@ -318,7 +319,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS }) {
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
       shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
     <Terrain />
-    <Scenery />
+    {SHOW_SCENERY && <Scenery />}
     <Gates race={race} />
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
   </>;
