@@ -239,7 +239,7 @@ function Vehicle({ children, hud, dims, race }) {
     const wp = (lx, lz) => terrainHeight(st.x + rx * lx + fx * lz, st.z + rz * lx + fz * lz);
     const hFL = wp(-TRACK / 2, WHEELBASE / 2), hFR = wp(TRACK / 2, WHEELBASE / 2);
     const hRL = wp(-TRACK / 2, -WHEELBASE / 2), hRR = wp(TRACK / 2, -WHEELBASE / 2);
-    const groundY = (hFL + hFR + hRL + hRR) / 4 + RIDE_HEIGHT;
+    const groundY = ((hFL + hFR + hRL + hRR) / 4 * 0.5 + Math.max(hFL, hFR, hRL, hRR) * 0.5) + RIDE_HEIGHT;   // ride on the high points so nothing digs in
     const tPitch = Math.atan2((hFL + hFR) / 2 - (hRL + hRR) / 2, WHEELBASE);
     const tRoll = Math.atan2((hFR + hRR) / 2 - (hFL + hRL) / 2, TRACK);
 
@@ -284,7 +284,8 @@ function Vehicle({ children, hud, dims, race }) {
         const wy0 = _w.set(lx, w.y0, lz).applyMatrix4(g.matrixWorld).y;   // where the hub would be with no travel
         w.vel ??= 0;
         const tgt = st.air ? -0.2 : THREE.MathUtils.clamp(hW + (w.r || 0.5) - wy0 + su.bob, -0.4, 0.4);
-        w.vel += (110 * (tgt - w.off) - 7 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.42, 0.42);   // underdamped = free-flowing
+        w.vel += (160 * (tgt - w.off) - 12 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.42, 0.42);
+        if (!st.air) w.off = Math.max(w.off, Math.min(0.6, hW + (w.r || 0.5) - wy0 + su.bob));   // bump stop: a tire never sinks below the ground   // underdamped = free-flowing
         w.steer.position.y = w.y0 + w.off - su.bob; w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
       rig.current.wheels.forEach((w, i) => {
         const m = rig.current.shocks[i], lo = w.steer.position;
