@@ -32,7 +32,7 @@ const pitTex = () => tex(256, 256, (g, w, h) => {
   g.fillStyle = '#e8c21a'; g.fillRect(w * 0.04, 0, w * 0.03, h); g.fillRect(w * 0.93, 0, w * 0.03, h);
 });
 
-function Ribbon({ path, half, makeTexture, tile, lift = 0.07, step = 2, segs = 6, hide = null }) {
+function Ribbon({ path, half, makeTexture, tile, lift = 0.012, step = 2, segs = 6, hide = null }) {
   const geo = useMemo(() => {
     const pts = path.pts.filter((_, i) => i % step === 0); if (path.closed) pts.push({ ...path.pts[0], s: path.total });
     const pos = [], uv = [], idx = [];
@@ -122,9 +122,9 @@ export default function TestCenterScene() {
     <fog attach="fog" args={['#cdd8de', 160, 650]} />
     <Terrain />
     <Ribbon path={circuit} half={7.5} tile={12} makeTexture={circuitTex} />
-    <Ribbon path={pitLane} half={4.6} tile={8} makeTexture={pitTex} step={1} lift={0.06} segs={2} />
-    <Ribbon path={dirtRoad} half={4.6} tile={12} makeTexture={dirtTex} lift={0.05} segs={4} />
-    <Ribbon path={offroad} half={5} tile={14} makeTexture={looseTex} lift={0.05} segs={4} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965); }} />
+    <Ribbon path={pitLane} half={4.6} tile={8} makeTexture={pitTex} step={1} lift={0.012} segs={2} />
+    <Ribbon path={dirtRoad} half={4.6} tile={12} makeTexture={dirtTex} lift={0.012} segs={4} />
+    <Ribbon path={offroad} half={5} tile={14} makeTexture={looseTex} lift={0.012} segs={4} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965); }} />
     <Props />
   </>;
 }
