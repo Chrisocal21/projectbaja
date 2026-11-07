@@ -114,13 +114,18 @@ function FallbackSpare({ spare }) {
     <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[spare.radius * 0.58, spare.radius * 0.58, 0.27, 32]} /><meshStandardMaterial color="#8a8a90" metalness={0.6} roughness={0.4} /></mesh>
   </group>;
 }
-/** Mount for the spare: hub plate behind the tire and two arms down to the rear bumper. (The carrier GLB is a small low-poly tire, which doubled up with the real spare, so it is not drawn.) */
+/** Mount for the spare: a hub plate behind the tire, two arms out to the rear cage and a post down to the bumper bar. (The carrier GLB is a small low-poly tire, which doubled up with the real spare, so it is not drawn.) */
 function SpareBracket({ spare }) {
-  const [cx, cy, cz] = spare.center, hubZ = cz + 0.2, arms = [-0.3, 0.3];
-  const arm = x => { const a = new THREE.Vector3(x * 0.4, cy - 0.12, hubZ), b = new THREE.Vector3(x, 0.45, hubZ + 0.22), d = b.clone().sub(a), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); return { pos: a.clone().add(b).multiplyScalar(0.5).toArray(), q, len: d.length() }; };
+  const [cx, cy, cz] = spare.center, hubZ = cz + 0.2, mat = <meshStandardMaterial color="#2a2d30" metalness={0.55} roughness={0.45} />;
+  const hub = new THREE.Vector3(cx, cy, hubZ);
+  const tube = (to, r = 0.03) => { const d = to.clone().sub(hub), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); return { pos: hub.clone().add(to).multiplyScalar(0.5).toArray(), q, len: d.length(), r, to }; };
+  const anchors = [new THREE.Vector3(-0.34, cy - 0.28, -1.9), new THREE.Vector3(0.34, cy - 0.28, -1.9), new THREE.Vector3(0, 0.46, -1.94)];
   return <group>
-    <mesh position={[cx, cy, hubZ]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.13, 0.13, 0.03, 20]} /><meshStandardMaterial color="#26292b" metalness={0.5} roughness={0.5} /></mesh>
-    {arms.map(x => { const t = arm(x); return <mesh key={x} position={t.pos} quaternion={t.q} castShadow><cylinderGeometry args={[0.018, 0.018, t.len, 8]} /><meshStandardMaterial color="#26292b" metalness={0.5} roughness={0.5} /></mesh>; })}
+    <mesh position={hub.toArray()} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.16, 0.16, 0.04, 24]} />{mat}</mesh>
+    {anchors.map((a, i) => { const t = tube(a); return <group key={i}>
+      <mesh position={t.pos} quaternion={t.q} castShadow><cylinderGeometry args={[t.r, t.r, t.len, 10]} />{mat}</mesh>
+      <mesh position={a.toArray()} castShadow><boxGeometry args={[0.1, 0.1, 0.04]} />{mat}</mesh>
+    </group>; })}
   </group>;
 }
 function SpareTire({ spare, r }) {

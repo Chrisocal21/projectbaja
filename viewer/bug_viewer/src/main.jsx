@@ -104,6 +104,7 @@ function App() {
     if (!equipOnly) { if (!buy(kind, id)) return; say('Purchased!'); }
     update(kind === 'part' ? setPart(build, partById[id].slot, id) : kind === 'wheel' ? setWheels(build, id) : setRim(build, id));
   };
+  const unequip = (kind, id) => update(kind === 'part' ? setPart(build, partById[id].slot, null) : kind === 'wheel' ? setWheels(build, 'stock') : setRim(build, 'steel'));
   const previewOf = (kind, id) => {
     if (kind === 'part') return setPart(build, partById[id].slot, id);
     if (kind === 'wheel') return setWheels(build, id);
@@ -192,7 +193,7 @@ function App() {
     {pro && <ProDebug />}
     {panel === 'pause' && <PauseMenu onResume={resume} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
-    {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} onBuy={equip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
+    {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} onBuy={equip} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

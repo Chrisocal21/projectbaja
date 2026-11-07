@@ -37,7 +37,7 @@ export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports
   </div></div>;
 }
 
-export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onClose }) {
+export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUnequip, onClose }) {
   useGame();
   const [tabSel, setTab] = React.useState('engine'), [sel, setSel] = React.useState(null);
   const cat = catalogFor(bodyId), slotLabel = Object.fromEntries(slots.map(s => [s.id, s.label]));
@@ -67,7 +67,7 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onCl
             <div><strong>{nameOf(cur.kind, cur.id, bodyId)}</strong>{it?.perf && <small>{it.perf.topMph ? `+${it.perf.topMph} mph top speed` : ''}{it.perf.power ? ` · ${Math.round((it.perf.power - 1) * 100)}% more power` : ''}</small>}
               {cur.kind === 'wheel' && wheelById[cur.id]?.grip && <small>{wheelById[cur.id].grip.note}</small>}
               {cur.kind === 'rim' && <small>Shown on Rugged tires. Colour it in the customizer.</small>}</div>
-            {isOn ? <button disabled>Equipped</button> : own ? <button className="buy" onClick={() => onBuy(cur.kind, cur.id, true)}>Equip</button>
+            {isOn ? <button onClick={() => onUnequip(cur.kind, cur.id)}>Unequip</button> : own ? <button className="buy" onClick={() => onBuy(cur.kind, cur.id, true)}>Equip</button>
               : <button className="buy" disabled={game.cash < price} onClick={() => onBuy(cur.kind, cur.id)}>{game.cash < price ? `Need $${price}` : `Buy $${price}`}</button>}
           </> : <small>Click an item to preview it on your car. Drag to rotate.</small>}
         </div>
