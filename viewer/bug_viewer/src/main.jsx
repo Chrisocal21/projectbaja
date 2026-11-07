@@ -11,11 +11,12 @@ import {
   defaultBuild, normalize, setBody, setWheels, setRim, rims, setPart, applyPreset, resolve,
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
-import { game, useGame, owns, buy, say, newGame, buyCar, interact } from './game/store.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel } from './game/ui.jsx';
+import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
+import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, boxAtShop, seedStarter } from './game/items.js';
+import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, RemovePanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
-import { partById, SECTIONS, tireMax } from './build.js';
+import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import './style.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
@@ -64,6 +65,7 @@ function App() {
   useGame();
   const [build, setBuildRaw] = useState(initialBuild);
   const [wireframe, setWireframe] = useState(false), [spin, setSpin] = useState(false), [grid, setGrid] = useState(true);
+  const buildRef = useRef(null);
   const [mode, setMode] = useState('title'), [play, setPlay] = useState({ kind: 'drive', world: 'test' }), [panel, setPanelState] = useState(null), [fs, setFs] = useState(false), hud = useRef(null), panelRef = useRef(null);
   const drive = mode === 'play', pro = drive && play.kind === 'pro', world = play.world;
   const setBuild = next => { if (mode === 'play') game.keepPose = true; setBuildRaw(next); };
@@ -72,13 +74,32 @@ function App() {
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
   const startPlay = (kind, w) => { Object.assign(game, { dev: true, onFoot: false, start: 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
   const startStory = cont => {
-    if (!cont) { newGame(); setBuildRaw(normalize(defaultBuild())); }
+    if (!cont) { newGame(); seedStarter(); setBuildRaw(normalize(defaultBuild())); } else if (game.build) setBuildRaw(normalize(game.build));
     Object.assign(game, { dev: false, onFoot: !cont, start: cont ? 'garage' : 'lot', walkStart: cont ? null : WALK_START, walkPose: null, pose: null, keepPose: false, prompt: '', target: null, fueled: false });
     setPlay({ kind: 'drive', world: 'test' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
   };
+  // the 3D scene is rebuilt when the car changes; keep the mouse captured through it
+  const rebuild = nb => { game.rebuilding = true; update(nb); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 900); };
+  const installHeld = () => {
+    const it = held(); if (!it) return;
+    const b = buildRef.current, bd = bodyById[b.body];
+    if (it.kind === 'part' && partState(partById[it.id], bd) !== 'ok') return say("That doesn't fit this car.");
+    if (it.kind === 'wheel' && !wheelSetFits(wheelById[it.id], b.body)) return say("Those don't fit this car.");
+    const nb = it.kind === 'part' ? setPart(b, partById[it.id].slot, it.id) : it.kind === 'wheel' ? setWheels(b, it.id) : setRim(b, it.id);
+    game.items = game.items.filter(x => x !== it); dropRemoved(b, nb);
+    say(`Installed: ${nameOf(it.kind, it.id, b.body)}`); rebuild(nb);
+  };
+  const removePart = (kind, id) => {
+    const b = buildRef.current, nb = kind === 'part' ? setPart(b, partById[id].slot, null) : kind === 'wheel' ? setWheels(b, 'stock') : setRim(b, 'steel');
+    dropRemoved(b, nb); say(`Took off: ${nameOf(kind, id, b.body)} — it's on the floor.`); setPanel(null); rebuild(nb);
+  };
+  const buyBoxed = (kind, id) => { const c = priceOf(kind, id); if (game.cash < c) return; addCash(-c); boxAtShop(kind, id); say(`Bought: ${nameOf(kind, id, build.body)} — boxed at the pickup area outside the shop.`); };
   const worldInteract = id => {
     if (id === 'shop') setPanel('shop');
     else if (id === 'bug') setPanel('dealer');
+    else if (id.startsWith('item:')) pickUp(+id.slice(5));
+    else if (id === 'load') loadHeld();
+    else if (id === 'install') installHeld();
     else if (id === 'bench') { if (game.dev) setPanel('garage'); else say('Workbench: parts get fitted by hand — grab them, bring them here. (Coming soon.)'); }
     else interact(id);
   };
@@ -95,10 +116,13 @@ function App() {
   useEffect(() => { const f = () => setFs(!!document.fullscreenElement); document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f); }, []);
   useEffect(() => {   // pause on Esc / lost pointer lock; E opens the shop when standing at it
     if (mode !== 'play') return;
-    const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null) setPanel('pause'); };
+    const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null && !game.rebuilding) setPanel('pause'); };
     const key = e => {
       const p = panelRef.current;
       if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer') resume(); }
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar && game.inGarage && !held()) setPanel('remove');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key);
@@ -126,7 +150,7 @@ function App() {
     const w = wheelSets.find(x => wheelSetFits(x, body.id) && resolve(setWheels(nb, x.id)).tire);
     return w ? setWheels(nb, w.id) : nb;
   };
-  useEffect(() => { try { history.replaceState(null, '', `#${encodeBuild(build)}`); } catch {} }, [build]);
+  useEffect(() => { buildRef.current = build; saveBuild(build); try { history.replaceState(null, '', `#${encodeBuild(build)}`); } catch {} }, [build]);
 
   const visibleSlots = slots.filter(s => (filter === 'All' || s.category === filter) && parts.some(p => p.slot === s.id && partState(p, body) !== 'hidden'));
   const active = r.active.length + (wheelSet.kind !== 'stock' ? 1 : 0);
@@ -202,13 +226,14 @@ function App() {
     {stageEl}
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     {game.onFoot && <div className="crosshair" />}
-    <div className="hud-keys">{game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
+    <div className="hud-keys">{game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · F load/unload car · G put down · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
     <HudOverlay />
     {pro && <ProDebug />}
     {panel === 'pause' && <PauseMenu onResume={resume} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
-    {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} onBuy={equip} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
+    {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'dealer' && <DealerPanel onBuy={() => { if (buyCar('bug', 1800)) say("Al: 'She's yours. Keys are in the ignition. Probably.'"); }} onDrive={() => { interact('enter'); resume(); }} onClose={resume} />}
+    {panel === 'remove' && <RemovePanel build={build} onRemove={removePart} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

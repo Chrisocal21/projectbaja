@@ -11,11 +11,14 @@ export const game = {
   paused: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
   toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
+  items: saved.items || [], build: saved.build || null,
   onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: false, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
 WEAR.value = game.wear;
 export const emit = () => game.listeners.forEach(f => f());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear })); } catch {} };
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, build: game.build })); } catch {} };
+export const save = () => { persist(); emit(); };
+export const saveBuild = b => { game.build = b; if (!game.dev) persist(); };
 
 export const itemKey = (kind, id) => `${kind}:${id}`;
 export const isFree = (kind, id) => (kind === 'wheel' && id === 'stock') || (kind === 'rim' && id === 'steel');

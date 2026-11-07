@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, openCrate, setPrompt } from './store.js';
+import { lootCrate } from './items.js';
 import * as TC from '../worlds/testcenter.js';
 import { lootSpots } from '../worlds/siteData.js';
 
@@ -50,7 +51,7 @@ function Crates({ spots, height, kind, bodyId }) {
       const live = !(game.crates[c.id] > now); g.visible = live;
       if (!live || game.paused) return;
       g.rotation.y = t * 1.2 + i; g.position.y = c.y + 1.1 + Math.sin(t * 2 + i) * 0.15;
-      if (Math.hypot(game.pos.x - c.x, game.pos.z - c.z) < 3.6) { game.crates[c.id] = now + 60000; g.visible = false; openCrate(bodyId); }
+      if (Math.hypot(game.pos.x - c.x, game.pos.z - c.z) < 3.6) { game.crates[c.id] = now + 60000; g.visible = false; if (game.dev) openCrate(bodyId); else lootCrate(bodyId, c.x + 1.6, c.z + 1.6); }
     });
   });
   return <>{list.map((c, i) => <group key={c.id} ref={el => (refs.current[i] = el)} position={[c.x, c.y + 1.1, c.z]}>

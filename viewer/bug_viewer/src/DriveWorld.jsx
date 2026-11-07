@@ -8,6 +8,7 @@ import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } f
 import * as TC from './worlds/testcenter.js';
 import TestCenterScene from './worlds/TestCenter.jsx';
 import Walker from './game/Walker.jsx';
+import Items, { Cargo } from './game/Items.jsx';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
 import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 
@@ -365,7 +366,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (acc.current > STEP * 5) acc.current = 0;
   });
 
-  return <group ref={group}>{children}</group>;
+  return <group ref={group}>{children}<Cargo /></group>;
 }
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
@@ -387,5 +388,6 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
     {world.id === 'test' && <Walker world={world} sun={sun} />}
+    {world.id === 'test' && <Items />}
   </WorldCtx.Provider>;
 }

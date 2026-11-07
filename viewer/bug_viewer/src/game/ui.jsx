@@ -1,5 +1,6 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack } from './items.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ onNew, onContinue, onDev }) {
@@ -58,14 +59,14 @@ export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports
       {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}
       {teleports?.length > 0 && <div className="tp"><small>TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
       <button onClick={onFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
-      <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock everything (testing)</label>
-      <div className="row"><span>Cash ${game.cash}</span><button onClick={() => addCash(1000)}>+ $1000</button><button onClick={resetProgress}>Reset progress</button></div>
+      {game.dev && <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock everything (testing)</label>}
+      <div className="row"><span>Cash ${game.cash}</span>{game.dev && <><button onClick={() => addCash(1000)}>+ $1000</button><button onClick={resetProgress}>Reset progress</button></>}</div>
       <button onClick={onExit}>Exit to title</button>
     </div>
   </div></div>;
 }
 
-export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUnequip, onClose }) {
+export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUnequip, onClose, story }) {
   useGame();
   const [tabSel, setTab] = React.useState('engine'), [sel, setSel] = React.useState(null);
   const cat = catalogFor(bodyId), slotLabel = Object.fromEntries(slots.map(s => [s.id, s.label]));
@@ -95,7 +96,8 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUn
             <div><strong>{nameOf(cur.kind, cur.id, bodyId)}</strong>{it?.perf && <small>{it.perf.topMph ? `+${it.perf.topMph} mph top speed` : ''}{it.perf.power ? ` · ${Math.round((it.perf.power - 1) * 100)}% more power` : ''}</small>}
               {cur.kind === 'wheel' && wheelById[cur.id]?.grip && <small>{wheelById[cur.id].grip.note}</small>}
               {cur.kind === 'rim' && <small>Shown on Rugged tires. Colour it in the customizer.</small>}</div>
-            {isOn ? <button onClick={() => onUnequip(cur.kind, cur.id)}>Unequip</button> : own ? <button className="buy" onClick={() => onBuy(cur.kind, cur.id, true)}>Equip</button>
+            {story ? <button className="buy" disabled={game.cash < price} onClick={() => onBuy(cur.kind, cur.id)}>{game.cash < price ? `Need $${price}` : `Buy $${price} — boxed for pickup`}</button>
+              : isOn ? <button onClick={() => onUnequip(cur.kind, cur.id)}>Unequip</button> : own ? <button className="buy" onClick={() => onBuy(cur.kind, cur.id, true)}>Equip</button>
               : <button className="buy" disabled={game.cash < price} onClick={() => onBuy(cur.kind, cur.id)}>{game.cash < price ? `Need $${price}` : `Buy $${price}`}</button>}
           </> : <small>Click an item to preview it on your car. Drag to rotate.</small>}
         </div>
@@ -111,5 +113,14 @@ export function HudOverlay() {
     <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
     {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
     {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
+    {game.onFoot && !game.dev && <div className="hud-carry">{held() ? <>In hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G to put down</> : 'Hands empty'}<br />Car space: cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · no roof rack'}</div>}
   </>;
+}
+
+/** garage only: choose a fitted part to unbolt and carry off */
+export function RemovePanel({ build, onRemove, onClose }) {
+  const rows = [...Object.entries(build.parts).map(([slot, id]) => ['part', id, slots.find(s => s.id === slot)?.label || slot]), ...(build.wheels !== 'stock' ? [['wheel', build.wheels, 'Tires']] : []), ...(build.rim !== 'steel' ? [['rim', build.rim, 'Rims']] : [])];
+  return <div className="overlay"><div className="card"><h2>TAKE A PART OFF</h2>
+    <div className="menu">{rows.length ? rows.map(([k, id, label]) => <button key={k + id} onClick={() => onRemove(k, id)}>{nameOf(k, id, build.body)} <small>— {label}</small></button>) : <p className="hint">Nothing fitted that can come off.</p>}<button onClick={onClose}>Done</button></div>
+    <p className="hint">Parts you take off land on the floor. Anything attached to them comes off too.</p></div></div>;
 }

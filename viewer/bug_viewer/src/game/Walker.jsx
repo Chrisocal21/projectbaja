@@ -2,12 +2,25 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { OBSTACLES, TARGETS } from '../worlds/siteData.js';
+import { held, nameOfItem, sizeOf, inGarageZone } from './items.js';
+import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
 
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Peek under the tarp', al: 'Press E — Talk to Al',
   bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store: car wash ($120)',
 };
-export const promptText = id => (id === 'bug' ? `Press E — Look over the Classic Bug ($1,800)` : PROMPTS[id] || '');
+export const promptText = id => {
+  if (!id) return '';
+  if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
+  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? `Press E — Pick up ${nameOfItem(it)}` : ''; }
+  const h = held();
+  if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
+  if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
+  if (id === 'enter' && game.inGarage) return 'Press E — Get in  ·  X — Take a part off';
+  if (id === 'enter' && game.items.some(i => i.loc === 'car')) return 'Press E — Get in  ·  F — Unload the car';
+  return PROMPTS[id] || '';
+};
+const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (!body) return false; return it.kind === 'part' ? partState(partById[it.id], body) === 'ok' : it.kind === 'wheel' ? wheelSetFits(wheelById[it.id], b.body) : true; };
 const SHOP = { x: 16, z: 18 }, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
@@ -33,7 +46,8 @@ export default function Walker({ world, sun }) {
         s.x = at.x; s.z = at.z; s.yaw = at.yaw; s.y = world.height(s.x, s.z); camera.rotation.order = 'YXZ'; camera.fov = 70; camera.updateProjectionMatrix();
       }
       const k = s.keys, fwd = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0), side = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
-      const speed = k.ShiftLeft || k.ShiftRight ? 6 : 3.2, len = Math.hypot(fwd, side) || 1;
+      const hs = held() ? sizeOf(held().kind, held().id) : 0, load = hs >= 4 ? 0.55 : hs >= 3 ? 0.75 : hs ? 0.9 : 1;
+      const speed = (k.ShiftLeft || k.ShiftRight ? 6 : 3.2) * load, len = Math.hypot(fwd, side) || 1;
       const wx = (-Math.sin(s.yaw) * fwd + Math.cos(s.yaw) * side) / len * speed, wz = (-Math.cos(s.yaw) * fwd - Math.sin(s.yaw) * side) / len * speed;
       s.vx += (wx - s.vx) * Math.min(1, dt * 10); s.vz += (wz - s.vz) * Math.min(1, dt * 10);
       s.x += s.vx * dt; s.z += s.vz * dt;
@@ -68,11 +82,16 @@ export default function Walker({ world, sun }) {
       consider(t.id, t.x, t.z, t.r, t.face);
     }
     if (!nearPump) game.fueled = false;
+    game.nearCar = !!pose && foot && Math.hypot(pose.x - px, pose.z - pz) < 4.6;
+    game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
+    if (foot) for (const it of game.items) if (it.loc === 'world' && !held()) consider('item:' + it.uid, it.x, it.z, 2.8, true, 0.5);
     if (pose) {
-      if (foot) consider(game.owned.has('car:bug') || game.dev ? 'enter' : 'bug', pose.x, pose.z, 4.6, true, 0.6);
+      const h = foot && held();
+      if (h && game.nearCar) { best = game.inGarage && fitsCar(h) ? 'install' : 'load'; }
+      else if (foot) consider(game.owned.has('car:bug') || game.dev ? 'enter' : 'bug', pose.x, pose.z, 4.6, true, 0.9);
       else if (!best && Math.abs(game.speed) < 4) best = 'exit';
     }
-    game.target = best; setPrompt(best ? promptText(best) : '');
+    game.target = best; setPrompt(promptText(best));
   });
   return null;
 }

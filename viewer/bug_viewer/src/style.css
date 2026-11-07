@@ -50,6 +50,7 @@
 .full .hud{left:auto;right:22px;bottom:18px;text-align:right}.full .hud .speed{font-size:30px}
 .hud-keys{position:absolute;left:18px;bottom:14px;color:#ffffffb0;font-size:12px;text-shadow:0 1px 3px #000;pointer-events:none}
 .hud-top{position:absolute;top:16px;left:18px;font:700 22px system-ui;color:#9be8ad;text-shadow:0 1px 4px #000;pointer-events:none}
+.hud-carry{position:absolute;right:18px;bottom:14px;text-align:right;color:#e8e2cc;font-size:12px;line-height:1.5;text-shadow:0 1px 3px #000;pointer-events:none}.hud-carry b{color:#ffd88a}
 .hud-prompt{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);background:#000a;border:1px solid #5be08a;color:#c9f5d4;padding:9px 18px;border-radius:8px;font-weight:700;pointer-events:none}
 .hud-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);background:#000b;border:1px solid #ffd23f;color:#ffe9a0;padding:10px 20px;border-radius:8px;font-weight:700;font-size:16px;pointer-events:none}
 .presets button:disabled,.toolbar button:disabled{opacity:.4;cursor:not-allowed}
