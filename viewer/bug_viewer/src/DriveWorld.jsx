@@ -250,12 +250,12 @@ function Vehicle({ children, hud, dims, race, sun }) {
       if (st.rolled && st.touch) { const f = 1 - Math.min(1, 1.4 * dt); st.v *= f; st.lateralV *= f; }   // sliding on its side: friction scrubs speed
       if (st.air) {   // cat reflex: a launched car twists itself to meet the ground wheels-first (centre of gravity low, weight in the tyres)
         st.airT = (st.airT || 0) + dt;
-        if (st.airT > 0.12) {
+        if (st.airT > 0.35) {
           const e = 2, sl2 = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e), sd = (world.height(st.x + rx * 1, st.z + rz * 1) - world.height(st.x - rx * 1, st.z - rz * 1)) / 2;
           const wrap = a => (a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a);
-          const lim = 14, ep = wrap(Math.atan(sl2) - st.pitch), er = wrap(Math.atan(sd) - st.roll), k = Math.min(1, (st.airT - 0.12) / 0.25);
-          st.pitchV += Math.max(-lim, Math.min(lim, 9 * ep * k - 3.2 * st.pitchV * k)) * dt;
-          st.rollV += Math.max(-lim, Math.min(lim, 9 * er * k - 3.2 * st.rollV * k)) * dt;
+          const lim = 4, ep = wrap(Math.atan(sl2) - st.pitch), er = wrap(Math.atan(sd) - st.roll), k = Math.min(1, (st.airT - 0.35) / 0.6);
+          st.pitchV += Math.max(-lim, Math.min(lim, 2.2 * ep * k - 1.0 * st.pitchV * k)) * dt;
+          st.rollV += Math.max(-lim, Math.min(lim, 2.2 * er * k - 1.0 * st.rollV * k)) * dt;
         }
       }
       if (throttle && !st.touch) st.pitchV += throttle * 0.7 * dt;                                   // in the air: gas pitches the nose up, brake pitches it down

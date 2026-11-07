@@ -9,10 +9,10 @@ const clamp = THREE.MathUtils.clamp;
 
 export function suspensionConfig(dims) {
   return {
-    compression: dims.offroad ? 0.22 : 0.12,
-    droop: dims.offroad ? 0.24 : 0.14,
-    stiffness: dims.offroad ? 26000 : 34000,
-    damping: dims.offroad ? 2600 : 3000,
+    compression: dims.offroad ? 0.38 : 0.15,   // long-travel offroad suspension: landings are absorbed by springs, not by a hard stop
+    droop: dims.offroad ? 0.26 : 0.14,
+    stiffness: dims.offroad ? 22000 : 34000,
+    damping: dims.offroad ? 3400 : 3000,
     antiRoll: dims.offroad ? 14000 : 18000,
   };
 }
@@ -63,7 +63,8 @@ function wheelContact(st, mount, quaternion, config, sample, dims) {
 }
 
 const wrapA = a => (a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a);
-const COM_H = 0.4;   // centre of mass height above the hubs: sets how far the car can lean before it tips over
+const COM_H = 0.4;
+const BODY_GIVE = 0.14;   // metres the bodywork can crush into the ground (compliant spring) before it becomes a hard stop   // centre of mass height above the hubs: sets how far the car can lean before it tips over
 
 export function stepSuspension(st, dims, dt, sample = terrainHeight) {
   const config = suspensionConfig(dims), mounts = dims.mounts;
@@ -80,7 +81,7 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
   const Rx = Math.cos(st.h), Rz = -Math.sin(st.h), Fx = Math.sin(st.h), Fz = Math.cos(st.h);
   // rigid-body impact at a point: an impulse that changes vertical speed AND pitch/roll rate, so a nose-first landing really tips the car forward
   const comOff = new THREE.Vector3(0, mounts[0].center[1] + COM_H, 0).applyQuaternion(quaternion), cx = st.x + comOff.x, cz = st.z + comOff.z;
-  const impact = (p, e, mu = 0.85) => {
+  const impact = (p, e, mu = 0.45, lev = 0.5) => {
     const rx = p.x - cx, rz = p.z - cz, a = rx * Rx + rz * Rz, f = rx * Fx + rz * Fz;
     const vN = st.vy + st.pitchV * f + st.rollV * a;
     if (vN >= -0.3) return 0;
@@ -90,13 +91,13 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
     const vh = Math.hypot(st.v, st.lateralV);
     if (vh > 0.5) {
       const dv = Math.min(vh, mu * j / MASS), df = dv * st.v / vh, dl = dv * st.lateralV / vh;
-      st.v -= df; st.lateralV -= dl; st.pitchV -= MASS * df * 1.0 / Ip; st.rollV -= MASS * dl * 1.0 / Ir;
+      st.v -= df; st.lateralV -= dl; st.pitchV -= MASS * df * lev / Ip; st.rollV -= MASS * dl * lev / Ir;
     }
     return j;
   };
   const roofY = (dims.cabEye ? dims.cabEye[1] : dims.bellyHeight + 1.1) + 0.2;
   const hullPts = [];
-  for (const x of [-dims.track * 0.35, 0, dims.track * 0.35]) for (const z of [-dims.wheelbase / 2 - 0.4, 0, dims.wheelbase / 2 + 0.4]) hullPts.push([x, dims.bellyHeight, z, 0]);
+  for (const x of [-dims.track * 0.35, 0, dims.track * 0.35]) for (const z of [-dims.wheelbase / 2 - 0.4, 0, dims.wheelbase / 2 + 0.4]) hullPts.push([x, dims.bellyHeight + (z === 0 ? 0 : 0.2), z, 0]);   // bumpers sit above the tire bottoms: wheels meet the ground first
   for (const x of [-dims.track * 0.3, dims.track * 0.3]) for (const z of [-dims.wheelbase * 0.2, dims.wheelbase * 0.2]) hullPts.push([x, roofY, z, 1]);
   for (const x of [-dims.track / 2 - 0.15, dims.track / 2 + 0.15]) for (const z of [-dims.wheelbase * 0.35, 0, dims.wheelbase * 0.35]) hullPts.push([x, dims.bellyHeight + 0.45, z, 1]);
   // Bump stops and a sampled belly collider are unilateral constraints, never an averaged ground clamp.
@@ -110,9 +111,9 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
     }
     for (const [hx, hy, hz, soft] of hullPts) {
       const p = new THREE.Vector3(hx, hy, hz).applyQuaternion(quaternion).add(new THREE.Vector3(st.x, st.y, st.z));
-      const pen = sample(p.x, p.z) + 0.025 - p.y;
-      if (pen > 0 && pass === 0) {   // body strike (belly, roof, sides): bounces a little, scrubs speed
-        const j = impact(p, soft ? 0.2 : 0.05, 0.9), k = 1 - Math.min(0.4, j / (MASS * 12));
+      const pen = sample(p.x, p.z) + 0.025 - p.y - BODY_GIVE;
+      if (pen > 0 && pass === 0) {   // hard stop beyond the crush zone: bounces a little, scrubs speed
+        const j = impact(p, soft ? 0.2 : 0.05, 0.9, 1.0), k = 1 - Math.min(0.4, j / (MASS * 12));
         st.v *= k; st.lateralV *= k; st.hit = true;
       }
       raise = Math.max(raise, pen);
@@ -141,7 +142,8 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
       const preload = MASS * GRAVITY * (mount.name.startsWith('F') ? 0.21 : 0.29);
       const groundV = old?.touching ? clamp((contact.support - old.support) / dt, -12, 12) : 0;
       const hubV = st.vy + st.pitchV * (mount.center[2] - comZ) + st.rollV * mount.center[0];
-      load = clamp(preload + config.stiffness * travel + config.damping * (groundV - hubV), 0, preload * 5);
+      const frac = Math.max(0, travel) / config.compression, spring = config.stiffness * travel * (1 + 6 * frac ** 3);   // progressive: soft early, firm near the bump stop
+      load = clamp(preload + spring + config.damping * (groundV - hubV), 0, preload * 14);
       force += load * up.y;
       // lever arms are measured in the world: when the car leans past its tipping angle the loads stop righting it and start rolling it
       pitchTorque += load * ((mount.center[2] - comZ) * Math.cos(st.pitch) + COM_H * Math.sin(st.pitch));
@@ -157,24 +159,26 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
     pitchTorque += MASS * st.ax * 0.48;
     rollTorque += MASS * (st.aLat || 0) * COM_H * 0.9;   // sideways tire force acts below the centre of mass: big lateral decel (tires biting after a slide) rolls the car
   }
-  // body resting on the ground (nose, roof, side): it carries the car's weight at that point, so the car can pivot over it and tip
-  const sup = [];
+  // body contact (nose, tail, roof, sides) is a spring-damper, not a wall: it decelerates the car over a few centimetres, carries its weight when resting (so it can pivot and tip) and drags speed
+  let bodyTouch = false;
   for (const [hx, hy, hz] of hullPts) {
     const p = new THREE.Vector3(hx, hy, hz).applyQuaternion(quaternion).add(new THREE.Vector3(st.x, st.y, st.z));
-    if (p.y - sample(p.x, p.z) < 0.06) { const rx = p.x - cx, rz = p.z - cz; sup.push([rx * Rx + rz * Rz, rx * Fx + rz * Fz]); }
-  }
-  if (sup.length) {
-    const Fn = MASS * GRAVITY * (contacts ? 0.35 : 1) / sup.length;
-    for (const [a, f] of sup) { force += Fn; pitchTorque += Fn * f; rollTorque += Fn * a; }
+    const pen = sample(p.x, p.z) + 0.025 - p.y;
+    if (pen <= 0) continue;
+    bodyTouch = true;
+    const rx = p.x - cx, rz = p.z - cz, a = rx * Rx + rz * Rz, f = rx * Fx + rz * Fz, vN = st.vy + st.pitchV * f + st.rollV * a;
+    const F = clamp(150000 * pen + 14000 * Math.max(0, -vN), 0, MASS * GRAVITY * 12) * (contacts ? 0.6 : 1);
+    force += F; pitchTorque += F * f; rollTorque += F * a;
+    const drag = Math.min(1, 0.5 * F / (MASS * 30) * 60 * dt); st.v *= 1 - drag; st.lateralV *= 1 - drag;
   }
   st.vy += force / MASS * dt;
   // angular damping: stiff on the wheels, almost none in the air (a launched car keeps its rotation), scrapey when lying on the body
-  const dampP = contacts ? 2 : correction > 0 ? 1.2 : 0.08, dampR = contacts ? 2.5 : correction > 0 ? 1.2 : 0.08;
+  const dampP = contacts ? 2 : (correction > 0 || bodyTouch) ? 1.2 : 0.08, dampR = contacts ? 2.5 : (correction > 0 || bodyTouch) ? 1.2 : 0.08;
   st.pitchV += (pitchTorque / Ip - st.pitchV * dampP) * dt;
   st.rollV += (rollTorque / Ir - st.rollV * dampR) * dt;
   st.contacts = contacts;
   st.rolled = rolled;
-  st.touch = correction > 0 || sup.length > 0;   // body or wheels on the ground this step
+  st.touch = correction > 0 || bodyTouch;   // body or wheels on the ground this step
   st.air = contacts === 0 && !rolled;
 }
 
