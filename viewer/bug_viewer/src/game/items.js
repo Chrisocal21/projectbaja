@@ -10,10 +10,10 @@ export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor
 const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
-const SLOT_SIZE = { engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? STOCK[id]?.size || 2 : kind === 'tool' ? TOOLS[id]?.size || 1 : 3);
+const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
-export const nameOfItem = it => it.kind === 'stock' ? (it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+export const nameOfItem = it => it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -24,6 +24,11 @@ export const used = spot => game.items.filter(i => (spot === 'pack' ? i.loc === 
 export const held = () => game.items.find(i => i.loc === 'hand');
 export const packItems = () => game.items.filter(i => i.loc === 'pack');
 export const carItems = () => game.items.filter(i => i.loc === 'car');
+export const garageItems = () => game.items.filter(i => i.loc === 'garage');
+/** the garage shelves: unlimited storage, only reachable inside your garage */
+export function storeInGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || !['hand', 'pack', 'car'].includes(it.loc)) return; at(it).loc = 'garage'; commit(); say(`${nameOfItem(it)} → garage shelves`); }
+export function takeFromGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'garage') return; const w = takeOnto(it); if (!w) return say(fullMsg(it)); commit(); }
+export function giveToGarage(kind, id, extra = {}) { game.items.push({ uid: uid(), kind, id, loc: 'garage', ...extra }); commit(); }
 export const boxItems = id => game.items.filter(i => i.loc === 'box' && i.box === id);
 export function spotFor(it) {
   const s = itemSize(it);
@@ -40,7 +45,7 @@ const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete i
 /** can the player take this right now (pack or free hands)? */
 export const canCarry = (kind, id) => (sizeOf(kind, id) === 1 && used('pack') + 1 <= CAPACITY.pack) || !held();
 /** hand a brand-new item to the player (detached part, store purchase). Check canCarry first. */
-export function giveToPlayer(kind, id) { const it = { uid: uid(), kind, id, loc: 'world' }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
+export function giveToPlayer(kind, id, extra = {}) { const it = { uid: uid(), kind, id, loc: 'world', ...extra }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
 function takeOnto(it) {
   if (fitsPack(it)) { at(it).loc = 'pack'; return 'pack'; }
   if (!held()) { at(it).loc = 'hand'; return 'hand'; }

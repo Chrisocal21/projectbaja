@@ -9,6 +9,7 @@ import { applyWeathering, kindForMaterial } from './weather.js';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
 import { game, useGame } from './game/store.js';
 import { BUG } from './rules/vehicles.js';
+import ProcEngine from './Engine.jsx';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
 /** Meshes exported without normals render as raw flat facets (bright shards) - give them smooth normals. */
@@ -186,11 +187,14 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
   const r = useMemo(() => resolve(build), [build]);
   const common = { wireframe, onSelect, channels: r.channels };
   useGame();
+  const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w));
+  const bareMask = bare.map(w => ({ FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' })[w]);
   const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: [...((r.body.pieces || []).find(x => x.id === c.piece)?.match || []), ...(c.extra || [])] })) : [];
   return <>
     <group position={[0, r.lift, 0]}>
-      <Model file={r.body.file} mask={r.masks} isBase wheelDy={-r.lift} opens={opens} {...common} />
-      {r.active.filter(p => !p.attach && p.slot !== 'suspension').map(p => {
+      <Model file={r.body.file} mask={[...r.masks, ...bareMask]} isBase wheelDy={-r.lift} opens={opens} {...common} />
+      {!(build.stripped || []).includes('engine') && <ProcEngine mods={build.parts} stockExhaust={!r.active.some(x => x.slot === 'exhaust')} />}
+      {r.active.filter(p => !p.attach && !p.engineMod && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
         const m = <Model file={f} {...common} channels={pch} material={p.material} hide={p.hidesWithExhaust && r.active.some(x => x.slot === 'exhaust') ? p.hidesWithExhaust : []} />;
@@ -198,7 +202,8 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
       })}
     </group>
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
-    {r.tire && r.mounts.map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}
+    {bare.map(w => { const m = r.mounts.find(x => x.name === w); return m && <group key={'stand' + w} position={[m.center[0], 0, m.center[2]]}><mesh position={[0, m.center[1] * 0.45, 0]} castShadow><boxGeometry args={[0.22, m.center[1] * 0.9, 0.22]} /><meshStandardMaterial color="#b8361f" metalness={0.4} roughness={0.5} /></mesh><mesh position={[0, 0.02, 0]}><boxGeometry args={[0.4, 0.04, 0.4]} /><meshStandardMaterial color="#8a2a18" metalness={0.4} roughness={0.5} /></mesh></group>; })}
+    {r.tire && r.mounts.filter(m => !bare.includes(m.name)).map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}
     {(drive || r.active.some(p => p.slot === 'suspension' || p.slot === 'shocks')) &&
       <Suspension mounts={r.mounts} lift={r.lift} wireframe={wireframe} onSelect={onSelect}
         coilovers={drive || r.active.some(p => p.slot === 'shocks')} />}

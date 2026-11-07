@@ -3,7 +3,7 @@ import { slots, bodies, wheelSets, parts, presets, rims } from './catalog/index.
 export { slots, bodies, wheelSets, parts, presets, rims };
 /** Part sections used by the customizer and the shop: each part slot belongs to exactly one. */
 export const SECTIONS = [
-  { id: 'engine', label: 'Engine', slots: ['engine'] },
+  { id: 'engine', label: 'Engine', slots: ['engine', 'engineCarb', 'engineBore', 'engineIgnition', 'engineCooling'] },
   { id: 'exhaust', label: 'Exhaust', slots: ['exhaust'] },
   { id: 'body', label: 'Body panels', slots: ['fenders', 'hood', 'rearDeck'] },
   { id: 'roof', label: 'Roof & racks', slots: ['roofRack', 'roofGear', 'antenna'] },

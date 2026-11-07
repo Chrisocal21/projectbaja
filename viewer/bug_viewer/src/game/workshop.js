@@ -34,6 +34,14 @@ export function carLocal() {
 export function planFit(it, b, zone) {
   const ctx = { zone, tools: toolsHere(), open: openCovers() };
   const body = bodyById[b.body];
+  if (it.kind === 'stock' && it.id === 'wheel') {   // a loose wheel goes on the nearest bare hub (blueprint §3.4)
+    const bare = DEF.slots.filter(s => s.wheel && !isFitted(DEF, b, s.id)); if (!bare.length) return { ok: false, why: 'All four wheels are on.' };
+    if ((it.set || 'stock') !== b.wheels) return { ok: false, why: `That wheel doesn't match the other tires on the car.` };
+    const cl = carLocal(), mounts = bodyById[b.body].wheels;
+    const slot = bare.slice().sort((a, c) => { const d = s => { const m = mounts[s.wheel].center; return cl ? Math.hypot(m[0] - cl.lx, m[2] - cl.lz) : 0; }; return d(a) - d(c); })[0];
+    const r = checkFit(DEF, b, slot, { ...ctx, zone: undefined });
+    return { ...r, slotName: slot.name, apply: bb => ({ build: withSlot(DEF, bb, slot.id, true), drops: [] }) };
+  }
   if (it.kind === 'stock') {
     const slot = slotById(DEF, it.id); if (!slot) return { ok: false, why: "That doesn't belong on this car." };
     const r = checkFit(DEF, b, slot, ctx);
@@ -47,6 +55,7 @@ export function planFit(it, b, zone) {
       const r = stripped ? checkFit(DEF, b, slot, ctx) : checkFit(DEF, withSlot(DEF, b, 'engine', false), slot, ctx);   // swapping engines: same access rules as fitting one
       return { ...r, slotName: p.label, apply: bb => { const drops = []; if (!stripped) drops.push(bb.parts.engine ? ['part', bb.parts.engine] : ['stock', 'engine']); return { build: setPart(withSlot(DEF, bb, 'engine', true), 'engine', p.id), drops }; } };
     }
+    if (fit.needsEngine && !isFitted(DEF, b, 'engine')) return { ok: false, why: 'There is no engine to bolt that onto.' };
     if (zone && fit.zone !== 'any' && fit.zone !== zone) return { ok: false, why: `Go to the ${fit.zone} of the car for the ${p.label.toLowerCase()}.` };
     if (fit.cover && isFitted(DEF, b, fit.cover) && !ctx.open.has(fit.cover)) return { ok: false, why: `Open the ${DEF.covers[fit.cover].name} first.`, openCover: fit.cover };
     if (!ctx.tools.has(tool)) return { ok: false, why: TOOL_WHY[tool]('fit', p.label.toLowerCase()) };
@@ -63,8 +72,10 @@ export function planFit(it, b, zone) {
 /** detaching a restoration slot (stock part or fitted upgrade) */
 export function planDetach(slotId, b, zone) {
   const slot = slotById(DEF, slotId), ctx = { zone, tools: toolsHere(), open: openCovers() };
-  const r = checkDetach(DEF, b, slot, ctx);
-  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : ['stock', slotId];
+  let r = checkDetach(DEF, b, slot, ctx);
+  const mods = slotId === 'engine' ? Object.entries(b.parts).filter(([s]) => UPGRADE_FIT[s]?.needsEngine) : [];
+  if (r.ok && mods.length) r = { ok: false, why: `Take the ${mods.map(([, id]) => partById[id].label.toLowerCase()).join(', ')} off the engine first.` };
+  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels }] : ['stock', slotId];
   return { ...r, item, apply: bb => { let n = withSlot(DEF, bb, slotId, false); if (slotId === 'engine') { const p = { ...n.parts }; delete p.engine; n = { ...n, parts: p }; } return n; } };
 }
 /** detaching a bolt-on upgrade (lights, racks, bumpers...) that has no restoration slot */

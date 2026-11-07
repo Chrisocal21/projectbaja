@@ -1,6 +1,6 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar } from './items.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
@@ -135,13 +135,16 @@ export function ContainerPanel({ id, onClose }) {
 /** Tab: hands, pack, and the car's storage when you're standing next to it */
 export function InventoryPanel({ onClose }) {
   useGame();
-  const h = held(), pack = packItems(), car = carItems(), near = game.nearCar;
+  const h = held(), pack = packItems(), car = carItems(), near = game.nearCar, shed = inGarageZone(game.pos.x, game.pos.z), shelf = garageItems();
+  const toShelf = it => shed && <button onClick={() => storeInGarage(it.uid)}>Shelve</button>;
   return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
-    <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{near && <button onClick={() => stowInCar(h.uid)}>Put in car</button>}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
+    <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{near && <button onClick={() => stowInCar(h.uid)}>Put in car</button>}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
     <div className="inv-sec">PACK <span>{used('pack')}/{CAPACITY.pack} · small parts only</span></div>
-    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
+    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
     <div className="inv-sec">CAR <span>cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · fit a roof rack for more'}</span></div>
-    {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <button onClick={() => takeFromCar(it.uid)}>Take</button> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
+    {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
+    <div className="inv-sec">GARAGE SHELVES <span>{shelf.length} parts{shed ? '' : ' · only reachable in your garage'}</span></div>
+    {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
     <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
 }
 
@@ -158,7 +161,7 @@ export function WorkshopPanel({ build, onFit, onDetach, onDetachUpgrade, onCover
     {Object.entries(DEF.covers).map(([id, c]) => fitted(id) && <div key={id} className="inv-row"><span>{c.name[0].toUpperCase() + c.name.slice(1)}<small>{open.has(id) ? 'open' : 'shut'}</small></span><span className="inv-btns"><button onClick={() => onCover(id)}>{open.has(id) ? 'Close' : 'Open'}</button></span></div>)}
     <div className="inv-sec">PARTS</div>
     {DEF.slots.map(s => {
-      const on = fitted(s.id), pd = on ? planDetach(s.id, build) : null, cand = !on && reach.map(it => ({ it, plan: planFit(it, build) })).find(x => x.plan.slotName && ((x.it.kind === 'stock' && x.it.id === s.id) || (s.id === 'engine' && x.it.kind === 'part' && partById[x.it.id]?.slot === 'engine')));
+      const on = fitted(s.id), pd = on ? planDetach(s.id, build) : null, cand = !on && reach.map(it => ({ it, plan: planFit(it, build) })).find(x => x.plan.slotName && ((x.it.kind === 'stock' && (x.it.id === s.id || (s.wheel && x.it.id === 'wheel'))) || (s.id === 'engine' && x.it.kind === 'part' && partById[x.it.id]?.slot === 'engine')));
       const label = s.id === 'engine' && build.parts.engine ? partById[build.parts.engine].label : s.name;
       return <div key={s.id} className={`inv-row${on ? '' : ' ws-missing'}`}><span>{label}<small>{on ? 'fitted' : 'missing'}{['start', 'drive', 'steer', 'grip'].includes(s.fn) ? ' · needed to drive' : ''}{!on && !cand ? ' · find one' : ''}{pd && !pd.ok ? ` · ${pd.why}` : ''}{cand && !cand.plan.ok ? ` · ${cand.plan.why}` : ''}</small></span>
         <span className="inv-btns">{on ? <button disabled={!pd.ok && !pd.openCover} onClick={() => onDetach(s.id)}>Detach</button> : cand && <button disabled={!cand.plan.ok && !cand.plan.openCover} onClick={() => onFit(cand.it.uid)}>Fit{cand.it.loc === 'car' ? ' (from car)' : ''}</button>}</span></div>;

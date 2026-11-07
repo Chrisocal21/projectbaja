@@ -154,81 +154,6 @@
  },
  {
   "type": "part",
-  "id": "PART_012_AirCooledRearEngine",
-  "label": "Rear air-cooled engine",
-  "slot": "engine",
-  "category": "Mechanical",
-  "bodies": {
-   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
-  },
-  "families": [
-   "classic"
-  ],
-  "requires": {
-   "rearDeck": "PART_009_RearEngineOpening"
-  },
-  "perf": {
-   "topMph": 35,
-   "power": 1.25
-  },
-  "hardware": "engineMounts",
-  "hidesWithExhaust": [
-   "ENGINE_Exhaust",
-   "ENGINE_Muffler"
-  ]
- },
- {
-  "type": "part",
-  "id": "ENGINE_BuiltAirCooled",
-  "label": "Built air-cooled engine",
-  "slot": "engine",
-  "category": "Mechanical",
-  "bodies": {
-   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
-  },
-  "families": [
-   "classic"
-  ],
-  "requires": {
-   "rearDeck": "PART_009_RearEngineOpening"
-  },
-  "perf": {
-   "topMph": 55,
-   "power": 1.5
-  },
-  "hardware": "engineMounts",
-  "hidesWithExhaust": [
-   "ENGINE_Exhaust",
-   "ENGINE_Muffler"
-  ]
- },
- {
-  "type": "part",
-  "id": "ENGINE_RaceBuilt",
-  "label": "Race-built engine",
-  "slot": "engine",
-  "category": "Mechanical",
-  "bodies": {
-   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
-  },
-  "families": [
-   "classic"
-  ],
-  "requires": {
-   "rearDeck": "PART_009_RearEngineOpening"
-  },
-  "perf": {
-   "topMph": 70,
-   "power": 1.8
-  },
-  "hardware": "engineMounts",
-  "hidesWithExhaust": [
-   "ENGINE_Exhaust",
-   "ENGINE_Muffler"
-  ]
- },
- {
-  "type": "part",
   "id": "PART_006_TrailShockSet",
   "label": "Trail shocks",
   "slot": "suspension",
@@ -587,5 +512,131 @@
    "topMph": 11,
    "power": 1.06
   }
+ },
+ {
+  "type": "part",
+  "id": "EMOD_DualKadron",
+  "label": "Dual Kadron carbs",
+  "slot": "engineCarb",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 6,
+   "power": 1.1
+  },
+  "price": 220,
+  "note": "Two carbs, two little chrome filters. The first real upgrade."
+ },
+ {
+  "type": "part",
+  "id": "EMOD_DualWeber",
+  "label": "Dual Weber 44 IDF carbs",
+  "slot": "engineCarb",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 12,
+   "power": 1.2
+  },
+  "price": 480,
+  "note": "Big twin-chokes with oval filters. Loud and thirsty."
+ },
+ {
+  "type": "part",
+  "id": "EMOD_Bore1776",
+  "label": "1776 big-bore kit",
+  "slot": "engineBore",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 10,
+   "power": 1.15
+  },
+  "price": 420,
+  "note": "Bigger barrels and pistons. Engine comes out for this one."
+ },
+ {
+  "type": "part",
+  "id": "EMOD_Bore2110",
+  "label": "2110 stroker kit",
+  "slot": "engineBore",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 20,
+   "power": 1.32
+  },
+  "price": 900,
+  "note": "Stroker crank and big barrels. Serious power for a Bug."
+ },
+ {
+  "type": "part",
+  "id": "EMOD_Ignition",
+  "label": "Electronic ignition + hot coil",
+  "slot": "engineIgnition",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 3,
+   "power": 1.04
+  },
+  "price": 90,
+  "note": "No more points. Starts every time."
+ },
+ {
+  "type": "part",
+  "id": "EMOD_Doghouse",
+  "label": "Doghouse shroud + oil cooler",
+  "slot": "engineCooling",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "engineMod": true,
+  "perf": {
+   "topMph": 2,
+   "power": 1.02
+  },
+  "price": 160,
+  "note": "Keeps a hot motor alive in the desert."
  }
 ]

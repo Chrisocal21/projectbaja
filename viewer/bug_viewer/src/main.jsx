@@ -12,7 +12,7 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
-import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, sizeOf, nameOfItem } from './game/items.js';
+import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, sizeOf, nameOfItem } from './game/items.js';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
@@ -29,6 +29,7 @@ const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1
 
 function CameraReset({ resetKey, cam }) {
   const { camera, controls } = useThree();
+  useEffect(() => { window.__cam = { camera, controls }; }, [camera, controls]);   // test hook
   useEffect(() => { camera.position.set(...(cam?.pos || CAMERA_POSITION)); controls?.target.set(...(cam?.target || [0, 0.8, 0])); controls?.update(); }, [camera, controls, resetKey, cam]);
   return null;
 }
@@ -96,8 +97,11 @@ function App() {
   const doDetach = slotId => {
     const b = buildRef.current, plan = planDetach(slotId, b);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
-    if (!canCarry(...plan.item)) return say(sizeOf(...plan.item) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
-    giveToPlayer(...plan.item); say(`Took off: ${nameOfItem({ kind: plan.item[0], id: plan.item[1] })}`); rebuild(normalize(plan.apply(b)));
+    const [k, id, extra] = plan.item, name = nameOfItem({ kind: k, id, ...(extra || {}) });
+    if (canCarry(k, id)) { giveToPlayer(k, id, extra); say(`Took off: ${name}`); }
+    else if (inGarageZone(game.pos.x, game.pos.z)) { giveToGarage(k, id, extra); say(`Took off: ${name} — hands full, so it went on the garage shelves.`); }
+    else return say(sizeOf(k, id) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
+    rebuild(normalize(plan.apply(b)));
   };
   const doDetachUpgrade = catSlot => {
     const b = buildRef.current, plan = planDetachUpgrade(catSlot, b);

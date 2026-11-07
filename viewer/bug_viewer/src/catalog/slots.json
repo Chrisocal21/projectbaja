@@ -131,5 +131,33 @@
   "label": "Antenna",
   "category": "Body",
   "order": 24
+ },
+ {
+  "type": "slot",
+  "id": "engineCarb",
+  "label": "Carburettors",
+  "category": "Mechanical",
+  "order": 9.1
+ },
+ {
+  "type": "slot",
+  "id": "engineBore",
+  "label": "Cylinders & pistons",
+  "category": "Mechanical",
+  "order": 9.2
+ },
+ {
+  "type": "slot",
+  "id": "engineIgnition",
+  "label": "Ignition",
+  "category": "Mechanical",
+  "order": 9.299999999999999
+ },
+ {
+  "type": "slot",
+  "id": "engineCooling",
+  "label": "Cooling",
+  "category": "Mechanical",
+  "order": 9.4
  }
 ]

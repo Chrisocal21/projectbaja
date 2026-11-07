@@ -22,7 +22,7 @@
     "hood": "PART_008_ShortenedFrontHood",
     "rearDeck": "PART_009_RearEngineOpening",
     "rockers": "PART_011_RockerGuards",
-    "engine": "PART_012_AirCooledRearEngine"
+    "engineCarb": "EMOD_DualKadron"
    }
   }
  },
