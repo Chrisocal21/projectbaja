@@ -101,6 +101,12 @@ function buildRig(root) {
     let m = WHEEL_RE.exec(n), key, base = false;
     if (m) key = m[1];
     else if ((m = BASE_WHEEL_RE.exec(n))) { key = m[1].replace('B', 'R'); base = true; }
+    else if (/^Cylinder/.test(n)) {                       // classic/stock model: generic names, so match by shape + position
+      if (/^Cylinder009(_\d+)?$/.test(n)) { wheelMeshes.push(o); return; }                 // steering wheel
+      const bb = new THREE.Box3().setFromObject(o), c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+      if (!(Math.abs(c.x) > 0.45 && bb.max.y < 0.8 && sz.y > 0.2 && sz.x < 0.4 && Math.abs(Math.abs(c.z) - 1.19) < 0.45)) return;
+      key = (c.z > 0 ? 'F' : 'R') + (c.x > 0 ? 'L' : 'R'); base = true;
+    }
     else { if (STEER_RE.test(n)) wheelMeshes.push(o); return; }
     (sets[(base ? 'b' : 'p') + key] ||= []).push(o);
   });
