@@ -4,7 +4,8 @@ import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, ad
 
 export function TitleScreen({ onNew, onContinue, onDev }) {
   useGame();
-  const [dev, setDev] = React.useState(false), has = game.owned.has('car:bug');
+  const [dev, setDev] = React.useState(false), [secret, setSecret] = React.useState(() => /[?&]dev/.test(location.search)), has = game.owned.has('car:bug');
+  React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
   return <div className="title-screen">
     <div className="title-panel">
       <span className="eyebrow">A USED-CAR, BUILD-IT-YOURSELF STORY</span>
@@ -13,8 +14,8 @@ export function TitleScreen({ onNew, onContinue, onDev }) {
       <div className="menu">
         <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
         {has && <button className="big" onClick={onContinue}>Continue — drive the Bug home</button>}
-        <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>
-        {dev && <><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
+        {secret && <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>}
+        {secret && dev && <><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
           <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
       </div>
     </div>
@@ -54,7 +55,7 @@ export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports
     <h2>PAUSED</h2>
     <div className="menu">
       <button className="big" onClick={onResume}>Resume</button>
-      <button onClick={onCustomize}>Customize vehicle{game.unlockAll ? '' : ' (owned parts)'}</button>
+      {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}
       {teleports?.length > 0 && <div className="tp"><small>TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
       <button onClick={onFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock everything (testing)</label>

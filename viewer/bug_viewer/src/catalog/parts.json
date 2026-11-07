@@ -392,58 +392,6 @@
  },
  {
   "type": "part",
-  "id": "MESHY_FrontClip",
-  "label": "Fiberglass front clip",
-  "slot": "hood",
-  "category": "Body",
-  "bodies": {
-   "classic": "MESHY_FrontClip",
-   "classic-stage2": "MESHY_FrontClip"
-  },
-  "offset": {
-   "classic": [
-    0,
-    -0.14,
-    0
-   ]
-  },
-  "families": [
-   "classic"
-  ],
-  "fit": {
-   "*": {
-    "min": [
-     -0.8,
-     0.25,
-     0.8
-    ],
-    "max": [
-     0.8,
-     0.98,
-     1.9
-    ],
-    "rotY": 0
-   }
-  },
-  "hides": {
-   "*": [
-    "B_Body_Hood_Front",
-    "B_Body_Nose_Front",
-    "B_Body_Fender_FL",
-    "B_Body_Fender_FR",
-    "B_HeadlightGlass",
-    "B_HeadlightTrim",
-    "B_TurnSignal",
-    "B_FrontBumper",
-    "B_HoodTrim",
-    "B_HoodHandle",
-    "B_HoodLogo"
-   ]
-  },
-  "paintAs": "paint"
- },
- {
-  "type": "part",
   "id": "MESHY_ExhaustHeaders",
   "label": "Header exhaust",
   "slot": "exhaust",
@@ -486,58 +434,6 @@
   "perf": {
    "topMph": 8,
    "power": 1.05
-  }
- },
- {
-  "type": "part",
-  "id": "MESHY_Hood01",
-  "label": "Arched fiberglass hood",
-  "slot": "hood",
-  "category": "Body",
-  "bodies": {
-   "classic": "MESHY_Hood01",
-   "classic-stage2": "MESHY_Hood01"
-  },
-  "offset": {
-   "classic": [
-    0,
-    -0.14,
-    0
-   ]
-  },
-  "families": [
-   "classic"
-  ],
-  "paintAs": "paint",
-  "fit": {
-   "*": {
-    "min": [
-     -0.575,
-     0.52,
-     0.54
-    ],
-    "max": [
-     0.575,
-     1.2,
-     1.76
-    ],
-    "rot": [
-     -90,
-     0,
-     0
-    ]
-   }
-  },
-  "hides": {
-   "*": [
-    "B_Body_Hood_Front",
-    "B_HoodTrim",
-    "B_HoodLogo"
-   ]
-  },
-  "material": {
-   "metalness": 0.05,
-   "roughness": 0.4
   }
  },
  {

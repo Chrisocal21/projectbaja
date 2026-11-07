@@ -79,7 +79,7 @@ function App() {
   const worldInteract = id => {
     if (id === 'shop') setPanel('shop');
     else if (id === 'bug') setPanel('dealer');
-    else if (id === 'bench') setPanel('garage');
+    else if (id === 'bench') { if (game.dev) setPanel('garage'); else say('Workbench: parts get fitted by hand — grab them, bring them here. (Coming soon.)'); }
     else interact(id);
   };
   const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
@@ -113,7 +113,8 @@ function App() {
     if (b !== build) setBuildRaw(b);
   }, [game.unlockAll]);
   const equip = (kind, id, equipOnly) => {
-    if (!equipOnly) { if (!buy(kind, id)) return; say('Purchased!'); }
+    if (!equipOnly) { if (!buy(kind, id)) return; say(game.dev ? 'Purchased!' : 'Purchased — it is yours now. Getting it onto the car is up to you.'); }
+    if (!game.dev) return;   // outside testing, parts are fitted by hand, not by a menu
     update(kind === 'part' ? setPart(build, partById[id].slot, id) : kind === 'wheel' ? setWheels(build, id) : setRim(build, id));
   };
   const unequip = (kind, id) => update(kind === 'part' ? setPart(build, partById[id].slot, null) : kind === 'wheel' ? setWheels(build, 'stock') : setRim(build, 'steel'));
