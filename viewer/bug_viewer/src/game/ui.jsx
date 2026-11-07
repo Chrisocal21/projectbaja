@@ -2,23 +2,50 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
-export function TitleScreen({ bodyLabel, onPlay, onGarage }) {
+export function TitleScreen({ onNew, onContinue, onDev }) {
   useGame();
+  const [dev, setDev] = React.useState(false), has = game.owned.has('car:bug');
   return <div className="title-screen">
     <div className="title-panel">
-      <span className="eyebrow">OFF-ROAD SANDBOX</span>
+      <span className="eyebrow">A USED-CAR, BUILD-IT-YOURSELF STORY</span>
       <h1>PROJECT <b>BAJA</b></h1>
-      <p>Build it. Drive it. Find parts, buy upgrades, break things.</p>
+      <p>You have {'$2,500'}, a dusty lot at the edge of the desert, and a garage waiting to be filled. Find a car, then build it into something that can take the dunes.</p>
       <div className="menu">
-        <button className="big" onClick={() => onPlay('drive', 'test')}>▶ Drive — Test Center</button>
-        <button className="big" onClick={() => onPlay('drive', 'open')}>▶ Drive — Open Desert (race)</button>
-        <button onClick={() => onPlay('pro', 'test')}>Pro physics (beta) — flat pad</button>
-        <button onClick={onGarage}>Garage — customize {bodyLabel}</button>
+        <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
+        {has && <button className="big" onClick={onContinue}>Continue — drive the Bug home</button>}
+        <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>
+        {dev && <><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
+          <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
       </div>
-      <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock everything (testing). Untick to test shops &amp; crates — ${game.cash}</label>
     </div>
-    <div className="title-foot">W/S throttle · A/D steer · Space brake · R reset · E shop · Esc menu</div>
+    <div className="title-foot">WASD walk · Mouse look · E interact · Esc menu</div>
   </div>;
+}
+
+export function DealerPanel({ onBuy, onDrive, onClose }) {
+  useGame();
+  const owned = game.owned.has('car:bug'), afford = game.cash >= 1800;
+  const bar = (label, v) => <div className="cond"><span>{label}</span><i><b style={{ width: `${v}%` }} /></i></div>;
+  return <div className="overlay"><div className="card dealer">
+    <div className="shop-head"><h2>HONEST AL'S USED CARS</h2><span className="cash">${game.cash.toLocaleString()}</span><button onClick={onClose}>Back</button></div>
+    <div className="dealer-cars">
+      <div className="car-card">
+        <h3>'71 Classic Bug</h3><small>"Runs. Mostly. Don't ask about the heater."</small>
+        {bar('Paint', 38)}{bar('Interior', 31)}{bar('Engine', 55)}{bar('Frame', 72)}
+        <p className="price">$1,800</p>
+        {owned ? <button className="buy" onClick={onDrive}>Drive it home</button> : <button className="buy" disabled={!afford} onClick={onBuy}>{afford ? 'Buy the Bug' : 'Not enough cash'}</button>}
+      </div>
+      <div className="car-card locked">
+        <h3>??? (under the tarp)</h3><small>"Another month, kid. Needs a motor."</small>
+        <p className="price">$2,300</p><button disabled>Not available yet</button>
+      </div>
+    </div>
+    <p className="hint">You can afford one of the two. Whatever you buy goes into your garage, where you will build it yourself.</p>
+  </div></div>;
+}
+
+export function LotMenu({ onResume, onExit }) {
+  return <div className="overlay"><div className="card"><h2>PAUSED</h2><div className="menu"><button className="big" onClick={onResume}>Resume</button><button onClick={onExit}>Exit to title</button></div></div></div>;
 }
 
 export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
@@ -80,7 +107,7 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUn
 export function HudOverlay() {
   useGame();
   return <>
-    <div className="hud-top"><b>${game.cash}</b></div>
+    <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
     {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
     {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
   </>;

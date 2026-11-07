@@ -1,5 +1,6 @@
 // Tiny game-state store shared by the 3D scene (pickups, shop, pause) and the React UI (menus, HUD).
 import { useEffect, useState } from 'react';
+import { WEAR } from '../weather.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
 const KEY = 'baja-save-v1';
@@ -9,10 +10,11 @@ const saved = read();
 export const game = {
   paused: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
-  toast: null, crates: {}, listeners: new Set(),
+  toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
 };
+WEAR.value = game.wear;
 export const emit = () => game.listeners.forEach(f => f());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll })); } catch {} };
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear })); } catch {} };
 
 export const itemKey = (kind, id) => `${kind}:${id}`;
 export const isFree = (kind, id) => (kind === 'wheel' && id === 'stock') || (kind === 'rim' && id === 'steel');
@@ -33,6 +35,10 @@ export function setPrompt(p) { if (game.prompt !== p) { game.prompt = p; emit();
 export function addCash(n) { game.cash += n; persist(); emit(); }
 export function grant(kind, id) { game.owned.add(itemKey(kind, id)); persist(); emit(); }
 export function setUnlockAll(v) { game.unlockAll = v; persist(); emit(); }
+export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
+/** Start the story: a pocket of cash, nothing owned, every part has to be found or bought. */
+export function newGame() { game.cash = 2500; game.owned.clear(); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85; persist(); emit(); }
+export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
 export function resetProgress() { game.cash = 500; game.owned.clear(); persist(); emit(); }
 
 export function buy(kind, id) {

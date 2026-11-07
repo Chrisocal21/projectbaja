@@ -5,6 +5,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile } from './build.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
+import { applyWeathering, kindForMaterial } from './weather.js';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
@@ -53,6 +54,7 @@ function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels 
         const ch = !wheel && channels.find(c => c.re.test(m.name || 'unnamed'));
         m.color.copy(material?.color ? new THREE.Color(material.color) : ch ? new THREE.Color(ch.color) : m.userData.baseColor);
         if (material) { if (material.metalness != null) m.metalness = material.metalness; if (material.roughness != null) m.roughness = material.roughness; }
+        if (!material && !wheel) applyWeathering(m, kindForMaterial(m.name || ''), o, clone);
       });
     });
   }, [clone, maskKey, wireframe, isBase, channels, material]);
