@@ -1,0 +1,51 @@
+[
+ {
+  "type": "preset",
+  "id": "stock",
+  "label": "Stock",
+  "build": {
+   "body": "classic"
+  }
+ },
+ {
+  "type": "preset",
+  "id": "stage2",
+  "label": "Stage 2 Baja",
+  "build": {
+   "body": "classic-stage2",
+   "wheels": "at-original",
+   "parts": {
+    "frontBumper": "PART_002_FrontTubeBumper",
+    "rearBumper": "PART_003_RearEngineCage",
+    "suspension": "PART_006_TrailShockSet",
+    "fenders": "PART_007_CutBajaFenders",
+    "hood": "PART_008_ShortenedFrontHood",
+    "rearDeck": "PART_009_RearEngineOpening",
+    "rockers": "PART_011_RockerGuards",
+    "engine": "PART_012_AirCooledRearEngine"
+   }
+  }
+ },
+ {
+  "type": "preset",
+  "id": "expedition",
+  "label": "Expedition rig",
+  "build": {
+   "body": "classic-stage2",
+   "wheels": "tire-deep",
+   "wheelScale": 1.1,
+   "lift": 0.05,
+   "colors": {
+    "paint": "#6b6f3a"
+   },
+   "parts": {
+    "fenders": "PART_010_FiberglassWideFenders",
+    "frontBumper": "ACC_BullBar",
+    "roofRack": "ACC_RoofRack",
+    "lightBar": "ACC_LightBar",
+    "rearCarrier": "ACC_SpareCarrier",
+    "shocks": "SHOCK_001_Coilover"
+   }
+  }
+ }
+]

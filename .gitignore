@@ -1,0 +1,17 @@
+
+# raw Meshy source models (60-100 MB each) - keep local, use assets/pipeline to regenerate game-ready versions
+assets/bug/Meshy_AI_Off_Road_Beetle_*.glb
+assets/bug/Meshy_AI_White_Baja_Bug_*.glb
+__pycache__/
+
+# secrets - never commit
+.env
+.env.*
+!.env.example
+
+# raw Meshy API downloads
+assets/generated/raw/
+
+# build output and dependencies
+node_modules/
+dist/

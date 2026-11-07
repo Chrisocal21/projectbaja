@@ -1,0 +1,1 @@
+{"scale": 2.0, "frontZ": 0.67, "rearZ": -0.54, "wheelX": 0.335, "wheelY": -0.21, "wheelR": 0.19, "wheelInner": 0.27, "wheelOuter": 0.41, "k": 1.0, "remove": [{"yBelow": -0.225, "absXBelow": 0.25, "zMin": -0.45, "zMax": -0.28}, {"yBelow": -0.31, "absXBelow": 0.25, "zMin": -2, "zMax": 2}], "removeRed": {"yBelow": -0.1, "zMin": -0.5, "zMax": -0.25, "absXBelow": 0.3}}

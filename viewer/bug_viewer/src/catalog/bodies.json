@@ -1,0 +1,668 @@
+[
+ {
+  "type": "body",
+  "id": "classic",
+  "label": "Classic Bug",
+  "family": "classic",
+  "file": "VEH_001_Beetle_Imported",
+  "note": "Stock imported Beetle - modular, takes the Classic upgrade parts",
+  "wheelHide": [
+   "B_FLWheel",
+   "B_FRWheel",
+   "B_BLWheel",
+   "B_BRWheel",
+   "Cylinder002",
+   "Cylinder004",
+   "Cylinder005",
+   "Cylinder006"
+  ],
+  "stockWheelsLiftable": false,
+  "wheels": {
+   "FL": {
+    "center": [
+     0.655,
+     0.345,
+     1.19
+    ],
+    "radius": 0.345
+   },
+   "FR": {
+    "center": [
+     -0.655,
+     0.345,
+     1.19
+    ],
+    "radius": 0.345
+   },
+   "RL": {
+    "center": [
+     0.655,
+     0.345,
+     -1.19
+    ],
+    "radius": 0.345
+   },
+   "RR": {
+    "center": [
+     -0.655,
+     0.345,
+     -1.19
+    ],
+    "radius": 0.345
+   }
+  },
+  "cabEye": [
+   0.31,
+   1.18,
+   -0.15
+  ],
+  "pieces": [
+   {
+    "id": "windshield",
+    "label": "Windshield",
+    "category": "Glass",
+    "match": [
+     "B_Windshield"
+    ]
+   },
+   {
+    "id": "sideWindows",
+    "label": "Side windows",
+    "category": "Glass",
+    "match": [
+     "B_SideWindows",
+     "B_SideWindowTrim"
+    ]
+   },
+   {
+    "id": "rearWindow",
+    "label": "Rear window",
+    "category": "Glass",
+    "match": [
+     "B_BackWindow"
+    ]
+   },
+   {
+    "id": "headlights",
+    "label": "Headlights",
+    "category": "Lights",
+    "match": [
+     "B_HeadlightGlass",
+     "B_HeadlightTrim"
+    ]
+   },
+   {
+    "id": "turnSignals",
+    "label": "Turn signals",
+    "category": "Lights",
+    "match": [
+     "B_TurnSignal"
+    ]
+   },
+   {
+    "id": "taillights",
+    "label": "Taillights",
+    "category": "Lights",
+    "match": [
+     "B_Tailights"
+    ]
+   },
+   {
+    "id": "fenderFL",
+    "label": "Front-left fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_FL"
+    ]
+   },
+   {
+    "id": "fenderFR",
+    "label": "Front-right fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_FR"
+    ]
+   },
+   {
+    "id": "fenderRL",
+    "label": "Rear-left fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_RL"
+    ]
+   },
+   {
+    "id": "fenderRR",
+    "label": "Rear-right fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_RR"
+    ]
+   },
+   {
+    "id": "hoodPanel",
+    "label": "Front hood",
+    "category": "Panels",
+    "match": [
+     "B_Body_Hood_Front"
+    ]
+   },
+   {
+    "id": "nosePanel",
+    "label": "Nose",
+    "category": "Panels",
+    "match": [
+     "B_Body_Nose_Front"
+    ]
+   },
+   {
+    "id": "engineLid",
+    "label": "Engine lid",
+    "category": "Panels",
+    "match": [
+     "B_Body_Engine_Lid_Rear"
+    ]
+   },
+   {
+    "id": "tailPanel",
+    "label": "Tail panel",
+    "category": "Panels",
+    "match": [
+     "B_Body_Tail_Rear"
+    ]
+   },
+   {
+    "id": "frontBumperP",
+    "label": "Front bumper",
+    "category": "Trim",
+    "match": [
+     "B_FrontBumper"
+    ]
+   },
+   {
+    "id": "rearBumperP",
+    "label": "Rear bumper",
+    "category": "Trim",
+    "match": [
+     "B_BackBumper",
+     "B_BackTrim"
+    ]
+   },
+   {
+    "id": "sideTrim",
+    "label": "Rocker / side trim",
+    "category": "Trim",
+    "match": [
+     "B_SideBumper",
+     "B_SideTrim"
+    ]
+   },
+   {
+    "id": "hoodTrim",
+    "label": "Hood trim & badge",
+    "category": "Trim",
+    "match": [
+     "B_HoodTrim",
+     "B_HoodLogo"
+    ]
+   },
+   {
+    "id": "handles",
+    "label": "Door & hood handles",
+    "category": "Trim",
+    "match": [
+     "B_DoorHandle",
+     "B_BackHandle",
+     "B_HoodHandle"
+    ]
+   },
+   {
+    "id": "plate",
+    "label": "License plate",
+    "category": "Trim",
+    "match": [
+     "B_LicensePlate"
+    ]
+   },
+   {
+    "id": "seatDriver",
+    "label": "Driver seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDriverSeat"
+    ]
+   },
+   {
+    "id": "seatPassenger",
+    "label": "Passenger seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorPassengerSeat"
+    ]
+   },
+   {
+    "id": "seatBack",
+    "label": "Back seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorBackSeat",
+     "B_InteriorBackseat"
+    ]
+   },
+   {
+    "id": "dash",
+    "label": "Dashboard & console",
+    "category": "Interior",
+    "match": [
+     "B_InteriorBottomConsole",
+     "B_InteriorConsole",
+     "B_InteriorTrim",
+     "B_InteriorKnobs",
+     "B_InteriorNeedle",
+     "B_InteriorGloveBox",
+     "B_InteriorKeyhole",
+     "B_InteriorVase"
+    ]
+   },
+   {
+    "id": "doorPanels",
+    "label": "Door panels",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDoor"
+    ]
+   },
+   {
+    "id": "pedals",
+    "label": "Pedals",
+    "category": "Interior",
+    "match": [
+     "B_InteriorPedal"
+    ]
+   },
+   {
+    "id": "steering",
+    "label": "Steering wheel",
+    "category": "Interior",
+    "match": [
+     "B_InteriorSteering"
+    ]
+   },
+   {
+    "id": "mats",
+    "label": "Floor mats",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDriverFloorMat",
+     "B_InteriorPassengerFloorMat"
+    ]
+   }
+  ],
+  "colorChannels": [
+   {
+    "id": "paint",
+    "label": "Body paint",
+    "match": "paint|FadedBlue|Fiberglass"
+   },
+   {
+    "id": "seats",
+    "label": "Seats",
+    "match": "seat"
+   },
+   {
+    "id": "dash",
+    "label": "Dash & doors",
+    "match": "dash1|door1|interior2"
+   },
+   {
+    "id": "wheel",
+    "label": "Steering wheel",
+    "match": "steerwheel1"
+   }
+  ],
+  "defaultPaint": "#729ba6",
+  "alwaysPaint": [
+   {
+    "match": "interior1",
+    "channel": "paint"
+   },
+   {
+    "match": "under1",
+    "color": "#2a2a2c"
+   }
+  ]
+ },
+ {
+  "type": "body",
+  "id": "classic-stage2",
+  "label": "Stage 2 Baja",
+  "family": "classic",
+  "file": "STAGE2_VEH_001_Beetle_Imported",
+  "note": "Lifted classic body (140 mm) - takes the Stage 2 parts",
+  "wheelHide": [
+   "B_FLWheel",
+   "B_FRWheel",
+   "B_BLWheel",
+   "B_BRWheel",
+   "Cylinder002",
+   "Cylinder004",
+   "Cylinder005",
+   "Cylinder006"
+  ],
+  "stockWheelsLiftable": false,
+  "wheels": {
+   "FL": {
+    "center": [
+     0.75,
+     0.38,
+     1.19
+    ],
+    "radius": 0.38
+   },
+   "FR": {
+    "center": [
+     -0.75,
+     0.38,
+     1.19
+    ],
+    "radius": 0.38
+   },
+   "RL": {
+    "center": [
+     0.75,
+     0.38,
+     -1.19
+    ],
+    "radius": 0.38
+   },
+   "RR": {
+    "center": [
+     -0.75,
+     0.38,
+     -1.19
+    ],
+    "radius": 0.38
+   }
+  },
+  "cabEye": [
+   0.31,
+   1.34,
+   -0.15
+  ],
+  "pieces": [
+   {
+    "id": "windshield",
+    "label": "Windshield",
+    "category": "Glass",
+    "match": [
+     "B_Windshield"
+    ]
+   },
+   {
+    "id": "sideWindows",
+    "label": "Side windows",
+    "category": "Glass",
+    "match": [
+     "B_SideWindows",
+     "B_SideWindowTrim"
+    ]
+   },
+   {
+    "id": "rearWindow",
+    "label": "Rear window",
+    "category": "Glass",
+    "match": [
+     "B_BackWindow"
+    ]
+   },
+   {
+    "id": "headlights",
+    "label": "Headlights",
+    "category": "Lights",
+    "match": [
+     "B_HeadlightGlass",
+     "B_HeadlightTrim"
+    ]
+   },
+   {
+    "id": "turnSignals",
+    "label": "Turn signals",
+    "category": "Lights",
+    "match": [
+     "B_TurnSignal"
+    ]
+   },
+   {
+    "id": "taillights",
+    "label": "Taillights",
+    "category": "Lights",
+    "match": [
+     "B_Tailights"
+    ]
+   },
+   {
+    "id": "fenderFL",
+    "label": "Front-left fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_FL"
+    ]
+   },
+   {
+    "id": "fenderFR",
+    "label": "Front-right fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_FR"
+    ]
+   },
+   {
+    "id": "fenderRL",
+    "label": "Rear-left fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_RL"
+    ]
+   },
+   {
+    "id": "fenderRR",
+    "label": "Rear-right fender",
+    "category": "Panels",
+    "match": [
+     "B_Body_Fender_RR"
+    ]
+   },
+   {
+    "id": "hoodPanel",
+    "label": "Front hood",
+    "category": "Panels",
+    "match": [
+     "B_Body_Hood_Front"
+    ]
+   },
+   {
+    "id": "nosePanel",
+    "label": "Nose",
+    "category": "Panels",
+    "match": [
+     "B_Body_Nose_Front"
+    ]
+   },
+   {
+    "id": "engineLid",
+    "label": "Engine lid",
+    "category": "Panels",
+    "match": [
+     "B_Body_Engine_Lid_Rear"
+    ]
+   },
+   {
+    "id": "tailPanel",
+    "label": "Tail panel",
+    "category": "Panels",
+    "match": [
+     "B_Body_Tail_Rear"
+    ]
+   },
+   {
+    "id": "frontBumperP",
+    "label": "Front bumper",
+    "category": "Trim",
+    "match": [
+     "B_FrontBumper"
+    ]
+   },
+   {
+    "id": "rearBumperP",
+    "label": "Rear bumper",
+    "category": "Trim",
+    "match": [
+     "B_BackBumper",
+     "B_BackTrim"
+    ]
+   },
+   {
+    "id": "sideTrim",
+    "label": "Rocker / side trim",
+    "category": "Trim",
+    "match": [
+     "B_SideBumper",
+     "B_SideTrim"
+    ]
+   },
+   {
+    "id": "hoodTrim",
+    "label": "Hood trim & badge",
+    "category": "Trim",
+    "match": [
+     "B_HoodTrim",
+     "B_HoodLogo"
+    ]
+   },
+   {
+    "id": "handles",
+    "label": "Door & hood handles",
+    "category": "Trim",
+    "match": [
+     "B_DoorHandle",
+     "B_BackHandle",
+     "B_HoodHandle"
+    ]
+   },
+   {
+    "id": "plate",
+    "label": "License plate",
+    "category": "Trim",
+    "match": [
+     "B_LicensePlate"
+    ]
+   },
+   {
+    "id": "seatDriver",
+    "label": "Driver seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDriverSeat"
+    ]
+   },
+   {
+    "id": "seatPassenger",
+    "label": "Passenger seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorPassengerSeat"
+    ]
+   },
+   {
+    "id": "seatBack",
+    "label": "Back seat",
+    "category": "Interior",
+    "match": [
+     "B_InteriorBackSeat",
+     "B_InteriorBackseat"
+    ]
+   },
+   {
+    "id": "dash",
+    "label": "Dashboard & console",
+    "category": "Interior",
+    "match": [
+     "B_InteriorBottomConsole",
+     "B_InteriorConsole",
+     "B_InteriorTrim",
+     "B_InteriorKnobs",
+     "B_InteriorNeedle",
+     "B_InteriorGloveBox",
+     "B_InteriorKeyhole",
+     "B_InteriorVase"
+    ]
+   },
+   {
+    "id": "doorPanels",
+    "label": "Door panels",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDoor"
+    ]
+   },
+   {
+    "id": "pedals",
+    "label": "Pedals",
+    "category": "Interior",
+    "match": [
+     "B_InteriorPedal"
+    ]
+   },
+   {
+    "id": "steering",
+    "label": "Steering wheel",
+    "category": "Interior",
+    "match": [
+     "B_InteriorSteering"
+    ]
+   },
+   {
+    "id": "mats",
+    "label": "Floor mats",
+    "category": "Interior",
+    "match": [
+     "B_InteriorDriverFloorMat",
+     "B_InteriorPassengerFloorMat"
+    ]
+   }
+  ],
+  "colorChannels": [
+   {
+    "id": "paint",
+    "label": "Body paint",
+    "match": "paint|FadedBlue|Fiberglass"
+   },
+   {
+    "id": "seats",
+    "label": "Seats",
+    "match": "seat"
+   },
+   {
+    "id": "dash",
+    "label": "Dash & doors",
+    "match": "dash1|door1|interior2"
+   },
+   {
+    "id": "wheel",
+    "label": "Steering wheel",
+    "match": "steerwheel1"
+   }
+  ],
+  "defaultPaint": "#729ba6",
+  "alwaysPaint": [
+   {
+    "match": "interior1",
+    "channel": "paint"
+   },
+   {
+    "match": "under1",
+    "color": "#2a2a2c"
+   }
+  ]
+ }
+]

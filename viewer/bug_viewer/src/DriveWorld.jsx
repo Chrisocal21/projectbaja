@@ -71,8 +71,8 @@ function Scenery() {
 }
 
 // ---------- vehicle ----------
-const CAB_EYE = [0.31, 1.32, -0.15]; // driver's eye in vehicle space (steering wheel is at x=+0.3, z=0.25..0.5) — tune to the model
-const WHEELBASE = 2.38, TRACK = 1.52;
+export const DEFAULT_DIMS = { wheelbase: 2.38, track: 1.5, cabEye: [0.31, 1.32, -0.15] };
+// cab eye: driver's eye in vehicle space (steering wheel is at x=+0.3, z=0.25..0.5) — tune per model
 const RIDE_HEIGHT = 0;       // model origin sits at ground contact; raise if wheels sink
 const MAX_SPEED = 32;        // m/s (~115 km/h)
 const ACCEL = 11, BRAKE = 22, DRAG = 0.012, ROLL_RES = 0.9, G = 9.81;
@@ -95,7 +95,9 @@ function buildRig(root) {
   const keep = [root.position.clone(), root.rotation.clone()];
   root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.updateMatrixWorld(true);   // work in vehicle space
   const sets = {}, wheelMeshes = [];
+  const named = [];
   root.traverse(o => {
+    if (/^C?Wheel_(FL|FR|RL|RR)$/.test(o.name)) { named.push(o); return; }   // wheels already split into their own nodes
     if (!o.isMesh) return;
     const n = o.userData.source_name || o.name;
     let m = WHEEL_RE.exec(n), key, base = false;
@@ -119,6 +121,13 @@ function buildRig(root) {
     meshes.forEach(o => spin.attach(o));
     wheels.push({ steer, spin, r, front: c.z > 0 });
   }
+  for (const o of named) {
+    const box = new THREE.Box3().expandByObject(o), c = box.getCenter(new THREE.Vector3());
+    const steer = new THREE.Object3D(), spin = new THREE.Object3D();
+    steer.position.copy(c); steer.add(spin); root.add(steer); root.updateMatrixWorld(true);
+    spin.attach(o);
+    wheels.push({ steer, spin, r: (box.max.y - box.min.y) / 2, front: c.z > 0 });
+  }
   let wheel = null;                                       // cab steering wheel
   if (wheelMeshes.length) {
     const box = new THREE.Box3(); wheelMeshes.forEach(o => box.expandByObject(o));
@@ -129,7 +138,8 @@ function buildRig(root) {
   return { wheels, wheel };
 }
 
-function Vehicle({ children, hud }) {
+function Vehicle({ children, hud, dims }) {
+  const WHEELBASE = dims.wheelbase, TRACK = dims.track, CAB_EYE = dims.cabEye;
   const group = useRef();
   const keys = useKeys();
   const { camera, gl } = useThree();
@@ -254,7 +264,7 @@ function Vehicle({ children, hud }) {
   return <group ref={group}>{children}</group>;
 }
 
-export default function DriveWorld({ children, hud }) {
+export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS }) {
   return <>
     <color attach="background" args={['#cfd9e0']} />
     <fog attach="fog" args={['#cfd9e0', 80, 380]} />
@@ -263,6 +273,6 @@ export default function DriveWorld({ children, hud }) {
     <directionalLight position={[60, 90, 40]} intensity={2.6} />
     <Terrain />
     <Scenery />
-    <Vehicle hud={hud}>{children}</Vehicle>
+    <Vehicle hud={hud} dims={dims}>{children}</Vehicle>
   </>;
 }

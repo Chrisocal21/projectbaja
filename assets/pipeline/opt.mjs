@@ -1,0 +1,17 @@
+import {NodeIO} from '@gltf-transform/core';
+import {ALL_EXTENSIONS} from '@gltf-transform/extensions';
+import {weld, simplify, textureCompress, prune, dedup} from '@gltf-transform/functions';
+import {MeshoptSimplifier} from 'meshoptimizer';
+import sharp from 'sharp';
+const [,, inp, out, targetTris, texSize] = process.argv;
+await MeshoptSimplifier.ready;
+const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+const doc = await io.read(inp);
+const count = () => { let t=0; for (const m of doc.getRoot().listMeshes()) for (const p of m.listPrimitives()) t += (p.getIndices()?.getCount() ?? p.getAttribute('POSITION').getCount())/3; return Math.round(t); };
+const before = count();
+const ops = [weld({tolerance:1e-5}), simplify({simplifier: MeshoptSimplifier, ratio: Math.min(1, targetTris/before), error: 0.02, lockBorder:false}), prune(), dedup()];
+if (+texSize) ops.push(textureCompress({encoder: sharp, targetFormat:'jpeg', resize:[+texSize,+texSize], quality:82}));
+await doc.transform(...ops);
+await io.write(out, doc);
+import fs from 'fs';
+console.log(inp.split(/[\/]/).pop(), before,'->',count(),'tris,', (fs.statSync(out).size/1e6).toFixed(1)+' MB');

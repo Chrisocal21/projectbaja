@@ -1,0 +1,8 @@
+[
+ { "type": "rim", "id": "steel", "label": "Steel", "style": "steel", "defaultColor": "#9a9aa0" },
+ { "type": "rim", "id": "beadlock", "label": "Beadlock", "style": "beadlock", "defaultColor": "#202022" },
+ { "type": "rim", "id": "fivespoke", "label": "5-spoke", "style": "fivespoke", "defaultColor": "#b8b8bd" },
+ { "type": "rim", "id": "mesh", "label": "Mesh", "style": "mesh", "defaultColor": "#cfcfd4" },
+ { "type": "rim", "id": "deepdish", "label": "Deep dish", "style": "deepdish", "defaultColor": "#d8d8dc" },
+ { "type": "rim", "id": "turbine", "label": "Turbine", "style": "turbine", "defaultColor": "#2a2a2e" }
+]

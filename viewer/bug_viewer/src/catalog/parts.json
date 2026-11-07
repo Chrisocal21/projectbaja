@@ -1,0 +1,453 @@
+[
+ {
+  "type": "part",
+  "id": "PART_007_CutBajaFenders",
+  "label": "Cut Baja fenders",
+  "slot": "fenders",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_007_CutBajaFenders"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Fender_",
+    "B_HeadlightGlass",
+    "B_HeadlightTrim",
+    "B_TurnSignal",
+    "B_Tailights"
+   ]
+  },
+  "labels": {
+   "classic-stage2": "High-cut Baja fenders"
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_010_FiberglassWideFenders",
+  "label": "Wide fiberglass fenders",
+  "slot": "fenders",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_010_FiberglassWideFenders"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Fender_",
+    "B_HeadlightGlass",
+    "B_HeadlightTrim",
+    "B_TurnSignal",
+    "B_Tailights"
+   ]
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_008_ShortenedFrontHood",
+  "label": "Shortened front hood",
+  "slot": "hood",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_008_ShortenedFrontHood"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Hood_Front",
+    "B_Body_Nose_Front",
+    "B_FrontBumper",
+    "B_HoodTrim",
+    "B_HoodHandle",
+    "B_HoodLogo"
+   ]
+  },
+  "labels": {
+   "classic-stage2": "Rounded Baja nose"
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_009_RearEngineOpening",
+  "label": "Rear engine opening",
+  "slot": "rearDeck",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_009_RearEngineOpening"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Engine_Lid_Rear",
+    "B_Body_Tail_Rear",
+    "B_BackBumper",
+    "B_BackTrim",
+    "B_BackHandle",
+    "B_LicensePlate"
+   ]
+  },
+  "labels": {
+   "classic-stage2": "Open rear deck"
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_002_FrontTubeBumper",
+  "label": "Front tube bumper",
+  "slot": "frontBumper",
+  "category": "Protection",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_002_FrontTubeBumper"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_FrontBumper"
+   ]
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_003_RearEngineCage",
+  "label": "Rear engine cage",
+  "slot": "rearBumper",
+  "category": "Protection",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_003_RearEngineCage"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_BackBumper"
+   ]
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_011_RockerGuards",
+  "label": "Rocker guards",
+  "slot": "rockers",
+  "category": "Protection",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_011_RockerGuards"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_SideBumper"
+   ]
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_012_AirCooledRearEngine",
+  "label": "Rear air-cooled engine",
+  "slot": "engine",
+  "category": "Mechanical",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
+  },
+  "families": [
+   "classic"
+  ],
+  "requires": {
+   "rearDeck": "PART_009_RearEngineOpening"
+  }
+ },
+ {
+  "type": "part",
+  "id": "PART_006_TrailShockSet",
+  "label": "Trail shocks",
+  "slot": "suspension",
+  "category": "Mechanical",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_006_TrailShockSet"
+  },
+  "families": [
+   "classic"
+  ],
+  "labels": {
+   "classic-stage2": "Raised running gear"
+  }
+ },
+ {
+  "type": "part",
+  "id": "SHOCK_001_Coilover",
+  "label": "Coilover shocks",
+  "slot": "shocks",
+  "category": "Mechanical",
+  "bodies": "*",
+  "file": "SHOCK_001_Coilover",
+  "attach": {
+   "mode": "perWheel",
+   "lower": [
+    0.32,
+    -0.08,
+    0
+   ],
+   "upper": [
+    0.2,
+    0.42,
+    0
+   ],
+   "baseLength": 0.505
+  }
+ },
+ {
+  "type": "part",
+  "id": "ACC_RoofRack",
+  "label": "Roof rack",
+  "slot": "roofRack",
+  "category": "Body",
+  "bodies": {
+   "classic": "ACC_RoofRack",
+   "classic-stage2": "ACC_RoofRack"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ]
+ },
+ {
+  "type": "part",
+  "id": "ACC_LightBar",
+  "label": "LED light bar",
+  "slot": "lightBar",
+  "category": "Lighting",
+  "bodies": {
+   "classic": "ACC_LightBar",
+   "classic-stage2": "ACC_LightBar"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ]
+ },
+ {
+  "type": "part",
+  "id": "ACC_SpareCarrier",
+  "label": "Spare tire carrier",
+  "slot": "rearCarrier",
+  "category": "Protection",
+  "bodies": {
+   "classic": "ACC_SpareCarrier",
+   "classic-stage2": "ACC_SpareCarrier"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ],
+  "spare": {
+   "center": [
+    0,
+    0.95,
+    -2.03
+   ],
+   "radius": 0.38
+  }
+ },
+ {
+  "type": "part",
+  "id": "ACC_BullBar",
+  "label": "Bull bar",
+  "slot": "frontBumper",
+  "category": "Protection",
+  "bodies": {
+   "classic": "ACC_BullBar",
+   "classic-stage2": "ACC_BullBar"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_FrontBumper"
+   ]
+  }
+ },
+ {
+  "type": "part",
+  "id": "MESHY_FrontClip",
+  "label": "Fiberglass front clip",
+  "slot": "hood",
+  "category": "Body",
+  "bodies": {
+   "classic": "MESHY_FrontClip",
+   "classic-stage2": "MESHY_FrontClip"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ],
+  "fit": {
+   "*": {
+    "min": [
+     -0.8,
+     0.25,
+     0.8
+    ],
+    "max": [
+     0.8,
+     0.98,
+     1.9
+    ],
+    "rotY": 0
+   }
+  },
+  "hides": {
+   "*": [
+    "B_Body_Hood_Front",
+    "B_Body_Nose_Front",
+    "B_Body_Fender_FL",
+    "B_Body_Fender_FR",
+    "B_HeadlightGlass",
+    "B_HeadlightTrim",
+    "B_TurnSignal",
+    "B_FrontBumper",
+    "B_HoodTrim",
+    "B_HoodHandle",
+    "B_HoodLogo"
+   ]
+  },
+  "paintAs": "paint"
+ },
+ {
+  "type": "part",
+  "id": "MESHY_ExhaustHeaders",
+  "label": "Header exhaust",
+  "slot": "exhaust",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "MESHY_ExhaustHeaders",
+   "classic-stage2": "MESHY_ExhaustHeaders"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ],
+  "fit": {
+   "*": {
+    "min": [
+     -0.5,
+     0.26,
+     -2.0
+    ],
+    "max": [
+     0.5,
+     0.85,
+     -1.5
+    ],
+    "rotY": 0,
+    "uniform": true
+   }
+  },
+  "material": {
+   "color": "#9c9ca2",
+   "metalness": 0.85,
+   "roughness": 0.35
+  }
+ },
+ {
+  "type": "part",
+  "id": "MESHY_Hood01",
+  "label": "Arched fiberglass hood",
+  "slot": "hood",
+  "category": "Body",
+  "bodies": {
+   "classic": "MESHY_Hood01",
+   "classic-stage2": "MESHY_Hood01"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  },
+  "families": [
+   "classic"
+  ],
+  "paintAs": "paint",
+  "fit": {
+   "*": {
+    "min": [
+     -0.575,
+     0.52,
+     0.54
+    ],
+    "max": [
+     0.575,
+     1.2,
+     1.76
+    ],
+    "rot": [
+     -90,
+     0,
+     0
+    ]
+   }
+  },
+  "hides": {
+   "*": [
+    "B_Body_Hood_Front",
+    "B_HoodTrim",
+    "B_HoodLogo"
+   ]
+  },
+  "material": {
+   "metalness": 0.05,
+   "roughness": 0.4
+  }
+ }
+]

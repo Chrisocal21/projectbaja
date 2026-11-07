@@ -1,0 +1,93 @@
+[
+ {
+  "type": "slot",
+  "id": "fenders",
+  "label": "Fenders",
+  "category": "Body",
+  "order": 1
+ },
+ {
+  "type": "slot",
+  "id": "hood",
+  "label": "Hood / nose",
+  "category": "Body",
+  "order": 2
+ },
+ {
+  "type": "slot",
+  "id": "rearDeck",
+  "label": "Rear deck",
+  "category": "Body",
+  "order": 3
+ },
+ {
+  "type": "slot",
+  "id": "frontBumper",
+  "label": "Front bumper",
+  "category": "Protection",
+  "order": 4
+ },
+ {
+  "type": "slot",
+  "id": "rearBumper",
+  "label": "Rear cage",
+  "category": "Protection",
+  "order": 5
+ },
+ {
+  "type": "slot",
+  "id": "rockers",
+  "label": "Rocker guards",
+  "category": "Protection",
+  "order": 7
+ },
+ {
+  "type": "slot",
+  "id": "engine",
+  "label": "Engine",
+  "category": "Mechanical",
+  "order": 9
+ },
+ {
+  "type": "slot",
+  "id": "suspension",
+  "label": "Running gear",
+  "category": "Mechanical",
+  "order": 10
+ },
+ {
+  "type": "slot",
+  "id": "shocks",
+  "label": "Shocks",
+  "category": "Mechanical",
+  "order": 11
+ },
+ {
+  "type": "slot",
+  "id": "roofRack",
+  "label": "Roof rack",
+  "category": "Body",
+  "order": 15
+ },
+ {
+  "type": "slot",
+  "id": "lightBar",
+  "label": "Light bar",
+  "category": "Lighting",
+  "order": 16
+ },
+ {
+  "type": "slot",
+  "id": "rearCarrier",
+  "label": "Rear carrier",
+  "category": "Protection",
+  "order": 17
+ },
+ {
+  "type": "slot",
+  "id": "exhaust",
+  "label": "Exhaust",
+  "category": "Mechanical",
+  "order": 18
+ }
+]

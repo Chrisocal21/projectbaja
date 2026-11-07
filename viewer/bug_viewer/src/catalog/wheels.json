@@ -1,0 +1,53 @@
+[
+ {
+  "type": "wheels",
+  "id": "stock",
+  "label": "Stock",
+  "kind": "stock"
+ },
+ {
+  "type": "wheels",
+  "id": "at-original",
+  "label": "All-terrain (original)",
+  "kind": "prebuilt",
+  "bodies": {
+   "classic": "PART_001_AllTerrainWheelSet",
+   "classic-stage2": "STAGE2_PART_001_AllTerrainWheelSet"
+  },
+  "labels": {
+   "classic-stage2": "30-inch all-terrain"
+  }
+ },
+ {
+  "type": "wheels",
+  "id": "tire-beadlock",
+  "label": "Rugged - beadlock",
+  "kind": "tire",
+  "file": "TIRE_RuggedTextured",
+  "baseRadius": 0.475
+ },
+ {
+  "type": "wheels",
+  "id": "tire-light",
+  "label": "Rugged - light",
+  "kind": "tire",
+  "file": "TIRE_RuggedLite",
+  "baseRadius": 0.475
+ },
+ {
+  "type": "wheels",
+  "id": "tire-deep",
+  "label": "Rugged - deep tread",
+  "kind": "tire",
+  "file": "TIRE_RuggedDeep",
+  "baseRadius": 0.475
+ },
+ {
+  "type": "wheels",
+  "id": "tire-tread",
+  "label": "Rugged - tread",
+  "kind": "tire",
+  "file": "TIRE_RuggedTread",
+  "baseRadius": 0.475
+ }
+]

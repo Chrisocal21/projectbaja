@@ -1,0 +1,299 @@
+{
+ "note": "Catalog entries removed on 2026-11-06 when the game was cut down to the real Classic parts. Re-add to src/catalog/*.json to restore.",
+ "bodies": [
+  {
+   "type": "body",
+   "id": "offroad",
+   "label": "Off-Road Beetle",
+   "family": "meshy",
+   "fused": true,
+   "file": "BODY_OffRoadBeetle",
+   "note": "Roll-caged off-road Beetle with roof rack (cage, rack and engine are part of the shell)",
+   "wheelHide": [
+    "Wheel_"
+   ],
+   "stockWheelsLiftable": true,
+   "wheels": {
+    "FL": {
+     "center": [
+      0.82,
+      0.395,
+      1.264
+     ],
+     "radius": 0.41
+    },
+    "FR": {
+     "center": [
+      -0.82,
+      0.395,
+      1.264
+     ],
+     "radius": 0.41
+    },
+    "RL": {
+     "center": [
+      0.82,
+      0.395,
+      -1
+     ],
+     "radius": 0.41
+    },
+    "RR": {
+     "center": [
+      -0.82,
+      0.395,
+      -1
+     ],
+     "radius": 0.41
+    }
+   },
+   "cabEye": [
+    0,
+    0.85,
+    1.98
+   ],
+   "cabLabel": "bumper cam",
+   "colorChannels": [
+    {
+     "id": "paint",
+     "label": "Body paint",
+     "match": "."
+    }
+   ]
+  },
+  {
+   "type": "body",
+   "id": "baja",
+   "label": "White Baja Bug",
+   "family": "meshy",
+   "fused": true,
+   "file": "BODY_WhiteBaja",
+   "note": "Clean white Baja Bug (cage, rack and engine are part of the shell)",
+   "wheelHide": [
+    "Wheel_"
+   ],
+   "stockWheelsLiftable": true,
+   "wheels": {
+    "FL": {
+     "center": [
+      0.67,
+      0.415,
+      1.34
+     ],
+     "radius": 0.38
+    },
+    "FR": {
+     "center": [
+      -0.67,
+      0.415,
+      1.34
+     ],
+     "radius": 0.38
+    },
+    "RL": {
+     "center": [
+      0.67,
+      0.415,
+      -1.08
+     ],
+     "radius": 0.38
+    },
+    "RR": {
+     "center": [
+      -0.67,
+      0.415,
+      -1.08
+     ],
+     "radius": 0.38
+    }
+   },
+   "cabEye": [
+    0,
+    0.8,
+    1.98
+   ],
+   "cabLabel": "bumper cam",
+   "colorChannels": [
+    {
+     "id": "paint",
+     "label": "Body paint",
+     "match": "."
+    }
+   ]
+  }
+ ],
+ "parts_not_fitted": [
+  {
+   "type": "part",
+   "id": "PART_005_FrontSkidPlate",
+   "label": "Front skid plate",
+   "slot": "skid",
+   "category": "Protection",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  },
+  {
+   "type": "part",
+   "id": "PART_004_BumperAuxLights",
+   "label": "Auxiliary lights",
+   "slot": "lights",
+   "category": "Lighting",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  },
+  {
+   "type": "part",
+   "id": "PART_013_SuspensionAssembly",
+   "label": "Suspension assembly",
+   "slot": "suspension",
+   "category": "Mechanical",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  },
+  {
+   "type": "part",
+   "id": "PART_014_InteriorRollCage",
+   "label": "Interior roll cage",
+   "slot": "cageInterior",
+   "category": "Cage",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  },
+  {
+   "type": "part",
+   "id": "PART_015_FrontCageReinforcement",
+   "label": "Front cage reinforcement",
+   "slot": "cageFront",
+   "category": "Cage",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  },
+  {
+   "type": "part",
+   "id": "PART_016_RearCageBracing",
+   "label": "Rear cage bracing",
+   "slot": "cageRear",
+   "category": "Cage",
+   "bodies": {},
+   "families": [
+    "classic"
+   ]
+  }
+ ],
+ "slots": [
+  {
+   "type": "slot",
+   "id": "skid",
+   "label": "Skid plate",
+   "category": "Protection",
+   "order": 6
+  },
+  {
+   "type": "slot",
+   "id": "lights",
+   "label": "Aux lights",
+   "category": "Lighting",
+   "order": 8
+  },
+  {
+   "type": "slot",
+   "id": "cageInterior",
+   "label": "Interior cage",
+   "category": "Cage",
+   "order": 12
+  },
+  {
+   "type": "slot",
+   "id": "cageFront",
+   "label": "Front cage",
+   "category": "Cage",
+   "order": 13
+  },
+  {
+   "type": "slot",
+   "id": "cageRear",
+   "label": "Rear bracing",
+   "category": "Cage",
+   "order": 14
+  }
+ ],
+ "presets": [
+  {
+   "type": "preset",
+   "id": "offroad",
+   "label": "Off-Road Beetle",
+   "build": {
+    "body": "offroad"
+   }
+  },
+  {
+   "type": "preset",
+   "id": "baja",
+   "label": "White Baja",
+   "build": {
+    "body": "baja"
+   }
+  },
+  {
+   "type": "preset",
+   "id": "rock-crawler",
+   "label": "Rock crawler",
+   "build": {
+    "body": "offroad",
+    "wheels": "tire-deep",
+    "wheelScale": 1.22,
+    "lift": 0.12,
+    "paint": "#6b6f3a",
+    "parts": {
+     "shocks": "SHOCK_001_Coilover"
+    }
+   }
+  },
+  {
+   "type": "preset",
+   "id": "dune-runner",
+   "label": "Dune runner",
+   "build": {
+    "body": "baja",
+    "wheels": "tire-tread",
+    "wheelScale": 1.1,
+    "lift": 0.06,
+    "paint": "#e0701c",
+    "parts": {
+     "shocks": "SHOCK_001_Coilover"
+    }
+   }
+  }
+ ],
+ "body_prototype": {
+  "note": "Stock-body (prototype) versions of the four body panels, removed 2026-11-06 - broken fit. Stage 2 versions remain.",
+  "parts": [
+   {
+    "id": "PART_007_CutBajaFenders",
+    "classic_file": "PART_007_CutBajaFenders"
+   },
+   {
+    "id": "PART_010_FiberglassWideFenders",
+    "classic_file": "PART_010_FiberglassWideFenders"
+   },
+   {
+    "id": "PART_008_ShortenedFrontHood",
+    "classic_file": "PART_008_ShortenedFrontHood"
+   },
+   {
+    "id": "PART_009_RearEngineOpening",
+    "classic_file": "PART_009_RearEngineOpening"
+   }
+  ]
+ }
+}
