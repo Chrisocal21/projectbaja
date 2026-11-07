@@ -28,7 +28,7 @@ function inspectSelection(e, onSelect, asset) {
 }
 
 /** One GLB. `mask` hides meshes by name prefix (only when isBase), `paint` recolours matching materials. */
-function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null }) {
+function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   const clone = useMemo(() => {
     const c = scene.clone(true);
@@ -41,11 +41,11 @@ function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels 
     });
     return c;
   }, [scene]);
-  const maskKey = mask.join('|');
+  const maskKey = mask.join('|') + '#' + hide.join('|');
   useEffect(() => {
     clone.traverse(o => {
       if (!o.isMesh) return;
-      o.visible = !(isBase && mask.some(prefix => sourceNameFor(o).startsWith(prefix)));
+      o.visible = !((isBase && mask.some(prefix => sourceNameFor(o).startsWith(prefix))) || hide.some(prefix => sourceNameFor(o).startsWith(prefix)));
       const wheel = isWheelNode(o) || (o.parent && isWheelNode(o.parent));
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
         if (!m) return;
@@ -172,7 +172,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
       {r.active.filter(p => !p.attach && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
-        const m = <Model file={f} {...common} channels={pch} material={p.material} />;
+        const m = <Model file={f} {...common} channels={pch} material={p.material} hide={p.hidesWithExhaust && r.active.some(x => x.slot === 'exhaust') ? p.hidesWithExhaust : []} />;
         return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.proc ? <ProcPart id={p.proc} r={r} /> : p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.hardware && <ProcPart id={p.hardware} r={r} />}</group>;
       })}
     </group>
