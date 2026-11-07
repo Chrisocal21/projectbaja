@@ -13,7 +13,7 @@ export function suspensionConfig(dims) {
     droop: dims.offroad ? 0.24 : 0.14,
     stiffness: dims.offroad ? 26000 : 34000,
     damping: dims.offroad ? 2600 : 3000,
-    antiRoll: dims.offroad ? 4500 : 8000,
+    antiRoll: dims.offroad ? 14000 : 18000,
   };
 }
 
@@ -122,7 +122,7 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
   }
   if (contacts) {
     pitchTorque += MASS * st.ax * 0.48;
-    rollTorque += MASS * st.v * st.yr * 0.48;
+    rollTorque += MASS * st.v * st.yr * 0.3;
   }
   st.vy += force / MASS * dt;
   st.pitchV += (pitchTorque / (MASS * dims.wheelbase ** 2 / 4) - st.pitchV * 2) * dt;

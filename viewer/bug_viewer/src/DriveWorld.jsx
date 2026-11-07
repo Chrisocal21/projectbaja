@@ -220,7 +220,9 @@ function Vehicle({ children, hud, dims, race, sun }) {
       const tire = (alpha, cap) => -cap * Math.tanh(alpha / 0.17) * (1 - 0.05 * smooth(0.3, 0.8, Math.abs(alpha)));   // peak ~8 deg, then falls off
       const vx = Math.max(st.v, 0.5);
       const aF = Math.atan2(st.lateralV + ca * st.yr, vx) - st.steer, aR = Math.atan2(st.lateralV - cb * st.yr, vx);
-      const FyF = tire(aF, capF), FyR = tire(aR, capR), cs = Math.cos(st.steer);
+      let FyF = tire(aF, capF), FyR = tire(aR, capR);
+      const cs = Math.cos(st.steer), latTotal = FyF * cs + FyR, latMax = MASS * G * 1.0;   // stability limit: never ask the chassis for more than ~1 g sideways, so it stays on four wheels
+      if (Math.abs(latTotal) > latMax) { const k = latMax / Math.abs(latTotal); FyF *= k; FyR *= k; }
       st.lateralV += ((FyF * cs + FyR) / MASS - st.v * st.yr) * dt;
       st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.12) * dt;   // extra yaw damping: planted, no spin-outs
       st.v += st.lateralV * st.yr * dt;
