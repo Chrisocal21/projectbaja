@@ -189,7 +189,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     let rx = fz, rz = -fx;
 
     // --- longitudinal (only with traction) ---
-    if (!st.air) {
+    if (!st.air && !st.rolled) {
       const rearContact = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('R') && w.touching).length / 2 : 1;
       if (throttle > 0) st.v += ACC * rearContact * Math.min(1.1, grip) * (1 - Math.max(0, st.v) / MAXV) * dt;
       else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE * Math.min(1, grip) : -ACC * rearContact * 0.6) * dt;
@@ -232,15 +232,22 @@ function Vehicle({ children, hud, dims, race, sun }) {
       // go where the wheels point: pull the body's turn rate toward the wheels' geometric turn rate (capped by what the tires can give),
       // and bleed off sideways drift so the velocity follows the nose
       const gf = Math.min(1, Math.max(0.3, tmuNow / 0.9)), yrWant = st.v * Math.tan(st.steer) / L, yrCap = 1.15 * G * gf / Math.max(Math.abs(st.v), 4);
-      st.yr += (Math.max(-yrCap, Math.min(yrCap, yrWant)) - st.yr) * Math.min(1, 6 * gf * dt);
-      st.lateralV -= st.lateralV * Math.min(1, 2.5 * gf * dt);
+      const sl = 1 - 0.75 * smooth(0.3, 0.9, st.slip || 0);   // a car already sliding badly (bad landing) is not helped back in line: it can swap ends
+      st.yr += (Math.max(-yrCap, Math.min(yrCap, yrWant)) - st.yr) * Math.min(1, 6 * gf * sl * dt);
+      st.lateralV -= st.lateralV * Math.min(1, 2.5 * gf * sl * dt);
       const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
       if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); st.lateralV -= st.lateralV * (1 - w) * Math.min(1, dt * 12); }
       if (st.v < 0.5) { st.yr = (st.v / L) * Math.tan(st.steer); st.lateralV = 0; }
       st.slip = Math.abs(Math.atan2(st.lateralV, Math.max(Math.abs(st.v), 0.5)));
-    } else st.yr *= 1 - 0.3 * dt;
+    } else {
+      st.yr *= 1 - (st.rolled && st.touch ? 1.5 : 0.03) * dt;
+      if (st.rolled && st.touch) { const f = 1 - Math.min(1, 1.4 * dt); st.v *= f; st.lateralV *= f; }   // sliding on its side: friction scrubs speed
+      else if (throttle && !st.touch) st.pitchV += throttle * 0.7 * dt;                                   // in the air: gas pitches the nose up, brake pitches it down
+    }
+    const free = st.air || st.rolled, vxw = fx * st.v + rx * st.lateralV, vzw = fz * st.v + rz * st.lateralV;
     st.h += st.yr * dt;
     fx = Math.sin(st.h); fz = Math.cos(st.h); rx = fz; rz = -fx;
+    if (free) { st.v = vxw * fx + vzw * fz; st.lateralV = vxw * rx + vzw * rz; }   // nothing steers a flying car: it keeps its world velocity, so a spun car lands travelling the way it was going
 
     st.x += (fx * st.v + rx * st.lateralV) * dt; st.z += (fz * st.v + rz * st.lateralV) * dt;
     st.ax = (st.ax || 0) + ((st.v - v0) / dt - (st.ax || 0)) * Math.min(1, dt * 8);
@@ -259,7 +266,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
     const wasAir = st.air;
     stepSuspension(st, dims, dt, world.height);
-    if (wasAir && !st.air) st.v *= 0.97;
+    if (st.rolled && Math.abs(st.v) + Math.abs(st.lateralV) < 1.2) {   // lying still on its side/roof: the marshals flip it back after a moment
+      st.rolledT = (st.rolledT || 0) + dt;
+      if (st.rolledT > 2.5) { st.pitch = 0; st.roll = 0; st.pitchV = 0; st.rollV = 0; st.yr = 0; st.vy = 0; st.y += 0.8; st.rolledT = 0; }
+    } else st.rolledT = 0;
     const g = group.current;
     g.position.set(st.x, st.y, st.z);
     g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
@@ -313,7 +323,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
