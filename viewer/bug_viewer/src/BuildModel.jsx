@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile } from './build.js';
 import { rimGeometry } from './Rims.jsx';
+import { ProcPart } from './ProcParts.jsx';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
@@ -170,7 +171,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
         const m = <Model file={f} {...common} channels={pch} material={p.material} />;
-        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}</group>;
+        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.proc ? <ProcPart id={p.proc} r={r} /> : p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.hardware && <ProcPart id={p.hardware} r={r} />}</group>;
       })}
     </group>
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}

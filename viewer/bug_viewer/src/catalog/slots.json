@@ -89,5 +89,47 @@
   "label": "Exhaust",
   "category": "Mechanical",
   "order": 18
+ },
+ {
+  "type": "slot",
+  "id": "frontLights",
+  "label": "Front lights",
+  "category": "Lighting",
+  "order": 19
+ },
+ {
+  "type": "slot",
+  "id": "rearLights",
+  "label": "Rear lights",
+  "category": "Lighting",
+  "order": 20
+ },
+ {
+  "type": "slot",
+  "id": "roofGear",
+  "label": "Roof gear",
+  "category": "Body",
+  "order": 21
+ },
+ {
+  "type": "slot",
+  "id": "skid",
+  "label": "Skid plate",
+  "category": "Protection",
+  "order": 22
+ },
+ {
+  "type": "slot",
+  "id": "mudFlaps",
+  "label": "Mud flaps",
+  "category": "Protection",
+  "order": 23
+ },
+ {
+  "type": "slot",
+  "id": "antenna",
+  "label": "Antenna",
+  "category": "Body",
+  "order": 24
  }
 ]

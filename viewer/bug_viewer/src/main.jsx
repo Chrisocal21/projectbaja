@@ -14,7 +14,7 @@ import {
 import { game, useGame, owns, buy, say } from './game/store.js';
 import { TitleScreen, PauseMenu, ShopPanel, HudOverlay } from './game/ui.jsx';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
-import { partById, SECTIONS } from './build.js';
+import { partById, SECTIONS, tireMax } from './build.js';
 import './style.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
@@ -150,7 +150,7 @@ function App() {
         <div className="section"><div className="section-title">TIRES</div>
           <div className="presets">{wheelSets.filter(w => wheelSetFits(w, body.id)).map(w => <button key={w.id} disabled={!owns('wheel', w.id)} title={owns('wheel', w.id) ? '' : 'Locked - find or buy it'} className={build.wheels === w.id ? 'active' : ''} onClick={() => update(setWheels(build, w.id))}>{labelFor(w, body.id)}</button>)}</div>
           {wheelSet.grip && <small className="hint">{wheelSet.grip.note}<br />Grip on dirt {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.dirt * 100)}% · sand {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.sand * 100)}% · rock {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.rock * 100)}% · mud {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.mud * 100)}%</small>}
-          <Slider label="Tire size" value={build.wheelScale} {...SIZE} disabled={!r.tire} unit="×" digits={2} onChange={v => setBuild({ ...build, wheelScale: v })} hint={!r.tire ? 'Pick a Rugged tire to resize' : null} />
+          <Slider label="Tire size" value={build.wheelScale} {...SIZE} max={tireMax(build.lift)} disabled={!r.tire} unit="×" digits={2} onChange={v => setBuild({ ...build, wheelScale: v })} hint={!r.tire ? 'Pick a Rugged tire to resize' : null} />
           <Slider label="Lift" value={build.lift} {...LIFT} disabled={!r.liftable} unit=" m" digits={3} onChange={v => setBuild({ ...build, lift: v })} hint={!r.liftable ? 'Pick non-stock wheels to lift this body' : null} />
         </div>
 

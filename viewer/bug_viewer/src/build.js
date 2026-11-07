@@ -6,9 +6,10 @@ export const SECTIONS = [
   { id: 'engine', label: 'Engine', slots: ['engine'] },
   { id: 'exhaust', label: 'Exhaust', slots: ['exhaust'] },
   { id: 'body', label: 'Body panels', slots: ['fenders', 'hood', 'rearDeck'] },
-  { id: 'roof', label: 'Roof & racks', slots: ['roofRack'] },
-  { id: 'lights', label: 'Lights', slots: ['lightBar'] },
+  { id: 'roof', label: 'Roof & racks', slots: ['roofRack', 'roofGear', 'antenna'] },
+  { id: 'lights', label: 'Lights', slots: ['lightBar', 'frontLights', 'rearLights'] },
   { id: 'bumpers', label: 'Bumpers & cage', slots: ['frontBumper', 'rearBumper', 'rockers', 'rearCarrier'] },
+  { id: 'guards', label: 'Underbody & guards', slots: ['skid', 'mudFlaps'] },
   { id: 'suspension', label: 'Suspension', slots: ['suspension', 'shocks'] },
 ];
 export const sectionOfSlot = slot => SECTIONS.find(s => s.slots.includes(slot))?.id || 'body';
@@ -24,6 +25,8 @@ export const PALETTE = [
 ];
 export const SIZE = { min: 0.8, max: 1.35, step: 0.05 };
 export const LIFT = { min: 0, max: 0.3, step: 0.025 };
+/** Biggest tire that clears the wheel arches: more lift makes room for more tire. */
+export const tireMax = (lift = 0) => Math.min(SIZE.max, 1.12 + lift * 1.3);
 
 export const defaultBuild = () => ({ body: bodies[0].id, wheels: 'stock', wheelScale: 1, lift: 0, rim: 'steel', colors: {}, hidden: [], parts: {} });
 
@@ -47,8 +50,8 @@ export function normalize(input) {
   delete b.paint;
   if (!bodyById[b.body]) b.body = bodies[0].id;
   if (!wheelById[b.wheels] || !wheelSetFits(wheelById[b.wheels], b.body)) b.wheels = 'stock';
-  b.wheelScale = clamp(b.wheelScale, SIZE.min, SIZE.max);
   b.lift = clamp(b.lift, LIFT.min, LIFT.max);
+  b.wheelScale = clamp(b.wheelScale, SIZE.min, tireMax(b.lift));
   if (!rimById[b.rim]) b.rim = 'steel';
   const chans = new Set([...(bodyById[b.body].colorChannels || []).map(c => c.id), 'rim']);
   for (const [k, v] of Object.entries(b.colors)) if (!chans.has(k) || !/^#[0-9a-f]{6}$/i.test(v || '')) delete b.colors[k];

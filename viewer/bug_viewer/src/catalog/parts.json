@@ -170,7 +170,8 @@
   "perf": {
    "topMph": 35,
    "power": 1.25
-  }
+  },
+  "hardware": "engineMounts"
  },
  {
   "type": "part",
@@ -190,7 +191,8 @@
   "perf": {
    "topMph": 55,
    "power": 1.5
-  }
+  },
+  "hardware": "engineMounts"
  },
  {
   "type": "part",
@@ -210,7 +212,8 @@
   "perf": {
    "topMph": 70,
    "power": 1.8
-  }
+  },
+  "hardware": "engineMounts"
  },
  {
   "type": "part",
@@ -270,7 +273,8 @@
   },
   "families": [
    "classic"
-  ]
+  ],
+  "hardware": "roofRackFeet"
  },
  {
   "type": "part",
@@ -291,7 +295,8 @@
   },
   "families": [
    "classic"
-  ]
+  ],
+  "hardware": "lightBarPosts"
  },
  {
   "type": "part",
@@ -521,6 +526,158 @@
   "material": {
    "metalness": 0.05,
    "roughness": 0.4
+  }
+ },
+ {
+  "type": "part",
+  "id": "LIGHT_BumperPods",
+  "label": "Bumper LED pods",
+  "slot": "frontLights",
+  "category": "Lighting",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "LIGHT_BumperPods"
+ },
+ {
+  "type": "part",
+  "id": "LIGHT_CubePods",
+  "label": "Cube driving lights",
+  "slot": "frontLights",
+  "category": "Lighting",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "LIGHT_CubePods"
+ },
+ {
+  "type": "part",
+  "id": "LIGHT_RearBar",
+  "label": "Rear LED bar",
+  "slot": "rearLights",
+  "category": "Lighting",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "LIGHT_RearBar",
+  "requires": {
+   "rearBumper": "PART_003_RearEngineCage"
+  }
+ },
+ {
+  "type": "part",
+  "id": "ROOF_JerryCans",
+  "label": "Jerry cans (pair)",
+  "slot": "roofGear",
+  "category": "Body",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "ROOF_JerryCans",
+  "requires": {
+   "roofRack": "ACC_RoofRack"
+  }
+ },
+ {
+  "type": "part",
+  "id": "ROOF_Antenna",
+  "label": "Whip antenna + flag",
+  "slot": "antenna",
+  "category": "Body",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "ROOF_Antenna",
+  "requires": {
+   "roofRack": "ACC_RoofRack"
+  }
+ },
+ {
+  "type": "part",
+  "id": "GUARD_SkidPlate",
+  "label": "Aluminium skid plate",
+  "slot": "skid",
+  "category": "Protection",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "GUARD_SkidPlate"
+ },
+ {
+  "type": "part",
+  "id": "GUARD_MudFlaps",
+  "label": "Mud flaps",
+  "slot": "mudFlaps",
+  "category": "Protection",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "GUARD_MudFlaps"
+ },
+ {
+  "type": "part",
+  "id": "EXH_SidePipes",
+  "label": "Side-exit pipes",
+  "slot": "exhaust",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "EXH_SidePipes",
+  "perf": {
+   "topMph": 6,
+   "power": 1.03
+  }
+ },
+ {
+  "type": "part",
+  "id": "EXH_Megaphone",
+  "label": "Megaphone rear pipes",
+  "slot": "exhaust",
+  "category": "Mechanical",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "EXH_Megaphone",
+  "perf": {
+   "topMph": 11,
+   "power": 1.06
   }
  }
 ]
