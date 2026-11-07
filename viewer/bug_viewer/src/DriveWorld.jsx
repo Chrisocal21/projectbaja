@@ -226,7 +226,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
       let FyF = tire(aF, capF), FyR = tire(aR, capR);
       const cs = Math.cos(st.steer), latTotal = FyF * cs + FyR, latMax = MASS * G * 1.0;   // stability limit: never ask the chassis for more than ~1 g sideways, so it stays on four wheels
       if (Math.abs(latTotal) > latMax) { const k = latMax / Math.abs(latTotal); FyF *= k; FyR *= k; }
-      st.lateralV += ((FyF * cs + FyR) / MASS - st.v * st.yr) * dt;
+      let aL = (FyF * cs + FyR) / MASS;   // sideways acceleration the tires really apply (drives body roll)
+      st.lateralV += (aL - st.v * st.yr) * dt;
       st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.12) * dt;   // extra yaw damping: planted, no spin-outs
       st.v += st.lateralV * st.yr * dt;
       // go where the wheels point: pull the body's turn rate toward the wheels' geometric turn rate (capped by what the tires can give),
@@ -234,15 +235,30 @@ function Vehicle({ children, hud, dims, race, sun }) {
       const gf = Math.min(1, Math.max(0.3, tmuNow / 0.9)), yrWant = st.v * Math.tan(st.steer) / L, yrCap = 1.15 * G * gf / Math.max(Math.abs(st.v), 4);
       const sl = 1 - 0.75 * smooth(0.3, 0.9, st.slip || 0);   // a car already sliding badly (bad landing) is not helped back in line: it can swap ends
       st.yr += (Math.max(-yrCap, Math.min(yrCap, yrWant)) - st.yr) * Math.min(1, 6 * gf * sl * dt);
-      st.lateralV -= st.lateralV * Math.min(1, 2.5 * gf * sl * dt);
+      // trip: sliding sideways FAST then biting (rut, grippier ground) dumps the sideways speed all at once and levers the car over - only well past the limit, so it is a rare, earned roll
+      const trip = smooth(4, 8, Math.abs(st.lateralV)) * smooth(18, 28, Math.abs(st.v));
+      const b1 = st.lateralV * Math.min(1, (2.5 * gf * sl + 10 * trip) * dt); st.lateralV -= b1; aL -= b1 / dt;
       const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
-      if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); st.lateralV -= st.lateralV * (1 - w) * Math.min(1, dt * 12); }
+      if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); const b2 = st.lateralV * (1 - w) * Math.min(1, dt * 12); st.lateralV -= b2; aL -= b2 / dt; }
       if (st.v < 0.5) { st.yr = (st.v / L) * Math.tan(st.steer); st.lateralV = 0; }
       st.slip = Math.abs(Math.atan2(st.lateralV, Math.max(Math.abs(st.v), 0.5)));
+      st.aLat = (st.aLat || 0) + (aL - (st.aLat || 0)) * Math.min(1, dt * 10);
+      st.airT = 0;
     } else {
+      st.aLat = (st.aLat || 0) * (1 - Math.min(1, dt * 8));
       st.yr *= 1 - (st.rolled && st.touch ? 1.5 : 0.03) * dt;
       if (st.rolled && st.touch) { const f = 1 - Math.min(1, 1.4 * dt); st.v *= f; st.lateralV *= f; }   // sliding on its side: friction scrubs speed
-      else if (throttle && !st.touch) st.pitchV += throttle * 0.7 * dt;                                   // in the air: gas pitches the nose up, brake pitches it down
+      if (st.air) {   // cat reflex: a launched car twists itself to meet the ground wheels-first (centre of gravity low, weight in the tyres)
+        st.airT = (st.airT || 0) + dt;
+        if (st.airT > 0.12) {
+          const e = 2, sl2 = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e), sd = (world.height(st.x + rx * 1, st.z + rz * 1) - world.height(st.x - rx * 1, st.z - rz * 1)) / 2;
+          const wrap = a => (a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a);
+          const lim = 14, ep = wrap(Math.atan(sl2) - st.pitch), er = wrap(Math.atan(sd) - st.roll), k = Math.min(1, (st.airT - 0.12) / 0.25);
+          st.pitchV += Math.max(-lim, Math.min(lim, 9 * ep * k - 3.2 * st.pitchV * k)) * dt;
+          st.rollV += Math.max(-lim, Math.min(lim, 9 * er * k - 3.2 * st.rollV * k)) * dt;
+        }
+      }
+      if (throttle && !st.touch) st.pitchV += throttle * 0.7 * dt;                                   // in the air: gas pitches the nose up, brake pitches it down
     }
     const free = st.air || st.rolled, vxw = fx * st.v + rx * st.lateralV, vzw = fz * st.v + rz * st.lateralV;
     st.h += st.yr * dt;

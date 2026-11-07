@@ -155,7 +155,7 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
   }
   if (contacts) {
     pitchTorque += MASS * st.ax * 0.48;
-    rollTorque += MASS * st.v * st.yr * 0.3;
+    rollTorque += MASS * (st.aLat || 0) * COM_H * 0.9;   // sideways tire force acts below the centre of mass: big lateral decel (tires biting after a slide) rolls the car
   }
   // body resting on the ground (nose, roof, side): it carries the car's weight at that point, so the car can pivot over it and tip
   const sup = [];
