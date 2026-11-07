@@ -11,7 +11,7 @@ export function terrainHeight(x, z) {
   let h = Math.sin(x * 0.045) * Math.cos(z * 0.04) * 4.5
         + Math.sin(x * 0.11 + 1.3) * Math.sin(z * 0.09) * 1.6
         + Math.sin(x * 0.31) * Math.cos(z * 0.27 + 2) * 0.35
-        + Math.sin(x * 1.3 + z * 0.4) * Math.sin(z * 1.1 - x * 0.3) * 0.3;   // rough ground so the suspension has work to do
+        + Math.sin(x * 1.3 + z * 0.4) * Math.sin(z * 1.1 - x * 0.3) * 0.07;   // fine ripples ground so the suspension has work to do
   // flat start pad so the car spawns on level ground
   h *= smooth(10, 32, Math.hypot(x, z));
   // jump ramp: runs along +Z from z=30..42, 28m long run-up, drops off at the lip
@@ -24,7 +24,7 @@ export function terrainHeight(x, z) {
 
 function Terrain() {
   const geo = useMemo(() => {
-    const seg = 220;
+    const seg = 500;
     const g = new THREE.PlaneGeometry(WORLD, WORLD, seg, seg);
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position;
@@ -35,7 +35,7 @@ function Terrain() {
       const y = terrainHeight(x, z);
       pos.setY(i, y);
       const slope = Math.abs(terrainHeight(x + 1, z) - y) + Math.abs(terrainHeight(x, z + 1) - y);
-      const noise = (Math.sin(x * 1.7) * Math.sin(z * 1.9)) * 0.04;
+      const noise = (Math.sin(x * 1.7) * Math.sin(z * 1.9) * 0.025 + Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.05 + Math.sin(x * 4.1) * Math.sin(z * 3.7) * 0.012);
       c.set('#b79b63').lerp(new THREE.Color('#8a6e45'), Math.min(1, slope * 0.9)).lerp(new THREE.Color('#d8c08a'), Math.min(1, Math.max(0, (y + 2) * 0.08)));
       c.offsetHSL(0, 0, noise);
       col.set([c.r, c.g, c.b], i * 3);
@@ -44,7 +44,7 @@ function Terrain() {
     g.computeVertexNormals();
     return g;
   }, []);
-  return <mesh geometry={geo} receiveShadow><meshStandardMaterial vertexColors roughness={1} flatShading /></mesh>;
+  return <mesh geometry={geo} receiveShadow><meshStandardMaterial vertexColors roughness={1} /></mesh>;
 }
 
 const ITEMS = (() => {
@@ -70,8 +70,8 @@ function Scenery() {
     rocks.current.instanceMatrix.needsUpdate = cacti.current.instanceMatrix.needsUpdate = true;
   }, [items]);
   return <>
-    <instancedMesh ref={rocks} args={[null, null, items.r.length]} castShadow><dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial color="#7d776c" roughness={1} flatShading /></instancedMesh>
-    <instancedMesh ref={cacti} args={[null, null, items.c.length]} castShadow><cylinderGeometry args={[0.6, 0.8, 1, 7]} /><meshStandardMaterial color="#58703f" roughness={1} flatShading /></instancedMesh>
+    <instancedMesh ref={rocks} args={[null, null, items.r.length]} castShadow><icosahedronGeometry args={[1, 1]} /><meshStandardMaterial color="#8a8377" roughness={0.95} /></instancedMesh>
+    <instancedMesh ref={cacti} args={[null, null, items.c.length]} castShadow><cylinderGeometry args={[0.6, 0.8, 1, 14]} /><meshStandardMaterial color="#5f7a43" roughness={0.9} /></instancedMesh>
   </>;
 }
 
