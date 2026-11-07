@@ -24,8 +24,8 @@ function CameraReset({ resetKey }) {
 
 function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, hud }) {
   const r = useMemo(() => resolve(build), [build]);
-  if (drive) return <Canvas key={`drive-${JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 700 }} dpr={[1, 2]}>
-    <Suspense fallback={null}><DriveWorld hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} /></DriveWorld></Suspense>
+  if (drive) return <Canvas shadows key={`drive-${JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 700 }} dpr={[1, 2]}>
+    <Suspense fallback={null}><DriveWorld hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} drive /></DriveWorld></Suspense>
   </Canvas>;
   return <Canvas key="view" shadows camera={{ position: CAMERA_POSITION, fov: 43, near: 0.05, far: 100 }} dpr={[1, 2]} onPointerMissed={() => onSelect(null)}>
     <color attach="background" args={['#172124']} />
@@ -100,6 +100,7 @@ function App() {
 
         <div className="section"><div className="section-title">TIRES</div>
           <div className="presets">{wheelSets.filter(w => wheelSetFits(w, body.id)).map(w => <button key={w.id} className={build.wheels === w.id ? 'active' : ''} onClick={() => update(setWheels(build, w.id))}>{labelFor(w, body.id)}</button>)}</div>
+          {wheelSet.grip && <small className="hint">{wheelSet.grip.note}<br />Grip on dirt {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.dirt * 100)}% · sand {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.sand * 100)}% · rock {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.rock * 100)}% · mud {Math.round(wheelSet.grip.mu * wheelSet.grip.surf.mud * 100)}%</small>}
           <Slider label="Tire size" value={build.wheelScale} {...SIZE} disabled={!r.tire} unit="×" digits={2} onChange={v => setBuild({ ...build, wheelScale: v })} hint={!r.tire ? 'Pick a Rugged tire to resize' : null} />
           <Slider label="Lift" value={build.lift} {...LIFT} disabled={!r.liftable} unit=" m" digits={3} onChange={v => setBuild({ ...build, lift: v })} hint={!r.liftable ? 'Pick non-stock wheels to lift this body' : null} />
         </div>

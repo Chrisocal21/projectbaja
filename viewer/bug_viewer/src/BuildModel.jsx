@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile } from './build.js';
 import { rimGeometry } from './Rims.jsx';
+import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
 
 const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
 /** Meshes exported without normals render as raw flat facets (bright shards) - give them smooth normals. */
@@ -16,6 +17,13 @@ function smoothNormals(root) {
   });
 }
 const isWheelNode = o => /^C?Wheel_(FL|FR|RL|RR)$/.test(o.name);
+function inspectSelection(e, onSelect, asset) {
+  e.stopPropagation();
+  const m = e.object, size = new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3());
+  onSelect?.({ name: m.name || '(unnamed mesh)', sourceName: sourceNameFor(m), asset,
+    triangles: Math.round((m.geometry?.index?.count || m.geometry?.attributes?.position?.count || 0) / 3),
+    size: [size.x, size.y, size.z].map(n => n.toFixed(2)) });
+}
 
 /** One GLB. `mask` hides meshes by name prefix (only when isBase), `paint` recolours matching materials. */
 function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null }) {
@@ -24,6 +32,7 @@ function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels 
     const c = scene.clone(true);
     c.traverse(o => {
       if (!o.isMesh) return;
+      o.castShadow = true; o.receiveShadow = true;
       o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material?.clone();
       const raycast = o.raycast;
       o.raycast = function (raycaster, hits) { if (this.visible) raycast.call(this, raycaster, hits); };
@@ -48,11 +57,7 @@ function Model({ file, mask = [], wireframe, onSelect, isBase = false, channels 
   }, [clone, maskKey, wireframe, isBase, channels, material]);
   // wheels built into a body shell stay on the ground when the body is lifted
   useEffect(() => { clone.traverse(o => { if (isWheelNode(o)) { o.userData.y0 ??= o.position.y; o.position.y = o.userData.y0 + wheelDy; } }); }, [clone, wheelDy]);
-  return <primitive object={clone} onClick={e => {
-    e.stopPropagation();
-    const m = e.object, size = new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3());
-    onSelect?.({ name: m.name || '(unnamed mesh)', sourceName: sourceNameFor(m), asset: file, triangles: Math.round((m.geometry?.index?.count || m.geometry?.attributes?.position?.count || 0) / 3), size: [size.x, size.y, size.z].map(n => n.toFixed(2)) });
-  }} />;
+  return <primitive object={clone} onClick={e => inspectSelection(e, onSelect, file)} />;
 }
 
 function Rim({ rim, color }) {
@@ -68,6 +73,7 @@ function TireWheel({ set, mount, rim, rimColor }) {
     c.traverse(o => {
       if (!o.isMesh) return;
       o.material = o.material.clone();
+      o.castShadow = true; o.receiveShadow = true;
       if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; }
     });
     smoothNormals(c);
@@ -84,7 +90,7 @@ function useTireClone(file) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   return useMemo(() => {
     const c = scene.clone(true);
-    c.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; } });
+    c.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; } });
     smoothNormals(c);
     return c;
   }, [scene]);
@@ -115,18 +121,11 @@ function SpareTire({ spare, r }) {
   return <FallbackSpare spare={spare} />;
 }
 
-/** A part that bolts to each wheel (e.g. coilovers): lower mount at the hub, upper mount up in the body. */
-function WheelAttached({ part, mounts, lift }) {
-  const { scene } = useGLTF(`/models/${part.file}.glb`);
-  const a = part.attach;
-  const items = useMemo(() => mounts.map(m => {
-    const s = Math.sign(m.center[0]) || 1;
-    const lower = new THREE.Vector3(m.center[0] - s * a.lower[0], m.center[1] + a.lower[1], m.center[2] + a.lower[2]);
-    const upper = new THREE.Vector3(m.center[0] - s * a.upper[0], m.center[1] + a.upper[1] + lift, m.center[2] + a.upper[2]);
-    const dir = upper.clone().sub(lower), len = dir.length();
-    return { key: m.name, obj: scene.clone(true), pos: lower, quat: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()), scale: len / a.baseLength };
-  }), [mounts, lift, a, scene]);
-  return <>{items.map(i => <group key={i.key} position={i.pos} quaternion={i.quat} scale={i.scale}><primitive object={i.obj} /></group>)}</>;
+function Suspension({ mounts, lift, coilovers, wireframe, onSelect }) {
+  const visual = useMemo(() => createSuspensionVisual(mounts, lift, coilovers), [mounts, lift, coilovers]);
+  useEffect(() => () => disposeSuspensionVisual(visual), [visual]);
+  useEffect(() => { visual.traverse(o => { if (o.isMesh) o.material.wireframe = !!wireframe; }); }, [visual, wireframe]);
+  return <primitive object={visual} onClick={e => inspectSelection(e, onSelect, 'SuspensionAssembly (procedural)')} />;
 }
 
 /** Auto-fit: rotates (fit.rot = [x,y,z] degrees, or fit.rotY), then scales/positions a free-sized GLB into a target box on the body. */
@@ -146,13 +145,13 @@ function Fitted({ file, fit, children }) {
   return <group position={t.pos} scale={t.scale}><group quaternion={t.quat}><group position={[-t.center.x, -t.center.y, -t.center.z]}>{children}</group></group></group>;
 }
 
-export default function BuildModel({ build, wireframe, onSelect }) {
+export default function BuildModel({ build, wireframe, onSelect, drive = false }) {
   const r = useMemo(() => resolve(build), [build]);
   const common = { wireframe, onSelect, channels: r.channels };
   return <>
     <group position={[0, r.lift, 0]}>
       <Model file={r.body.file} mask={r.masks} isBase wheelDy={-r.lift} {...common} />
-      {r.active.filter(p => !p.attach).map(p => {
+      {r.active.filter(p => !p.attach && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
         const m = <Model file={f} {...common} channels={pch} material={p.material} />;
@@ -161,6 +160,8 @@ export default function BuildModel({ build, wireframe, onSelect }) {
     </group>
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
     {r.tire && r.mounts.map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}
-    {r.active.filter(p => p.attach?.mode === 'perWheel').map(p => <WheelAttached key={p.id} part={p} mounts={r.mounts} lift={r.lift} />)}
+    {(drive || r.active.some(p => p.slot === 'suspension' || p.slot === 'shocks')) &&
+      <Suspension mounts={r.mounts} lift={r.lift} wireframe={wireframe} onSelect={onSelect}
+        coilovers={drive || r.active.some(p => p.slot === 'shocks')} />}
   </>;
 }

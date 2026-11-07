@@ -8,9 +8,9 @@ vehicle is the supplied Blender Beetle, exported as
 shell, alongside supplied all-terrain tires fitted to the stock wheels. The
 previous procedural base and historical upgrade assets remain on disk.
 
-The current workspace is a local asset inspector, not a playable game or an
-initialized Git repository. No GitHub/Vercel deployment or Salvage Road code
-carry-over has been verified.
+The viewer includes a lightweight off-road drive world for testing vehicle
+builds, not a production vehicle simulator. No GitHub/Vercel deployment or
+Salvage Road code carry-over has been verified.
 
 ## Current profile inventory
 
@@ -48,10 +48,46 @@ Open the local URL printed by Vite. Check production output with `npm run build`
 - Stock/Body prototype expose five fitted controls. Stage 2 exposes ten,
   including an alternative wide wing set. Profile-specific files prevent
   mixing the old stock-size prototypes with the raised kit.
-- Original Trail/Baja full-build presets remain disabled. Full suspension,
-  roll-cage bracing, auxiliary lights and skid plate are still unfitted.
+- Original Trail/Baja full-build presets remain disabled. Suspension now uses
+  the shared articulated assembly described below. Roll-cage bracing,
+  auxiliary lights and skid plate are still unfitted.
   Category filters continue to work.
 - Local generated studio reflections; no external environment downloads.
+
+## Driving and suspension
+
+Click **Drive**. W/S or arrows control throttle/reverse, A/D steer, Space brakes,
+R resets the vehicle and suspension, and C switches to the cab camera. Mouse
+look and scroll zoom work in drive mode; Escape releases the cursor.
+
+- Terrain collision samples the same triangulated heightfield as the rendered
+  ground, including the ramp lip. Tire shoulders/rolling arcs and a sampled
+  chassis belly prevent sinking on slopes and landing. A vehicle-following
+  sunlight shadow makes ground contact and airborne clearance visible.
+- Four independent corners run at 120 Hz with spring preload, damping, axle
+  anti-roll coupling, bump stops and droop limits. Stock travel is 120 mm bump /
+  140 mm droop; Stage 2 or a suspension upgrade uses 220 mm / 240 mm.
+- Vertical and lateral velocities are independent. Contact loads feed tire
+  grip; unloaded rear wheels cannot accelerate the vehicle. Jumps retain
+  gravity and land through the suspension rather than a terrain-average clamp.
+- Front beams/trailing links, rear arms/halfshafts, knuckles, shock towers and
+  telescoping dampers share the actual hub positions. Optional coil springs
+  compress axially without changing diameter. The running-gear and coilover
+  controls use this same assembly in the static inspector; drive mode always
+  shows it, with no duplicate legacy shocks.
+- Stock, prebuilt and resizable tires have separate mount/radius/width data.
+  In particular, Stage 2's stock wheels retain the imported stock dimensions.
+  Hidden wheel meshes are excluded from rigging; only four visible wheels
+  spin and steer, with shared Ackermann angles for rendering and collision.
+
+This is a simplified heightfield/sprung-chassis model, not a rigid-body or
+full suspension-linkage solver. Links visualize hub travel; obstacle contacts
+use coarse body circles, and belly/tire collision uses sampled envelopes.
+Original GLBs are preserved.
+
+Run `npm test` for terrain-triangle agreement, stock/Stage 2 wheel asset
+calibration, ground clearance, slopes, articulation, jumps/landing, tire sizes,
+lifts, reset state, fixed-rate consistency and shock/link endpoint alignment.
 
 ## Imported asset and limitations
 

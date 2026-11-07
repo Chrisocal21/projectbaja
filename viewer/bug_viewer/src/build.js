@@ -78,8 +78,10 @@ export function resolve(build) {
   ];
   const channels = (body.colorChannels || []).filter(c => build.colors[c.id]).map(c => ({ id: c.id, re: new RegExp(c.match, 'i'), color: build.colors[c.id] }));
   for (const a of body.alwaysPaint || []) channels.push({ id: 'always-' + a.match, re: new RegExp(a.match, 'i'), color: a.color || build.colors[a.channel] || body.defaultPaint });   // e.g. painted body interior panels
-  const mounts = Object.entries(body.wheels).map(([name, w]) => ({
+  const wheelMounts = ws.mounts?.[body.id] || ws.mounts?.['*'] || body.wheels;
+  const mounts = Object.entries(wheelMounts).map(([name, w]) => ({
     name, radius: w.radius * scale, center: [w.center[0], w.center[1] * scale, w.center[2]],
+    halfWidth: tire ? ws.halfWidth * w.radius * scale / ws.baseRadius : w.halfWidth,
   }));
   const baseR = body.wheels.FL.radius;
   const liftable = body.stockWheelsLiftable || custom;
@@ -89,7 +91,9 @@ export function resolve(build) {
   const rim = tire ? rimById[build.rim] : null, rimColor = rim ? (build.colors.rim || rim.defaultColor) : null;
   return {
     rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable,
-    dims: { wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]] },
+    dims: { tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
+      mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
+      offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
   };
 }
 

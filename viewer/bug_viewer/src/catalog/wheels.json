@@ -3,7 +3,58 @@
   "type": "wheels",
   "id": "stock",
   "label": "Stock",
-  "kind": "stock"
+  "kind": "stock",
+  "mounts": {
+   "*": {
+    "FL": {
+     "center": [
+      0.65163,
+      0.345717,
+      1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.132
+    },
+    "FR": {
+     "center": [
+      -0.65163,
+      0.345717,
+      1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.132
+    },
+    "RL": {
+     "center": [
+      0.65163,
+      0.345717,
+      -1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.13
+    },
+    "RR": {
+     "center": [
+      -0.65163,
+      0.345717,
+      -1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.13
+    }
+   }
+  },
+  "grip": {
+   "mu": 0.85,
+   "rr": 0.9,
+   "surf": {
+    "dirt": 0.8,
+    "sand": 0.6,
+    "rock": 0.85,
+    "mud": 0.45
+   },
+   "note": "Street-style bug tires: fine on hard ground, hopeless in sand and mud"
+  }
  },
  {
   "type": "wheels",
@@ -16,6 +67,95 @@
   },
   "labels": {
    "classic-stage2": "30-inch all-terrain"
+  },
+  "mounts": {
+   "classic": {
+    "FL": {
+     "center": [
+      0.65163,
+      0.345717,
+      1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.131
+    },
+    "FR": {
+     "center": [
+      -0.65163,
+      0.345717,
+      1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.131
+    },
+    "RL": {
+     "center": [
+      0.65163,
+      0.345717,
+      -1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.13
+    },
+    "RR": {
+     "center": [
+      -0.65163,
+      0.345717,
+      -1.19
+     ],
+     "radius": 0.345717,
+     "halfWidth": 0.13
+    }
+   },
+   "classic-stage2": {
+    "FL": {
+     "center": [
+      0.756261,
+      0.381,
+      1.19
+     ],
+     "radius": 0.381,
+     "halfWidth": 0.134
+    },
+    "FR": {
+     "center": [
+      -0.756261,
+      0.381,
+      1.19
+     ],
+     "radius": 0.381,
+     "halfWidth": 0.134
+    },
+    "RL": {
+     "center": [
+      0.757743,
+      0.381,
+      -1.19
+     ],
+     "radius": 0.381,
+     "halfWidth": 0.133
+    },
+    "RR": {
+     "center": [
+      -0.757743,
+      0.381,
+      -1.19
+     ],
+     "radius": 0.381,
+     "halfWidth": 0.133
+    }
+   }
+  },
+  "grip": {
+   "mu": 1.0,
+   "rr": 1.0,
+   "surf": {
+    "dirt": 1.0,
+    "sand": 0.95,
+    "rock": 1.0,
+    "mud": 0.85
+   },
+   "note": "Balanced all-terrain"
   }
  },
  {
@@ -24,7 +164,19 @@
   "label": "Rugged - beadlock",
   "kind": "tire",
   "file": "TIRE_RuggedTextured",
-  "baseRadius": 0.475
+  "baseRadius": 0.475,
+  "halfWidth": 0.176,
+  "grip": {
+   "mu": 1.05,
+   "rr": 1.05,
+   "surf": {
+    "dirt": 1.0,
+    "sand": 0.95,
+    "rock": 1.15,
+    "mud": 0.9
+   },
+   "note": "Sticky rock-crawler rubber"
+  }
  },
  {
   "type": "wheels",
@@ -32,7 +184,19 @@
   "label": "Rugged - light",
   "kind": "tire",
   "file": "TIRE_RuggedLite",
-  "baseRadius": 0.475
+  "baseRadius": 0.475,
+  "halfWidth": 0.176,
+  "grip": {
+   "mu": 0.95,
+   "rr": 0.8,
+   "surf": {
+    "dirt": 0.9,
+    "sand": 1.2,
+    "rock": 0.8,
+    "mud": 0.7
+   },
+   "note": "Light and floaty: great on sand, loose elsewhere"
+  }
  },
  {
   "type": "wheels",
@@ -40,7 +204,19 @@
   "label": "Rugged - deep tread",
   "kind": "tire",
   "file": "TIRE_RuggedDeep",
-  "baseRadius": 0.475
+  "baseRadius": 0.475,
+  "halfWidth": 0.204,
+  "grip": {
+   "mu": 1.0,
+   "rr": 1.25,
+   "surf": {
+    "dirt": 0.95,
+    "sand": 0.85,
+    "rock": 0.95,
+    "mud": 1.4
+   },
+   "note": "Mud-terrain: bites in mud, draggy on hard ground"
+  }
  },
  {
   "type": "wheels",
@@ -48,6 +224,18 @@
   "label": "Rugged - tread",
   "kind": "tire",
   "file": "TIRE_RuggedTread",
-  "baseRadius": 0.475
+  "baseRadius": 0.475,
+  "halfWidth": 0.154,
+  "grip": {
+   "mu": 0.9,
+   "rr": 0.9,
+   "surf": {
+    "dirt": 0.9,
+    "sand": 0.7,
+    "rock": 0.95,
+    "mud": 0.6
+   },
+   "note": "Highway-ish tread: grippy on firm ground only"
+  }
  }
 ]
