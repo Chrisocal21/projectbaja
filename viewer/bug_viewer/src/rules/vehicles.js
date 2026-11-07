@@ -18,7 +18,7 @@ export const BUG = {
   zones: { front: 0.45, rear: -0.45 },
   covers: {
     engineLid: { piece: 'engineLid', name: 'engine lid', zone: 'rear', hinge: 'front', angle: 1.15 },
-    hoodPanel: { piece: 'hoodPanel', name: 'front hood', zone: 'front', hinge: 'rear', angle: -1.1 },
+    hoodPanel: { piece: 'hoodPanel', name: 'front hood', zone: 'front', hinge: 'rear', angle: -1.1, extra: ['B_HoodTrim', 'B_HoodLogo', 'B_HoodHandle'] },
   },
   slots: [
     S('engine', 'Engine', { catalog: 'engine', cover: 'engineLid', tool: 'hoist', size: 4, fn: 'start', zone: 'rear' }),

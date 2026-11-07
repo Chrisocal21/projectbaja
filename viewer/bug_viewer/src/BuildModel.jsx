@@ -186,7 +186,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
   const r = useMemo(() => resolve(build), [build]);
   const common = { wireframe, onSelect, channels: r.channels };
   useGame();
-  const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: (r.body.pieces || []).find(x => x.id === c.piece)?.match || [] })) : [];
+  const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: [...((r.body.pieces || []).find(x => x.id === c.piece)?.match || []), ...(c.extra || [])] })) : [];
   return <>
     <group position={[0, r.lift, 0]}>
       <Model file={r.body.file} mask={r.masks} isBase wheelDy={-r.lift} opens={opens} {...common} />

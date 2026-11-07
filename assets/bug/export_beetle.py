@@ -73,9 +73,10 @@ def label_body_panels(body):
                     queue.append(neighbor)
         return selected
 
-    hood = patches((87, 105))
+    hood = patches((87, 105, 136))   # deck surround + both lid lobes
+    lid = patches((188, 429, 430, 432))   # engine lid skin + plate-light bump (the louvres above it stay on the body)
     fixed_quarters = patches((0, 2, 187))
-    if len(hood) != 60 or len(fixed_quarters) != 138:
+    if len(hood) != 68 or len(lid) != 32 or len(fixed_quarters) != 138:
         raise ValueError('Native crease patches changed; panel boundaries need revalidation')
     labels = mesh.attributes.new('baja_panel', 'INT', 'FACE')
     for polygon in mesh.polygons:
@@ -84,14 +85,14 @@ def label_body_panels(body):
         region = 0
         if polygon.index in hood:
             region = 1
+        elif polygon.index in lid:
+            region = 3
         elif material in {'B-paint1', 'B-taillight1'} and polygon.index not in fixed_quarters:
             # Source-specific inner wing boundaries follow the native face grid.
             if x < -2.3477 and z < 1.73 and y < .174-(1.0+(x+7.3)*.23):
                 region = 2
             elif x > 2.93 and z < 1.90 and y < .174-(2.4-(x-3)*.24):
                 region = 4
-            elif x > 6.43 and -.5 < z < 2.80 and y > .174-(1.45 if z < 2 else 1.25):
-                region = 3
         labels.data[polygon.index].value = region
 
 
