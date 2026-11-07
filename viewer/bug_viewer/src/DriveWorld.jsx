@@ -203,7 +203,7 @@ function Vehicle({ children, hud, dims, race }) {
   const keys = useKeys();
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
-  const s = useRef({ x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0, air: false });
+  const s = useRef({ x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, vy: 0, yr: 0, steer: 0, pitch: 0, roll: 0, air: false });
   const cab = useRef(false), susp = useRef({ pv: 0, pd: 0, pdv: 0, rd: 0, rdv: 0, bob: 0, bobv: 0, adj: 0 });
   const rig = useRef(null), rigTries = useRef(0);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
@@ -230,8 +230,8 @@ function Vehicle({ children, hud, dims, race }) {
 
   const sim = dt => {   // one fixed physics step
     const k = keys.current, st = s.current;
-    const sf = surfaceAt(st.x, st.z), grip = sf.mu / 0.7; st.surface = sf.name;
-    if (k.KeyR) { Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0 }); race.current = newRace(); }
+    const sf = surfaceAt(st.x, st.z), grip = sf.mu / 0.7; st.surface = sf.name; const v0 = st.v;
+    if (k.KeyR) { Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, vy: 0, yr: 0, steer: 0, pitch: 0, roll: 0 }); race.current = newRace(); }
 
     const throttle = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
     const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
@@ -253,12 +253,34 @@ function Vehicle({ children, hud, dims, race }) {
       st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
 
       // --- steering ---
-      const maxSteer = 0.62 / (1 + Math.abs(st.v) * 0.09) * Math.min(1, 0.4 + grip * 0.6);
+      const maxSteer = 0.58 / (1 + Math.abs(st.v) * 0.06);
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
-      st.h += (st.v / WHEELBASE) * Math.tan(st.steer) * dt;
-    }
 
-    st.x += fx * st.v * dt; st.z += fz * st.v * dt;
+      // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
+      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.5, mu = sf.mu;
+      const dN = MASS * (st.ax || 0) * 0.6 / L;                                   // longitudinal weight transfer
+      const Nf = Math.max(500, MASS * G * cb / L - dN), Nr = Math.max(500, MASS * G * ca / L + dN);
+      const accelCmd = throttle > 0 ? ACCEL * Math.min(1.1, grip) : 0;
+      const brakeCmd = (throttle < 0 && st.v > 0.5 ? BRAKE : 0) + (k.Space ? BRAKE : 0);
+      const uxF = Math.min(0.95, brakeCmd * MASS * 0.65 / (mu * Nf));
+      const uxR = k.Space ? 0.93 : Math.min(0.95, (accelCmd + brakeCmd * 0.35) * MASS / (mu * Nr));   // handbrake locks the rear
+      const capF = mu * Nf * Math.sqrt(1 - uxF * uxF), capR = mu * Nr * Math.sqrt(1 - uxR * uxR);
+      const tire = (alpha, cap) => -cap * Math.tanh(alpha / 0.14) * (1 - 0.3 * smooth(0.3, 0.7, Math.abs(alpha)));   // peak ~8 deg, then falls off
+      const vx = Math.max(st.v, 0.5);
+      const aF = Math.atan2(st.vy + ca * st.yr, vx) - st.steer, aR = Math.atan2(st.vy - cb * st.yr, vx);
+      const FyF = tire(aF, capF), FyR = tire(aR, capR), cs = Math.cos(st.steer);
+      st.vy += ((FyF * cs + FyR) / MASS - st.v * st.yr) * dt;
+      st.yr += ((ca * FyF * cs - cb * FyR) / IZ) * dt;
+      st.v += st.vy * st.yr * dt;
+      const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
+      if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); st.vy -= st.vy * (1 - w) * Math.min(1, dt * 12); }
+      if (st.v < 0.5) { st.yr = (st.v / L) * Math.tan(st.steer); st.vy = 0; }
+      st.slip = Math.abs(Math.atan2(st.vy, Math.max(Math.abs(st.v), 0.5)));
+    } else st.yr *= 1 - 0.3 * dt;
+    st.h += st.yr * dt;
+
+    st.x += (fx * st.v + rx * st.vy) * dt; st.z += (fz * st.v + rz * st.vy) * dt;
+    st.ax = (st.ax || 0) + ((st.v - v0) / dt - (st.ax || 0)) * Math.min(1, dt * 8);
     // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
     for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or] of OBSTACLES) {
       const cx = st.x + fx * off, cz = st.z + fz * off, dx = cx - ox, dz = cz - oz, min = or + 0.85;
@@ -377,7 +399,7 @@ function Vehicle({ children, hud, dims, race }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
