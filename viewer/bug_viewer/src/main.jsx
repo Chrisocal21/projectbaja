@@ -11,9 +11,9 @@ import {
   defaultBuild, normalize, setBody, setWheels, setRim, rims, setPart, applyPreset, resolve,
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
-import { game, useGame, owns, buy, say, newGame, buyCar } from './game/store.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, LotMenu } from './game/ui.jsx';
-import CarLot from './lot/CarLot.jsx';
+import { game, useGame, owns, buy, say, newGame, buyCar, interact } from './game/store.js';
+import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel } from './game/ui.jsx';
+import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { partById, SECTIONS, tireMax } from './build.js';
 import './style.css';
@@ -70,13 +70,17 @@ function App() {
   const setPanel = p => { panelRef.current = p; game.paused = p !== null; setPanelState(p); if (p && document.pointerLockElement) document.exitPointerLock(); };
   const resume = () => { setPanel(null); try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} };
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
-  const startPlay = (kind, w) => { game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
-  const startLot = () => { newGame(); setBuildRaw(normalize(defaultBuild())); game.prompt = ''; game.target = null; setMode('lot'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
-  const lotLines = useRef(0);
-  const lotInteract = id => {
-    if (id === 'bug') { if (game.owned.has('car:bug')) startPlay('drive', 'test'); else setPanel('dealer'); }
-    else if (id === 'tarp') say("Al: 'That one's not running yet, kid. Give me a month.'");
-    else if (id === 'al') { const lines = ["Al: 'Two cars on the lot, one wallet. Pick one.'", "Al: 'The Bug's no beauty, but she's honest. Mostly.'", "Al: 'Parts? Garage's yours once you've got wheels. Hand-build it yourself.'"]; say(lines[lotLines.current++ % lines.length]); }
+  const startPlay = (kind, w) => { Object.assign(game, { dev: true, onFoot: false, start: 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
+  const startStory = cont => {
+    if (!cont) { newGame(); setBuildRaw(normalize(defaultBuild())); }
+    Object.assign(game, { dev: false, onFoot: !cont, start: cont ? 'garage' : 'lot', walkStart: cont ? null : WALK_START, walkPose: null, pose: null, keepPose: false, prompt: '', target: null, fueled: false });
+    setPlay({ kind: 'drive', world: 'test' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
+  };
+  const worldInteract = id => {
+    if (id === 'shop') setPanel('shop');
+    else if (id === 'bug') setPanel('dealer');
+    else if (id === 'bench') setPanel('garage');
+    else interact(id);
   };
   const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
   const [resetKey, setResetKey] = useState(0), [selected, setSelected] = useState(null), [filter, setFilter] = useState('All');
@@ -90,13 +94,12 @@ function App() {
   const update = next => { setBuild(next); setSelected(null); };
   useEffect(() => { const f = () => setFs(!!document.fullscreenElement); document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f); }, []);
   useEffect(() => {   // pause on Esc / lost pointer lock; E opens the shop when standing at it
-    if (mode !== 'play' && mode !== 'lot') return;
-    const lot = mode === 'lot';
-    const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null) setPanel(lot ? 'lotMenu' : 'pause'); };
+    if (mode !== 'play') return;
+    const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null) setPanel('pause'); };
     const key = e => {
       const p = panelRef.current;
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel(lot ? 'lotMenu' : 'pause'); else if (p === 'dealer') setPanel(null); }
-      else if (e.code === 'KeyE' && p === null && game.prompt.startsWith('Press E')) { if (lot) lotInteract(game.target); else setPanel('shop'); }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer') resume(); }
+      else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key);
     return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); };
@@ -193,24 +196,18 @@ function App() {
     </aside>;
 
   const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin || mode === 'title'} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
-  if (mode === 'title') return <div className="full">{stageEl}<TitleScreen onNew={startLot} onContinue={() => startPlay('drive', 'test')} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
-  if (mode === 'lot') return <div className="full">
-    <Canvas shadows camera={{ position: [0, 1.7, 38], fov: 70, near: 0.05, far: 700 }} dpr={[1, 2]}><Suspense fallback={null}><CarLot /></Suspense></Canvas>
-    <div className="crosshair" />
-    <div className="hud-keys">WASD walk · Shift run · Mouse look · E interact · Esc menu</div>
-    <HudOverlay />
-    {panel === 'dealer' && <DealerPanel onBuy={() => { if (buyCar('bug', 1800)) say("Al: 'She's yours. Keys are in the ignition. Probably.'"); }} onDrive={() => startPlay('drive', 'test')} onClose={() => { setPanel(null); try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }} />}
-    {panel === 'lotMenu' && <LotMenu onResume={resume} onExit={toTitle} />}
-  </div>;
+  if (mode === 'title') return <div className="full">{stageEl}<TitleScreen onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
   if (mode === 'play') return <div className="full">
     {stageEl}
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
-    <div className="hud-keys">W/S throttle · A/D steer · Space brake · R reset · C {body.cabLabel || 'cab view'} · E shop · Esc menu{pro ? ' · Gamepad ok' : ''}</div>
+    {game.onFoot && <div className="crosshair" />}
+    <div className="hud-keys">{game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
     <HudOverlay />
     {pro && <ProDebug />}
     {panel === 'pause' && <PauseMenu onResume={resume} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} onBuy={equip} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
+    {panel === 'dealer' && <DealerPanel onBuy={() => { if (buyCar('bug', 1800)) say("Al: 'She's yours. Keys are in the ignition. Probably.'"); }} onDrive={() => { interact('enter'); resume(); }} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

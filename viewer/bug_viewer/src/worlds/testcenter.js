@@ -128,6 +128,33 @@ paint(offroad, { core: 5, shoulder: 8,
   extra: (p, d) => 0.2 * Math.sin(p.s * 1.7) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
   classify: (ad, p) => { const f = p.s / T; return win(f, 0.72, 0.82, 0.004) > 0.5 ? SID.rock : win(f, 0.88, 0.96, 0.004) > 0.5 ? SID.mud : SID.looseDirt; } });
 
+// ---------------- story sites: Honest Al's lot, the player's garage, a barn, a gas station ----------------
+// each site is a flattened pad; `rot` turns its local +z (the "front") towards the road that serves it
+export const SITES = {
+  lot:    { id: 'lot',    x: 80,   z: -150, rot: 0,                         r: 38 },
+  garage: { id: 'garage', x: -100, z: 20,   rot: Math.atan2(100, -20),      r: 17 },
+  barn:   { id: 'barn',   x: 80,   z: 150,  rot: Math.atan2(-80, -150),     r: 22 },
+  gas:    { id: 'gas',    x: 110,  z: -20,  rot: Math.atan2(-110, 20),      r: 21 },
+};
+/** local site coordinates -> world x, z */
+export const toWorld = (s, lx, lz) => { const c = Math.cos(s.rot), n = Math.sin(s.rot); return [s.x + lx * c + lz * n, s.z - lx * n + lz * c]; };
+for (const [k, s] of Object.entries(SITES)) { s.y = desert(s.x, s.z); paintDisc(s.x, s.z, s.r, 12, s.y, k === 'garage' ? 'concrete' : k === 'gas' ? 'asphalt' : 'dirt'); }
+const follow = { centerH: p => desert(p.x, p.z) };
+export const townRoads = [
+  makePath([[80, -112], [72, -98], [60, -80], [46, -62], [32, -46]], false),                               // lot -> plaza
+  makePath([[-46, 9], [-58, 12], [-70, 14], [-80, 15]], false),                                           // plaza -> garage
+  makePath([[22, 41], [34, 62], [46, 86], [58, 108], [66, 124]], false),                                  // plaza -> barn
+  makePath([[46, -8], [60, -10], [74, -13], [86, -15]], false),                                           // plaza -> gas station
+];
+for (const p of townRoads) paint(p, { core: 3.6, shoulder: 6, ...follow, classify: ad => (ad <= 2.4 ? SID.dirt : SID.gravel) });
+export const trails = [
+  makePath([[92, 172], [100, 205], [95, 250], [75, 290], [100, 335], [140, 330], [150, 280], [130, 230], [125, 190]], true),                                   // barn loop
+  makePath([[-120, 24], [-150, -10], [-200, -40], [-260, -30], [-310, 10], [-330, 60], [-300, 70], [-230, 50], [-180, 50], [-140, 70], [-112, 52]], true),  // west rock trail
+];
+trails.forEach((t, i) => paint(t, { core: 2.4, shoulder: 5,
+  centerH: p => desert(p.x, p.z) + (i ? 0.3 * Math.sin(p.s * 0.5) * Math.sin(p.s * 0.045) : 0.18 * Math.sin(p.s * 0.8)),
+  classify: ad => (ad <= 1.7 ? (i ? SID.rock : SID.looseDirt) : SID.looseDirt) }));
+
 // ---------------- public lookups ----------------
 export function height(x, z) {
   const base = desert(x, z);
@@ -145,17 +172,25 @@ export const baseHeight = desert;
 
 const startP = circuit.pts[Math.round(100 / 0.5)];
 export const startLine = { x: -200, z: -285, h: Math.PI / 2 };
+function siteFront(id, d) { const s = SITES[id], [x, z] = toWorld(s, 0, d); return { x, z, h: s.rot + Math.PI }; }
+function garageDrive() { return siteFront('garage', 12); }
 export const spawns = [
   { key: '0', name: 'Plaza', x: 0, z: 0, h: Math.PI / 2 },
   { key: '1', name: 'Circuit', x: -200, z: -285, h: Math.PI / 2 },
   { key: '2', name: 'Dirt road', x: dirtX(-340), z: -340, h: 0 },
   { key: '3', name: 'Off-road track', x: offroad.pts[0].x, z: offroad.pts[0].z, h: offroad.pts[0].h },
-  { key: '4', name: 'Open desert', x: 60, z: 140, h: 0.4 },
+  { key: '4', name: 'Open desert', x: 30, z: 300, h: 0.4 },
+  { key: '5', name: "Honest Al's", x: SITES.lot.x, z: SITES.lot.z + 14, h: Math.PI },
+  { key: '6', name: 'Your garage', ...garageDrive() },
+  { key: '7', name: 'Barn', ...siteFront('barn', 12) },
+  { key: '8', name: 'Gas station', ...siteFront('gas', 10) },
 ];
 export function areaAt(x, z) {
   if (Math.hypot(x, z) < 45) return 'Plaza';
   if (z < -85 && x < 25) return 'Circuit zone';
   if (Math.abs(x - 170) < 40) return 'Dirt road zone';
+  const near = (k, r) => Math.hypot(x - SITES[k].x, z - SITES[k].z) < r;
+  if (near('lot', 48)) return "Honest Al's"; if (near('garage', 30)) return 'Your garage'; if (near('barn', 34)) return 'The barn'; if (near('gas', 32)) return 'Gas station';
   if (z > 70 && x < -20) return 'Off-road zone';
   return 'Open desert';
 }

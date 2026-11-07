@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } from './terrain.js';
 import * as TC from './worlds/testcenter.js';
 import TestCenterScene from './worlds/TestCenter.jsx';
+import Walker from './game/Walker.jsx';
+import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
 import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 
 // ---------- terrain ----------
@@ -98,6 +100,7 @@ export const DEFAULT_DIMS = {
   })),
 };
 // cab eye: driver's eye in vehicle space (steering wheel is at x=+0.3, z=0.25..0.5) — tune per model
+const PARK = { Space: true };
 const MAX_SPEED = 32;        // m/s (~115 km/h)
 const ACCEL = 11, BRAKE = 22, DRAG = 0.012, ROLL_RES = 0.9, G = 9.81;
 
@@ -148,7 +151,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
   }, [world]);
   useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
-  const cab = useRef(false);
+  const cab = useRef(false), wasFoot = useRef(false);
   const rig = useRef(null);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
 
@@ -178,7 +181,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   }, [gl]);
 
   const sim = dt => {   // one fixed physics step
-    const k = keys.current, st = s.current;
+    const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
     const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
     if (k.reset) {
@@ -272,7 +275,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     st.x += (fx * st.v + rx * st.lateralV) * dt; st.z += (fz * st.v + rz * st.lateralV) * dt;
     st.ax = (st.ax || 0) + ((st.v - v0) / dt - (st.ax || 0)) * Math.min(1, dt * 8);
     // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
-    for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of OBSTACLES) {
+    for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of world.obstacles) {
       if (st.y + dims.bellyHeight > top) continue;
       const cx = st.x + fx * off, cz = st.z + fz * off, dx = cx - ox, dz = cz - oz, min = or + 0.85;
       if (Math.abs(dx) > min || Math.abs(dz) > min) continue;
@@ -293,9 +296,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const g = group.current;
     g.position.set(st.x, st.y, st.z);
     g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
-    sun.current.position.set(st.x + 30, st.y + 45, st.z + 20);
-    sun.current.target.position.set(st.x, st.y, st.z);
-    sun.current.target.updateMatrixWorld();
+    if (!game.onFoot) {
+      sun.current.position.set(st.x + 30, st.y + 45, st.z + 20);
+      sun.current.target.position.set(st.x, st.y, st.z);
+      sun.current.target.updateMatrixWorld();
+    }
     if (rig.current) {
       for (const w of rig.current.wheels) {
         w.steer.position.copy(st.wheels.find(h => h.name === w.name).hub);
@@ -308,6 +313,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
     // --- chase camera (mouse orbit; eases back behind the car when idle) ---
     const l = look.current;
+    if (game.onFoot) { wasFoot.current = true; } else {
+    if (wasFoot.current) { wasFoot.current = false; l.yaw = 0; l.pitch = 0.28; camera.rotation.order = 'XYZ'; camPos.current.copy(camera.position); }
     { l.idle += dt; if (l.idle > 2.5) { l.yaw -= l.yaw * Math.min(1, dt * 2.5); l.pitch += (0.28 - l.pitch) * Math.min(1, dt * 2.5); } }
     const wantFov = cab.current ? 78 : 60;
     if (camera.fov !== wantFov) { camera.fov = wantFov; camera.updateProjectionMatrix(); }
@@ -328,6 +335,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     camera.position.copy(camPos.current);
     camera.lookAt(st.x, st.y + 1.2, st.z);
     }
+    }
 
     const rc = race.current;
     if (!rc.running && Math.abs(st.v) > 1) rc.running = true;
@@ -343,7 +351,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
+    game.speed = st.v;
+    if (hud.current) hud.current.textContent = game.onFoot ? '' : `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -351,15 +360,16 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (!rig.current || game.paused) return;
     acc.current += Math.min(rawDt, 0.1);
     for (let n = 0; acc.current >= STEP && n < 5; n++) { sim(STEP); acc.current -= STEP; }
-    game.pos.x = s.current.x; game.pos.z = s.current.z; game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
+    if (!game.onFoot) { game.pos.x = s.current.x; game.pos.z = s.current.z; }
+    game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
     if (acc.current > STEP * 5) acc.current = 0;
   });
 
   return <group ref={group}>{children}</group>;
 }
 
-const OPEN_WORLD = { id: 'open', height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
-const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, spawn: { x: 0, z: 0, h: Math.PI / 2 }, gates: [], spawns: TC.spawns, area: TC.areaAt };
+const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
+const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, get spawn() { return game.start === 'lot' ? BUG_SPOT : game.start === 'garage' ? GARAGE_DRIVE : { x: 0, z: 0, h: Math.PI / 2 }; }, gates: [], spawns: TC.spawns, area: TC.areaAt, obstacles: SITE_OBSTACLES };
 const WorldCtx = createContext(OPEN_WORLD);
 
 export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId }) {
@@ -376,5 +386,6 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : <TestCenterScene />}
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
+    {world.id === 'test' && <Walker world={world} sun={sun} />}
   </WorldCtx.Provider>;
 }

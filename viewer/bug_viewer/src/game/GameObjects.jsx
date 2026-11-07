@@ -3,12 +3,13 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, openCrate, setPrompt } from './store.js';
 import * as TC from '../worlds/testcenter.js';
+import { lootSpots } from '../worlds/siteData.js';
 
 const at = (path, f) => { const p = path.pts[Math.floor(path.pts.length * f)]; return [p.x, p.z]; };
 
 /** Where the shop and the loot crates sit in each world. */
 export function placesFor(kind) {
-  if (kind === 'test') return { shop: { x: 16, z: 18, rot: -2.2 }, crates: [[-18, -14], [24, -22], [-30, 22], [-200, -304], [-250, -304], at(TC.dirtRoad, 0.3), at(TC.dirtRoad, 0.7), at(TC.offroad, 0.25), at(TC.offroad, 0.6), [90, 200], [-120, 150], [200, -120]] };
+  if (kind === 'test') return { shop: { x: 16, z: 18, rot: -2.2 }, crates: [[-18, -14], [24, -22], [-30, 22], [-200, -304], [-250, -304], at(TC.dirtRoad, 0.3), at(TC.dirtRoad, 0.7), at(TC.offroad, 0.25), at(TC.offroad, 0.6), [200, -120], ...lootSpots()] };
   if (kind === 'open') return { shop: { x: 14, z: -16, rot: -2.2 }, crates: [[28, 14], [-34, 40], [52, -34], [-62, -52], [10, 90], [-90, 20]] };
   return { shop: { x: -22, z: 10, rot: 0.6 }, crates: [[20, -15], [40, 70], [-30, 60], [70, 40], [-60, -30]] };   // pro pad
 }
@@ -21,11 +22,11 @@ function signTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-function Shop({ spot, height }) {
+function Shop({ spot, height, prompts }) {
   const y = height(spot.x, spot.z), tex = useMemo(signTexture, []), ring = useRef();
   useFrame(() => {
     const near = Math.hypot(game.pos.x - spot.x, game.pos.z - spot.z) < 11;
-    if (near) setPrompt('Press E — Parts shop'); else if (game.prompt.startsWith('Press E')) setPrompt('');
+    if (prompts) { if (near) setPrompt('Press E — Parts shop'); else if (game.prompt.startsWith('Press E')) setPrompt(''); }
     if (ring.current) ring.current.material.opacity = near ? 0.9 : 0.4;
   });
   return <group position={[spot.x, y, spot.z]} rotation={[0, spot.rot, 0]}>
@@ -61,5 +62,5 @@ function Crates({ spots, height, kind, bodyId }) {
 
 export default function GameObjects({ kind, height, bodyId }) {
   const p = useMemo(() => placesFor(kind), [kind]);
-  return <><Shop spot={p.shop} height={height} /><Crates spots={p.crates} height={height} kind={kind} bodyId={bodyId} /></>;
+  return <><Shop spot={p.shop} height={height} prompts={kind !== 'test'} /><Crates spots={p.crates} height={height} kind={kind} bodyId={bodyId} /></>;
 }

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Sky } from '@react-three/drei';
 import { applyGroundDetail, kindOf } from './groundDetail.js';
-import { SIZE, height, surface, isRoad, circuit, pitLane, dirtRoad, offroad, spawns, startLine, baseHeight } from './testcenter.js';
+import { SIZE, height, surface, isRoad, circuit, pitLane, dirtRoad, offroad, spawns, startLine, baseHeight, townRoads, trails } from './testcenter.js';
+import Sites from './Sites.jsx';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const tex = (w, h, draw, repeatY = 1) => {
@@ -123,12 +124,12 @@ function Terrain() {
       kind.set(kindOf(surface(x, z)), i * 2);
       c.set(surface(x, z).color).multiplyScalar(1 - Math.min(0.4, slope * 0.22));
       if (edge > 0) c.lerp(new THREE.Color('#7b6a52'), Math.min(0.7, edge));
-      c.offsetHSL(0, 0, (Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.04) + (r() - 0.5) * 0.03);
+      c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.012, Math.sin(x * 0.017 - z * 0.013) * 0.05, (Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.07) + Math.sin(x * 0.041 + z * 0.036) * 0.035 + (r() - 0.5) * 0.05);
       col.set([c.r, c.g, c.b], i * 3);
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aGround', new THREE.BufferAttribute(kind, 2)); g.computeVertexNormals(); return g;
   }, []);
-  const mat = useMemo(() => applyGroundDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), { grain: 0.34, bump: 0.8, macro: 0.2, perVertex: true }), []);
+  const mat = useMemo(() => applyGroundDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), { grain: 0.5, bump: 1.15, macro: 0.32, perVertex: true }), []);
   return <mesh geometry={geo} material={mat} receiveShadow />;
 }
 
@@ -187,6 +188,9 @@ export default function TestCenterScene() {
     <Ribbon path={pitLane} half={4.6} tile={9.2} makeTexture={pitTex} detail={{ grain: 0.2, bump: 0.3, macro: 0.08 }} step={1} lift={0.012} segs={2} />
     <Ribbon path={dirtRoad} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} />
     <Ribbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965); }} />
+    {townRoads.map((p, i) => <Ribbon key={'t' + i} path={p} half={3.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.42, bump: 0.8, macro: 0.15 }} lift={0.014} segs={4} />)}
+    {trails.map((p, i) => <Ribbon key={'r' + i} path={p} half={2.6} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} />)}
     <Props />
+    <Sites />
   </>;
 }
