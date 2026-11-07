@@ -21,3 +21,11 @@
 .piece-group{margin-top:12px}.piece-group small{display:block;color:#74898c;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px}
 .piece{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12px;cursor:pointer}.piece input{accent-color:#c5a174;width:15px;height:15px}
 .hint{display:block;color:#74898c;font-size:11px;margin-top:8px}
+
+.prodebug{position:absolute;top:12px;right:12px;width:430px;max-height:calc(100% - 24px);overflow:auto;background:rgba(10,18,20,.88);border:1px solid #2c3d41;border-radius:8px;padding:10px 12px;font-size:11px;color:#cfdadc;z-index:5}
+.prodebug .pd-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.prodebug button{font-size:11px;padding:3px 8px}
+.prodebug table{width:100%;border-collapse:collapse;margin:4px 0}.prodebug th{color:#74898c;font-weight:500;text-align:left;font-size:10px}.prodebug td,.prodebug th{padding:2px 4px}
+.usebar{display:inline-block;width:70px;height:7px;background:#243236;border-radius:4px;overflow:hidden}.usebar i{display:block;height:100%}
+.pd-line{margin:6px 0;color:#9fb2b5}.pd-actions{display:flex;gap:6px;margin:6px 0}
+.pd-sliders{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:8px}.pd-sliders label span{display:flex;justify-content:space-between}.pd-sliders b{color:#c5a174}.pd-sliders input{width:100%}

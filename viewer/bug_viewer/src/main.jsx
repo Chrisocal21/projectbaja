@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, Grid, OrbitControls } from '@react-three/drei';
 import DriveWorld from './DriveWorld.jsx';
+import ProDrive from './ProDrive.jsx';
+import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import {
   slots, bodies, wheelSets, parts, presets, PALETTE, SIZE, LIFT,
@@ -22,8 +24,11 @@ function CameraReset({ resetKey }) {
   return null;
 }
 
-function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, hud }) {
+function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, hud }) {
   const r = useMemo(() => resolve(build), [build]);
+  if (drive && pro) return <Canvas shadows key={`pro-${JSON.stringify(build)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={[1, 2]}>
+    <Suspense fallback={null}><ProDrive hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} drive /></ProDrive></Suspense>
+  </Canvas>;
   if (drive) return <Canvas shadows key={`drive-${JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 700 }} dpr={[1, 2]}>
     <Suspense fallback={null}><DriveWorld hud={hud} dims={r.dims}><BuildModel build={build} wireframe={wireframe} drive /></DriveWorld></Suspense>
   </Canvas>;
@@ -53,7 +58,7 @@ const initialBuild = () => {
 function App() {
   const [build, setBuild] = useState(initialBuild);
   const [wireframe, setWireframe] = useState(false), [spin, setSpin] = useState(false), [grid, setGrid] = useState(true);
-  const [drive, setDrive] = useState(false), hud = useRef(null);
+  const [drive, setDrive] = useState(false), [pro, setPro] = useState(false), hud = useRef(null);
   const [resetKey, setResetKey] = useState(0), [selected, setSelected] = useState(null), [filter, setFilter] = useState('All');
   const [copied, setCopied] = useState(false), [channel, setChannel] = useState('paint'), [piecesOpen, setPiecesOpen] = useState(true);
   const r = useMemo(() => resolve(build), [build]);
@@ -137,15 +142,17 @@ function App() {
     <main className="main">
       <div className="topbar"><div><strong>3D VEHICLE VIEW</strong><span>Drag rotate · Scroll zoom · Right-click pan · Click mesh inspect</span></div>
         <div className="toolbar">
-          <button className={drive ? 'toggled' : ''} onClick={() => setDrive(d => !d)}>{drive ? 'Exit drive' : 'Drive'}</button>
+          <button className={drive && !pro ? 'toggled' : ''} onClick={() => { if (drive && !pro) setDrive(false); else { setPro(false); setDrive(true); } }}>{drive && !pro ? 'Exit drive' : 'Drive'}</button>
+          <button className={drive && pro ? 'toggled' : ''} onClick={() => { if (drive && pro) setDrive(false); else { setPro(true); setDrive(true); } }}>{drive && pro ? 'Exit pro' : 'Pro physics (beta)'}</button>
           <button onClick={() => setResetKey(k => k + 1)}>Reset camera</button>
           <button className={spin ? 'toggled' : ''} onClick={() => setSpin(s => !s)}>Auto rotate</button>
           <button className={wireframe ? 'toggled' : ''} onClick={() => setWireframe(w => !w)}>Wireframe</button>
           <button className={grid ? 'toggled' : ''} onClick={() => setGrid(g => !g)}>Grid</button>
         </div></div>
       <div className="viewport">
-        <Stage build={build} drive={drive} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid} resetKey={resetKey} onSelect={setSelected} />
-        {drive && <div className="hud"><div ref={hud} className="speed">0 km/h</div>W/S throttle · A/D steer · Space brake · R reset · C {body.cabLabel || 'cab view'} · Mouse look · Scroll zoom · Esc free cursor</div>}
+        <Stage build={build} drive={drive} pro={pro} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid} resetKey={resetKey} onSelect={setSelected} />
+        {drive && <div className="hud"><div ref={hud} className="speed">0 km/h</div>W/S throttle · A/D steer · Space brake · R reset · C {body.cabLabel || 'cab view'} · Mouse look · Scroll zoom · Esc free cursor{pro ? ' · Gamepad: stick steer, RT/LT, B handbrake' : ''}</div>}
+        {drive && pro && <ProDebug />}
         <div className="view-label">{body.label.toUpperCase()} <span>{drive ? 'DRIVE MODE' : 'STATIC ASSET PREVIEW'}</span></div>
       </div>
       <div className="details">
