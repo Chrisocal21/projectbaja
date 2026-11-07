@@ -201,7 +201,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v = Math.max(-9, Math.min(MAXV * 1.1, st.v));
 
       // --- steering ---
-      const maxSteer = Math.max(0.09, Math.min(0.72 / (1 + Math.abs(st.v) * 0.012), 7 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
+      const maxSteer = 0.7 / (1 + Math.abs(st.v) * 0.004);   // wheel angle barely fades with speed (so the wheels visibly turn at any speed); the tires + yaw assist decide how much the car can actually use
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
