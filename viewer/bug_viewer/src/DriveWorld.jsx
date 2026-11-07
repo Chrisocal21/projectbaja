@@ -130,6 +130,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const world = useContext(WorldCtx), HALF = world.half, GATES = world.gates;
   const spawnState = () => { const st = createVehicleState(); st.x = world.spawn.x; st.z = world.spawn.z; st.h = world.spawn.h; st.y = world.height(st.x, st.z) + 0.3; return st; };
   const WHEELBASE = dims.wheelbase, CAB_EYE = dims.cabEye;
+  const MAXV = dims.topSpeed || 40, ACC = ACCEL * (dims.accelMul || 1), DRG = 0.3 * ACC / (MAXV * MAXV);   // top speed and power come from the build (engine + exhaust mods)
   const group = useRef();
   const keys = useKeys();
   const { camera, gl } = useThree();
@@ -187,19 +188,20 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- longitudinal (only with traction) ---
     if (!st.air) {
       const rearContact = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('R') && w.touching).length / 2 : 1;
-      if (throttle > 0) st.v += ACCEL * rearContact * Math.min(1.1, grip) * (1 - Math.max(0, st.v) / MAX_SPEED) * dt;
-      else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE * Math.min(1, grip) : -ACCEL * rearContact * 0.6) * dt;
+      if (throttle > 0) st.v += ACC * rearContact * Math.min(1.1, grip) * (1 - Math.max(0, st.v) / MAXV) * dt;
+      else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE * Math.min(1, grip) : -ACC * rearContact * 0.6) * dt;
       if (k.Space) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), BRAKE * Math.min(1, grip) * dt);
       if (!throttle) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), ROLL_RES * sf.rr * dt);
-      st.v -= st.v * Math.abs(st.v) * DRAG * dt;
+      st.v -= st.v * Math.abs(st.v) * DRG * dt;
+      if (!throttle) st.v -= st.v * 0.05 * dt;   // engine braking: lifting off scrubs speed (and loads the front tires)
       // gravity along slope
       const e = 0.6;
       const slope = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e);
       st.v -= G * slope / Math.sqrt(1 + slope * slope) * dt;
-      st.v = Math.max(-9, Math.min(MAX_SPEED * 1.4, st.v));
+      st.v = Math.max(-9, Math.min(MAXV * 1.1, st.v));
 
       // --- steering ---
-      const maxSteer = Math.max(0.06, Math.min(0.72 / (1 + Math.abs(st.v) * 0.035), 2.8 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
+      const maxSteer = Math.max(0.09, Math.min(0.72 / (1 + Math.abs(st.v) * 0.03), 7 * WHEELBASE * sf.mu * G / (st.v * st.v + 4)));   // steering assist: never ask for more lateral g than the tires have
       st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
@@ -209,7 +211,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
         : Math.max(500, MASS * G * cb / L - dN);
       const Nr = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('R')).reduce((sum, w) => sum + w.load, 0)
         : Math.max(500, MASS * G * ca / L + dN);
-      const accelCmd = throttle > 0 ? ACCEL * Math.min(1.1, grip) : 0;
+      const accelCmd = throttle > 0 ? ACC * Math.min(1.1, grip) : 0;
       const brakeCmd = (throttle < 0 && st.v > 0.5 ? BRAKE : 0) + (k.Space ? BRAKE : 0);
       const uxF = Math.min(0.95, brakeCmd * MASS * 0.65 / Math.max(1, mu * Nf));
       const uxR = k.Space ? 0.93 : Math.min(0.95, (accelCmd + brakeCmd * 0.35) * MASS / Math.max(1, mu * Nr));   // handbrake locks the rear
@@ -301,7 +303,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

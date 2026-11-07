@@ -166,6 +166,50 @@
   ],
   "requires": {
    "rearDeck": "PART_009_RearEngineOpening"
+  },
+  "perf": {
+   "topMph": 35,
+   "power": 1.25
+  }
+ },
+ {
+  "type": "part",
+  "id": "ENGINE_BuiltAirCooled",
+  "label": "Built air-cooled engine",
+  "slot": "engine",
+  "category": "Mechanical",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
+  },
+  "families": [
+   "classic"
+  ],
+  "requires": {
+   "rearDeck": "PART_009_RearEngineOpening"
+  },
+  "perf": {
+   "topMph": 55,
+   "power": 1.5
+  }
+ },
+ {
+  "type": "part",
+  "id": "ENGINE_RaceBuilt",
+  "label": "Race-built engine",
+  "slot": "engine",
+  "category": "Mechanical",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_012_AirCooledRearEngine"
+  },
+  "families": [
+   "classic"
+  ],
+  "requires": {
+   "rearDeck": "PART_009_RearEngineOpening"
+  },
+  "perf": {
+   "topMph": 70,
+   "power": 1.8
   }
  },
  {
@@ -396,6 +440,10 @@
    "color": "#9c9ca2",
    "metalness": 0.85,
    "roughness": 0.35
+  },
+  "perf": {
+   "topMph": 8,
+   "power": 1.05
   }
  },
  {

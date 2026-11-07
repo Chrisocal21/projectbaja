@@ -88,10 +88,13 @@ export function resolve(build) {
   const lift = liftable ? build.lift + (tire ? (scale - 1) * baseR : 0) : 0;
   const fl = mounts.find(m => m.name === 'FL'), rl = mounts.find(m => m.name === 'RL');
   const eye = body.cabEye;
+  // performance: stock buggy tops out ~90 mph; engine/exhaust mods add to it (cap 160 mph for buggies, 200 mph for big trucks via body.maxMph)
+  const perf = { topMph: Math.min(body.maxMph || 160, (body.baseMph || 90) + active.reduce((s, p) => s + (p.perf?.topMph || 0), 0)), power: active.reduce((m, p) => m * (p.perf?.power || 1), 1) };
   const rim = tire ? rimById[build.rim] : null, rimColor = rim ? (build.colors.rim || rim.defaultColor) : null;
   return {
     rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable,
-    dims: { tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
+    perf,
+    dims: { topSpeed: perf.topMph * 0.44704, accelMul: perf.power, tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
       offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
   };
