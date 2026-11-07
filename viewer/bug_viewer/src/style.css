@@ -57,7 +57,7 @@
 .card.shop{width:min(1100px,95vw);height:86vh;display:flex;flex-direction:column;padding:18px 20px}
 .shop-head{gap:14px}.shop-head h2{margin:0;flex:1}.shop-head .cash{color:#7be08a;font:700 20px system-ui}
 .shop-body{flex:1;min-height:0;display:grid;grid-template-columns:340px 1fr;gap:16px;margin-top:14px}
-.shop-side{display:flex;flex-direction:column;min-height:0}.shop-tabs{display:flex;gap:6px}.shop-tabs button{flex:1;text-align:center!important;padding:9px!important}.shop-tabs button.on{border-color:#ca9b58;background:#423526;color:#f4d3a1}
+.shop-side{display:flex;flex-direction:column;min-height:0}.shop-tabs{display:flex;gap:6px;flex-wrap:wrap}.shop-tabs button{flex:1 1 auto;text-align:center!important;padding:7px 10px!important;font-size:12px!important}.shop-tabs button.on{border-color:#ca9b58;background:#423526;color:#f4d3a1}
 .shop-side .shop-list{flex:1;overflow:auto;margin-top:8px}
 .shop-row{cursor:pointer;padding:9px 8px;border-radius:6px}.shop-row:hover{background:#18252a}.shop-row.sel{background:#243238;outline:1px solid #ca9b58}
 .shop-row .price{font-style:normal;color:#9be8ad;font-weight:700}.shop-row .tag{font-style:normal;font-size:10px;letter-spacing:1px;color:#74898c}.shop-row .tag.on{color:#f4d3a1}

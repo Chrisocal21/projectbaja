@@ -114,6 +114,15 @@ function FallbackSpare({ spare }) {
     <mesh rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[spare.radius * 0.58, spare.radius * 0.58, 0.27, 32]} /><meshStandardMaterial color="#8a8a90" metalness={0.6} roughness={0.4} /></mesh>
   </group>;
 }
+/** Mount for the spare: hub plate behind the tire and two arms down to the rear bumper. (The carrier GLB is a small low-poly tire, which doubled up with the real spare, so it is not drawn.) */
+function SpareBracket({ spare }) {
+  const [cx, cy, cz] = spare.center, hubZ = cz + 0.2, arms = [-0.3, 0.3];
+  const arm = x => { const a = new THREE.Vector3(x * 0.4, cy - 0.12, hubZ), b = new THREE.Vector3(x, 0.45, hubZ + 0.22), d = b.clone().sub(a), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); return { pos: a.clone().add(b).multiplyScalar(0.5).toArray(), q, len: d.length() }; };
+  return <group>
+    <mesh position={[cx, cy, hubZ]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.13, 0.13, 0.03, 20]} /><meshStandardMaterial color="#26292b" metalness={0.5} roughness={0.5} /></mesh>
+    {arms.map(x => { const t = arm(x); return <mesh key={x} position={t.pos} quaternion={t.q} castShadow><cylinderGeometry args={[0.018, 0.018, t.len, 8]} /><meshStandardMaterial color="#26292b" metalness={0.5} roughness={0.5} /></mesh>; })}
+  </group>;
+}
 function SpareTire({ spare, r }) {
   const set = r.wheelSet;
   if (set.kind === 'tire') return <TireSpare set={set} spare={spare} scale={r.scale} rim={r.rim} rimColor={r.rimColor} />;
@@ -155,7 +164,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
         const m = <Model file={f} {...common} channels={pch} material={p.material} />;
-        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.spare && <SpareTire spare={p.spare} r={r} />}</group>;
+        return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.spare ? <><SpareTire spare={p.spare} r={r} /><SpareBracket spare={p.spare} /></> : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}</group>;
       })}
     </group>
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}

@@ -9,9 +9,9 @@ const clamp = THREE.MathUtils.clamp;
 
 export function suspensionConfig(dims) {
   return {
-    compression: dims.offroad ? 0.38 : 0.15,   // long-travel offroad suspension: landings are absorbed by springs, not by a hard stop
+    compression: dims.offroad ? 0.42 : 0.15,   // long-travel offroad suspension: landings are absorbed by springs, not by a hard stop
     droop: dims.offroad ? 0.26 : 0.14,
-    stiffness: dims.offroad ? 22000 : 34000,
+    stiffness: dims.offroad ? 17000 : 34000,
     damping: dims.offroad ? 3400 : 3000,
     antiRoll: dims.offroad ? 14000 : 18000,
   };
@@ -143,7 +143,9 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
       const groundV = old?.touching ? clamp((contact.support - old.support) / dt, -12, 12) : 0;
       const hubV = st.vy + st.pitchV * (mount.center[2] - comZ) + st.rollV * mount.center[0];
       const frac = Math.max(0, travel) / config.compression, spring = config.stiffness * travel * (1 + 6 * frac ** 3);   // progressive: soft early, firm near the bump stop
-      load = clamp(preload + spring + config.damping * (groundV - hubV), 0, preload * 14);
+      const rel = groundV - hubV;   // >0: wheel being pushed up into the body (compression), <0: spring pushing the body away (rebound)
+      // real shocks: soft on compression so bumps do not kick the car up, firm on rebound so the stored spring energy cannot throw it into the air
+      load = clamp(preload + spring + (rel > 0 ? config.damping * (0.3 + 2.2 * frac * frac) * rel : config.damping * 3.2 * rel), 0, preload * (5 + 13 * frac));
       force += load * up.y;
       // lever arms are measured in the world: when the car leans past its tipping angle the loads stop righting it and start rolling it
       pitchTorque += load * ((mount.center[2] - comZ) * Math.cos(st.pitch) + COM_H * Math.sin(st.pitch));
@@ -157,7 +159,7 @@ export function stepSuspension(st, dims, dt, sample = terrainHeight) {
   }
   if (contacts) {
     pitchTorque += MASS * st.ax * 0.48;
-    rollTorque += MASS * (st.aLat || 0) * COM_H * 0.9;   // sideways tire force acts below the centre of mass: big lateral decel (tires biting after a slide) rolls the car
+    rollTorque += MASS * (st.aLat || 0) * COM_H * 1.3;   // sideways tire force acts below the centre of mass: big lateral decel (tires biting after a slide) rolls the car
   }
   // body contact (nose, tail, roof, sides) is a spring-damper, not a wall: it decelerates the car over a few centimetres, carries its weight when resting (so it can pivot and tip) and drags speed
   let bodyTouch = false;

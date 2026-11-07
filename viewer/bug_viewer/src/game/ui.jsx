@@ -1,5 +1,5 @@
 import React from 'react';
-import { slots, partById, wheelById } from '../build.js';
+import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ bodyLabel, onPlay, onGarage }) {
@@ -39,10 +39,12 @@ export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports
 
 export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onClose }) {
   useGame();
-  const [tab, setTab] = React.useState('part'), [sel, setSel] = React.useState(null);
+  const [tabSel, setTab] = React.useState('engine'), [sel, setSel] = React.useState(null);
   const cat = catalogFor(bodyId), slotLabel = Object.fromEntries(slots.map(s => [s.id, s.label]));
-  const items = tab === 'part' ? cat.part : tab === 'wheel' ? cat.wheel : cat.rim;
-  const cur = sel && sel.kind === tab ? sel : null;
+  const tabs = [...SECTIONS.filter(sec => cat.part.some(p => sectionOfSlot(p.slot) === sec.id)).map(sec => [sec.id, sec.label]), ['wheel', 'Tires'], ['rim', 'Rims']];
+  const tab = tabs.some(t => t[0] === tabSel) ? tabSel : tabs[0][0], kindOfTab = tab === 'wheel' ? 'wheel' : tab === 'rim' ? 'rim' : 'part';
+  const items = kindOfTab === 'part' ? cat.part.filter(p => sectionOfSlot(p.slot) === tab) : kindOfTab === 'wheel' ? cat.wheel : cat.rim;
+  const cur = sel && sel.kind === kindOfTab && (kindOfTab !== 'part' || sectionOfSlot(partById[sel.id].slot) === tab) ? sel : null;
   const equipped = (kind, id) => (kind === 'part' ? build.parts[partById[id].slot] === id : kind === 'wheel' ? build.wheels === id : build.rim === id);
   const own = cur ? owns(cur.kind, cur.id) : false, price = cur ? priceOf(cur.kind, cur.id) : 0, isOn = cur ? equipped(cur.kind, cur.id) : false;
   const it = cur && cur.kind === 'part' ? partById[cur.id] : null;
@@ -50,12 +52,12 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onCl
     <div className="shop-head"><h2>BAJA PARTS</h2><span className="cash">${game.cash}</span><button onClick={onClose}>Leave shop</button></div>
     <div className="shop-body">
       <div className="shop-side">
-        <div className="shop-tabs">{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+        <div className="shop-tabs">{tabs.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
         <div className="shop-list">{items.map(x => {
-          const o = owns(tab, x.id), on = equipped(tab, x.id);
-          return <div key={x.id} className={`shop-row${cur?.id === x.id ? ' sel' : ''}`} onClick={() => setSel({ kind: tab, id: x.id })}>
-            <span>{nameOf(tab, x.id, bodyId)}<small>{tab === 'part' ? `${slotLabel[x.slot] || x.slot}${x.perf?.topMph ? ` · +${x.perf.topMph} mph` : ''}` : tab === 'wheel' ? (x.grip?.note || 'Tire set') : 'Rim style'}</small></span>
-            <em className={on ? 'tag on' : o ? 'tag' : 'price'}>{on ? 'EQUIPPED' : o ? 'OWNED' : `$${priceOf(tab, x.id)}`}</em></div>;
+          const o = owns(kindOfTab, x.id), on = equipped(kindOfTab, x.id);
+          return <div key={x.id} className={`shop-row${cur?.id === x.id ? ' sel' : ''}`} onClick={() => setSel({ kind: kindOfTab, id: x.id })}>
+            <span>{nameOf(kindOfTab, x.id, bodyId)}<small>{kindOfTab === 'part' ? `${slotLabel[x.slot] || x.slot}${x.perf?.topMph ? ` · +${x.perf.topMph} mph` : ''}` : kindOfTab === 'wheel' ? (x.grip?.note || 'Tire set') : 'Rim style'}</small></span>
+            <em className={on ? 'tag on' : o ? 'tag' : 'price'}>{on ? 'EQUIPPED' : o ? 'OWNED' : `$${priceOf(kindOfTab, x.id)}`}</em></div>;
         })}</div>
       </div>
       <div className="shop-view">

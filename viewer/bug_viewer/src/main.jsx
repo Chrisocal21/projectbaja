@@ -14,7 +14,7 @@ import {
 import { game, useGame, owns, buy, say } from './game/store.js';
 import { TitleScreen, PauseMenu, ShopPanel, HudOverlay } from './game/ui.jsx';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
-import { partById } from './build.js';
+import { partById, SECTIONS } from './build.js';
 import './style.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
@@ -164,10 +164,10 @@ function App() {
             {pieces.filter(x => x.category === cat).map(x => <label key={x.id} className="piece"><input type="checkbox" checked={!build.hidden.includes(x.id)} onChange={() => togglePiece(x.id)} /><span>{x.label}</span></label>)}</div>)}
         </div>}
 
-        {categories.map(cat => {
-          const catSlots = slots.filter(s => s.category === cat && parts.some(p => p.slot === s.id && partState(p, body) !== 'hidden'));
+        {SECTIONS.map(sec => {
+          const catSlots = slots.filter(s => sec.slots.includes(s.id) && parts.some(p => p.slot === s.id && partState(p, body) !== 'hidden'));
           if (!catSlots.length) return null;
-          return <div key={cat} className="section"><div className="section-title">{CAT_TITLES[cat] || cat.toUpperCase()}</div>
+          return <div key={sec.id} className="section"><div className="section-title">{sec.label.toUpperCase()}</div>
             <div className="slots">{catSlots.map(s => {
               const opts = parts.filter(p => p.slot === s.id && partState(p, body) !== 'hidden');
               return <label key={s.id} className="slot"><span><strong>{s.label}</strong></span>

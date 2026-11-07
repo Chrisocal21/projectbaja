@@ -1,6 +1,17 @@
 import { slots, bodies, wheelSets, parts, presets, rims } from './catalog/index.js';
 
 export { slots, bodies, wheelSets, parts, presets, rims };
+/** Part sections used by the customizer and the shop: each part slot belongs to exactly one. */
+export const SECTIONS = [
+  { id: 'engine', label: 'Engine', slots: ['engine'] },
+  { id: 'exhaust', label: 'Exhaust', slots: ['exhaust'] },
+  { id: 'body', label: 'Body panels', slots: ['fenders', 'hood', 'rearDeck'] },
+  { id: 'roof', label: 'Roof & racks', slots: ['roofRack'] },
+  { id: 'lights', label: 'Lights', slots: ['lightBar'] },
+  { id: 'bumpers', label: 'Bumpers & cage', slots: ['frontBumper', 'rearBumper', 'rockers', 'rearCarrier'] },
+  { id: 'suspension', label: 'Suspension', slots: ['suspension', 'shocks'] },
+];
+export const sectionOfSlot = slot => SECTIONS.find(s => s.slots.includes(slot))?.id || 'body';
 export const rimById = Object.fromEntries(rims.map(r => [r.id, r]));
 export const bodyById = Object.fromEntries(bodies.map(b => [b.id, b]));
 export const wheelById = Object.fromEntries(wheelSets.map(w => [w.id, w]));
