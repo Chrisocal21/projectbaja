@@ -175,6 +175,7 @@ function makeShock() {
   return grp;
 }
 // suspension travel limits (m): bump stops cap compression, limit straps cap droop
+const STEP = 1 / 120;
 const COMP = 0.22, DROOP = 0.2;
 const _w = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
 
@@ -209,8 +210,8 @@ function Vehicle({ children, hud, dims, race }) {
     return () => { el.removeEventListener('pointerdown', lock); window.removeEventListener('mousemove', move); window.removeEventListener('keydown', key); window.removeEventListener('keydown', cabKey); el.removeEventListener('wheel', wheel); if (document.pointerLockElement === el) document.exitPointerLock(); };
   }, [gl]);
 
-  useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 1 / 30), k = keys.current, st = s.current;
+  const sim = dt => {   // one fixed physics step
+    const k = keys.current, st = s.current;
     if (k.KeyR) { Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0 }); race.current = newRace(); }
 
     const throttle = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
@@ -358,6 +359,13 @@ function Vehicle({ children, hud, dims, race }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
+  };
+  // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
+  const acc = useRef(0);
+  useFrame((_, rawDt) => {
+    acc.current += Math.min(rawDt, 0.1);
+    for (let n = 0; acc.current >= STEP && n < 5; n++) { sim(STEP); acc.current -= STEP; }
+    if (acc.current > STEP * 5) acc.current = 0;
   });
 
   return <group ref={group}>{children}</group>;
