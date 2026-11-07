@@ -174,6 +174,8 @@ function makeShock() {
   grp.add(spring, body, rod); grp.userData = { spring, body, rod };
   return grp;
 }
+// suspension travel limits (m): bump stops cap compression, limit straps cap droop
+const COMP = 0.22, DROOP = 0.2;
 const _w = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
 
 function Vehicle({ children, hud, dims, race }) {
@@ -183,7 +185,7 @@ function Vehicle({ children, hud, dims, race }) {
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef({ x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0, air: false });
-  const cab = useRef(false), susp = useRef({ pv: 0, pd: 0, pdv: 0, rd: 0, rdv: 0, bob: 0, bobv: 0 });
+  const cab = useRef(false), susp = useRef({ pv: 0, pd: 0, pdv: 0, rd: 0, rdv: 0, bob: 0, bobv: 0, adj: 0 });
   const rig = useRef(null), rigTries = useRef(0);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
 
@@ -253,7 +255,8 @@ function Vehicle({ children, hud, dims, race }) {
     const wp = (lx, lz) => terrainHeight(st.x + rx * lx + fx * lz, st.z + rz * lx + fz * lz);
     const hFL = wp(-TRACK / 2, WHEELBASE / 2), hFR = wp(TRACK / 2, WHEELBASE / 2);
     const hRL = wp(-TRACK / 2, -WHEELBASE / 2), hRR = wp(TRACK / 2, -WHEELBASE / 2);
-    const groundY = ((hFL + hFR + hRL + hRR) / 4 * 0.5 + Math.max(hFL, hFR, hRL, hRR) * 0.5) + RIDE_HEIGHT;   // ride on the high points so nothing digs in
+    const groundY0 = ((hFL + hFR + hRL + hRR) / 4 * 0.5 + Math.max(hFL, hFR, hRL, hRR) * 0.5) + RIDE_HEIGHT;   // ride on the high points so nothing digs in
+    const groundY = groundY0 + susp.current.adj;
     const tPitch = Math.atan2((hFL + hFR) / 2 - (hRL + hRR) / 2, WHEELBASE);
     const tRoll = Math.atan2((hFR + hRR) / 2 - (hFL + hRL) / 2, TRACK);
 
@@ -291,15 +294,22 @@ function Vehicle({ children, hud, dims, race }) {
     g.rotation.set(-(st.pitch + su.pd), st.h, st.roll + su.rd, 'YXZ');
     if (rig.current) {
       g.updateMatrixWorld(true);
+      { // keep every tire within reach of the ground: raise the body if a wheel would need more than the bump stop, lower it if one would hang past its strap
+        const needs = rig.current.wheels.map(w => w.need ?? 0), hi = Math.max(...needs) - COMP, lo = Math.min(...needs) + DROOP;
+        const want = st.air ? 0 : hi > 0 ? hi : lo < 0 ? lo : 0;
+        su.adj = THREE.MathUtils.clamp(su.adj + want * Math.min(1, dt * 12), -0.3, 0.5);   // integrates: need already includes the current adjustment
+      }
       for (const w of rig.current.wheels) {
         w.y0 ??= w.steer.position.y; w.off ??= 0;
         const lx = w.steer.position.x, lz = w.steer.position.z;
         const hW = terrainHeight(st.x + rx * -lx + fx * lz, st.z + rz * -lx + fz * lz);       // ground under this wheel (+X is vehicle left)
         const wy0 = _w.set(lx, w.y0, lz).applyMatrix4(g.matrixWorld).y;   // where the hub would be with no travel
         w.vel ??= 0;
-        const tgt = st.air ? -0.2 : THREE.MathUtils.clamp(hW + (w.r || 0.5) - wy0 + su.bob, -0.4, 0.4);
-        w.vel += (160 * (tgt - w.off) - 12 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.42, 0.42);
-        if (!st.air) w.off = Math.max(w.off, Math.min(0.6, hW + (w.r || 0.5) - wy0 + su.bob));   // bump stop: a tire never sinks below the ground   // underdamped = free-flowing
+        const tgt = st.air ? -0.2 : THREE.MathUtils.clamp(hW + (w.r || 0.5) - wy0 + su.bob, -DROOP, COMP);
+        w.vel += (160 * (tgt - w.off) - 12 * w.vel) * dt; w.off += w.vel * dt;
+        if (w.off > COMP) { w.off = COMP; w.vel = Math.min(0, w.vel); }          // bump stop
+        if (w.off < -DROOP) { w.off = -DROOP; w.vel = Math.max(0, w.vel); }      // limit strap
+        w.need = hW + (w.r || 0.5) - wy0 + su.bob;                                // travel needed to touch the ground   // underdamped = free-flowing
         w.steer.position.y = w.y0 + w.off - su.bob; w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
       rig.current.wheels.forEach((w, i) => {
         const m = rig.current.shocks[i], lo = w.steer.position;
