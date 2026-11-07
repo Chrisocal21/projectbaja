@@ -10,7 +10,8 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 export function terrainHeight(x, z) {
   let h = Math.sin(x * 0.045) * Math.cos(z * 0.04) * 4.5
         + Math.sin(x * 0.11 + 1.3) * Math.sin(z * 0.09) * 1.6
-        + Math.sin(x * 0.31) * Math.cos(z * 0.27 + 2) * 0.35;
+        + Math.sin(x * 0.31) * Math.cos(z * 0.27 + 2) * 0.35
+        + Math.sin(x * 1.3 + z * 0.4) * Math.sin(z * 1.1 - x * 0.3) * 0.16;   // rough ground so the suspension has work to do
   // flat start pad so the car spawns on level ground
   h *= smooth(10, 32, Math.hypot(x, z));
   // jump ramp: runs along +Z from z=30..42, 28m long run-up, drops off at the lip
@@ -138,14 +139,27 @@ function buildRig(root) {
   return { wheels, wheel };
 }
 
-function Vehicle({ children, hud, dims }) {
+// ---- race: drive the gates in order, fastest lap is saved ----
+const GATES = Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2 + Math.PI / 2, r = 85 + (i % 2) * 25; return [Math.cos(a) * r, Math.sin(a) * r]; });
+const bestKey = 'baja-best-lap';
+const readBest = () => { try { return +localStorage.getItem(bestKey) || 0; } catch { return 0; } };
+const newRace = () => ({ next: 0, t: 0, running: false, laps: 0, last: 0, best: readBest(), flash: 0 });
+
+function Gates({ race }) {
+  const mats = useRef([]);
+  useFrame(() => { mats.current.forEach((m, i) => { if (!m) return; const on = i === race.current.next; m.color.set(on ? '#ffd23f' : '#3a6ea5'); m.opacity = on ? 0.95 : 0.35; }); });
+  return <>{GATES.map(([x, z], i) => <mesh key={i} position={[x, terrainHeight(x, z) + 3.2, z]} rotation={[0, Math.atan2(-x, -z) + Math.PI / 2, 0]}>
+    <torusGeometry args={[3.4, 0.28, 8, 28]} /><meshBasicMaterial ref={m => (mats.current[i] = m)} transparent depthWrite={false} /></mesh>)}</>;
+}
+
+function Vehicle({ children, hud, dims, race }) {
   const WHEELBASE = dims.wheelbase, TRACK = dims.track, CAB_EYE = dims.cabEye;
   const group = useRef();
   const keys = useKeys();
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef({ x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0, air: false });
-  const cab = useRef(false);
+  const cab = useRef(false), susp = useRef({ pv: 0, pd: 0, pdv: 0, rd: 0, rdv: 0, bob: 0, bobv: 0 });
   const rig = useRef(null), rigTries = useRef(0);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
 
@@ -171,7 +185,7 @@ function Vehicle({ children, hud, dims }) {
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 1 / 30), k = keys.current, st = s.current;
-    if (k.KeyR) Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0 });
+    if (k.KeyR) { Object.assign(st, { x: 0, z: -8, y: 0, vy: 0, h: 0, v: 0, steer: 0, pitch: 0, roll: 0 }); race.current = newRace(); }
 
     const throttle = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
     const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
@@ -212,14 +226,24 @@ function Vehicle({ children, hud, dims }) {
     // --- vertical: gravity + ground clamp (crests launch the buggy) ---
     st.vy -= G * dt;
     st.y += st.vy * dt;
+    let landed = false; const vyBefore = st.vy;
     if (st.y <= groundY) {
       if (st.air && st.vy < -4) st.vy = -st.vy * 0.12; else st.vy = 0;     // landing thump
-      const landed = st.air; st.y = groundY; st.air = false;
+      landed = st.air; st.vy0 = vyBefore; st.y = groundY; st.air = false;
       if (landed) st.v *= 0.97;
     } else if (st.y - groundY > 0.15) st.air = true;
 
     // --- body attitude: follow terrain on ground, hold in air with slight nose-drop ---
     const a = Math.min(1, dt * (st.air ? 1.5 : 10));
+    // suspension: sprung chassis (dive/squat under accel, roll in corners, bounce on landing) + independent wheel travel
+    const su = susp.current, acc = dt > 0 ? (st.v - su.pv) / dt : 0; su.pv = st.v;
+    const lat = st.v * Math.tan(st.steer) * st.v / WHEELBASE;
+    const spring = (x, v, target, k, c) => { v += (k * (target - x) - c * v) * dt; return [x + v * dt, v]; };
+    [su.pd, su.pdv] = spring(su.pd, su.pdv, st.air ? 0 : THREE.MathUtils.clamp(acc * 0.016, -0.11, 0.11), 90, 9);
+    [su.rd, su.rdv] = spring(su.rd, su.rdv, st.air ? 0 : THREE.MathUtils.clamp(-lat * 0.014, -0.16, 0.16), 90, 9);
+    if (landed) su.bobv -= Math.min(6, Math.abs(st.vy0 || 0)) * 0.5;
+    [su.bob, su.bobv] = spring(su.bob, su.bobv, 0, 140, 10);
+    su.bob = THREE.MathUtils.clamp(su.bob, -0.2, 0.1);
     st.pitch += ((st.air ? st.pitch * 0.98 : tPitch) - st.pitch) * a;
     st.roll += ((st.air ? st.roll : tRoll) - st.roll) * a;
 
@@ -228,10 +252,16 @@ function Vehicle({ children, hud, dims }) {
       const r = buildRig(g);
       if (r.wheels.length || r.wheel) { rig.current = r; console.info(`[drive] rigged ${r.wheels.length} wheel groups, steering wheel: ${!!r.wheel}`); }
     }
-    g.position.set(st.x, st.y, st.z);
-    g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
+    g.position.set(st.x, st.y + su.bob, st.z);
+    g.rotation.set(-(st.pitch + su.pd), st.h, st.roll + su.rd, 'YXZ');
     if (rig.current) {
-      for (const w of rig.current.wheels) { w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
+      for (const w of rig.current.wheels) {
+        w.y0 ??= w.steer.position.y; w.off ??= 0;
+        const lx = w.steer.position.x, lz = w.steer.position.z;
+        const hW = terrainHeight(st.x + rx * -lx + fx * lz, st.z + rz * -lx + fz * lz);       // ground under this wheel (+X is vehicle left)
+        const planeY = groundY - RIDE_HEIGHT + (lz * Math.sin(st.pitch) - (-lx) * Math.sin(st.roll));
+        w.off += ((st.air ? -0.12 : THREE.MathUtils.clamp((hW - planeY) * 1.8, -0.3, 0.3)) - w.off) * Math.min(1, dt * 16);
+        w.steer.position.y = w.y0 + w.off - su.bob; w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
       if (rig.current.wheel) rig.current.wheel.rotation.z = -st.steer * 3.5;
     }
 
@@ -258,13 +288,28 @@ function Vehicle({ children, hud, dims }) {
     camera.lookAt(st.x, st.y + 1.2, st.z);
     }
 
-    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h${st.air ? '  · AIRBORNE' : ''}`;
+    const rc = race.current;
+    if (!rc.running && Math.abs(st.v) > 1) rc.running = true;
+    if (rc.running) rc.t += dt;
+    const [gx, gz] = GATES[rc.next];
+    if (Math.hypot(st.x - gx, st.z - gz) < 7) {
+      rc.next++;
+      if (rc.next >= GATES.length) {
+        rc.next = 0; rc.laps++; rc.last = rc.t; rc.flash = 4;
+        if (!rc.best || rc.t < rc.best) { rc.best = rc.t; try { localStorage.setItem(bestKey, String(rc.t)); } catch {} }
+        rc.t = 0;
+      }
+    }
+    rc.flash = Math.max(0, rc.flash - dt);
+    const f = n => (n ? n.toFixed(1) + 's' : '--');
+    if (hud.current) hud.current.textContent = `${Math.round(Math.abs(st.v) * 3.6)} km/h${st.air ? ' · AIRBORNE' : ''}  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}`;
   });
 
   return <group ref={group}>{children}</group>;
 }
 
 export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS }) {
+  const race = useRef(newRace());
   return <>
     <color attach="background" args={['#cfd9e0']} />
     <fog attach="fog" args={['#cfd9e0', 80, 380]} />
@@ -273,6 +318,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS }) {
     <directionalLight position={[60, 90, 40]} intensity={2.6} />
     <Terrain />
     <Scenery />
-    <Vehicle hud={hud} dims={dims}>{children}</Vehicle>
+    <Gates race={race} />
+    <Vehicle hud={hud} dims={dims} race={race}>{children}</Vehicle>
   </>;
 }
