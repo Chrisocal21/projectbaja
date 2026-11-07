@@ -36,9 +36,10 @@ test('no cover to open once the lid itself is off', () => {
 });
 
 test('detach respects reverse dependencies', () => {
-  assert.match(checkDetach(BUG, full, slotById(BUG, 'dash'), at('driver')).why, /steering wheel and windshield/);
+  assert.match(checkDetach(BUG, full, slotById(BUG, 'dash'), at('driver')).why, /steering wheel, driver's door, passenger door and windshield/);
   assert.match(checkDetach(BUG, full, slotById(BUG, 'engine'), at('rear', ['engineLid'])).why, /battery/);
-  assert.equal(checkDetach(BUG, full, slotById(BUG, 'steering'), at('driver')).ok, true);
+  assert.equal(checkDetach(BUG, full, slotById(BUG, 'steering'), at('driver')).openCover, 'doorL');   // reach in through the open door
+  assert.equal(checkDetach(BUG, full, slotById(BUG, 'steering'), at('driver', ['doorL'])).ok, true);
 });
 
 test('withSlot toggles pieces and stripped parts without mutating', () => {

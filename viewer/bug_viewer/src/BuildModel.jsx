@@ -72,8 +72,8 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
       if (!meshes.length) continue;
       const box = new THREE.Box3();
       for (const m of meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld))); }
-      const p = new THREE.Vector3(0, box.max.y, op.hinge === 'front' ? box.max.z : box.min.z);
-      const H = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z).multiply(new THREE.Matrix4().makeRotationX(op.angle)).multiply(new THREE.Matrix4().makeTranslation(-p.x, -p.y, -p.z));
+      const p = op.axis === 'y' ? new THREE.Vector3(op.side > 0 ? box.max.x : box.min.x, 0, box.max.z) : new THREE.Vector3(0, box.max.y, op.hinge === 'front' ? box.max.z : box.min.z);
+      const H = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z).multiply(op.axis === 'y' ? new THREE.Matrix4().makeRotationY(op.angle) : new THREE.Matrix4().makeRotationX(op.angle)).multiply(new THREE.Matrix4().makeTranslation(-p.x, -p.y, -p.z));
       for (const m of meshes) { const Mc = inv.clone().multiply(m.matrixWorld), Pc = inv.clone().multiply(m.parent.matrixWorld).invert(); m.matrix.copy(Pc.multiply(H).multiply(Mc)); m.matrixAutoUpdate = false; m.userData.lidOpen = true; }
     }
   }, [clone, opensKey]);

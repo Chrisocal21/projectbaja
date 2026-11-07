@@ -162,7 +162,7 @@
     "match": [
      "B_Body_Engine_Lid_Rear"
     ]
-   },
+   }, {"id": "doorL", "label": "Driver's door", "category": "Panels", "match": ["B_Body_Door_L", "B_DoorHandle_DoorL", "B_SideWindows_DoorL", "B_SideWindowTrim_DoorL", "B_InteriorDoor_DoorL", "B_InteriorDoorHandle_DoorL"]}, {"id": "doorR", "label": "Passenger door", "category": "Panels", "match": ["B_Body_Door_R", "B_DoorHandle_DoorR", "B_SideWindows_DoorR", "B_SideWindowTrim_DoorR", "B_InteriorDoor_DoorR", "B_InteriorDoorHandle_DoorR"]},
    {
     "id": "tailPanel",
     "label": "Tail panel",
@@ -495,7 +495,7 @@
     "match": [
      "B_Body_Engine_Lid_Rear"
     ]
-   },
+   }, {"id": "doorL", "label": "Driver's door", "category": "Panels", "match": ["B_Body_Door_L", "B_DoorHandle_DoorL", "B_SideWindows_DoorL", "B_SideWindowTrim_DoorL", "B_InteriorDoor_DoorL", "B_InteriorDoorHandle_DoorL"]}, {"id": "doorR", "label": "Passenger door", "category": "Panels", "match": ["B_Body_Door_R", "B_DoorHandle_DoorR", "B_SideWindows_DoorR", "B_SideWindowTrim_DoorR", "B_InteriorDoor_DoorR", "B_InteriorDoorHandle_DoorR"]},
    {
     "id": "tailPanel",
     "label": "Tail panel",

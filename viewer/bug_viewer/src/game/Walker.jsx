@@ -36,7 +36,13 @@ function carAction(zone) {
   if (h) return { type: 'why', why: fc?.plan.why, text: `${fc?.plan.why || ''}  ·  F — put it in the car` };
   const cover = zone === 'rear' ? 'engineLid' : zone === 'front' ? 'hoodPanel' : null;
   if (cover && isFitted(DEF, b, cover)) { const o = openCovers().has(cover); return { type: 'cover', id: cover, text: `Press E — ${o ? 'Close' : 'Open'} the ${DEF.covers[cover].name}  ·  X — Workshop` }; }
-  if (zone === 'driver' || zone === 'passenger') return driveable(b) ? { type: 'enter', text: `Press E — Get in  ·  X — Workshop${where}` } : { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}  ·  X — Workshop` };
+  if (zone === 'driver' || zone === 'passenger') {
+    const door = zone === 'driver' ? 'doorL' : 'doorR', hasDoor = isFitted(DEF, b, door), dn = DEF.covers[door].name, o = openCovers().has(door);
+    const q = hasDoor ? `  ·  Q — ${o ? 'Close' : 'Open'} the door` : '';
+    if (driveable(b)) return { type: 'enter', door: hasDoor ? door : null, text: `Press E — Get in${q}  ·  X — Workshop${where}` };
+    if (hasDoor) return { type: 'cover', id: door, text: `Press E — ${o ? 'Close' : 'Open'} the ${dn}  ·  ${whyNotDrive(b)}` };
+    return { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}  ·  X — Workshop` };
+  }
   return { type: 'none', text: 'X — Workshop' };
 }
 const SHOP = { x: 16, z: 18 }, PUMPS = TARGETS.filter(t => t.id === 'pump');

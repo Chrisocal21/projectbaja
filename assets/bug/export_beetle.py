@@ -22,7 +22,11 @@ PANELS = (
     'B_Body_Fender_FL', 'B_Body_Fender_FR',
     'B_Body_Fender_RL', 'B_Body_Fender_RR',
     'B_Body_Nose_Front', 'B_Body_Tail_Rear',
+    'B_Body_Door_L', 'B_Body_Door_R',
 )
+# separate objects that also belong to a door: their door triangles become <name>_DoorL / <name>_DoorR
+DOOR_FITTINGS = ('B_DoorHandle', 'B_SideWindows', 'B_SideWindowTrim', 'B_InteriorDoor', 'B_InteriorDoorHandle')
+DOOR_X = (-2.36, 1.47)   # source-frame x range of the doors (front edge .. rear edge)
 
 
 class PanelNormals:
@@ -75,8 +79,10 @@ def label_body_panels(body):
 
     hood = patches((87, 105, 136))   # deck surround + both lid lobes
     lid = patches((188, 429, 430, 432))   # engine lid skin + plate-light bump (the louvres above it stay on the body)
+    door = patches((24, 301, 979, 319, 320, 549, 570, 322, 332, 795, 993, 997))   # outer skin, window frame, frame chrome, gap edges
     fixed_quarters = patches((0, 2, 187))
-    if len(hood) != 68 or len(lid) != 32 or len(fixed_quarters) != 138:
+    print('DOOR FACES', len(door))
+    if len(hood) != 68 or len(lid) != 32 or len(fixed_quarters) != 138 or len(door) < 100:
         raise ValueError('Native crease patches changed; panel boundaries need revalidation')
     labels = mesh.attributes.new('baja_panel', 'INT', 'FACE')
     for polygon in mesh.polygons:
@@ -87,6 +93,8 @@ def label_body_panels(body):
             region = 1
         elif polygon.index in lid:
             region = 3
+        elif polygon.index in door:
+            region = 5
         elif material in {'B-paint1', 'B-taillight1'} and polygon.index not in fixed_quarters:
             # Source-specific inner wing boundaries follow the native face grid.
             if x < -2.3477 and z < 1.73 and y < .174-(1.0+(x+7.3)*.23):
@@ -110,6 +118,9 @@ def split_body_panels(body):
             name = 'B_Body_Hood_Front'
         elif region == 3:
             name = 'B_Body_Engine_Lid_Rear'
+        elif region == 5:
+            center = body.matrix_world @ (sum((source.vertices[v].co for v in triangle.vertices), Vector()) / 3)
+            name = 'B_Body_Door_' + ('L' if center.y < .174 else 'R')
         elif region in {2, 4}:
             center = body.matrix_world @ (sum((source.vertices[v].co for v in triangle.vertices), Vector()) / 3)
             side = 'L' if center.y < .174 else 'R'
@@ -174,6 +185,61 @@ def split_body_panels(body):
     bpy.data.meshes.remove(source)
     print('SEPARATED PANELS:', ', '.join(PANELS))
     return parts
+
+
+def split_door_fittings(obj):
+    """Door glass, trim, handles and inner door cards: move their door triangles into per-door objects."""
+    source = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).data.copy()
+    source.calc_loop_triangles()
+    normals = [tuple(n.vector) for n in source.corner_normals]
+    groups = defaultdict(list)
+    for triangle in source.loop_triangles:
+        c = obj.matrix_world @ (sum((source.vertices[v].co for v in triangle.vertices), Vector()) / 3)
+        key = obj.name
+        if DOOR_X[0] < c.x < DOOR_X[1]:
+            key = f"{obj.name}_Door{'L' if c.y < .174 else 'R'}"
+        groups[key].append(triangle)
+    original = obj.matrix_world.copy()
+    made = []
+    for name, triangles in groups.items():
+        indices, vertices, faces, loops, materials = {}, [], [], [], []
+        for triangle in triangles:
+            face = []
+            for vertex in triangle.vertices:
+                if vertex not in indices:
+                    indices[vertex] = len(vertices)
+                    vertices.append(tuple(source.vertices[vertex].co))
+                face.append(indices[vertex])
+            faces.append(face)
+            loops.extend(triangle.loops)
+            materials.append(source.polygons[triangle.polygon_index].material_index)
+        mesh = bpy.data.meshes.new(name)
+        mesh.from_pydata(vertices, [], faces)
+        for material in source.materials:
+            mesh.materials.append(material)
+        for polygon, material in zip(mesh.polygons, materials):
+            polygon.material_index = material
+            polygon.use_smooth = True
+        mesh.normals_split_custom_set([normals[i] for i in loops])
+        for layer in source.uv_layers:
+            uv = mesh.uv_layers.new(name=layer.name)
+            for target, index in zip(uv.data, loops):
+                target.uv = layer.data[index].uv
+        if name == obj.name:
+            obj.modifiers.clear()
+            obj.data = mesh
+        else:
+            new = bpy.data.objects.new(name, mesh)
+            bpy.context.scene.collection.objects.link(new)
+            new.matrix_world = original
+            new['original_source_name'] = obj.name
+            made.append(new)
+    bpy.data.meshes.remove(source)
+    print('DOOR FITTINGS', obj.name, '->', sorted(groups))
+    if obj.name not in groups:   # every triangle went to a door: drop the original so nothing is doubled
+        bpy.data.objects.remove(obj)
+        return made, False
+    return made, True
 
 
 def bounds(obj, depsgraph):
@@ -254,6 +320,11 @@ def export():
     center = (front+rear)/2
     center.z = min(limits[0].z for limits in object_bounds.values())
     objects.extend(split_body_panels(by_name['B_Body']))
+    for name in DOOR_FITTINGS:
+        if name in by_name:
+            objects.remove(by_name[name])
+            made, keep = split_door_fittings(by_name[name])
+            objects.extend(made + ([by_name[name]] if keep else []))
     # Rotate in Blender's Z-up frame; glTF export then gives Y-up, +Z forward.
     transform = Matrix.Scale(scale, 4) @ Matrix.Rotation(math.pi/2, 4, 'Z') @ Matrix.Translation(-center)
     materials = {m for obj in objects for m in obj.data.materials if m}

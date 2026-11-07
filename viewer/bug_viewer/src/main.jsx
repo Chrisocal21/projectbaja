@@ -14,7 +14,7 @@ import {
 import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
 import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, sizeOf, nameOfItem } from './game/items.js';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
-import { isDriveable } from './rules/restore.js';
+import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
@@ -148,6 +148,7 @@ function App() {
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyQ' && game.nearCar && (game.carZone === 'driver' || game.carZone === 'passenger') && isFitted(DEF, game.build, game.carZone === 'driver' ? 'doorL' : 'doorR')) toggleCover(game.carZone === 'driver' ? 'doorL' : 'doorR');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key);

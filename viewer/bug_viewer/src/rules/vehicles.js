@@ -18,6 +18,8 @@ export const BUG = {
   zones: { front: 0.45, rear: -0.45 },
   covers: {
     engineLid: { piece: 'engineLid', name: 'engine lid', zone: 'rear', hinge: 'front', angle: 1.15 },
+    doorL: { piece: 'doorL', name: "driver's door", zone: 'driver', axis: 'y', side: 1, angle: -1.15 },
+    doorR: { piece: 'doorR', name: 'passenger door', zone: 'passenger', axis: 'y', side: -1, angle: 1.15 },
     hoodPanel: { piece: 'hoodPanel', name: 'front hood', zone: 'front', hinge: 'rear', angle: -1.1, extra: ['B_HoodTrim', 'B_HoodLogo', 'B_HoodHandle'] },
   },
   slots: [
@@ -26,9 +28,11 @@ export const BUG = {
     S('engineLid', 'Engine lid', { piece: 'engineLid', size: 2, zone: 'rear' }),
     S('hoodPanel', 'Front hood', { piece: 'hoodPanel', size: 2, zone: 'front' }),
     S('dash', 'Dashboard', { piece: 'dash', size: 2 }),
-    S('steering', 'Steering wheel', { piece: 'steering', after: ['dash'], size: 1, fn: 'steer', zone: 'driver' }),
-    S('seatDriver', "Driver's seat", { piece: 'seatDriver', size: 2, fn: 'drive', zone: 'driver' }),
-    S('seatPassenger', 'Passenger seat', { piece: 'seatPassenger', size: 2, zone: 'passenger' }),
+    S('steering', 'Steering wheel', { piece: 'steering', after: ['dash'], cover: 'doorL', size: 1, fn: 'steer', zone: 'driver' }),
+    S('seatDriver', "Driver's seat", { piece: 'seatDriver', cover: 'doorL', size: 2, fn: 'drive', zone: 'driver' }),
+    S('seatPassenger', 'Passenger seat', { piece: 'seatPassenger', cover: 'doorR', size: 2, zone: 'passenger' }),
+    S('doorL', "Driver's door", { piece: 'doorL', after: ['dash', 'seatDriver'], size: 3, zone: 'driver' }),
+    S('doorR', 'Passenger door', { piece: 'doorR', after: ['dash', 'seatPassenger'], size: 3, zone: 'passenger' }),
     S('seatBack', 'Rear bench', { piece: 'seatBack', size: 3 }),
     S('windshield', 'Windshield', { piece: 'windshield', after: ['dash'], size: 3, zone: 'front' }),
     S('fenderFL', 'Front-left fender', { piece: 'fenderFL', size: 3, zone: 'front' }),
