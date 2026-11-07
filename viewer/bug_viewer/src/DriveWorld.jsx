@@ -170,7 +170,7 @@ function makeShock() {
   grp.add(spring, body, rod); grp.userData = { spring, body, rod };
   return grp;
 }
-const _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
+const _w = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0), _d = new THREE.Vector3();
 
 function Vehicle({ children, hud, dims, race }) {
   const WHEELBASE = dims.wheelbase, TRACK = dims.track, CAB_EYE = dims.cabEye;
@@ -254,7 +254,7 @@ function Vehicle({ children, hud, dims, race }) {
     } else if (st.y - groundY > 0.15) st.air = true;
 
     // --- body attitude: follow terrain on ground, hold in air with slight nose-drop ---
-    const a = Math.min(1, dt * (st.air ? 1.5 : 10));
+    const a = Math.min(1, dt * (st.air ? 1.5 : 5));
     // suspension: sprung chassis (dive/squat under accel, roll in corners, bounce on landing) + independent wheel travel
     const su = susp.current, acc = dt > 0 ? (st.v - su.pv) / dt : 0; su.pv = st.v;
     const lat = st.v * Math.tan(st.steer) * st.v / WHEELBASE;
@@ -276,14 +276,15 @@ function Vehicle({ children, hud, dims, race }) {
     g.position.set(st.x, st.y + su.bob, st.z);
     g.rotation.set(-(st.pitch + su.pd), st.h, st.roll + su.rd, 'YXZ');
     if (rig.current) {
+      g.updateMatrixWorld(true);
       for (const w of rig.current.wheels) {
         w.y0 ??= w.steer.position.y; w.off ??= 0;
         const lx = w.steer.position.x, lz = w.steer.position.z;
         const hW = terrainHeight(st.x + rx * -lx + fx * lz, st.z + rz * -lx + fz * lz);       // ground under this wheel (+X is vehicle left)
-        const planeY = groundY - RIDE_HEIGHT + (lz * Math.sin(st.pitch) - (-lx) * Math.sin(st.roll));
+        const wy0 = _w.set(lx, w.y0, lz).applyMatrix4(g.matrixWorld).y;   // where the hub would be with no travel
         w.vel ??= 0;
-        const tgt = st.air ? -0.2 : THREE.MathUtils.clamp((hW - planeY) * 2, -0.32, 0.32);
-        w.vel += (110 * (tgt - w.off) - 7 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.34, 0.34);   // underdamped = free-flowing
+        const tgt = st.air ? -0.2 : THREE.MathUtils.clamp(hW + (w.r || 0.5) - wy0 + su.bob, -0.4, 0.4);
+        w.vel += (110 * (tgt - w.off) - 7 * w.vel) * dt; w.off = THREE.MathUtils.clamp(w.off + w.vel * dt, -0.42, 0.42);   // underdamped = free-flowing
         w.steer.position.y = w.y0 + w.off - su.bob; w.spin.rotation.x += (st.v / w.r) * dt; if (w.front) w.steer.rotation.y = st.steer; }
       rig.current.wheels.forEach((w, i) => {
         const m = rig.current.shocks[i], lo = w.steer.position;
