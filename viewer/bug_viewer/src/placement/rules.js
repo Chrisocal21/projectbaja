@@ -109,3 +109,49 @@ export function why(surface, item, pl, existing = [], items = {}) {
   if (y > EPS && !support) return 'nothing to sit on';
   return null;
 }
+
+// ---- clip together: put a can down next to a can and it lines up flush beside it, if there's room ----
+export const CLIP_MAGNET = 0.12;   // PROPOSAL: edge-to-edge gap (metres) inside which a held item pulls flush to its own kind. Data: callers may pass their own.
+
+/** do these two clip together? both opt in, and the same placeable or the same clip group */
+export const clipsWith = (a, b) => !!a.clip && !!b.clip && (a.id === b.id || (typeof a.clip === 'string' && a.clip === b.clip));
+
+/**
+ * the spot to clip pl to, or pl itself (the SAME object) when nothing clips. PURE.
+ * Looks at items of its own kind (clipsWith) on the same surface at the same height whose nearest side is within opts.magnet (edge to edge; a
+ * small overlap counts too). The clipped spot copies that neighbour's rotation, sits flush against that side and lines up along it (centres,
+ * or either end edge, whichever is nearest), and is only taken if why() passes there (there's room). Closest neighbour first; the first that
+ * fits wins. Free placement only: with Shift held the grid wins, so callers don't call this then. Stacked tires etc. are untouched (they
+ * don't opt in, and a different height never clips).
+ * Works in the neighbour's own frame, so a neighbour turned by any angle gives a flush spot along ITS sides. (why() still checks AABBs, see the
+ * note at the top: beside a neighbour at a non-quarter turn the AABBs overlap and the clip is refused. PROPOSAL: exact rect overlap later.)
+ */
+export function clipTo(surface, item, pl, existing = [], items = {}, opts = {}) {
+  const magnet = opts.magnet ?? CLIP_MAGNET, y = pl.y || 0;
+  if (!item.clip || !(magnet > 0)) return pl;
+  const [hw2, hd2] = [item.footprint[0] / 2, item.footprint[1] / 2];
+  const tries = [];
+  for (const e of sameSurface(pl, existing)) {
+    const it = items[e.item];
+    if (!it || !clipsWith(item, it) || Math.abs((e.y || 0) - y) > EPS) continue;
+    const r = e.rot || 0, c = Math.cos(r), s = Math.sin(r), dx = pl.x - e.x, dz = pl.z - e.z;
+    // pl's centre in e's frame (three.js rotation.y: local (u, v) -> (u c + v s, -u s + v c), so the inverse is below)
+    const u = dx * c - dz * s, v = dx * s + dz * c, hw = it.footprint[0] / 2, hd = it.footprint[1] / 2;
+    // lining up along a side: centres, or the low ends, or the high ends level, whichever is closest to where it is now
+    const line = (at, half, half2) => [0, half - half2, half2 - half].reduce((b, o) => (Math.abs(o - at) < Math.abs(b - at) ? o : b));
+    const sides = [
+      { gap: Math.abs(u) - (hw + hw2), across: Math.abs(v) < hd + hd2, u: Math.sign(u || 1) * (hw + hw2), v: line(v, hd, hd2) },   // beside its +-u side
+      { gap: Math.abs(v) - (hd + hd2), across: Math.abs(u) < hw + hw2, u: line(u, hw, hw2), v: Math.sign(v || 1) * (hd + hd2) },   // beside its +-v side
+    ];
+    for (const sd of sides) {
+      if (!sd.across || sd.gap > magnet || sd.gap < -magnet) continue;
+      tries.push({ gap: Math.abs(sd.gap), x: e.x + sd.u * c + sd.v * s, z: e.z - sd.u * s + sd.v * c, rot: normRot(r), y: e.y || 0 });
+    }
+  }
+  tries.sort((a, b) => a.gap - b.gap);
+  for (const t of tries) {
+    const cand = { ...pl, x: t.x, z: t.z, rot: t.rot, y: t.y };
+    if (why(surface, item, cand, existing, items) === null) return cand;
+  }
+  return pl;
+}

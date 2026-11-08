@@ -18,13 +18,16 @@ export function surface({ id, size, gridSteps = [0.5], accepts = [], stackable =
   return { id, size: [...size], gridSteps: [...gridSteps], accepts: [...accepts], stackable: !!stackable };
 }
 
-/** a thing you can put down. footprint [w, d] metres at rot 0 (w along x), height metres. stackable = sits on other stackables (tires); stackOn = tags it may sit on. */
-export function placeable({ id, footprint, height, tags = [], stackable = false, stackOn = [] }) {
+/** a thing you can put down. footprint [w, d] metres at rot 0 (w along x), height metres. stackable = sits on other stackables (tires); stackOn = tags it may sit on.
+ *  clip = snaps flush beside its own kind when put down near one (see clipTo in rules.js): false = never, true = with the same placeable id,
+ *  a string = a clip group, so different items sharing the group clip to each other too (and to their own id). */
+export function placeable({ id, footprint, height, tags = [], stackable = false, stackOn = [], clip = false }) {
   need(typeof id === 'string' && id, 'placeable needs an id');
   need(pair(footprint), 'footprint must be [w, d] metres > 0', id);
   need(num(height) && height > 0, 'height must be metres > 0', id);
   need(tagList(tags) && tagList(stackOn), 'tags / stackOn must be lists of tags', id);
-  return { id, footprint: [...footprint], height, tags: [...tags], stackable: !!stackable, stackOn: [...stackOn] };
+  need(typeof clip === 'boolean' || (typeof clip === 'string' && clip), 'clip must be true / false or a group name', id);
+  return { id, footprint: [...footprint], height, tags: [...tags], stackable: !!stackable, stackOn: [...stackOn], clip };
 }
 
 let seq = 0;

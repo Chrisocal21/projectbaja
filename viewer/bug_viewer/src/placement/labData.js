@@ -13,9 +13,9 @@ export const surfaceById = byId(SURFACES);
 
 /** look: how the lab draws each item with primitives. shape 'box' | 'cyl' | 'tire' | 'bottle' | 'can'. */
 export const ITEMS = [
-  { ...placeable({ id: 'bottle', footprint: [0.1, 0.1], height: 0.26, tags: ['small'] }), name: 'Water bottle', look: { shape: 'bottle', color: '#5fb4e6' } },
-  { ...placeable({ id: 'toolbox', footprint: [0.5, 0.25], height: 0.25, tags: ['small', 'medium'] }), name: 'Toolbox', look: { shape: 'box', color: '#c23a2b', handle: true } },
-  { ...placeable({ id: 'jerrycan', footprint: [0.35, 0.18], height: 0.45, tags: ['medium'] }), name: 'Jerry can', look: { shape: 'can', color: '#3f6b35' } },
+  { ...placeable({ id: 'bottle', footprint: [0.1, 0.1], height: 0.26, tags: ['small'], clip: true }), name: 'Water bottle', look: { shape: 'bottle', color: '#5fb4e6' } },
+  { ...placeable({ id: 'toolbox', footprint: [0.5, 0.25], height: 0.25, tags: ['small', 'medium'], clip: true }), name: 'Toolbox', look: { shape: 'box', color: '#c23a2b', handle: true } },
+  { ...placeable({ id: 'jerrycan', footprint: [0.35, 0.18], height: 0.45, tags: ['medium'], clip: true }), name: 'Jerry can', look: { shape: 'can', color: '#3f6b35' } },
   { ...placeable({ id: 'tire', footprint: [0.64, 0.64], height: 0.22, tags: ['large'], stackable: true }), name: 'Tire', look: { shape: 'tire', color: '#1c1c1c' } },
   { ...placeable({ id: 'crate', footprint: [0.6, 0.4], height: 0.4, tags: ['medium', 'large'], stackOn: ['large'] }), name: 'Crate', look: { shape: 'box', color: '#9a7446' } },
 ];

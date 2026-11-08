@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { HOLO, holoMaterials, ghostify, footprint } from '../hologram.js';
-import { snapPoint, rotatedFootprint, restY, why } from './rules.js';
+import { snapPoint, rotatedFootprint, restY, why, clipTo } from './rules.js';
 import { placement } from './types.js';
 import { surfaceById, itemById, toWorld, toLocal, worldRot } from './labData.js';
 
@@ -96,18 +96,21 @@ export default function Preview({ holding, placed, stepIdx, snapRef, groupRef, o
     const g = holding.grab;
     if (g && g.sid === s.id && raycaster.ray.intersectPlane(PLANE.set(UP, -(s.at.y + g.y)), TMP)) { const l = toLocal(s, TMP.x, TMP.z); at = { x: l.x + g.x, z: l.z + g.z }; }
     const p = snapPoint(s, at.x, at.z, free ? 'free' : si, item.footprint, rot);
-    const cand = placement({ id: holding.moveId || GHOST_ID, item: item.id, surface: s.id, x: p.x, z: p.z, rot, free });
+    let cand = placement({ id: holding.moveId || GHOST_ID, item: item.id, surface: s.id, x: p.x, z: p.z, rot, free });
     cand.y = restY(cand, item, placed, itemById);
+    // free placement: near one of its own kind it clips flush beside it (if there's room). With Shift held the grid wins, so no clip.
+    const clipped = free ? clipTo(s, item, cand, placed, itemById) : cand;
+    const didClip = clipped !== cand; cand = clipped;
     const reason = why(s, item, cand, placed, itemById), color = reason ? HOLO.bad : HOLO.ok;   // PROPOSAL: free is the default now, so no amber; green fits, red doesn't
     mats.set(color);
     const w = toWorld(s, cand.x, cand.z, cand.y);
     ghost.current.visible = land.current.visible = true;
-    ghost.current.position.set(w.x, w.y, w.z); ghost.current.rotation.set(0, worldRot(s, rot), 0);
-    const [fw, fd] = rotatedFootprint(item.footprint, rot), lw = toWorld(s, cand.x, cand.z, cand.y + 0.006);   // the AABB the rules use, in the surface's axes
+    ghost.current.position.set(w.x, w.y, w.z); ghost.current.rotation.set(0, worldRot(s, cand.rot), 0);
+    const [fw, fd] = rotatedFootprint(item.footprint, cand.rot), lw = toWorld(s, cand.x, cand.z, cand.y + 0.006);   // the AABB the rules use, in the surface's axes
     land.current.position.set(lw.x, lw.y, lw.z); land.current.rotation.set(0, s.at.rotY, 0); land.current.scale.set(fw, 1, fd);
     const step = s.gridSteps[si];
     if (!gridOn || gridOn.sid !== s.id || gridOn.step !== step) setGridOn({ sid: s.id, step });
-    report({ cand, reason, surface: s }, { item: item.name, surface: s.name, step: free ? 'free' : step, gridStep: step, steps: s.gridSteps, reason, color: reason ? 'bad' : 'ok', stacked: cand.y > 1e-6 });
+    report({ cand, reason, surface: s }, { item: item.name, surface: s.name, step: free ? 'free' : step, gridStep: step, steps: s.gridSteps, reason, color: reason ? 'bad' : 'ok', stacked: cand.y > 1e-6, clipped: didClip });
   });
 
   if (!item) return null;

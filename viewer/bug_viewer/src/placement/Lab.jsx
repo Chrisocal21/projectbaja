@@ -86,7 +86,7 @@ const css = {
   key: { display: 'inline-block', minWidth: 16, padding: '0 4px', marginRight: 6, border: '1px solid #55666a', borderRadius: 3, textAlign: 'center', fontSize: 11, background: '#1f2b2e' },
 };
 const COLORS = { ok: '#55ff77', bad: '#ff5544', none: '#9aa8ab' };
-const LEGEND = [['1-5', 'pick an item'], ['L-click item', 'pick it up (move it)'], ['L-click', 'put down (Ctrl: keep placing)'], ['', 'placement is free by default'], ['hold Shift', 'snap to the grid'],
+const LEGEND = [['1-5', 'pick an item'], ['L-click item', 'pick it up (move it)'], ['L-click', 'put down (Ctrl: keep placing)'], ['', 'placement is free by default'], ['', 'like items clip together when close (Shift: grid instead)'], ['hold Shift', 'snap to the grid'],
   ['wheel', 'rotate 5° (Shift: 90°)'], ['Q / E', 'rotate 15° each way (Shift: 90°)'], ['R', 'next 90°'], ['[  ]', 'grid step coarser / finer'],
   ['Esc / R-click', 'cancel'], ['Del / X', 'discard held item'], ['R-drag', 'orbit · M-drag pan · wheel zoom (empty-handed)']];
 
@@ -177,7 +177,7 @@ export default function Lab() {
   const held = holding && itemById[holding.itemId];
   const rotTxt = holding ? (quarter(holding.rot) ? `90° snap · ${deg(holding.rot)}°` : `free · ${deg(holding.rot)}°`) : '-';
   const stepTxt = !hud?.surface ? '-' : hud.step === 'free' ? `free (Shift snaps to ${hud.gridStep} m)` : `snapped ${hud.step} m  [${hud.steps.join(' / ')}]`;
-  const reasonTxt = !hud ? '' : hud.reason ? hud.reason : hud.stacked ? 'fits (stacked)' : 'fits';
+  const reasonTxt = !hud ? '' : hud.reason ? hud.reason : hud.stacked ? 'fits (stacked)' : hud.clipped ? 'fits (clipped beside its own kind)' : 'fits';
 
   return <div style={css.wrap}>
     <Canvas shadows camera={{ position: [3.4, 3.1, 4.3], fov: 45, near: 0.05, far: 100 }} dpr={[1, 2]}>
@@ -197,7 +197,7 @@ export default function Lab() {
 
     <div style={{ ...css.panel, left: 14, top: 14, width: 210 }}>
       <div style={{ fontWeight: 700, letterSpacing: 1, fontSize: 12, color: '#9fb3b6' }}>PLACEMENT LAB</div>
-      {ITEMS.map((it, i) => <button key={it.id} style={css.btn(held?.id === it.id)} onClick={() => act.pick(i)}><span style={css.key}>{i + 1}</span>{it.name} <span style={{ color: '#7f9093', fontSize: 11 }}>{it.tags.join(', ')}{it.stackable ? ', stacks' : ''}</span></button>)}
+      {ITEMS.map((it, i) => <button key={it.id} style={css.btn(held?.id === it.id)} onClick={() => act.pick(i)}><span style={css.key}>{i + 1}</span>{it.name} <span style={{ color: '#7f9093', fontSize: 11 }}>{it.tags.join(', ')}{it.stackable ? ', stacks' : ''}{it.clip ? ', clips' : ''}</span></button>)}
       <div style={{ color: '#7f9093', fontSize: 11, marginTop: 6 }}>Floor takes anything · Shelf: small · Trunk: small, medium</div>
     </div>
 

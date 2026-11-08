@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { surface, placeable, placement, byId } from './types.js';
-import { snap, snapRot, rotatedFootprint, snapPoint, bounds, insideSurface, overlaps, accepts, canStackOn, stackHeight, restY, why } from './rules.js';
+import { snap, snapRot, rotatedFootprint, snapPoint, bounds, insideSurface, overlaps, accepts, canStackOn, stackHeight, restY, why, clipTo, clipsWith } from './rules.js';
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-9, `${msg || ''} expected ${b}, got ${a}`);
 const nearPt = (p, x, z, msg) => { near(p.x, x, msg); near(p.z, z, msg); };
@@ -128,4 +128,55 @@ test('bad catalog data fails at load', () => {
   assert.throws(() => surface({ id: 's', size: [1, 1], gridSteps: [0.25, 0.5] }), /coarsest first/);
   assert.throws(() => placeable({ id: 'p', footprint: [1], height: 1 }), /footprint/);
   assert.throws(() => byId([tire, tire]), /duplicate/);
+});
+
+// clip together: jerry cans (0.4 x 0.2, clip true), a fuel-group bottle, and a plain box that never clips
+const can = placeable({ id: 'can', footprint: [0.4, 0.2], height: 0.45, tags: ['tool'], clip: 'fuel' });
+const flask = placeable({ id: 'flask', footprint: [0.1, 0.1], height: 0.3, tags: ['tool'], clip: 'fuel' });
+const tbox = placeable({ id: 'tbox', footprint: [0.4, 0.2], height: 0.25, tags: ['tool'], clip: true });
+const citems = byId([can, flask, tbox, box, tire]);
+test('clip: near a can, a held can goes flush against its nearest side and lines up along it', () => {
+  const there = [on(floor, can, 2, 2, { id: 'c1' })];
+  const c = clipTo(floor, can, on(floor, can, 2.43, 2.06), there, citems);   // 0.03 m gap off its +x end, 6 cm out of line
+  nearPt(c, 2.4, 2, 'flush on +x, centres in line');
+  const d = clipTo(floor, can, on(floor, can, 1.95, 2.28), there, citems);   // 0.08 m gap off its +z side
+  nearPt(d, 2, 2.2, 'flush on +z');
+  const o = clipTo(floor, can, on(floor, can, 2.37, 2), there, citems);      // overlapping by 3 cm: pushed out flush
+  nearPt(o, 2.4, 2);
+  assert.equal(why(floor, can, c, there, citems), null, 'the clipped spot fits');
+});
+test('clip: copies the neighbour rotation, and works along the sides of a turned neighbour', () => {
+  const there = [on(floor, can, 2, 2, { id: 'c1', rot: Math.PI / 2 })];   // turned: 0.2 along x, 0.4 along z
+  const c = clipTo(floor, can, on(floor, can, 2.25, 2.02, { rot: 0.3 }), there, citems);
+  near(c.rot, Math.PI / 2, 'rotation copied');
+  nearPt(c, 2.2, 2, 'flush on its long side');
+});
+test('clip: different sizes in one clip group line up by an end edge when that is nearer', () => {
+  const there = [on(floor, can, 2, 2, { id: 'c1' })];   // x 1.8..2.2, z 1.9..2.1
+  const c = clipTo(floor, flask, on(floor, flask, 2.13, 2.19), there, citems);   // just past its +z side, near the +x end
+  nearPt(c, 2.15, 2.15, 'flush on +z, high x edges level');
+});
+test('clip: refused when there is no room, ignores other kinds, other heights and far-away items', () => {
+  const blocked = [on(floor, can, 2, 2, { id: 'c1' }), on(floor, box, 2.65, 2)];   // a box sits where the clipped can would go
+  const pl = on(floor, can, 2.43, 2.06);
+  assert.equal(clipTo(floor, can, pl, blocked, citems), pl, 'no room: unchanged, same object');
+  const wall = [on(floor, can, 5.8, 2, { id: 'c1' })];   // its +x side is the surface edge
+  const p2 = on(floor, can, 6.0, 2.05);
+  assert.equal(clipTo(floor, can, p2, wall, citems), p2, 'clipped spot would be off the surface');
+  const other = [on(floor, tbox, 2, 2)];
+  assert.equal(clipTo(floor, can, pl, other, citems), pl, 'a toolbox is not a can');
+  assert.ok(clipsWith(tbox, tbox) && clipsWith(can, flask) && !clipsWith(can, tbox) && !clipsWith(box, box) && !clipsWith(tire, tire));
+  assert.equal(clipTo(floor, box, on(floor, box, 1.78, 1.25), [on(floor, box, 1.25, 1.25)], citems).x, 1.78, 'items without clip never clip');
+  assert.equal(clipTo(floor, can, on(floor, can, 2.6, 2), [on(floor, can, 2, 2)], citems).x, 2.6, 'beyond the magnet: free');
+  const p3 = on(floor, can, 2.43, 2, { y: 0.3 });
+  assert.equal(clipTo(floor, can, p3, [on(floor, can, 2, 2)], citems), p3, 'a different height never clips');
+  assert.equal(clipTo(floor, can, on(floor, can, 2.5, 2), [on(floor, can, 2, 2)], citems, { magnet: 0.2 }).x, 2.4, 'magnet distance is data');
+});
+test('clip: a moved can does not clip to its own old spot', () => {
+  const there = [on(floor, can, 2, 2, { id: 'c1' })];
+  assert.equal(clipTo(floor, can, on(floor, can, 2.1, 2, { id: 'c1' }), there, citems).x, 2.1);
+});
+test('clip field: false by default, true or a group name, anything else fails at load', () => {
+  assert.equal(box.clip, false); assert.equal(tbox.clip, true); assert.equal(can.clip, 'fuel');
+  assert.throws(() => placeable({ id: 'p', footprint: [1, 1], height: 1, clip: 3 }), /clip/);
 });
