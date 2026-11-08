@@ -233,7 +233,7 @@ export function removeProp(uidN) {
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
   if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
-  const back = p.free ? 0 : Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 0.5);   // built in creative mode: nothing back
+  const back = p.free ? 0 : Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 1);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };

@@ -1,9 +1,9 @@
-// Pure map maths (no three.js, no browser). World: +z is "north" (screen up). The 3D view is right-handed with y up, so looking
-// north (+z) the player's LEFT is +x; a top-down map with north up therefore has +x on the LEFT of the screen.
+// Pure map maths (no three.js, no browser). North is world -z (screen up), east is +x (screen right): a normal, non-mirrored compass.
+// Facing north (-z), your right hand is +x. Heading: forward = (sin yaw, cos yaw).
 /** world (x,z) -> map fraction [u,v], each 0..1, (0,0) = top-left */
-export const worldToMap = (x, z, half) => [(half - x) / (2 * half), (half - z) / (2 * half)];
-/** canvas rotation (radians, clockwise) that turns an up-pointing arrow to face a world heading (forward = (sin yaw, cos yaw)) */
-export const arrowRot = yaw => -yaw;
+export const worldToMap = (x, z, half) => [(x + half) / (2 * half), (z + half) / (2 * half)];
+/** canvas rotation (radians, clockwise) that turns an up-pointing arrow to face a world heading */
+export const arrowRot = yaw => Math.PI - yaw;
 /** unit screen direction (right, down) the arrow points after rotating by arrowRot(yaw) */
 export const arrowDir = yaw => { const r = arrowRot(yaw); return [Math.sin(r), -Math.cos(r)]; };
 /** a site is cleared when nothing is left to take: every container searched and emptied, no loose part on its spots, scrap heaps taken.

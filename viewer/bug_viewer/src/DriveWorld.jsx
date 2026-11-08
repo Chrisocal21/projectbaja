@@ -380,7 +380,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (acc.current > STEP * 5) acc.current = 0;
   });
 
-  return <group ref={group}>{children}<Cargo />{PLACEMENT && world.id === 'county' && <VehicleCargo veh={game.active} host />}</group>;
+  return <group ref={group}>{children}<Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group>;
 }
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
@@ -403,7 +403,7 @@ function Fleet() {
   return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.groundHeight(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
     <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : <TruckModel />}</Suspense>
     <Cargo veh={v.id} />
-    {PLACEMENT && !v.forSale && <VehicleCargo veh={v.id} />}
+    {!v.forSale && <VehicleCargo veh={v.id} />}
   </group>)}</>;
 }
 const WorldCtx = createContext(OPEN_WORLD);

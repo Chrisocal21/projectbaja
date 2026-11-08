@@ -2,15 +2,15 @@
 // Every function is a no-op returning false unless ?placement=1 AND the player is aiming at a cargo surface, so with the flag off (or
 // looking anywhere else) the walking game's keys are exactly as before. Owner's controls: LEFT CLICK puts down / takes out (never a key);
 // Q / E turn 15° (Shift 90°) and R = next 90° ONLY while aiming a held item at a surface (E stays "interact" otherwise); wheel 5° (Shift 90°);
-// hold Shift = snap to the surface grid (instead of running) only then; T = stand a tire up / lay it flat (PROPOSAL: T is unused on foot).
+// hold Shift = snap to the surface grid (instead of running) only then. No key stands a tire up: it snaps upright into a mount (vehicleSurfaces mounts).
 import { held } from '../game/items.js';
 import { say } from '../game/store.js';
 import { snapRot } from './rules.js';
 import { PLACEMENT } from './flag.js';
-import { aim, keys, placeHeld, takeFromGrid, nextPose, turnHeld } from './cargoStore.js';
+import { aim, keys, placeHeld, takeFromGrid, turnHeld } from './cargoStore.js';
 
 const DEG = Math.PI / 180, QUARTER = Math.PI / 2;
-/** is a held item being aimed at a cargo surface right now? (then Shift snaps instead of running, Q / E / R / T / wheel turn it) */
+/** is a held item being aimed at a cargo surface right now? (then Shift snaps instead of running, Q / E / R / wheel turn it) */
 export const aimingHeld = () => PLACEMENT && aim.cur?.mode === 'place' && !!held();
 const turn = (dir, step, locked) => turnHeld(held(), r => (locked ? snapRot(r + dir * QUARTER, '90') : snapRot(r + dir * step, 'free')));
 
@@ -21,7 +21,6 @@ export function placementKey(e) {
   if (e.code === 'KeyQ') turn(-1, 15 * DEG, e.shiftKey);
   else if (e.code === 'KeyE') turn(1, 15 * DEG, e.shiftKey);
   else if (e.code === 'KeyR') turnHeld(held(), r => snapRot(r + QUARTER, '90'));
-  else if (e.code === 'KeyT') nextPose(held());
   else return false;
   return true;
 }

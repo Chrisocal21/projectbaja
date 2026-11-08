@@ -6,12 +6,12 @@ import { game, save, say } from '../game/store.js';
 import { held, itemSize, nameOfItem, takeFromCar, canCarry } from '../game/items.js';
 import { placement } from './types.js';
 import { posed, stackHeight, bounds, overlaps, EPS } from './rules.js';
-import { GAME_PLACEABLES, placeableIdFor, posesOf } from './gameItems.js';
+import { GAME_PLACEABLES, placeableIdFor } from './gameItems.js';
 
 /** what the player is aiming at right now, written every frame by the cargo controller (VehicleCargo.jsx):
  *  null, or { mode: 'place', veh, surface, cand, reason, clipped, name } with an item in hand, or { mode: 'take', veh, uid, surface, name } */
 export const aim = { cur: null };
-/** how the held item is turned / posed while aiming; reset when a different item is in hand */
+/** how the held item is turned while aiming; reset when a different item is in hand. (pose stays null: a tire stands up only by snapping into a mount) */
 const hold = { uid: null, rot: 0, pose: null };
 export function holdOf(it) { if (hold.uid !== it.uid) Object.assign(hold, { uid: it.uid, rot: 0, pose: null }); return hold; }
 export const keys = { shift: false };
@@ -43,10 +43,4 @@ export function takeFromGrid(uid) {
   return true;
 }
 
-/** T: the held item's next pose (a tire: flat -> upright -> flat) */
-export function nextPose(it) {
-  const names = posesOf(pidOf(it)), h = holdOf(it);
-  if (names.length < 2) { say(`${nameOfItem(it)} only goes one way.`); return; }
-  h.pose = names[(names.indexOf(h.pose ?? null) + 1) % names.length];
-}
 export const turnHeld = (it, f) => { const h = holdOf(it); h.rot = f(h.rot); };

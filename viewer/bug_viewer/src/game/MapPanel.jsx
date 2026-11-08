@@ -4,6 +4,7 @@ import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, circuit, off
 import { standingVehicles, vehicleType } from './fleet.js';
 import { OFFICE, CAMPER } from '../worlds/office.js';
 import { worldToMap, arrowRot, siteCleared } from './mapmath.js';
+import { discovered } from './compass.js';
 import { containers, spots } from './loot.js';
 import { SCRAP_HEAPS } from './home.js';
 
@@ -16,9 +17,9 @@ function baseMap() {
   const n = Math.floor(PX / 1.25), img = g.createImageData(n, n), hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const cache = new Map();
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const x = HALF - (i + 0.5) * STEP, z = HALF - (j + 0.5) * STEP;   // north (+z) at the top
+    const x = -HALF + (i + 0.5) * STEP, z = -HALF + (j + 0.5) * STEP;   // north (-z) at the top, east (+x) on the right
     const sf = surface(x, z), col = cache.get(sf.key) || (cache.set(sf.key, hex(sf.color)), cache.get(sf.key));
-    const h = height(x, z), shade = 1 + Math.max(-0.35, Math.min(0.35, (height(x + STEP, z + STEP) - h) * 0.09)) + Math.min(0.25, Math.max(0, h - 20) * 0.006);
+    const h = height(x, z), shade = 1 + Math.max(-0.35, Math.min(0.35, (height(x - STEP, z - STEP) - h) * 0.09)) + Math.min(0.25, Math.max(0, h - 20) * 0.006);
     const k = (j * n + i) * 4; img.data[k] = col[0] * shade; img.data[k + 1] = col[1] * shade; img.data[k + 2] = col[2] * shade; img.data[k + 3] = 255;
   }
   const tmp = document.createElement('canvas'); tmp.width = tmp.height = n; tmp.getContext('2d').putImageData(img, 0, 0);
@@ -34,7 +35,7 @@ function baseMap() {
   for (const b of Object.values(BIOMES)) { if (b.name === "Grandpa's place") continue; const [a, c2] = P(b.x, b.z + (b.rz || b.r || 100) * 0.55); g.fillStyle = '#ffffffcc'; g.strokeStyle = '#00000088'; g.lineWidth = 3; g.strokeText(b.name.toUpperCase(), a, c2); g.fillText(b.name.toUpperCase(), a, c2); }
   base = c; return c;
 }
-const LABELS = { garage: "Walt's Garage", lot: "Honest Al's", gas: "Dusty's Fuel", shop: 'Baja Parts', barn: 'Barn', warehouse: 'Salvage & Surplus', proving: 'Proving Grounds HQ' };
+export const LABELS = { garage: "Walt's Garage", lot: "Honest Al's", gas: "Dusty's Fuel", shop: 'Baja Parts', barn: 'Barn', warehouse: 'Salvage & Surplus', proving: 'Proving Grounds HQ' };
 
 export default function MapPanel({ onClose }) {
   useGame();
@@ -47,7 +48,7 @@ export default function MapPanel({ onClose }) {
     g.drawImage(m, 0, 0);
     const P = (x, z) => worldToMap(x, z, HALF).map(v => v * PX);
     g.font = `600 ${11 / s}px system-ui, sans-serif`; g.textAlign = 'left';
-    for (const [k, label0] of Object.entries(LABELS)) { let label = label0; const st = SITES[k], [a, b] = P(st.x, st.z); g.fillStyle = k === 'garage' ? '#f2c14e' : '#ffffff'; g.beginPath(); g.arc(a, b, (k === 'garage' ? 5 : 3.5) / s, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.stroke();
+    for (const [k, label0] of Object.entries(LABELS)) { if (!discovered(game.home).has(k)) continue; let label = label0; const st = SITES[k], [a, b] = P(st.x, st.z); g.fillStyle = k === 'garage' ? '#f2c14e' : '#ffffff'; g.beginPath(); g.arc(a, b, (k === 'garage' ? 5 : 3.5) / s, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.stroke();
       if (siteCleared(k, { boxes: game.boxes, items: game.items, heaps: game.home.heaps }, { containers, spots, heaps: SCRAP_HEAPS })) { g.strokeStyle = '#3ddc84'; g.lineWidth = 2.5 / s; g.beginPath(); g.moveTo(a - 3 / s, b); g.lineTo(a - 0.5 / s, b + 3 / s); g.lineTo(a + 4 / s, b - 3.5 / s); g.stroke(); label += ' ✓'; }
       g.lineWidth = 3 / s; g.strokeStyle = '#000000aa'; g.strokeText(label, a + 6 / s, b + 4 / s); g.fillText(label, a + 6 / s, b + 4 / s); }
     for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = P(v.pose.x, v.pose.z); g.fillStyle = '#5bd8ff'; g.fillRect(a - 3 / s, b - 3 / s, 6 / s, 6 / s); g.fillStyle = '#fff'; g.fillText(vehicleType(v.id).name, a + 6 / s, b - 4 / s); }

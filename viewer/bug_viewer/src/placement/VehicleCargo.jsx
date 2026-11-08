@@ -6,13 +6,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from '../game/store.js';
-import { held, nameOfItem } from '../game/items.js';
+import { held, nameOfItem, itemSize } from '../game/items.js';
 import { Crate } from '../game/Items.jsx';
 import { resolve } from '../build.js';
 import { BUG } from '../rules/vehicles.js';
 import { isFitted } from '../rules/restore.js';
 import { HOLO, holoMaterials, ghostify, footprint } from '../hologram.js';
-import { snapPoint, rotatedFootprint, restY, why, clipTo, posed } from './rules.js';
+import { snapPoint, rotatedFootprint, restY, why, clipTo, posed, nearestMount, atMount, MOUNT_SNAP } from './rules.js';
 import { placement } from './types.js';
 import { surfacesFor, toCar, fromCar } from './vehicleSurfaces.js';
 import { GAME_PLACEABLES, isTire } from './gameItems.js';
@@ -20,14 +20,15 @@ import { aim, keys, holdOf, pidOf, gridItems, toPl } from './cargoStore.js';
 import { placementWheel, placementShift } from './input.js';
 import { TireModel, useGridGeometry, UNIT_SQUARE } from './Preview.jsx';
 
+const MOUNT_AIM = 0.3, MOUNT_RING_Y = 0.34;   // PROPOSAL: the ray passes within 0.3 m of a mount's tire centre (ring middle 0.34 m up) = aiming at that mount
 const REACH = 3.2;                       // PROPOSAL: metres from your eye you can set something down / take it out
 const REG = new Map();                   // veh id -> { root, items, surfaces() }
 const CENTER = new THREE.Vector2(0, 0), INV = new THREE.Matrix4(), RAY = new THREE.Ray(), P = new THREE.Vector3(), W = new THREE.Vector3();
 
 /** the vehicle's surfaces right now (all: also the closed ones, to draw what's inside) */
 function vehSurfaces(veh, lift, all) {
-  const b = game.build;
-  return surfacesFor(veh, veh !== 'bug' ? { all } : { all, body: b?.body, parts: b?.parts, lift, coverFitted: id => !!b && isFitted(BUG, b, id), coverOpen: id => !!game.open?.has(id) });
+  const b = game.build, loose = game.items.filter(i => i.loc === 'car' && i.spot !== 'grid' && (i.veh || 'bug') === veh).map(i => ({ spot: i.spot, size: itemSize(i) }));   // the old unit-storage crates (solid to the grid)
+  return surfacesFor(veh, veh !== 'bug' ? { all, loose } : { all, loose, body: b?.body, parts: b?.parts, lift, coverFitted: id => !!b && isFitted(BUG, b, id), coverOpen: id => !!game.open?.has(id) });
 }
 
 /** one placed thing, base at y = 0, centred: tires as tires (flat or upright), everything else as the game draws it (a labelled crate / its model) */
@@ -48,6 +49,7 @@ export default function VehicleCargo({ veh, host = false }) {
     <group ref={items}>{mine.map(it => { const s = byId[it.surf], c = toCar(s, it.x, it.z, it.y || 0);
       return <group key={it.uid} position={[c.x, c.y, c.z]} rotation={[0, s.at.rotY + (it.ry || 0), 0]} userData={{ uid: it.uid }}><React.Suspense fallback={null}><ItemBody it={it} pose={it.pose || null} /></React.Suspense></group>; })}</group>
     <Ghost veh={veh} />
+    <MountOutlines veh={veh} root={root} surfaces={all} />
     {host && <Controller />}
   </group>;
 }
@@ -85,6 +87,36 @@ function Ghost({ veh }) {
   </>;
 }
 
+/** the tire mounts of a vehicle's surfaces, outlined (like the car's wheel slots) while you hold a tire close by: green = free, red = taken, white = the one you aim at */
+function MountOutlines({ veh, root, surfaces }) {
+  const { camera } = useThree();
+  const list = useMemo(() => surfaces.filter(s => s.mounts?.length).flatMap(s => s.mounts.map(m => ({ s, m }))), [surfaces.map(s => s.id + (s.mounts?.length || 0)).join()]);
+  const ring = useMemo(() => { const pts = []; for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; pts.push(new THREE.Vector3(0, Math.sin(a), Math.cos(a))); } return new THREE.BufferGeometry().setFromPoints(pts); }, []);
+  const mats = useMemo(() => ({ free: new THREE.LineBasicMaterial({ color: 0x7dff98, transparent: true, opacity: 0.8, depthTest: false }), taken: new THREE.LineBasicMaterial({ color: 0xff8a7a, transparent: true, opacity: 0.5, depthTest: false }), aim: new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1, depthTest: false }) }), []);
+  const refs = useRef({}), box = useRef();
+  useEffect(() => () => { ring.dispose(); Object.values(mats).forEach(m => m.dispose()); }, [ring, mats]);
+  useFrame(() => {
+    const h = held(), g = box.current; if (!g) return;
+    const on = list.length && game.onFoot && !game.buildMode && !game.paused && h && isTire(h) && root.current && root.current.getWorldPosition(P).distanceTo(camera.position) < 9;
+    g.visible = !!on; if (!on) return;
+    const a = aim.cur, mine = gridItems(veh).map(toPl);
+    for (const { s, m } of list) {
+      const o = refs.current[s.id + m.id]; if (!o) continue;
+      const taken = nearestMount({ ...s, mounts: [m] }, m.x, m.z, GAME_PLACEABLES.tire, mine, GAME_PLACEABLES, 0.01)?.taken;
+      const m0 = a?.mode === 'place' && a.veh === veh && a.mount === m.id ? mats.aim : taken ? mats.taken : mats.free;
+      o.children.forEach(c => { c.material = m0; });
+    }
+  });
+  const T = GAME_PLACEABLES.tire, r = T.footprint[0] / 2, w = T.height;
+  return <group ref={box} visible={false}>{list.map(({ s, m }) => { const c = toCar(s, m.x, m.z, m.y);
+    return <group key={s.id + m.id} position={[c.x, c.y + r, c.z]} rotation={[0, s.at.rotY + (m.rot || 0), 0]} scale={[1, r, r]}>
+      <group ref={el => { if (el) refs.current[s.id + m.id] = el; }}>
+        <lineLoop geometry={ring} material={mats.free} position={[-w / 2, 0, 0]} renderOrder={13} /><lineLoop geometry={ring} material={mats.free} position={[w / 2, 0, 0]} renderOrder={13} />
+        <lineLoop geometry={ring} material={mats.free} scale={[1, 0.99, 0.99]} renderOrder={13} />
+      </group>
+    </group>; })}</group>;
+}
+
 const uidUnder = o => { for (; o; o = o.parent) if (o.userData?.uid) return o.userData.uid; return null; };
 
 /** the aim controller (one, in the active vehicle): decides aim.cur every frame and shows a one-line hint */
@@ -109,7 +141,8 @@ function Controller() {
     aim.cur = null;
     if (!game.onFoot || game.buildMode || game.paused) return show('');
     raycaster.setFromCamera(CENTER, camera);
-    let best = null;
+    let best = null, mb = null;
+    const hh = held(), tireHeld = !!hh && isTire(hh);
     for (const [veh, r] of REG) {
       if (!r.root.current || !r.items.current) continue;
       const hit = raycaster.intersectObject(r.items.current, true).find(h => h.distance < REACH);
@@ -123,7 +156,15 @@ function Controller() {
         const d = W.copy(P).applyMatrix4(r.root.current.matrixWorld).distanceTo(camera.position);
         if (d < REACH && (!best || d < best.d)) best = { d, veh, r, s, local: l };
       }
+      // holding a tire: aiming AT a mount's outline (the tire-shaped ring, which can hang above the surface plane, e.g. over a wheel well) counts as aiming at that mount
+      if (tireHeld) for (const s of r.surfaces()) for (const m of s.mounts || []) {
+        const c = toCar(s, m.x, m.z, m.y + MOUNT_RING_Y); P.set(c.x, c.y, c.z).sub(RAY.origin);
+        const t = P.dot(RAY.direction); if (t <= 0 || t > REACH) continue;
+        const dist = P.addScaledVector(RAY.direction, -t).length();
+        if (dist <= MOUNT_AIM && (!mb || dist < mb.dist)) mb = { dist, t, veh, r, s, local: { x: m.x, z: m.z } };
+      }
     }
+    if (mb && !best?.uid) best = { d: mb.t, veh: mb.veh, r: mb.r, s: mb.s, local: mb.local };
     const h = held();
     if (!best) return show('');
     if (!h) {   // empty-handed: aiming at a placed item = take it out
@@ -140,17 +181,27 @@ function Controller() {
       s = best.r.surfaces().find(x => x.id === it?.surf); if (!s) return show('');
       const c = best.r.root.current.worldToLocal(best.point); local = fromCar(s, c.x, c.z);
     }
-    const hp = holdOf(h), item = posed(GAME_PLACEABLES[pid], hp.pose), free = !keys.shift;
-    const p = snapPoint(s, local.x, local.z, free ? 'free' : 0, item.footprint, hp.rot);
-    const existing = gridItems(best.veh).map(toPl);
-    let cand = placement({ id: 'ghost', item: pid, surface: s.id, x: p.x, z: p.z, rot: hp.rot, free, pose: hp.pose });
-    cand.y = restY(cand, item, existing, GAME_PLACEABLES);
-    const clipped = free ? clipTo(s, item, cand, existing, GAME_PLACEABLES) : cand;
-    const didClip = clipped !== cand; cand = clipped;
-    const reason = why(s, item, cand, existing, GAME_PLACEABLES);
-    aim.cur = { mode: 'place', veh: best.veh, surface: s, cand, reason, clipped: didClip, name: nameOfItem(h) };
-    const status = reason || (cand.y > 1e-6 ? 'fits (stacked)' : didClip ? 'fits (clipped)' : 'fits');
-    show(`${nameOfItem(h)} → ${s.name}: ${status}\nClick — Put it here  ·  Q/E — Turn  ·  R — 90°${GAME_PLACEABLES[pid].poses && Object.keys(GAME_PLACEABLES[pid].poses).length ? '  ·  T — Stand up / lay flat' : ''}  ·  Shift — Grid`, reason ? '#ff8a7a' : '#7dff98');
+    const hp = holdOf(h), existing = gridItems(best.veh).map(toPl), T = GAME_PLACEABLES.tire;
+    // a tire aimed near one of the surface's tire mounts snaps upright into it (no key); otherwise it is placed freely like anything else
+    const mt = pid === 'tire' && s.mounts?.length ? nearestMount(s, local.x, local.z, T, existing, GAME_PLACEABLES) : null;
+    let item, cand, reason, didClip = false;
+    if (mt) {
+      const pl = atMount(mt.mount, pid, s.id, 'ghost'); item = posed(T, pl.pose); cand = placement(pl);
+      reason = mt.taken ? 'that mount is taken' : why(s, item, cand, existing, GAME_PLACEABLES);
+    } else {
+      const free = !keys.shift; item = posed(GAME_PLACEABLES[pid], hp.pose);
+      const p = snapPoint(s, local.x, local.z, free ? 'free' : 0, item.footprint, hp.rot);
+      cand = placement({ id: 'ghost', item: pid, surface: s.id, x: p.x, z: p.z, rot: hp.rot, free, pose: hp.pose });
+      cand.y = restY(cand, item, existing, GAME_PLACEABLES);
+      const clipped = free ? clipTo(s, item, cand, existing, GAME_PLACEABLES) : cand;
+      didClip = clipped !== cand; cand = clipped;
+      reason = why(s, item, cand, existing, GAME_PLACEABLES);
+    }
+    aim.cur = { mode: 'place', veh: best.veh, surface: s, cand, reason, clipped: didClip, name: nameOfItem(h), mount: mt?.mount.id || null };
+    const status = reason || (mt ? 'snaps in' : cand.y > 1e-6 ? 'fits (stacked)' : didClip ? 'fits (clipped)' : 'fits');
+    const target = mt ? mt.mount.label : s.name;
+    show(`${nameOfItem(h)} → ${target}: ${status}
+Click — Put it here${mt ? '' : '  ·  Q/E — Turn  ·  R — 90°  ·  Shift — Grid'}`, reason ? '#ff8a7a' : '#7dff98');
   });
   return null;
 }

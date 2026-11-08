@@ -32,7 +32,7 @@ export const promptText = id => {
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
-  if (id.startsWith('heap:')) return 'Press E — Pick through the scrap heap';
+  if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
   if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Click — Pick up ${nameOfItem(it)}`) : ''; }   // left click picks up (main.jsx), E never does

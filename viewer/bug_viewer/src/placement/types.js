@@ -12,8 +12,10 @@ const EDGES = ['x0', 'x1', 'z0', 'z1'];
 /** a flat rect things go on. gridSteps coarsest first (e.g. [0.5, 0.25, 0.05]); accepts [] or ['*'] = takes anything. stackable false = nothing may be stacked here.
  *  clearance = headroom in metres above the top (a closed hood, a back window); nothing may stand taller. walls = edges a held item pulls flush
  *  against ('x0' | 'x1' | 'z0' | 'z1', see clipTo). blocks = fixed lumps on the surface, surface-local rects { x0, z0, x1, z1, top } (a pickup's
- *  wheel wells): nothing may overlap one below its top. */
-export function surface({ id, size, gridSteps = [0.5], accepts = [], stackable = true, clearance = Infinity, walls = [], blocks = [] }) {
+ *  wheel wells): nothing may overlap one below its top. mounts = fixed spots a thing snaps into, { id, label, x, z, y, pose, accepts, rot }: x, z = the
+ *  centre in surface-local metres, y = base height above the surface (a mount over a wheel well sits on its top), pose = which pose of the item goes
+ *  there ('upright' tire), accepts = tags (the tire placeable's 'tire'), rot = its turn. See nearestMount / atMount in rules.js. */
+export function surface({ id, size, gridSteps = [0.5], accepts = [], stackable = true, clearance = Infinity, walls = [], blocks = [], mounts = [] }) {
   need(typeof id === 'string' && id, 'surface needs an id');
   need(pair(size), 'surface size must be [w, d] metres > 0', id);
   need(Array.isArray(gridSteps) && gridSteps.length > 0 && gridSteps.every(s => num(s) && s > 0), 'gridSteps must be positive metres', id);
@@ -22,7 +24,9 @@ export function surface({ id, size, gridSteps = [0.5], accepts = [], stackable =
   need(typeof clearance === 'number' && clearance > 0, 'clearance must be metres > 0', id);
   need(Array.isArray(walls) && walls.every(w => EDGES.includes(w)), "walls must be edges 'x0' | 'x1' | 'z0' | 'z1'", id);
   need(Array.isArray(blocks) && blocks.every(b => b && ['x0', 'z0', 'x1', 'z1', 'top'].every(k => num(b[k])) && b.x1 > b.x0 && b.z1 > b.z0 && b.top > 0), 'blocks must be { x0, z0, x1, z1, top } rects', id);
-  return { id, size: [...size], gridSteps: [...gridSteps], accepts: [...accepts], stackable: !!stackable, clearance, walls: [...walls], blocks: blocks.map(b => ({ ...b })) };
+  need(Array.isArray(mounts) && mounts.every(m => m && typeof m.id === 'string' && m.id && num(m.x) && num(m.z) && num(m.y ?? 0) && (m.y ?? 0) >= 0 && tagList(m.accepts ?? []) && (m.pose == null || typeof m.pose === 'string')), 'mounts must be { id, x, z, y, pose, accepts } spots', id);
+  need(new Set(mounts.map(m => m.id)).size === mounts.length, 'mount ids must be unique', id);
+  return { id, size: [...size], gridSteps: [...gridSteps], accepts: [...accepts], stackable: !!stackable, clearance, walls: [...walls], blocks: blocks.map(b => ({ ...b })), mounts: mounts.map(m => ({ label: m.id, rot: 0, pose: null, accepts: [], ...m, y: m.y ?? 0 })) };
 }
 
 /** a thing you can put down. footprint [w, d] metres at rot 0 (w along x), height metres. stackable = sits on other stackables (tires); stackOn = tags it may sit on.

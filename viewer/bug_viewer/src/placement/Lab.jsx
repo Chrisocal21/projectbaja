@@ -88,7 +88,7 @@ const css = {
 };
 const COLORS = { ok: '#55ff77', bad: '#ff5544', none: '#9aa8ab' };
 const LEGEND = [['1-5', 'pick an item'], ['L-click item', 'pick it up (move it)'], ['L-click', 'put down (Ctrl: keep placing)'], ['', 'placement is free by default'], ['', 'like items clip together when close (Shift: grid instead)'], ['hold Shift', 'snap to the grid'],
-  ['wheel', 'rotate 5° (Shift: 90°)'], ['Q / E', 'rotate 15° each way (Shift: 90°)'], ['R', 'next 90°'], ['T', 'stand a tire up / lay it flat'], ['[  ]', 'grid step coarser / finer'],
+  ['wheel', 'rotate 5° (Shift: 90°)'], ['Q / E', 'rotate 15° each way (Shift: 90°)'], ['R', 'next 90°'], ['[  ]', 'grid step coarser / finer'],
   ['Esc / R-click', 'cancel'], ['Del / X', 'discard held item'], ['R-drag', 'orbit · M-drag pan · wheel zoom (empty-handed)']];
 
 export default function Lab() {
@@ -100,10 +100,6 @@ export default function Lab() {
   const act = useMemo(() => {
     const S = () => st.current;
     const pick = i => { const it = ITEMS[i]; if (!it) return; setHolding(h => ({ itemId: it.id, moveId: null, rot: h?.rot ?? 0, pose: h?.itemId === it.id ? h.pose : null })); setMsg(`Holding: ${it.name}`); };
-    const togglePose = () => {   // T: next pose of the held item (a tire: flat <-> upright); things with one pose say so
-      const h = S().holding; if (!h) return; const names = [null, ...Object.keys(itemById[h.itemId].poses || {})]; if (names.length < 2) return setMsg(`${itemById[h.itemId].name} only goes one way`);
-      const next = names[(names.indexOf(h.pose ?? null) + 1) % names.length]; setHolding({ ...h, pose: next }); setMsg(`${itemById[h.itemId].name}: ${next || 'flat'}`);
-    };
     const rotate = f => setHolding(h => h && { ...h, rot: f(h.rot) });
     const cancel = () => { if (S().holding) { setHolding(null); setMsg(S().holding.moveId ? 'Move cancelled: it stays where it was' : 'Put away'); } };
     const discard = () => { const h = S().holding; if (!h) return; if (h.moveId) setPlaced(p => p.filter(e => e.id !== h.moveId)); setHolding(null); setMsg(`Discarded: ${itemById[h.itemId].name}`); };
@@ -129,7 +125,7 @@ export default function Lab() {
       const n = s.gridSteps.length, i = (((S().stepIdx[s.id] ?? 0) + d) % n + n) % n;
       setStepIdx(m => ({ ...m, [s.id]: i })); setMsg(`${s.name} grid: ${s.gridSteps[i]} m`);
     };
-    return { pick, rotate, cancel, discard, confirm, pickUp, cycleStep, togglePose };
+    return { pick, rotate, cancel, discard, confirm, pickUp, cycleStep };
   }, []);
 
   useEffect(() => {
@@ -145,7 +141,6 @@ export default function Lab() {
       if (e.code === 'KeyR') act.rotate(r => snapRot(r + QUARTER, '90'));
       else if (e.code === 'KeyQ') turn(-1, KEY_STEP, e.shiftKey);
       else if (e.code === 'KeyE') turn(1, KEY_STEP, e.shiftKey);
-      else if (e.code === 'KeyT') act.togglePose();
       else if (e.code === 'BracketRight') act.cycleStep(1);
       else if (e.code === 'BracketLeft') act.cycleStep(-1);
       else if (e.code === 'Delete' || e.code === 'KeyX') act.discard();

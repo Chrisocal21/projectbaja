@@ -30,6 +30,7 @@ import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
+import Compass from './game/Compass.jsx';
 import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
 import WikiPanel from './game/WikiPanel.jsx';
@@ -169,7 +170,6 @@ function App() {
     else if (id === 'openSwitch') toggleOpen();
     else if (id === 'racecar') uncoverRaceCar();
     else if (id === 'crank') crankBug();
-    else if (id.startsWith('heap:')) takeHeap(id.slice(5));
     else if (id === 'job') setPanel('job');
     else if (id === 'trailer') setPanel('trailer');
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));
@@ -239,7 +239,7 @@ function App() {
     const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
       if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); }
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
-      if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') pickUp(it.uid); } };
+      if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') pickUp(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); } };   // (a scrap heap is picked through with a click too)
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
     return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
@@ -344,6 +344,7 @@ function App() {
     <Crosshair />
     <KeyHints driving={!game.onFoot} pro={pro} cabLabel={body.cabLabel} />
     <HudOverlay />
+    <Compass />
     {panel !== 'build' && <BuildHud />}
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
     {pro && <ProDebug />}

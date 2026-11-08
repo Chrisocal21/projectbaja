@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { surface, placeable, placement, byId } from './types.js';
-import { posed, why, restY, clipTo, toWall, snapPoint } from './rules.js';
-import { VEHICLE_SURFACES, surfacesFor, toCar, fromCar } from './vehicleSurfaces.js';
+import { posed, why, restY, clipTo, toWall, snapPoint, nearestMount, atMount } from './rules.js';
+import { VEHICLE_SURFACES, surfacesFor, toCar, fromCar, obstacleBoxes } from './vehicleSurfaces.js';
 import { TIRE, GAME_PLACEABLES, placeableIdFor, posesOf, TIRE_SIZE } from './gameItems.js';
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-9, `${msg || ''} expected ${b}, got ${a}`);
@@ -109,4 +109,68 @@ test('every declared surface is valid data with a name and an anchor', () => {
   const all = Object.values(VEHICLE_SURFACES).flatMap(v => (Array.isArray(v) ? v : Object.values(v).flat()));
   for (const s of all) { assert.ok(s.name && s.at && Number.isFinite(s.at.y), s.id); assert.ok(s.gridSteps.length); }
   assert.ok(byId(surfacesFor('bug', bugCtx({ all: true }))), 'surface ids unique per vehicle');
+});
+
+// ---- Stage 3 finish: tire mounts 5-8, solid fixtures/loose crates, trailers ----
+const bed = () => surfacesFor('pickup84', {})[0];
+test('bed mounts 5-8: four real-size upright tires fit side by side against the cab, the outer two over the wheel wells', () => {
+  const b = bed(), there = [];
+  assert.deepEqual(b.mounts.map(m => m.label), ['Tire mount 5', 'Tire mount 6', 'Tire mount 7', 'Tire mount 8']);
+  for (const m of b.mounts) {
+    const pl = { ...atMount(m, 'tire', b.id, 'u' + m.id) };
+    assert.equal(why(b, upright, pl, there, items), null, `${m.label} is a legal spot even with the others filled`);
+    near(pl.z, TIRE_SIZE.dia / 2, 'flush against the cab wall'); there.push(pl);
+  }
+  assert.deepEqual(b.mounts.map(m => m.y), [0.28, 0, 0, 0.28], 'outer mounts stand on the well tops');
+  assert.equal(there.length, 4);
+  // none of them overlap in plan
+  for (let i = 1; i < 4; i++) assert.ok(there[i].x - there[i - 1].x >= TIRE_SIZE.width - 1e-9, 'mounts at least a tire-width apart');
+});
+test('a tire on a well top needs the well under it: raised anywhere else it has nothing to sit on', () => {
+  const b = bed();
+  assert.equal(why(b, upright, on(b, 'tire', 0.19, TIRE_SIZE.dia / 2, { pose: 'upright', y: 0.28 }), [], items), null);
+  assert.equal(why(b, upright, on(b, 'tire', 0.8, TIRE_SIZE.dia / 2, { pose: 'upright', y: 0.28 }), [], items), 'nothing to sit on');
+  assert.equal(why(b, upright, on(b, 'tire', 0.19, TIRE_SIZE.dia / 2, { pose: 'upright', y: 0.1 }), [], items), "something's in the way", 'sunk into the well');
+});
+test('nearestMount: snaps within reach, prefers a free mount, says taken when only taken ones are near, ignores items that are not tires', () => {
+  const b = bed(), m = b.mounts, there = [];
+  assert.equal(nearestMount(b, 0.8, 1.4, items.tire, there, items), null, 'far from every mount');
+  assert.equal(nearestMount(b, 0.62, 0.4, items.tire, there, items).mount.id, 'm6');
+  there.push(atMount(m[1], 'tire', b.id, 'u6'));
+  const r = nearestMount(b, 0.62, 0.4, items.tire, there, items);
+  assert.equal(r.mount.id, 'm7', 'm6 taken: the next free one in range wins'); assert.equal(r.taken, false);
+  const t = nearestMount(b, 0.62, 0.4, items.tire, there, items, 0.1); assert.deepEqual([t.mount.id, t.taken], ['m6', true]);
+  assert.equal(nearestMount(b, 0.6, 0.35, items.crate1, [], items), null, 'a crate does not go in a tire mount');
+  assert.equal(nearestMount(surfacesFor('bug', { all: true, ...bugCtx() })[0], 0.4, 0.3, items.tire, [], items), null, 'surfaces without mounts');
+});
+test('mount data is validated', () => {
+  assert.throws(() => surface({ id: 's', size: [1, 1], mounts: [{ id: 'a', x: 0.5 }] }), /mounts/);
+  assert.throws(() => surface({ id: 's', size: [1, 1], mounts: [{ id: 'a', x: 0.5, z: 0.5 }, { id: 'a', x: 0.2, z: 0.2 }] }), /unique/);
+});
+test('fixtures and loose crates are solid: fitted roof jerry cans block the rack, a 4th cab crate blocks the luggage shelf, truck bed crates block the bed', () => {
+  const rack = ctx => surfacesFor('bug', bugCtx({ parts: { roofRack: 'ACC_RoofRack', ...ctx.parts }, loose: ctx.loose })).find(s => s.id === 'roofRack');
+  assert.equal(rack({}).blocks.length, 0);
+  const cans = rack({ parts: { roofGear: 'ROOF_JerryCans' } }), c1 = GAME_PLACEABLES.crate1;
+  assert.equal(cans.blocks.length, 2);
+  assert.equal(why(cans, c1, on(cans, 'crate1', 0.28, 0.33), [], items), "something's in the way", 'on top of a jerry can');
+  assert.equal(why(cans, c1, on(cans, 'crate1', 0.48, 0.7), [], items), null, 'clear of both cans');
+  const shelf = loose => surfacesFor('bug', bugCtx({ loose })).find(s => s.id === 'luggageShelf');
+  assert.equal(shelf([]).blocks.length, 0); assert.equal(shelf([{ spot: 'cab', size: 1 }, { spot: 'cab', size: 1 }, { spot: 'cab', size: 1 }]).blocks.length, 0, 'cab crates 1-3 sit ahead of the shelf');
+  const four = shelf([1, 1, 1, 1].map(size => ({ spot: 'cab', size })));
+  assert.equal(four.blocks.length, 1); assert.equal(why(four, c1, on(four, 'crate1', 0.5, 0.175, { rot: Math.PI / 2 }), [], items), "something's in the way");
+  const truckBed = loose => surfacesFor('pickup84', { loose })[0];
+  assert.equal(truckBed([]).blocks.length, 2, 'just the wheel wells'); assert.equal(truckBed([{ spot: 'bed', size: 2 }]).blocks.length, 3);
+  assert.deepEqual(obstacleBoxes('pickup84', { loose: [{ spot: 'cab', size: 1 }] }), [], 'cab crates are not in the bed');
+  const lb = truckBed([{ spot: 'bed', size: 2 }]).blocks[2];
+  assert.ok(lb.z0 >= 0 && lb.z0 < 0.1, 'bed crates start at the cab wall (the bed is at +z)');
+});
+test('trailer surfaces (data only): a flat deck and an enclosed floor with real sizes, usable, no mounts needed', () => {
+  const flat = surfacesFor('trailerFlat', {})[0], box = surfacesFor('trailerEnclosed', {})[0];
+  assert.deepEqual(flat.size, [1.6, 3.0]); assert.deepEqual(box.size, [1.7, 3.2]);
+  assert.ok(flat.usable && box.usable); assert.ok(box.clearance < flat.clearance, 'the enclosed one has a roof');
+  // 4 upright tires side by side across the flat deck, and a stack of crates only fits the enclosed one up to its roof
+  for (let i = 0; i < 5; i++) assert.equal(why(flat, upright, on(flat, 'tire', 0.135 + i * 0.27, 0.345, { pose: 'upright' }), [], items), null);
+  assert.equal(why(box, upright, on(box, 'tire', 0.5, 0.5, { pose: 'upright' }), [], items), null, 'upright tire 0.69 m: fits under 1.7 m');
+  assert.equal(why(box, GAME_PLACEABLES.crate4, on(box, 'crate4', 0.5, 0.6, { y: 1.3 }), [], items), 'too tall for here', 'the roof');
+  assert.equal(why(box, GAME_PLACEABLES.crate4, on(box, 'crate4', 0.5, 0.6), [], items), null);
 });

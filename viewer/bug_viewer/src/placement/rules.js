@@ -116,7 +116,8 @@ export function why(surface, item, pl, existing = [], items = {}) {
     }
     return "something's in the way";                       // our height ranges cross: a real collision
   }
-  if (y > EPS && !support) return 'nothing to sit on';
+  // (a tire standing on top of a wheel well is supported by the well: a block whose top is where it sits, under its centre)
+  if (y > EPS && !support && !(surface.blocks || []).some(k => Math.abs(k.top - y) < EPS && pl.x >= k.x0 - EPS && pl.x <= k.x1 + EPS && pl.z >= k.z0 - EPS && pl.z <= k.z1 + EPS)) return 'nothing to sit on';
   return null;
 }
 
@@ -178,4 +179,27 @@ export function toWall(surface, item, pl, existing = [], items = {}, magnet = CL
     if (gap > EPS && gap <= magnet && out[ax] === pl[ax]) { out[ax] = pl[ax] + shift; moved = true; }
   }
   return moved && why(surface, item, out, existing, items) === null ? out : pl;
+}
+
+// ---- mounts: fixed spots (a truck bed's tire mounts) an item snaps into when held near one ----
+export const MOUNT_SNAP = 0.45;   // PROPOSAL: metres from the aimed point to a mount's centre inside which a tire snaps into it
+
+/** the placement an item makes in a mount (its pose, turn and height are the mount's) */
+export const atMount = (m, itemId, surfaceId, id) => ({ id: id || `mount-${m.id}`, item: itemId, surface: surfaceId, x: m.x, z: m.z, rot: m.rot || 0, y: m.y || 0, free: false, pose: m.pose || null });
+
+/**
+ * the mount a held item would snap into, aimed at surface-local (x, z): { mount, taken } or null. PURE.
+ * Only mounts that take the item (accepts tags, [] = anything) and are within `max` metres count. A free mount wins over a nearer taken one; if only
+ * taken ones are in range the nearest comes back with taken = true (so the preview can say so). `item` = the placeable (default pose).
+ */
+export function nearestMount(surface, x, z, item, existing = [], items = {}, max = MOUNT_SNAP) {
+  let best = null;
+  for (const m of surface.mounts || []) {
+    if (!(wild(m.accepts || []) || item.tags.some(t => m.accepts.includes(t)))) continue;
+    const d = Math.hypot(m.x - x, m.z - z); if (d > max) continue;
+    const pl = atMount(m, item.id, surface.id), me = posed(item, m.pose), b = bounds(pl, me);
+    const taken = sameSurface(pl, existing).some(e => { const it = itemOf(e, items); return !it || overlaps(b, bounds(e, it)); });
+    if (!best || (best.taken && !taken) || (best.taken === taken && d < best.d)) best = { mount: m, taken, d };
+  }
+  return best && { mount: best.mount, taken: best.taken };
 }
