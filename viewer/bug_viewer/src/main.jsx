@@ -8,7 +8,7 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -220,6 +220,7 @@ function App() {
         if (e.code === 'Period' || e.code === 'Comma') { game.buildMode = { ...bm, item: nextCatItem(bm.item, e.code === 'Period' ? 1 : -1) }; say(`${buildById[game.buildMode.item].cat}: ${buildById[game.buildMode.item].name}`); return; }
         if (e.code === 'KeyR') { game.buildMode = { ...bm, ry: ((bm.ry || 0) + Math.PI / 4) % (Math.PI * 2) }; return; }
         if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } return; }
+        if (e.code === 'KeyX' && e.shiftKey) { const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) storeProp(n[0].uid); else say('Nothing to store here.'); return; }
         if (e.code === 'KeyX') { const o = nearestOpening(bm.x, bm.z), n0 = game.props.map(q => Math.hypot(q.x - bm.x, q.z - bm.z)).sort((a, b) => a - b)[0]; if (o && o.d < 2.5 && (n0 === undefined || o.d <= n0)) { closeOpening(o.key); return; } const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }

@@ -9,6 +9,7 @@ import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { upgradeLevel } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
+import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -206,7 +207,7 @@ export function migrateGrid() {
 }
 /** seed Walt's movable fixtures once per save, in batches: old saves (fixtures: true, from before V2 existed) only get the new batch */
 export function ensureStarterFixtures() {
-  const v = game.home.fixturesV ?? (game.home.fixtures ? 1 : 0); if (v >= 2) return;
+  const v = seededV(game.home); if (v >= 2) return;
   let uid = Math.max(0, ...game.props.map(p => p.uid));
   const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : [])];
   const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
@@ -220,7 +221,29 @@ export function startMove(x, z) {
   game.buildMode = { ...game.buildMode, item: p.id, ry: p.ry || 0, moving: { uid: p.uid, x: p.x, z: p.z, ry: p.ry || 0 } };
   say(`Moving the ${buildById[p.id].name.toLowerCase()}: look where it goes, E to put it down, B to cancel`); return true;
 }
+/** Stage 4a: stored props live in game.home.stored (saved with home; absent in old saves) */
+export const storedProps = () => storedOf(game.home);
+export function storeProp(uidN) {
+  const p = game.props.find(q => q.uid === uidN); if (!p) return false;
+  if (isPiece(p.id)) { say('Building pieces cannot be stored: take them down with X.'); return false; }
+  const r = storeMove(game.props, storedProps(), uidN); game.props = r.props; game.home = { ...game.home, stored: r.stored };
+  game.propsV = (game.propsV || 0) + 1; save(); say(`Stored the ${buildById[p.id].name.toLowerCase()} (take it out from the build menu, B)`); return true;
+}
+/** put a stored prop back on the property; returns '' on success or the reason it cannot go there */
+export function unstoreProp(uidN, x, z, ry) {
+  const p = storedProps().find(q => q.uid === uidN); if (!p) return 'Not in storage.';
+  const why = placeWhy(buildById[p.id], x, z, true); if (why) return why;
+  const r = unstoreMove(game.props, storedProps(), uidN, x, z, ry); game.props = r.props; game.home = { ...game.home, stored: r.stored };
+  game.propsV = (game.propsV || 0) + 1; save(); return '';
+}
+/** build menu: pick a stored item to place; reuses the move ghost (E / click sets it down) */
+export function startPlaceStored(uidN) {
+  const p = storedProps().find(q => q.uid === uidN); if (!p) return false;
+  game.buildMode = { ...game.buildMode, item: p.id, ry: p.ry || 0, moving: { uid: p.uid, x: 0, z: 0, ry: p.ry || 0, stored: true } };
+  say(`Placing the ${buildById[p.id].name.toLowerCase()} from storage: E to put it down, B to cancel`); return true;
+}
 export function movePropTo(uidN, x, z, ry) {
+  if (storedProps().some(q => q.uid === uidN) && !game.props.some(q => q.uid === uidN)) { const w = unstoreProp(uidN, x, z, ry); if (w) { say(w); return false; } say('Placed from storage'); return true; }
   const p = game.props.find(q => q.uid === uidN), item = p && buildById[p.id]; if (!item) return false;
   const why = placeWhy(item, x, z, true); if (why) { say(why); return false; }
   game.props = game.props.map(q => (q.uid === uidN ? { ...q, x, z, ry } : q)); game.propsV = (game.propsV || 0) + 1; save();
@@ -232,8 +255,7 @@ export function removeProp(uidN) {
     const l = homeLocal(p.x, p.z), all = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot, uid: q.uid }; });
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
-  if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
-  const back = p.free ? 0 : Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 1);   // 100% back (canon #024)   // built in creative mode: nothing back
+  const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };

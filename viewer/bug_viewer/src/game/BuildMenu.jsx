@@ -2,7 +2,7 @@
 // picker, and a hotbar (1-8). Plus the in-world placement HUD shown while you hold a piece.
 import React from 'react';
 import { game, useGame } from './store.js';
-import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar } from './home.js';
+import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar, storedProps, startPlaceStored } from './home.js';
 import { MATERIALS, DEFAULT_MAT, matName, piecePrice, nextMat } from '../worlds/structures.js';
 import { iconOf } from './icons.js';
 import { creative } from './settings.js';
@@ -59,7 +59,7 @@ export function BuildMenu({ onPick, onClose }) {
     <div className="bm-body">
       <nav className="bm-cats">{BUILD_CATS.map(c => { const first = BUILD_ITEMS.find(b => b.cat === c);
         return <button key={c} className={!query && c === cat ? 'on' : ''} onClick={() => { setCat(c); setQ(''); setSel(first.id); }}><Icon id={first.id} mat={mat} /><span>{c}</span><em>{BUILD_ITEMS.filter(b => b.cat === c).length}</em></button>; })}</nav>
-      <section className="bm-list">{groups.length ? groups.map(([c, list], gi) => <div key={c}>
+      <section className="bm-list">{storedProps().length > 0 && <div><h4 className="bm-sec">Stored</h4><div className="bm-grid">{storedProps().map(p => <button key={p.uid} className="bm-tile" onClick={() => { if (startPlaceStored(p.uid)) onClose(); }}><Icon id={p.id} /><span className="bm-tname">{shortName(buildById[p.id])}</span><span className="bm-tprice">Place</span></button>)}</div></div>}{groups.length ? groups.map(([c, list], gi) => <div key={c}>
         <h4 className="bm-sec"><b>{gi + 1}.</b> {c}</h4>
         <div className="bm-grid">{list.map(it => { const p = priceFor(it, mat), slot = hotbar().findIndex(e => e?.id === it.id);
           return <button key={it.id} className={`bm-tile${it.id === sel ? ' on' : ''}${game.cash < p ? ' poor' : ''}`} onMouseEnter={() => setHover(it.id)} onMouseLeave={() => setHover(h => (h === it.id ? null : h))} onClick={() => { setSel(it.id); onPick(it.id, mat); }}>
