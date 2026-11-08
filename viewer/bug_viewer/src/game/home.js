@@ -184,7 +184,7 @@ export function nearestOpening(x, z) {
 export function closeOpening(key) {
   const wasFree = (game.home.freeOpenings || []).includes(key);
   game.home = { ...game.home, openings: openingKeys().filter(k => k !== key), freeOpenings: (game.home.freeOpenings || []).filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
-  const back = wasFree ? 0 : Math.round(OPENING_PRICE * 0.5); addCash(back); save(); say(`Closed the doorway (+$${back})`);
+  const back = wasFree ? 0 : OPENING_PRICE; addCash(back); save(); say(`Closed the doorway (+$${back})`);
 }
 /** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased).
  *  Batched by when each batch was added, so old saves pick up new batches without re-seeding what's already there. */
