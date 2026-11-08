@@ -28,7 +28,7 @@ export const metalTex = (base, seed = 5) => canvasTex(256, 256, (g, w, h) => {
 }, [1, 1]);
 const Box = ({ p, s, color = '#888', map, rough = 0.9, metal = 0, emissive, ei = 0, cast = true, rot }) =>
   <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={s} /><meshStandardMaterial color={color} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={ei} /></mesh>;
-const Tire = ({ p, r = 0.38, w = 0.28, rim = '#9aa0a4', rot = [Math.PI / 2, 0, 0] }) => <group position={p} rotation={rot}>
+export const Tire = ({ p, r = 0.38, w = 0.28, rim = '#9aa0a4', rot = [Math.PI / 2, 0, 0] }) => <group position={p} rotation={rot}>
   <mesh castShadow><cylinderGeometry args={[r, r, w, 20]} /><meshStandardMaterial color="#141414" roughness={0.95} /></mesh>
   <mesh position={[0, w * 0.52, 0]}><cylinderGeometry args={[r * 0.62, r * 0.62, 0.02, 18]} /><meshStandardMaterial color={rim} metalness={0.7} roughness={0.4} /></mesh></group>;
 
@@ -75,7 +75,7 @@ function CarLift() {
   </group>;
 }
 /** stuff on a shelf: oil quarts, jerry cans, paint, a spare rim, a battery, a coffee can of bolts */
-function ShelfStuff({ kind, p }) {
+export function ShelfStuff({ kind, p }) {
   if (kind === 'oil') return <group position={p}>{Array.from({ length: 6 }, (_, i) => <mesh key={i} position={[0, 0.1, i * 0.12 - 0.3]} castShadow><boxGeometry args={[0.08, 0.2, 0.1]} /><meshStandardMaterial color={['#e8b43a', '#2b6cb0', '#e8b43a'][i % 3]} roughness={0.4} /></mesh>)}</group>;
   if (kind === 'jerry') return <group position={p}>{[0, 0.38].map(z => <group key={z} position={[0, 0, z]}><mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.34, 0.4, 0.17]} /><meshStandardMaterial color={z ? '#2f6b3a' : '#a9281e'} metalness={0.3} roughness={0.5} /></mesh><mesh position={[0.09, 0.43, 0]}><boxGeometry args={[0.12, 0.06, 0.05]} /><meshStandardMaterial color="#222" /></mesh></group>)}</group>;
   if (kind === 'paint') return <group position={p}>{Array.from({ length: 5 }, (_, i) => <mesh key={i} position={[0, 0.1 + (i > 2 ? 0.2 : 0), (i % 3) * 0.2 - 0.2]} castShadow><cylinderGeometry args={[0.085, 0.085, 0.19, 14]} /><meshStandardMaterial color={['#c9c4b6', '#7a2f26', '#2f4a63', '#cfc8b8', '#3f6b3a'][i]} metalness={0.5} roughness={0.45} /></mesh>)}</group>;
@@ -170,13 +170,7 @@ function Garage() {
       <group position={[0, 0.45, 1.5]}><ProcEngine stockExhaust={false} /></group>
     </group>
     {/* left shelves: tires + rims; right shelves: oil, jerry cans, paint, a spare rim, a battery */}
-    {[0.55, 1.45, 2.35].map((y, i) => <group key={i}>
-      <Box p={[-w + 0.5, y, -0.2]} s={[0.8, 0.06, 7.4]} color="#4a4f52" metal={0.5} />
-      <Box p={[w - 0.5, y, -0.9]} s={[0.8, 0.06, 6.6]} color="#4a4f52" metal={0.5} />
-    </group>)}
-    {[-3.4, 3.2].map(z => [-w + 0.1, w - 0.1].map((x, k) => <Box key={z + '' + k} p={[x, 1.4, z]} s={[0.08, 2.8, 0.08]} color="#d9962f" metal={0.4} />))}
-    {[-3.2, -1.7, -0.2, 1.3, 2.8].map((z, i) => <Tire key={i} p={[-w + 0.5, 0.95 + (i % 2) * 0.9, z]} r={0.36 + (i % 3) * 0.03} rim={['#9aa0a4', '#d9962f', '#2b2b2b', '#b8bcc0', '#cf3e2f'][i]} rot={[0, 0, Math.PI / 2]} />)}
-    {[['oil', 0.58, -3.4], ['jerry', 0.58, -0.9], ['battery', 0.58, 1.4], ['paint', 1.48, -3.2], ['rim', 1.78, -1.0], ['bolts', 1.48, 1.2], ['oil', 2.38, -2.2], ['paint', 2.38, 0.6]].map(([k, y, z], i) => <ShelfStuff key={i} kind={k} p={[w - 0.5, y, z]} />)}
+    {/* the wall shelving is now movable props (game/home.js starter fixtures, worlds/Home.jsx PropModel) */}
     <Tire p={[-5.2, 0.26, 4.6]} rot={[0, 0, 0]} /><Tire p={[-5.2, 0.54, 4.6]} rot={[0, 0, 0]} rim="#cf3e2f" /><Tire p={[-5.15, 0.82, 4.62]} rot={[0, 0, 0]} />
     <mesh position={[1.4, 0.123, -1.4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.8, 20]} /><meshBasicMaterial color="#17120d" transparent opacity={0.3} depthWrite={false} /></mesh>
     {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.3, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>)}

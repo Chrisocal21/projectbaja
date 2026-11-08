@@ -62,6 +62,8 @@ export const BUILD_ITEMS = [
   { id: 'gate', name: 'Ranch gate', price: 110, zone: 'yard', r: 0, cat: 'Fences', len: 4 },
   { id: 'floodlight', name: 'Floodlight pole', price: 120, zone: 'yard', r: 0.3, cat: 'Yard' },
   { id: 'yardRack', name: 'Steel parts rack', price: 150, zone: 'any', r: 0.6, cat: 'Storage', note: 'More shelf room for parts' },
+  { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: move it with V" },
+  { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. Move it with V' },
   { id: 'toolChest', name: 'Rolling tool chest', price: 260, zone: 'garage', r: 0.5, cat: 'Storage' },
   { id: 'lift', name: 'Two-post car lift', price: 1800, zone: 'garage', r: 0, cat: 'Garage', note: 'Work under the car (coming soon)' },
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
@@ -89,7 +91,7 @@ export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos
 const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m);
 export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return Math.abs(lx) < PROPERTY.w / 2 && Math.abs(lz - 8) < PROPERTY.d / 2 + 6; };
 /** can this item go here? → '' or why not */
-export function placeWhy(item, x, z) {
+export function placeWhy(item, x, z, moving = false) {
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
   if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
@@ -102,7 +104,7 @@ export function placeWhy(item, x, z) {
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
   if (inG && item.zone !== 'yard' && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
-  if (game.cash < item.price) return `Not enough cash ($${item.price}).`;
+  if (!moving && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
 }
 export function placeProp(id, x, z, ry) {
@@ -111,16 +113,48 @@ export function placeProp(id, x, z, ry) {
   game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name} (−$${item.price})`); return true;
 }
+/** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased) */
+export const STARTER_FIXTURES = [
+  ['shelfTires', -6.5, -2.4, Math.PI / 2], ['shelfTires', -6.5, 0, Math.PI / 2], ['shelfTires', -6.5, 2.4, Math.PI / 2],
+  ['shelfSupplies', 6.5, -3.0, -Math.PI / 2], ['shelfSupplies', 6.5, -0.6, -Math.PI / 2],
+];
+/** seed the movable wall shelving once per save (new games and saves from before they were movable) */
+export function ensureStarterFixtures() {
+  if (game.home.fixtures) return;
+  let uid = Math.max(0, ...game.props.map(p => p.uid));
+  const add = STARTER_FIXTURES.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
+  game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
+  game.home = { ...game.home, fixtures: true }; save();
+}
+const propHit = (x, z, max) => game.props.map(q => [q, Math.hypot(q.x - x, q.z - z)]).filter(([, d]) => d < max).sort((a, b) => a[1] - b[1])[0]?.[0];
+/** build mode, V: pick the nearest placed thing up to move it (free). It stays where it is until you put it down. */
+export function startMove(x, z) {
+  const p = propHit(x, z, 3.5); if (!p) { say('Nothing to move here.'); return false; }
+  game.buildMode = { ...game.buildMode, item: p.id, ry: p.ry || 0, moving: { uid: p.uid, x: p.x, z: p.z, ry: p.ry || 0 } };
+  say(`Moving the ${buildById[p.id].name.toLowerCase()}: look where it goes, E to put it down, B to cancel`); return true;
+}
+export function movePropTo(uidN, x, z, ry) {
+  const p = game.props.find(q => q.uid === uidN), item = p && buildById[p.id]; if (!item) return false;
+  const why = placeWhy(item, x, z, true); if (why) { say(why); return false; }
+  game.props = game.props.map(q => (q.uid === uidN ? { ...q, x, z, ry } : q)); game.propsV = (game.propsV || 0) + 1; save();
+  say(`Moved the ${item.name.toLowerCase()}`); return true;
+}
 export function removeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return;
+  if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
   const back = Math.round(buildById[p.id].price * 0.5);
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };
-/** colliders for props you have built: [x, z, r, top] */
+/** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
 export function propObstacles() {
-  const v = game.propsV || 0;
-  if (cache.v !== v || cache.n !== game.props.length) cache = { v, n: game.props.length, list: game.props.filter(p => buildById[p.id]?.r > 0).map(p => [p.x, p.z, buildById[p.id].r, 99]) };
+  const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0;
+  if (cache.v !== v || cache.n !== game.props.length || cache.mv !== mv) cache = { v, mv, n: game.props.length, list: game.props.filter(p => p.uid !== mv && buildById[p.id]?.r > 0).flatMap(p => {
+    const it = buildById[p.id], ry = p.ry || 0;
+    if (!it.len) return [[p.x, p.z, it.r, 99]];
+    const n = Math.ceil(it.len / 0.8), c = Math.cos(ry), s = Math.sin(ry);
+    return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });
+  }) };
   return cache.list;
 }
 

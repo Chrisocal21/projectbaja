@@ -253,3 +253,14 @@ Tested build mode in Chromium and by probing `placeWhy` at 14 spots for all 21 i
 - **Bug fixed: the drive lane was only protected to 25 m.** Solid items are now refused along the whole lane (`LANE`, 40 m).
 - **Menu:** the bar shows all categories and the items in the current one; `,` and `.` jump category (the `[ ]` keys and wheel still step item by item). A hint in the bar and in the HUD.
 - 45/45 tests (a new one covers the wing's free floor), build passes.
+
+## November 8, 2026: move things around the garage
+
+Chris wants to move racks and other things in the garage.
+
+- **Move mode:** in build mode, V picks up the nearest placed thing (within 3.5 m) and shows it as a ghost; look where it goes, rotate with R, E or click puts it down, B cancels and it stays put. Moving is free, uses the same placement rules as building, and changes nothing until you put it down (`startMove` / `movePropTo` in `game/home.js`).
+- **Walt's wall shelving is now movable.** The fixed shelving and its stock are gone from the garage model; new items `shelfTires` and `shelfSupplies` (2.4 m units, Storage category, buyable for $140/$120) replace them. Five are seeded as starter fixtures once per save (3 tire/rim units on the left wall, 2 supply units on the right), including saves from before this change (`ensureStarterFixtures`).
+- Starter fixtures can be moved but not scrapped (X refuses, no refund), so nothing of the inherited garage can be erased.
+- Long items get a row of collision circles along their length and rotate with the item (`propObstacles`).
+- Checked in Chromium: new game seeds the five shelves; picking one up, rotating and placing it at a new spot; refusal in the car spot; cancel; X refused on Walt's shelves; position kept after reload. 45/45 tests, build passes.
+- Not movable yet: the workbench and pegboard (the workbench is the part-fitting spot and holds the letter), the lift, the engine stand, the compressor, and the tire stack. Asked Chris which to convert next.

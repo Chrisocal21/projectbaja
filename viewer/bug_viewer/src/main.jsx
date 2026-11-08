@@ -8,7 +8,7 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, toggleOpen, nextCatItem, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, nextCatItem, startMove, movePropTo, ensureStarterFixtures, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -92,6 +92,7 @@ function App() {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
+    ensureStarterFixtures();   // Walt's wall shelving: movable props, seeded once per save
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h;
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
     Object.assign(game, { dev: false, onFoot: true, open: new Set(), start: 'garage', walkStart: cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, fueled: false, buildMode: null });
@@ -185,11 +186,13 @@ function App() {
       const bm = game.buildMode;
       if (bm && p === null && !e.repeat) {   // build mode keys (you keep walking around while building)
         const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), cyc = d => { game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
+        if ((e.code === 'KeyB' || e.code === 'Escape') && bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); return; }
         if (e.code === 'KeyB' || e.code === 'Escape') { game.buildMode = null; say('Build mode off'); return; }
+        if (e.code === 'KeyV') { if (!bm.moving && bm.x !== undefined) startMove(bm.x, bm.z); return; }
         if (e.code === 'BracketRight') return cyc(1); if (e.code === 'BracketLeft') return cyc(-1);
         if (e.code === 'Period' || e.code === 'Comma') { game.buildMode = { ...bm, item: nextCatItem(bm.item, e.code === 'Period' ? 1 : -1) }; say(`${buildById[game.buildMode.item].cat}: ${buildById[game.buildMode.item].name}`); return; }
         if (e.code === 'KeyR') { game.buildMode = { ...bm, ry: ((bm.ry || 0) + Math.PI / 4) % (Math.PI * 2) }; return; }
-        if (e.code === 'KeyE') { if (bm.x !== undefined) placeProp(bm.item, bm.x, bm.z, bm.ry || 0); return; }
+        if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0); } return; }
         if (e.code === 'KeyX') { const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) { game.buildMode = { item: BUILD_ITEMS[0].id, ry: 0 }; say('Build mode — walk around to place, [ ] or the mouse wheel to pick, E to build'); } else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
@@ -205,7 +208,7 @@ function App() {
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), d = e.deltaY > 0 ? 1 : -1; game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
-    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) placeProp(bm.item, bm.x, bm.z, bm.ry || 0); };
+    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0); } };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click);
     return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); };
   }, [mode]);
@@ -308,7 +311,7 @@ function App() {
     <LoadingScreen />
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     {game.onFoot && <div className="crosshair" />}
-    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · [ ] item · , . category · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
+    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · V move · [ ] item · , . category · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
     <HudOverlay />
     <BuildBar />
     {pro && <ProDebug />}

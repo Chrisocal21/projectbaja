@@ -7,7 +7,7 @@ import { junkWorld, isCleared, buildById, placeWhy, trailerHas, RACECAR, SCRAP_H
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
-import { wood, metalTex } from './Sites.jsx';
+import { wood, metalTex, Tire as ShelfTire, ShelfStuff } from './Sites.jsx';
 import { useGLTF, RoundedBox } from '@react-three/drei';
 import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
@@ -343,6 +343,13 @@ export function PropModel({ id, T }) {
     case 'gate': return <>{[-2, 2].map(x => <P key={x} p={[x, 0.75, 0]} s={[0.2, 1.5, 0.2]} map={T.oldWood} c="#8a7458" />)}{[0.4, 0.78, 1.16].map(y => <P key={y} p={[0, y, 0]} s={[3.8, 0.07, 0.05]} c="#8d9396" m={0.6} r={0.4} />)}<P p={[0, 0.78, 0]} s={[4.2, 0.05, 0.05]} c="#8d9396" m={0.6} rot={[0, 0, 0.19]} /></>;
     case 'floodlight': return <><C p={[0, 3, 0]} a={[0.07, 0.11, 6, 10]} c="#7c8083" m={0.6} r={0.4} /><P p={[0, 6.05, 0.15]} s={[0.9, 0.08, 0.1]} c="#555" m={0.5} />{[-0.3, 0.3].map(x => <group key={x} position={[x, 6.05, 0.3]} rotation={[0.5, 0, 0]}><P p={[0, 0, 0]} s={[0.38, 0.3, 0.16]} c="#3a3d40" m={0.5} /><mesh position={[0, 0, 0.085]}><planeGeometry args={[0.32, 0.24]} /><meshStandardMaterial color="#fff6dc" emissive="#fff2d0" emissiveIntensity={2.5} /></mesh></group>)}<pointLight position={[0, 5.6, 1.2]} intensity={70} distance={28} decay={1.5} color="#fff2d6" /></>;
     case 'yardRack': return <>{[-1, 1].flatMap(x => [-0.4, 0.4].map(z => <P key={x + '' + z} p={[x, 1.1, z]} s={[0.07, 2.2, 0.07]} c="#2f5f9e" m={0.5} r={0.5} />))}{[0.3, 1.1, 1.9].map(y => <P key={y} p={[0, y, 0]} s={[2.1, 0.05, 0.9]} c="#d9962f" m={0.4} r={0.5} />)}{[[-0.6, 0.48, 0.5], [0.4, 0.5, 0.6], [-0.3, 1.3, 0.55], [0.6, 1.26, 0.4]].map(([x, y, w], i) => <P key={'b' + i} p={[x, y, 0]} s={[w, 0.32, 0.5]} c={['#b58b55', '#a9854f', '#c29a62'][i % 3]} r={1} />)}</>;
+    case 'shelfTires': case 'shelfSupplies': return <>
+      {[-1.15, 1.15].flatMap(x => [-0.35, 0.35].map(z => <P key={x + '' + z} p={[x, 1.4, z]} s={[0.07, 2.8, 0.07]} c="#d9962f" m={0.4} r={0.5} />))}
+      {[0.55, 1.45, 2.35].map(y => <P key={y} p={[0, y, 0]} s={[2.4, 0.06, 0.8]} c="#4a4f52" m={0.5} r={0.5} />)}
+      {id === 'shelfTires'
+        ? <>{[-0.8, 0, 0.8].map((x, i) => <ShelfTire key={i} p={[x, 0.95, 0]} r={0.36} rim={['#9aa0a4', '#d9962f', '#2b2b2b'][i]} />)}{[-0.5, 0.5].map((x, i) => <ShelfTire key={'u' + i} p={[x, 1.85, 0]} r={0.38} rim={['#b8bcc0', '#cf3e2f'][i]} />)}</>
+        : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.4], ['paint', 2.38, 0.6]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
+    </>;
     case 'toolChest': return <><P p={[0, 0.55, 0]} s={[1.2, 0.95, 0.55]} c="#b3261e" map={T.red} m={0.4} r={0.45} />{[0.2, 0.38, 0.56, 0.74, 0.9].map(y => <React.Fragment key={y}><P p={[0, y, 0.28]} s={[1.12, 0.012, 0.012]} c="#4a1410" /><P p={[0, y + 0.06, 0.29]} s={[0.5, 0.025, 0.025]} c="#d8d8d8" m={0.8} r={0.3} /></React.Fragment>)}<P p={[0, 1.1, 0]} s={[1.0, 0.22, 0.5]} c="#c22d24" map={T.red} m={0.4} r={0.45} />{[-0.5, 0.5].flatMap(x => [-0.22, 0.22].map(z => <C key={x + '' + z} p={[x, 0.05, z]} a={[0.05, 0.05, 0.04, 10]} c="#222" rot={[Math.PI / 2, 0, 0]} />))}</>;
     case 'lift': return <>{[-1.55, 1.55].map(x => <React.Fragment key={x}><P p={[x, 1.9, 0]} s={[0.32, 3.8, 0.42]} c="#c8372b" map={T.red} m={0.3} r={0.5} /><P p={[x, 0.03, 0]} s={[0.7, 0.06, 0.7]} c="#555" m={0.5} /><P p={[x * 0.62, 0.45, 0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? 0.45 : -0.45, 0]} /><P p={[x * 0.62, 0.45, -0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? -0.45 : 0.45, 0]} /></React.Fragment>)}<P p={[0, 3.85, 0]} s={[3.5, 0.18, 0.28]} c="#c8372b" map={T.red} m={0.3} /><P p={[1.55, 1.5, 0.25]} s={[0.25, 0.35, 0.12]} c="#2b2b2b" /></>;
     case 'engineStand': return <><P p={[0, 0.06, 0]} s={[1, 0.08, 0.1]} c="#c8372b" /><P p={[0, 0.06, 0]} s={[0.1, 0.08, 0.8]} c="#c8372b" /><C p={[0, 0.5, 0]} a={[0.05, 0.05, 0.9, 8]} c="#c8372b" /><P p={[0.25, 0.92, 0]} s={[0.4, 0.1, 0.1]} c="#c8372b" /><C p={[0.46, 0.92, 0]} a={[0.16, 0.16, 0.03, 16]} c="#666" m={0.6} rot={[0, 0, Math.PI / 2]} /></>;
@@ -381,7 +388,7 @@ function Ghost({ T }) {
     if (!item || !ref.current || !game.buildMode || !inner.current) return;
     ghostify(inner.current, mats); mats.pulse(clock.elapsedTime, true);
     const d = 4 + (item.len || 0) * 0.5, x = Math.round((camera.position.x + game.face.x * d) * 2) / 2, z = Math.round((camera.position.z + game.face.z * d) * 2) / 2;
-    const ry = game.buildMode.ry || 0, why = placeWhy(item, x, z);
+    const ry = game.buildMode.ry || 0, why = placeWhy(item, x, z, !!game.buildMode.moving);
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);
     if (game.buildMode.x !== x || game.buildMode.z !== z || game.buildMode.why !== why) { game.buildMode = { ...game.buildMode, x, z, why }; emit(); }
@@ -405,7 +412,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.map(p => <group key={p.uid} position={[p.x, groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} /></group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} /></group>)}
     <Customer />
     <Ghost T={T} />
   </>;

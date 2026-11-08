@@ -29,7 +29,7 @@ const solid = [];
 // garage walls + furniture
 solid.push(...wall(G, [-GAR_W, -GAR_D], [GAR_W, -GAR_D]), ...wall(G, [GAR_W, -GAR_D], [GAR_W, GAR_D]), ...wall(G, [-GAR_W, -GAR_D], [-GAR_W, OFFICE.inner.z0 - 0.6]), ...wall(G, [-GAR_W, OFFICE.inner.z1 + 0.6], [-GAR_W, GAR_D]),
   ...wall(G, [-GAR_W, GAR_D], [-GAR_DOOR, GAR_D]), ...wall(G, [GAR_DOOR, GAR_D], [GAR_W, GAR_D]),
-  ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5), ...wall(G, [-6.2, -3.6], [-6.2, 2.4], 0.5), ...wall(G, [6.2, -4.2], [6.2, 2.4], 0.5),
+  ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5),
   blob(G, -1.65, -0.5, 0.3), blob(G, 1.65, -0.5, 0.3), blob(G, -4.3, 0.9, 0.55), blob(G, 0.3, -5.4, 0.45), blob(G, -5.2, 4.6, 0.45));   // lift posts, engine stand, compressor, tire stack
 // the office: back, far and front walls (the shared wall is the garage's, above); street door in the front face
 solid.push(...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x1, OFFICE.z0], 0.2, 0.3), ...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x0, OFFICE.z1], 0.2, 0.3),

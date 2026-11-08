@@ -62,9 +62,9 @@ export function BuildBar() {
   return <div className="build-bar">
     <div className="bb-cats">{BUILD_CATS.map(c => <span key={c} className={c === it.cat ? 'on' : ''}>{c}</span>)}</div>
     <div className="bb-cat">{BUILD_ITEMS.filter(b => b.cat === it.cat).map(b => <span key={b.id} className={b.id === it.id ? 'on' : ''}>{b.name.replace(/ \(.*\)/, '')}</span>)}</div>
-    <div className="bb-item"><b>{it.name}</b> <span className="price">${it.price.toLocaleString()}</span>{it.note && <small>{it.note}</small>}</div>
-    <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || 'E / click — build here'}</div>
-    <div className="bb-keys">Wheel / [ ] — item · , . — category · R — rotate · X — take down the nearest build (50% back) · B — done</div>
+    <div className="bb-item"><b>{it.name}</b> {bm.moving ? <span className="price">moving: free</span> : <span className="price">${it.price.toLocaleString()}</span>}{it.note && !bm.moving && <small>{it.note}</small>}</div>
+    <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || (bm.moving ? 'E / click — put it down here · B — cancel' : 'E / click — build here')}</div>
+    <div className="bb-keys">Wheel / [ ] — item · , . — category · R — rotate · V — pick up the nearest to move it · X — take down the nearest build (50% back) · B — done</div>
   </div>;
 }
 
