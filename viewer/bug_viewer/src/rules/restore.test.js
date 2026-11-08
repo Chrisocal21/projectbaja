@@ -42,6 +42,18 @@ test('detach respects reverse dependencies', () => {
   assert.equal(checkDetach(BUG, full, slotById(BUG, 'steering'), at('driver', ['doorL'])).ok, true);
 });
 
+test('blocked checks name the blocking slots and a code (assembly guide §9.3)', () => {
+  const b = { hidden: ['dash', 'steering'], stripped: ['battery'] };
+  const st = checkFit(BUG, b, slotById(BUG, 'steering'), at('driver'));
+  assert.equal(st.code, 'blocked'); assert.deepEqual(st.blockers, ['dash']);
+  const shut = checkFit(BUG, b, slotById(BUG, 'battery'), at('rear'));
+  assert.equal(shut.code, 'cover_shut'); assert.deepEqual(shut.blockers, ['engineLid']);
+  assert.equal(checkFit(BUG, full, slotById(BUG, 'dash'), at('driver')).code, 'full');
+  assert.equal(checkFit(BUG, b, slotById(BUG, 'battery'), at('rear', ['engineLid'])).code, 'ok');
+  const dd = checkDetach(BUG, full, slotById(BUG, 'dash'), at('driver'));
+  assert.equal(dd.code, 'blocked'); assert.ok(dd.blockers.includes('steering') && dd.blockers.includes('windshield'));
+});
+
 test('withSlot toggles pieces and stripped parts without mutating', () => {
   const b = withSlot(BUG, full, 'battery', false), c = withSlot(BUG, b, 'hoodPanel', false);
   assert.deepEqual(full, { hidden: [], stripped: [] });

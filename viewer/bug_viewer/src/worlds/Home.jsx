@@ -8,6 +8,9 @@ import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
 import { wood, metalTex } from './Sites.jsx';
+import { useGLTF, RoundedBox } from '@react-three/drei';
+import { rimGeometry } from '../Rims.jsx';
+import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
 
 /** Grandpa's place around the garage: his trailer, windmill and tank, his old race car, the junk you clear, customers' cars, and everything you build. */
@@ -70,42 +73,102 @@ function Tank({ T }) {
 // ---------------- grandpa's #7 desert racer: under a tarp until you pull it off ----------------
 function RaceCar({ T }) {
   useGame();
-  const open = !!game.home.raceCar, left = boxItems('racecar'), wheels = left.some(i => i.kind === 'wheel'), shocks = left.some(i => i.kind === 'part');
-  const W = [[0.86, 1.38], [-0.86, 1.38], [0.86, -1.32], [-0.86, -1.32]];
+  const open = !!game.home.raceCar, left = boxItems('racecar'), wheels = left.some(i => i.kind === 'wheel'), rims = left.some(i => i.kind === 'rim'), shocks = left.some(i => i.kind === 'part');
+  const W = [[0.92, 1.2], [-0.92, 1.2], [0.92, -1.15], [-0.92, -1.15]];
   if (!open) return <group position={[RACECAR.lx, 0, RACECAR.lz]} rotation={[0, RACECAR.ry, 0]}>
     <mesh position={[0, 0.85, 0]} scale={[1.08, 0.62, 2.25]} castShadow receiveShadow><sphereGeometry args={[1, 20, 14]} /><M c="#4f6b86" r={0.95} /></mesh>
     <mesh position={[0, 1.25, -0.1]} scale={[0.75, 0.45, 0.85]} castShadow><sphereGeometry args={[1, 16, 12]} /><M c="#55728d" r={0.95} /></mesh>
-    {W.map(([x, z], i) => <mesh key={i} position={[x, 0.42, z]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.44, 0.44, 0.34, 18]} /><M c="#1a1a1a" r={0.95} /></mesh>)}
+    {W.map(([x, z], i) => <mesh key={i} position={[x, 0.52, z]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.52, 0.52, 0.38, 18]} /><M c="#1a1a1a" r={0.95} /></mesh>)}
     {[[-0.9, 0.05, 1.9], [1.1, 0.05, -1.5], [0.2, 0.05, 2.3]].map((p, i) => <B key={i} p={p} s={[0.3, 0.1, 0.22]} c="#8a8a84" r={1} />)}
   </group>;
-  const frame = '#c8c4b8', panel = '#e8e2d0';
+  const steel = '#4b3a2d', arm = '#3a3330', R = 0.52, L = [[0.92, 1.2], [-0.92, 1.2], [0.92, -1.15], [-0.92, -1.15]];
+  const tb = (a, b, r = 0.03, c = steel) => <Tube a={a} b={b} r={r} c={c} m={0.45} />;
+  const hood = Math.atan2(0.25, 1.15), seven = sevenTex();
   return <group position={[RACECAR.lx, 0, RACECAR.lz]} rotation={[0, RACECAR.ry, 0]}>
     <mesh position={[1.9, 0.18, 0.3]} scale={[0.7, 0.2, 1.1]} castShadow><sphereGeometry args={[1, 12, 8]} /><M c="#4f6b86" r={0.95} /></mesh>
-    <group position={[0, wheels ? 0 : -0.06, 0]}>
+    <group position={[0, wheels ? 0 : -0.08, 0]}>
       {[-1, 1].map(s => <React.Fragment key={s}>
-        <Tube a={[s * 0.5, 0.42, 1.9]} b={[s * 0.5, 0.42, -1.9]} r={0.03} c={frame} />
-        <Tube a={[s * 0.48, 0.42, 0.55]} b={[s * 0.42, 1.48, 0.15]} c={frame} /><Tube a={[s * 0.48, 0.42, -0.65]} b={[s * 0.42, 1.48, -0.45]} c={frame} />
-        <Tube a={[s * 0.42, 1.48, 0.15]} b={[s * 0.42, 1.48, -0.45]} c={frame} />
-        <Tube a={[s * 0.5, 0.42, 1.9]} b={[s * 0.46, 0.85, 1.25]} c={frame} /><Tube a={[s * 0.46, 0.85, 1.25]} b={[s * 0.45, 1.3, 0.3]} c={frame} />
-        <Tube a={[s * 0.5, 0.42, -1.9]} b={[s * 0.46, 0.95, -1.55]} c={frame} /><Tube a={[s * 0.46, 0.95, -1.55]} b={[s * 0.44, 1.35, -0.5]} c={frame} />
+        {/* frame rails, belt line and the low boxy cage */}
+        {tb([s * 0.55, 0.5, 1.75], [s * 0.55, 0.5, -1.6], 0.034)}{tb([s * 0.55, 0.95, 0.55], [s * 0.55, 0.95, -1.0])}
+        {tb([s * 0.55, 0.95, 0.55], [s * 0.48, 1.45, 0.05])}{tb([s * 0.48, 1.45, 0.05], [s * 0.48, 1.45, -0.65])}
+        {tb([s * 0.55, 0.5, -0.6], [s * 0.48, 1.45, -0.65], 0.034)}{tb([s * 0.48, 1.45, -0.65], [s * 0.55, 0.95, -1.0])}
+        {tb([s * 0.55, 0.5, 0.55], [s * 0.55, 0.95, 0.55])}{tb([s * 0.55, 0.52, 0.5], [s * 0.55, 0.93, -0.55], 0.026)}
+        {/* rear: engine cradle */}
+        {tb([s * 0.55, 0.95, -1.0], [s * 0.5, 0.78, -1.65])}{tb([s * 0.5, 0.78, -1.65], [s * 0.55, 0.5, -1.6])}
+        {/* front: hood rails down to the nose */}
+        {tb([s * 0.55, 0.95, 0.55], [s * 0.45, 0.7, 1.7])}{tb([s * 0.45, 0.7, 1.7], [s * 0.55, 0.5, 1.75])}
+        {/* shock towers, front and rear */}
+        {tb([s * 0.55, 0.5, 1.25], [s * 0.56, 1.16, 1.2])}{tb([s * 0.56, 1.16, 1.2], [s * 0.55, 0.95, 0.55], 0.026)}{tb([s * 0.56, 1.16, 1.2], [s * 0.47, 0.75, 1.62], 0.026)}
+        {tb([s * 0.55, 0.5, -1.2], [s * 0.56, 1.16, -1.15])}{tb([s * 0.56, 1.16, -1.15], [s * 0.48, 1.45, -0.65], 0.026)}{tb([s * 0.56, 1.16, -1.15], [s * 0.51, 0.78, -1.6], 0.026)}
+        {/* A-arms out to the hubs */}
+        {[1.2, -1.15].map(z => <React.Fragment key={z}>
+          {tb([s * 0.55, 0.52, z + 0.25], [s * 0.76, 0.5, z], 0.026, arm)}{tb([s * 0.55, 0.52, z - 0.25], [s * 0.76, 0.5, z], 0.026, arm)}
+          {tb([s * 0.56, 0.82, z + 0.18], [s * 0.74, 0.68, z], 0.022, arm)}{tb([s * 0.56, 0.82, z - 0.18], [s * 0.74, 0.68, z], 0.022, arm)}
+          <Cyl p={[s * 0.76, 0.58, z]} a={[0.05, 0.05, 0.22, 10]} c={arm} m={0.5} />
+        </React.Fragment>)}
+        {/* the #7 side panel and a seat */}
+        <mesh position={[s * 0.565, 0.73, -0.3]} castShadow><boxGeometry args={[0.02, 0.44, 1.12]} /><meshStandardMaterial map={seven} roughness={0.75} metalness={0.15} /></mesh>
+        <RoundedBox args={[0.38, 0.12, 0.44]} radius={0.05} smoothness={3} position={[s * 0.23, 0.6, -0.1]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
+        <RoundedBox args={[0.38, 0.6, 0.12]} radius={0.05} smoothness={3} position={[s * 0.23, 0.92, -0.38]} rotation={[-0.15, 0, 0]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
       </React.Fragment>)}
-      {[1.9, 0.55, -0.65, -1.9].map(z => <Tube key={z} a={[-0.5, 0.42, z]} b={[0.5, 0.42, z]} c={frame} />)}
-      <Tube a={[-0.42, 1.48, 0.15]} b={[0.42, 1.48, 0.15]} c={frame} /><Tube a={[-0.42, 1.48, -0.45]} b={[0.42, 1.48, -0.45]} c={frame} /><Tube a={[-0.42, 1.48, 0.15]} b={[0.42, 1.48, -0.45]} c={frame} />
-      <mesh position={[0, 0.78, 1.55]} rotation={[0.42, 0, 0]} castShadow><boxGeometry args={[1.0, 0.04, 0.95]} /><M c={panel} map={T.cream} r={0.8} /></mesh>
-      <mesh position={[0, 0.9, -1.45]} rotation={[-0.25, 0, 0]} castShadow><boxGeometry args={[1.25, 0.04, 0.9]} /><M c={panel} map={T.cream} r={0.8} /></mesh>
-      {[-1, 1].map(s => <mesh key={s} position={[s * 0.53, 0.75, 0]} castShadow><boxGeometry args={[0.04, 0.5, 1.2]} /><M c="#b8362a" map={T.red} r={0.85} /></mesh>)}
-      {[-1, 1].map(s => <group key={'n' + s} position={[s * 0.56, 0.78, 0]} rotation={[0, s * Math.PI / 2, 0]}><mesh><circleGeometry args={[0.22, 20]} /><meshStandardMaterial color="#efe6cf" /></mesh><mesh position={[0.02, 0.06, 0.003]} rotation={[0, 0, -0.35]}><planeGeometry args={[0.07, 0.26]} /><meshStandardMaterial color="#1a1a1a" /></mesh><mesh position={[-0.02, 0.17, 0.003]}><planeGeometry args={[0.16, 0.06]} /><meshStandardMaterial color="#1a1a1a" /></mesh></group>)}
-      <B p={[0, 0.62, -0.15]} s={[0.45, 0.5, 0.45]} c="#2b2b2b" />
-      <B p={[0, 0.85, -1.15]} s={[0.7, 0.45, 0.55]} c="#5a4a3a" m={0.4} r={0.9} />
-      {shocks && W.map(([x, z], i) => <group key={'s' + i}><Tube a={[x * 0.8, 0.5, z]} b={[x * 0.62, 1.15, z * 0.82]} r={0.045} c="#c8372b" m={0.4} /><Tube a={[x * 0.8, 0.62, z * 0.97]} b={[x * 0.68, 0.98, z * 0.88]} r={0.065} c="#e8b43a" m={0.6} /></group>)}
+      {[1.75, 1.25, 0.55, -0.6, -1.2, -1.6].map(z => <React.Fragment key={z}>{tb([-0.55, 0.5, z], [0.55, 0.5, z])}</React.Fragment>)}
+      {tb([-0.48, 1.45, 0.05], [0.48, 1.45, 0.05])}{tb([-0.48, 1.45, -0.65], [0.48, 1.45, -0.65])}{tb([-0.48, 1.45, 0.05], [0.48, 1.45, -0.65], 0.024)}
+      {tb([-0.55, 0.95, 0.55], [0.55, 0.95, 0.55])}{tb([-0.45, 0.7, 1.7], [0.45, 0.7, 1.7])}{tb([-0.5, 0.78, -1.65], [0.5, 0.78, -1.65])}
+      {tb([-0.56, 1.16, 1.2], [0.56, 1.16, 1.2], 0.026)}{tb([-0.56, 1.16, -1.15], [0.56, 1.16, -1.15], 0.026)}
+      {/* sloped #7 hood, skid plate */}
+      <mesh position={[0, 0.84, 1.125]} rotation={[hood, 0, 0]} castShadow><boxGeometry args={[1.0, 0.02, 1.18]} /><meshStandardMaterial map={seven} roughness={0.75} metalness={0.15} /></mesh>
+      <B p={[0, 0.5, 1.82]} s={[0.6, 0.3, 0.03]} c="#5a4636" m={0.5} r={0.8} rot={[-0.3, 0, 0]} />
+      {/* roof spotlights */}
+      {[-0.24, 0.24].map(x => <group key={x} position={[x, 1.55, 0.06]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.085, 0.07, 0.12, 16]} /><M c="#2a2a2a" m={0.7} r={0.35} /></mesh>
+        <mesh position={[0, 0, 0.061]}><circleGeometry args={[0.075, 16]} /><meshStandardMaterial color="#efe6c8" emissive="#fff0c0" emissiveIntensity={0.15} /></mesh>
+        <Cyl p={[0, -0.07, 0]} a={[0.012, 0.012, 0.06, 6]} c="#2a2a2a" m={0.6} />
+      </group>)}
+      {/* engine in the rear cradle */}
+      <group position={[0, 0.3, 0.2]}><ProcEngine mods={{ engineBore: 'EMOD_Bore1776' }} stockExhaust={false} /></group>
+      {/* floor, dash, steering */}
+      <B p={[0, 0.52, -0.05]} s={[1.08, 0.02, 1.2]} c="#4a4440" m={0.5} r={0.8} />
+      <B p={[0, 0.98, 0.5]} s={[1.0, 0.18, 0.06]} c="#1d1d1f" r={0.8} rot={[-0.25, 0, 0]} />
+      {[-0.23, 0.23].map(x => <group key={x} position={[x, 1.0, 0.465]} rotation={[Math.PI / 2 - 0.25, 0, 0]}><mesh><cylinderGeometry args={[0.05, 0.05, 0.02, 16]} /><meshStandardMaterial color="#d8d2bf" /></mesh></group>)}
+      <group position={[-0.23, 0.92, 0.32]} rotation={[-0.9, 0, 0]}>
+        <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[0.018, 0.018, 0.35, 8]} /><M c="#2b2b2e" m={0.5} /></mesh>
+        <mesh position={[0, 0.33, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.15, 0.018, 8, 24]} /><M c="#1d1d1f" r={0.7} /></mesh>
+      </group>
+      {shocks && L.map(([x, z], i) => <RaceShock key={i} x={x} z={z} />)}
     </group>
-    {W.map(([x, z], i) => wheels ? <group key={i} position={[x, 0.44, z]} rotation={[0, 0, Math.PI / 2]}>
-      <mesh castShadow><cylinderGeometry args={[0.44, 0.44, 0.32, 20]} /><M c="#1a1a1a" r={0.95} /></mesh>
-      <mesh position={[0, x > 0 ? 0.165 : -0.165, 0]}><cylinderGeometry args={[0.27, 0.27, 0.02, 18]} /><M c="#c8c4b8" m={0.7} r={0.35} /></mesh>
-      <mesh position={[0, x > 0 ? 0.172 : -0.172, 0]}><torusGeometry args={[0.27, 0.02, 6, 20]} /><M c="#9a9a94" m={0.8} r={0.3} /></mesh>
-    </group> : <B key={i} p={[x * 0.85, 0.18, z]} s={[0.4, 0.36, 0.2]} c="#8a8a84" r={1} />)}
+    {L.map(([x, z], i) => wheels || rims ? <RaceWheel key={i} x={x} z={z} R={R} tire={wheels} rim={rims} /> : <B key={i} p={[x * 0.85, 0.22, z]} s={[0.4, 0.4, 0.22]} c="#8a8a84" r={1} />)}
   </group>;
 }
+/** faded red sheet metal with a big hand-painted 7 (shared by the hood and both side panels) */
+let SEVEN = null;
+function sevenTex() {
+  if (SEVEN) return SEVEN;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#9a3626'; g.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 900; i++) { const x = Math.random() * 512, y = Math.random() * 256, r = Math.random() * 7 + 1; g.fillStyle = Math.random() < 0.55 ? 'rgba(70,35,20,' + (Math.random() * 0.35) + ')' : 'rgba(200,120,90,' + (Math.random() * 0.2) + ')'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  for (let i = 0; i < 60; i++) { g.strokeStyle = 'rgba(215,190,160,' + (Math.random() * 0.35) + ')'; g.lineWidth = 1; g.beginPath(); const x = Math.random() * 512, y = Math.random() * 256; g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 60, y + (Math.random() - 0.5) * 12); g.stroke(); }
+  g.fillStyle = 'rgba(230,215,185,0.92)'; g.font = '900 210px Impact, "Arial Black", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('7', 330, 138);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return (SEVEN = t);
+}
+const TIRE_FILE = '/models/TIRE_RuggedTextured.glb', SHOCK_FILE = '/models/SHOCK_001_Coilover.glb';
+/** Grandpa's beadlock rim + rugged tire (same assets as the Bug's wheel sets), each hidden when you take it */
+function RaceWheel({ x, z, R, tire, rim }) {
+  const { scene } = useGLTF(TIRE_FILE);
+  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); o.material.metalness = 0; } }); return c; }, [scene]);
+  const geo = useMemo(() => rimGeometry('beadlock'), []);
+  return <group position={[x, R, z]} rotation={[0, x > 0 ? Math.PI / 2 : -Math.PI / 2, 0]} scale={R / 0.475}>
+    {tire && <primitive object={obj} />}
+    {rim && <mesh geometry={geo} castShadow><meshStandardMaterial color="#6e5a46" metalness={0.45} roughness={0.7} side={THREE.DoubleSide} /></mesh>}
+  </group>;
+}
+/** race coilover (SHOCK_001 scaled to ~0.6 m) from the lower arm up to its tower */
+function RaceShock({ x, z }) {
+  const { scene } = useGLTF(SHOCK_FILE);
+  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.color.set(o.name === 'spring' ? '#b8392a' : /body|seat/.test(o.name) ? '#c9a23a' : '#2b2b2e'); o.material.metalness = 0.3; o.material.roughness = 0.55; } }); return c; }, [scene]);
+  const s = Math.sign(x);
+  return <group position={[s * 0.68, 0.56, z]} rotation={[0, 0, s * 0.2]} scale={1.18}><primitive object={obj} /></group>;
+}
+useGLTF.preload(TIRE_FILE); useGLTF.preload(SHOCK_FILE);
 
 /** a heap of usable scrap metal (gone once taken) */
 function ScrapHeap({ seed = 1 }) {

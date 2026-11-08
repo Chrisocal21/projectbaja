@@ -22,7 +22,7 @@ const PROMPTS = {
 export const promptText = id => {
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
-  if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, race tires)" : "Grandpa's old #7 — nothing left worth taking";
+  if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
   if (id.startsWith('heap:')) return 'Press E — Pick through the scrap heap';

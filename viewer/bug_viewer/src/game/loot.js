@@ -56,4 +56,4 @@ export const LOOT_COLLIDERS = (() => {
 })();
 
 /** the garage's starting stock is fixed; everything else is shuffled per new game */
-export const STARTER = { racecar: { items: [['part', 'SHOCK_001_Coilover'], ['wheel', 'tire-beadlock']], cash: 0 }, 'g-toolbox': { items: [['part', 'LIGHT_BumperPods']], cash: 40 }, garageBench: ['part', 'ACC_LightBar', -3.9, -5.2, BENCH_TOP], garageFloor: ['part', 'GUARD_MudFlaps', 4.2, 0.6, 0] };
+export const STARTER = { racecar: { items: [['part', 'SHOCK_001_Coilover'], ['wheel', 'tire-beadlock'], ['rim', 'beadlock']], cash: 0 }, 'g-toolbox': { items: [['part', 'LIGHT_BumperPods']], cash: 40 }, garageBench: ['part', 'ACC_LightBar', -3.9, -5.2, BENCH_TOP], garageFloor: ['part', 'GUARD_MudFlaps', 4.2, 0.6, 0] };

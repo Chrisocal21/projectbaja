@@ -8,6 +8,9 @@ import { height, groundHeight } from '../worlds/county.js';
 /** items with a height (on a bench / shelf) are placed from the site's pad; floor items stand on the floor (garage slab, lot paving...) */
 const itemY = it => ((it.y || 0) > 0.3 ? height(it.x, it.z) + it.y : groundHeight(it.x, it.z) + (it.y || 0));
 import { ShellProp } from '../BuildModel.jsx';
+import { useGLTF } from '@react-three/drei';
+import { partById, wheelById, rimById } from '../build.js';
+import { rimGeometry } from '../Rims.jsx';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
 const labels = new Map();
@@ -24,7 +27,7 @@ function labelTex(text) {
 const kraft = ['#b58b55', '#a9854f', '#c29a62', '#9c7a48'];
 
 /** a cardboard crate stencilled with the part's name; its bottom sits at y = 0 */
-export function Crate({ item, scale = 1 }) {
+function CrateBox({ item, scale = 1 }) {
   const s = sizeOf(item.kind, item.id), [w, h, d] = DIM[s], tex = useMemo(() => labelTex(nameOfItem(item)), [item.id, item.kind]);
   return <group scale={scale}>
     <mesh position={[0, h / 2, 0]} castShadow receiveShadow><boxGeometry args={[w, h, d]} /><meshStandardMaterial color={kraft[item.uid % 4]} roughness={0.9} /></mesh>
@@ -32,6 +35,36 @@ export function Crate({ item, scale = 1 }) {
     <mesh position={[0, h / 2 + 0.02, d / 2 + 0.006]}><planeGeometry args={[w * 0.8, h * 0.62]} /><meshStandardMaterial map={tex} roughness={0.8} /></mesh>
     <mesh position={[0, h + 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[w * 0.7, d * 0.5]} /><meshStandardMaterial map={tex} roughness={0.8} /></mesh>
   </group>;
+}
+
+const clone = (scene, fix) => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); fix?.(o); } }); return c; };
+/** a part's own GLB, shrunk to fit its carry size if needed, standing on y = 0 */
+function PartModel({ file, size }) {
+  const { scene } = useGLTF(`/models/${file}.glb`);
+  const { obj, k, off } = useMemo(() => {
+    const c = clone(scene), box = new THREE.Box3().setFromObject(c), sz = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+    const k = Math.min(1, Math.max(...DIM[size]) * 1.1 / Math.max(sz.x, sz.y, sz.z));
+    return { obj: c, k, off: [-ctr.x * k, -box.min.y * k, -ctr.z * k] };
+  }, [scene, size]);
+  return <group position={off} scale={k}><primitive object={obj} /></group>;
+}
+/** a tire (optionally with the rim fitted) lying flat */
+function TireItem({ file, rim }) {
+  const { scene } = useGLTF(`/models/${file}.glb`);
+  const obj = useMemo(() => clone(scene, o => { o.material.metalness = 0; }), [scene]);
+  return <group position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}><primitive object={obj} />{rim && <mesh geometry={rimGeometry(rim.style)}><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.6} side={THREE.DoubleSide} /></mesh>}</group>;
+}
+function RimItem({ rim }) {
+  return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.55} side={THREE.DoubleSide} /></mesh>;
+}
+/** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
+export function Crate({ item, scale = 1 }) {
+  const crate = <CrateBox item={item} />;
+  let body = null;
+  if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;
+  else if (item.kind === 'wheel' && wheelById[item.id]?.file) body = <TireItem file={wheelById[item.id].file} />;
+  else if (item.kind === 'rim' && rimById[item.id]) body = <RimItem rim={rimById[item.id]} />;
+  return <group scale={scale}>{body ? <React.Suspense fallback={crate}>{body}</React.Suspense> : crate}</group>;
 }
 
 /** boxes lying around the world, plus the box in the player's hands */

@@ -14,7 +14,7 @@ Related docs:
 ### Story and progression
 - [x] New-game start: you inherit grandpa Walt's run-down garage. Junk to clear (pays scrap money and scrap metal), the breaker to flip (the lights come on), and grandpa's letter on the bench.
 - [x] Grandma's Bug is in the garage, half apart: dead battery, a wheel off and on a stand, the driver's seat out. The parts lie nearby.
-- [x] **Grandpa's #7 desert racer** sits under a tarp in the side yard. Pull the tarp, then strip its coilover shocks and beadlock race tires; they're for the Bug.
+- [x] **Grandpa's #7 desert racer** sits under a tarp in the side yard. Pull the tarp, then strip its coilover shocks, beadlock rims and race tires; they're for the Bug. Procedural model matched to the concept art.
 - [x] **Shock hoops quest:**
   1. Collect 10 scrap metal: from the yard junk, scrap heaps at the barn, shacks, warehouse and Proving Grounds, and in containers.
   2. Build a **welder** and a **tube bender** in the garage (build mode).
@@ -53,9 +53,9 @@ Related docs:
 ### Next (musts)
 1. **Purge the truck zips from git history.** It needs a force-push; waiting on your OK.
 2. **Play-test on a real machine:** frame rate, terrain tiles loading in, grass density, the truck's cab view. Headless testing only runs at about 2 fps.
-3. **Amber blockers in the fit glow** (guide §9.3): `checkFit` should return `blockers` so the parts that must go first glow amber.
+3. ~~**Amber blockers in the fit glow**~~ done: `checkFit`/`checkDetach` return `code` + `blockers`; blocking slots (and a shut lid) glow amber over the car while the held part's spot glows red.
 4. **Detach glow** (guide §9.3c): with empty hands, the part you aim at glows white (it can come off) or red with amber dependents.
-5. **Held parts as real models** (guide §5): carry a clone of the real part, not a labelled crate.
+5. **Held parts as real models** (guide §5): done for parts with a GLB, tires and rims; supplies, tools and stock items are still crates.
 6. **The truck as a restorable VehicleDef:** tailgate, hood and wheels as slots; cargo weight affects handling.
 7. **Make build items do things:** racks add storage, the lift and engine stand speed up jobs, the PC orders parts.
 

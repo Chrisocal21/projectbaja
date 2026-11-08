@@ -28,27 +28,28 @@ export function zoneAt(def, lx, lz) {
 const zoneOk = (want, at) => !want || want === 'any' || want === at || (want === 'cabin' && (at === 'driver' || at === 'passenger'));
 
 /**
- * Can this slot be fitted now? (blueprint §3.4, first failure wins). Returns { ok } or { ok:false, why, openCover }.
+ * Can this slot be fitted now? (blueprint §3.4, first failure wins). Returns { ok, code } or { ok:false, code, why, openCover, blockers }.
+ * code: ok | full | blocked | zone | cover_shut | no_tool. blockers: slot ids that must change first (assembly guide §9.3: they glow amber).
  * ctx: { zone, tools:Set, open:Set }
  */
 export function checkFit(def, build, slot, ctx) {
-  if (isFitted(def, build, slot.id)) return { ok: false, why: `Already has its ${slot.name.toLowerCase()}.` };
+  if (isFitted(def, build, slot.id)) return { ok: false, code: 'full', why: `Already has its ${slot.name.toLowerCase()}.` };
   const need = slot.after.filter(a => !isFitted(def, build, a));
-  if (need.length) return { ok: false, why: `The ${listNames(need.map(a => def.slots.find(s => s.id === a)))} must go on before the ${slot.name.toLowerCase()}.` };
+  if (need.length) return { ok: false, code: 'blocked', blockers: need, why: `The ${listNames(need.map(a => def.slots.find(s => s.id === a)))} must go on before the ${slot.name.toLowerCase()}.` };
   return checkAccess(def, build, slot, ctx, 'fit');
 }
 /** blueprint §3.6: same rules in reverse - nothing that depends on it may still be on */
 export function checkDetach(def, build, slot, ctx) {
-  if (!isFitted(def, build, slot.id)) return { ok: false, why: `There is no ${slot.name.toLowerCase()} to take off.` };
+  if (!isFitted(def, build, slot.id)) return { ok: false, code: 'no_part', why: `There is no ${slot.name.toLowerCase()} to take off.` };
   const deps = def.slots.filter(s => s.after.includes(slot.id) && isFitted(def, build, s.id));
-  if (deps.length) return { ok: false, why: `Take off the ${listNames(deps)} first.` };
+  if (deps.length) return { ok: false, code: 'blocked', blockers: deps.map(d => d.id), why: `Take off the ${listNames(deps)} first.` };
   return checkAccess(def, build, slot, ctx, 'detach');
 }
 function checkAccess(def, build, slot, ctx, verb) {
-  if (ctx.zone && !zoneOk(slot.zone, ctx.zone)) return { ok: false, why: `Go round to the ${slot.zone === 'cabin' ? 'door' : slot.zone === 'driver' ? "driver's door" : slot.zone === 'passenger' ? 'passenger door' : slot.zone} of the car for the ${slot.name.toLowerCase()}.` };
-  if (slot.cover && isFitted(def, build, slot.cover) && !ctx.open?.has(slot.cover)) return { ok: false, why: `Open the ${def.covers[slot.cover].name} first.`, openCover: slot.cover };
-  if (slot.tool && !ctx.tools?.has(slot.tool)) return { ok: false, why: TOOL_WHY[slot.tool](verb, slot.name.toLowerCase()) };
-  return { ok: true };
+  if (ctx.zone && !zoneOk(slot.zone, ctx.zone)) return { ok: false, code: 'zone', why: `Go round to the ${slot.zone === 'cabin' ? 'door' : slot.zone === 'driver' ? "driver's door" : slot.zone === 'passenger' ? 'passenger door' : slot.zone} of the car for the ${slot.name.toLowerCase()}.` };
+  if (slot.cover && isFitted(def, build, slot.cover) && !ctx.open?.has(slot.cover)) return { ok: false, code: 'cover_shut', why: `Open the ${def.covers[slot.cover].name} first.`, openCover: slot.cover, blockers: [slot.cover] };
+  if (slot.tool && !ctx.tools?.has(slot.tool)) return { ok: false, code: 'no_tool', why: TOOL_WHY[slot.tool](verb, slot.name.toLowerCase()) };
+  return { ok: true, code: 'ok' };
 }
 export const TOOL_WHY = {
   wrench: (v, n) => `You need a wrench to ${v === 'fit' ? 'bolt on' : 'unbolt'} the ${n}.`,

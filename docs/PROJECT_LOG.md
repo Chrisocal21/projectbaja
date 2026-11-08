@@ -94,3 +94,17 @@ Newest entries last. Records what happened and what was decided, not plans.
 - **Assembly guide adopted (user):** saved as `VEHICLE_ASSEMBLY_GUIDE.md`. The hologram recipe (§7) is used for build mode, and a first slice of the fit glow (§9) works on the Bug.
 - Build props got more detailed, with textures. Final art is to come from Meshy and OpenAI; prompts are in `ART_PROMPTS.md`.
 - Marked a breakpoint in PROGRESS_TRACKER: what's completed, and what's still to be completed.
+
+### November 7, 2026 (evening): Meshy #7 racer tried and reverted
+
+- Split a Meshy image-to-3D model of the #7 racer (body, wheels, shocks as separate nodes; `split_body.mjs` gained a colour-based `shocks` cut) and wired it into `Home.jsx`. In game it was blurry and blobby: Meshy fuses tube cages and engines into soft surfaces and a 1024px texture can't carry a 3.8 m car.
+- Reverted to the procedural racer. The GLB stays local in `assets/generated/raw/` (git-ignored). Kept `check_split.mjs`, `profile_render.mjs` and the pipeline changes.
+- Lesson: don't use Meshy for open tube cages. Build the cage procedurally and use Meshy or existing GLBs only for solid parts (tires, coilovers, panels).
+
+### November 7, 2026 (night): racer rebuilt, real items in hand
+
+- **#7 racer rebuilt procedurally** to the concept art (low boxy rust cage, sloped red #7 hood and side panels from a canvas texture, roof spotlights, A-arms, slim shock towers, Bug flat-four in a rear cradle, seats/dash/wheel). Wheels are the Bug's rugged tire GLB + beadlock rim; shocks are `SHOCK_001_Coilover`.
+- **Racer parts are stealable separately:** shocks, tires and now a beadlock rim (`STARTER.racecar` in `loot.js`; new games only). Each disappears from the car when taken.
+- **Held/loose items show the real thing** (`game/Items.jsx` `Crate`): parts render their own GLB (shrunk to carry size if bigger), tires lie flat, rims show their real shape and colour. Items without a model (supplies, tools, stock, procedural mods) are still labelled crates.
+- **Tested:** `vite build` passes; the user checked the racer in-game through several screenshot rounds. Item models not yet seen in game.
+- **Fit glow amber blockers (guide §9.3):** `rules/restore.js` checks now return a `code` (ok/full/blocked/zone/cover_shut/no_tool/no_part) and `blockers` (slot ids). `BuildModel.jsx` `FitGhost` draws those slots as pulsing amber ghosts; the held part's own ghost is green or red. New unit test; 32/32 pass, build passes. Not yet seen in game.

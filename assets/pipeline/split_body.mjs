@@ -22,18 +22,26 @@ const shiftY = -minY*S;
 const wheels = []; // {name, c:[x,y,z] in rotated-normalized frame, r}
 for (const [zc,key] of [[spec.frontZ,'F'],[spec.rearZ,'R']]) for (const [sx,side] of [[1,'L'],[-1,'R']]) wheels.push({name:`Wheel_${key}${side}`, c:[sx*spec.wheelX, spec.wheelY, zc], sx, r:spec.wheelR, tris:[]});
 const body = [];
-let tex=null; if (spec.removeRed) { const img=mat.getBaseColorTexture().getImage(); const {data,info}=await sharp(Buffer.from(img)).removeAlpha().raw().toBuffer({resolveWithObject:true}); tex={data,w:info.width,h:info.height}; }
+const shocks = spec.shocks ? wheels.map(w=>({name:'Shock_'+w.name.slice(6), w, tris:[]})) : [];
+let tex=null; if (spec.removeRed || spec.shocks) { const img=mat.getBaseColorTexture().getImage(); const {data,info}=await sharp(Buffer.from(img)).removeAlpha().raw().toBuffer({resolveWithObject:true}); tex={data,w:info.width,h:info.height}; }
 const redAt=(u,v)=>{ const x=Math.min(tex.w-1,Math.max(0,Math.floor(((u%1)+1)%1*tex.w))), y=Math.min(tex.h-1,Math.max(0,Math.floor(((v%1)+1)%1*tex.h))); const i=(y*tex.w+x)*3; const r=tex.data[i],g=tex.data[i+1],b=tex.data[i+2]; return r>110 && r>g*1.8 && r>b*1.8; };
 let removed = 0;
 for (let t=0;t<nt;t++){
   const a=I[t*3],b=I[t*3+1],c=I[t*3+2];
   const cx=(R[a*3]+R[b*3]+R[c*3])/3, cy=(R[a*3+1]+R[b*3+1]+R[c*3+1])/3, cz=(R[a*3+2]+R[b*3+2]+R[c*3+2])/3;
   if (spec.remove && spec.remove.some(q=>cy<q.yBelow && Math.abs(cx)<q.absXBelow && cz>=q.zMin && cz<=q.zMax)) { removed++; continue; }
-  if (tex && cy < spec.removeRed.yBelow && cz>=spec.removeRed.zMin && cz<=spec.removeRed.zMax && Math.abs(cx)<spec.removeRed.absXBelow && redAt((UV[a*2]+UV[b*2]+UV[c*2])/3,(UV[a*2+1]+UV[b*2+1]+UV[c*2+1])/3)) { removed++; continue; }
+  if (tex && spec.removeRed && cy < spec.removeRed.yBelow && cz>=spec.removeRed.zMin && cz<=spec.removeRed.zMax && Math.abs(cx)<spec.removeRed.absXBelow && redAt((UV[a*2]+UV[b*2]+UV[c*2])/3,(UV[a*2+1]+UV[b*2+1]+UV[c*2+1])/3)) { removed++; continue; }
+  if (shocks.length) { // coilovers: red spring / yellow body texels near an axle, above the hub (keeps the red #7 panel mid-body on the car)
+    const q=spec.shocks, X=cx*S, Y=cy*S+shiftY, Z=cz*S, u=(UV[a*2]+UV[b*2]+UV[c*2])/3, v=(UV[a*2+1]+UV[b*2+1]+UV[c*2+1])/3;
+    if (Y>q.yMin && Math.abs(Z)>q.zAbsMin && Math.abs(X)>q.xAbsMin) { const i=(Math.min(tex.h-1,Math.max(0,Math.floor(((v%1)+1)%1*tex.h)))*tex.w+Math.min(tex.w-1,Math.max(0,Math.floor(((u%1)+1)%1*tex.w))))*3; const r=tex.data[i],g=tex.data[i+1],bl=tex.data[i+2];
+      const red=r>110&&r>g*1.8&&r>bl*1.8, yel=r>150&&g>110&&bl<90&&r>bl*2;
+      if (red||yel) { let best=null,bd=q.r; for (const sh of shocks){ const d=Math.hypot(X-sh.w.c[0]*S, Z-sh.w.c[2]*S); if(d<bd){bd=d;best=sh;} } if(best){ best.tris.push(t); continue; } } }
+  }
   let w=null;
   for (const wh of wheels){ if (cx*wh.sx>=spec.wheelInner && cx*wh.sx<=spec.wheelOuter && Math.hypot(cy-wh.c[1], cz-wh.c[2])<=wh.r*spec.k && Math.abs(cz-wh.c[2])<1) { w=wh; break; } }
   (w?w.tris:body).push(t);
 }
+console.log('shocks', shocks.map(h=>h.name+':'+h.tris.length).join(' '));
 console.log('removed', removed, 'body tris', body.length, wheels.map(w=>w.name+':'+w.tris.length).join(' '));
 function build(triList, center){ // returns new Primitive with positions (scaled, shifted, minus center)
   const map=new Map(), pos=[], nor=[], uv=[], idx=[];
@@ -57,7 +65,8 @@ for (const w of wheels){
   const n=doc.createNode(w.name).setMesh(doc.createMesh(w.name).addPrimitive(build(w.tris,c))).setTranslation(c);
   scene.addChild(n); manifest.wheels[w.name]={center:c.map(v=>+v.toFixed(3)), radius:+(w.r*S).toFixed(3), halfWidth:+(((spec.wheelOuter-spec.wheelInner)/2)*S).toFixed(3)};
 }
-root.listNodes().filter(n=>n!==bodyNode && !n.getName().startsWith('Wheel_') && !scene.listChildren().includes(n)).forEach(n=>n.dispose());
+for (const sh of shocks){ if(!sh.tris.length) continue; scene.addChild(doc.createNode(sh.name).setMesh(doc.createMesh(sh.name).addPrimitive(build(sh.tris,[0,0,0])))); }
+root.listNodes().filter(n=>n!==bodyNode && !n.getName().startsWith('Wheel_') && !n.getName().startsWith('Shock_') && !scene.listChildren().includes(n)).forEach(n=>n.dispose());
 mesh.dispose();
 await doc.transform(prune());
 await io.write(out, doc); fs.writeFileSync(out.replace('.glb','.json'), JSON.stringify(manifest,null,1));

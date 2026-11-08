@@ -38,7 +38,7 @@ export const LETTER = [
   "The Bug in the garage was your grandma's. She hasn't run since '09 — the battery's shot, I had a wheel off for the brakes and pulled the driver's seat to fix the runner. All of it's still here somewhere.",
   "Al in Dry Wells will sell you anything with wheels. Count your fingers after. Dusty at the gas station is good people.",
   'The old Proving Grounds down Highway 9 are closed, but nobody checks the fence.',
-  "My old race car's under the tarp in the side yard. The shocks and the race tires off her are for the Bug - they won't clear the stock body, so you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
+  "My old race car's under the tarp in the side yard. The shocks, rims and race tires off her are for the Bug - they won't clear the stock body, so you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
   'Folks around here will bring you their little jobs if the lights are on. Take them. That garage paid for itself one oil change at a time.',
   'Fix her up. Then fix the place up. Then go fast.',
   '— Walt',

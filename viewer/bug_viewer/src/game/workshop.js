@@ -73,7 +73,7 @@ export function planFit(it, b, zone) {
     }
     if (fit.needsEngine && !isFitted(DEF, b, 'engine')) return { ok: false, why: 'There is no engine to bolt that onto.' };
     if (zone && fit.zone !== 'any' && fit.zone !== zone) return { ok: false, why: `Go to the ${fit.zone} of the car for the ${p.label.toLowerCase()}.` };
-    if (fit.cover && isFitted(DEF, b, fit.cover) && !ctx.open.has(fit.cover)) return { ok: false, why: `Open the ${DEF.covers[fit.cover].name} first.`, openCover: fit.cover };
+    if (fit.cover && isFitted(DEF, b, fit.cover) && !ctx.open.has(fit.cover)) return { ok: false, code: 'cover_shut', why: `Open the ${DEF.covers[fit.cover].name} first.`, openCover: fit.cover, blockers: [fit.cover] };
     if (!ctx.tools.has(tool)) return { ok: false, why: TOOL_WHY[tool]('fit', p.label.toLowerCase()) };
     return { ok: true, slotName: p.label, apply: bb => ({ build: setPart(bb, p.slot, p.id), drops: bb.parts[p.slot] ? [['part', bb.parts[p.slot]]] : [] }) };
   }

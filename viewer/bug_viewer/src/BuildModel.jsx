@@ -220,13 +220,27 @@ const WHEEL_MESH = { FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_B
 /** §9 of the assembly guide: while you hold a part near the car, the spot where it goes glows - green (go), amber (open the lid first), red (not yet) */
 function FitGhost({ build, r }) {
   useGame();
-  const mats = useMemo(() => holoMaterials(), []);
-  useEffect(() => () => mats.dispose(), [mats]);
-  useFrame(({ clock }) => mats.pulse(clock.elapsedTime, !!game.nearCar));
+  const mats = useMemo(() => holoMaterials(), []), amber = useMemo(() => { const m = holoMaterials(); m.set(HOLO.amber); return m; }, []);
+  useEffect(() => () => { mats.dispose(); amber.dispose(); }, [mats, amber]);
+  useFrame(({ clock }) => { mats.pulse(clock.elapsedTime, !!game.nearCar); amber.pulse(clock.elapsedTime + 0.6, true); });
+  const nearBug = game.onFoot && game.pose && game.active === 'bug' && Math.hypot(game.pos.x - game.pose.x, game.pos.z - game.pose.z) <= 10;
+  const fc0 = nearBug && held() ? fitCandidate(build, game.nearCar ? game.carZone : undefined) : null;
+  return <>{fc0?.plan.blockers?.length ? <SlotGhosts ids={fc0.plan.blockers} r={r} mats={amber} /> : null}<FitGhostMain build={build} r={r} mats={mats} /></>;
+}
+/** amber ghosts over fitted/missing slots that have to change first (assembly guide §9.3) */
+function SlotGhosts({ ids, r, mats }) {
+  return <>{ids.map(id => {
+    const slot = BUG.slots.find(s => s.id === id); if (!slot) return null;
+    if (slot.wheel) return <GhostModel key={id} file={r.body.file} only={[WHEEL_MESH[slot.wheel]]} mats={mats} />;
+    const piece = slot.piece && (r.body.pieces || []).find(p => p.id === slot.piece);
+    return piece ? <group key={id} position={[0, r.lift, 0]}><GhostModel file={r.body.file} only={piece.match} mats={mats} /></group> : null;
+  })}</>;
+}
+function FitGhostMain({ build, r, mats }) {
   if (!game.onFoot || !game.pose || game.active !== 'bug' || Math.hypot(game.pos.x - game.pose.x, game.pos.z - game.pose.z) > 10) return null;
   const fc = held() ? fitCandidate(build, game.nearCar ? game.carZone : undefined) : null; if (!fc) return null;
   const it = fc.it, plan = fc.plan;
-  mats.set(plan.ok ? HOLO.ok : plan.openCover ? HOLO.amber : HOLO.bad);
+  mats.set(plan.ok ? HOLO.ok : HOLO.bad);   // what has to happen first glows amber (SlotGhosts)
   if (it.kind === 'fab' && it.id === 'shockHoops') return <ShockHoops mounts={r.mounts} ghost={mats} />;
   if (it.kind === 'stock' && it.id === 'wheel') {
     const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w)), cl = carLocal(); if (!bare.length) return null;
