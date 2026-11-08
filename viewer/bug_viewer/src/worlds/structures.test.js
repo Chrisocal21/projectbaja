@@ -83,3 +83,14 @@ test('foundations and floors are walkable, with a step height; probe points cove
   assert.equal(probePoints('garageDoor', 0, 0, 0).length, 3);
   assert.ok(Object.values(PIECES).every(p => p.price > 0 && p.name));
 });
+
+test('materials: five choices, a newer default, old pieces keep the old look, and price follows the material', async () => {
+  const { MATERIALS, DEFAULT_MAT, LEGACY_MAT, matOf, nextMat, piecePrice } = await import('./structures.js');
+  assert.equal(MATERIALS.length, 5);
+  assert.equal(DEFAULT_MAT, 'sheet'); assert.equal(LEGACY_MAT, 'rusty');
+  assert.equal(matOf({ id: 'wall' }), 'rusty'); assert.equal(matOf({ id: 'wall', mat: 'block' }), 'block');
+  assert.equal(piecePrice('wall', 'sheet'), 35); assert.equal(piecePrice('wall', 'block'), 49); assert.equal(piecePrice('wall', 'rusty'), 28);
+  assert.equal(piecePrice('garageDoor'), 220);
+  assert.equal(nextMat('sheet'), 'siding'); assert.equal(nextMat('rusty'), 'sheet'); assert.equal(nextMat('sheet', -1), 'rusty'); assert.equal(nextMat(undefined), 'siding');
+  assert.ok(MATERIALS.every(m => m.mult > 0 && m.name));
+});

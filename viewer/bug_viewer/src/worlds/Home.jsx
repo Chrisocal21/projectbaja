@@ -338,8 +338,8 @@ function Junk({ kind }) {
 /** things the player has built on the property (build mode). The same models become the placement hologram. */
 const P = ({ p, s, c = '#fff', rot, map, m = 0, r = 0.8 }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><M c={c} map={map} m={m} r={r} /></mesh>;
 const C = ({ p, a, c = '#fff', rot, m = 0, r = 0.8, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} m={m} r={r} map={map} /></mesh>;
-export function PropModel({ id, T }) {
-  if (isPiece(id)) return <StructureModel id={id} />;
+export function PropModel({ id, T, mat }) {
+  if (isPiece(id)) return <StructureModel id={id} mat={mat} />;
   if (id === 'wallOpening') return <group>{[-0.96, 0.96].map(x => <mesh key={x} position={[x, 1.3, 0]}><boxGeometry args={[0.1, 2.6, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh>)}<mesh position={[0, 2.56, 0]}><boxGeometry args={[2, 0.1, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh></group>;
   switch (id) {
     case 'fenceWood': return <>{[-1.5, 0, 1.5].map(x => <P key={x} p={[x, 0.62, 0]} s={[0.12, 1.24, 0.12]} map={T.oldWood} c="#9a8468" />)}{[0.38, 0.9].map(y => <P key={y} p={[0, y, 0.07]} s={[3.1, 0.14, 0.04]} map={T.newWood} />)}{[-1.5, 0, 1.5].map(x => <P key={'c' + x} p={[x, 1.26, 0]} s={[0.16, 0.04, 0.16]} c="#6e5034" />)}</>;
@@ -387,7 +387,7 @@ function Ghost({ T }) {
     inner.current.traverse(o => { if (o.isMesh && !o.isLineSegments) { o.geometry.computeBoundingBox(); b.union(o.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld))); } });
     const s = b.isEmpty() ? new THREE.Vector3(1, 1, 1) : b.getSize(new THREE.Vector3());
     foot.current.clear(); foot.current.add(footprint(Math.max(0.6, s.x + 0.2), Math.max(0.6, s.z + 0.2), mats));
-  }, [item?.id]);
+  }, [item?.id, game.buildMode?.mat]);
   useFrame(({ clock }) => {
     if (!item || !ref.current || !game.buildMode || !inner.current) return;
     ghostify(inner.current, mats); mats.pulse(clock.elapsedTime, true);
@@ -395,13 +395,13 @@ function Ghost({ T }) {
     if (item.cut) { const sn = snapCutWorld(camera.position.x + game.face.x * 3, camera.position.z + game.face.z * 3); if (sn) { x = sn.x; z = sn.z; ry = sn.ry; } else { x = camera.position.x + game.face.x * 3; z = camera.position.z + game.face.z * 3; } }
     else if (item.struct) { const sn = snapWorld(item, camera.position.x + game.face.x * 4.5, camera.position.z + game.face.z * 4.5); x = sn.x; z = sn.z; ry = sn.ry; }   // building pieces snap to the 2 m grid and turn to the nearest edge
     else { const d = 4 + (item.len || 0) * 0.5; x = Math.round((camera.position.x + game.face.x * d) * 2) / 2; z = Math.round((camera.position.z + game.face.z * d) * 2) / 2; }
-    const why = placeWhy(item, x, z, !!game.buildMode.moving, ry);
+    const why = placeWhy(item, x, z, !!game.buildMode.moving, ry, game.buildMode.mat);
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, item.struct || item.cut ? height(x, z) : groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);
     if (game.buildMode.x !== x || game.buildMode.z !== z || game.buildMode.why !== why || ((item.struct || item.cut) && game.buildMode.ry !== ry)) { game.buildMode = { ...game.buildMode, x, z, why, ...(item.struct || item.cut ? { ry } : {}) }; emit(); }
   });
   if (!item) return null;
-  return <group ref={ref}><group ref={inner} key={item.id}><PropModel id={item.id} T={T} /></group><group ref={foot} /></group>;
+  return <group ref={ref}><group ref={inner} key={item.id + ':' + (item.struct ? game.buildMode.mat || 'sheet' : '')}><PropModel id={item.id} T={T} mat={item.struct ? game.buildMode.mat || 'sheet' : undefined} /></group><group ref={foot} /></group>;
 }
 
 /** the customer car on the driveway (odd jobs) + the clock that sends the next one */
@@ -419,7 +419,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} /></group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} /></group>)}
     <Customer />
     <Ghost T={T} />
   </>;

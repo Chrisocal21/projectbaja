@@ -3,7 +3,7 @@
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
-import { PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
+import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree } from '../worlds/office.js';
 import { LANE, STALL } from '../worlds/lot.js';
 
@@ -129,11 +129,11 @@ function cutWhy(item, x, z) {
   if (!s) return "Aim at the garage's right wall or its back wall.";
   return openWhy(s, foundationsLocal(), openingKeys()) || (game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
 }
-export function placeWhy(item, x, z, moving = false, ry = 0) {
+export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (item.cut) return cutWhy(item, x, z);
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
-  if (item.struct) return structWhy(item, x, z, ry) || (!moving && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
+  if (item.struct) { const price = piecePrice(item.id, mat || DEFAULT_MAT); return structWhy(item, x, z, ry) || (!moving && game.cash < price ? `Not enough cash ($${price}).` : ''); }
   if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
   if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
@@ -147,16 +147,17 @@ export function placeWhy(item, x, z, moving = false, ry = 0) {
   if (!moving && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
 }
-export function placeProp(id, x, z, ry) {
-  const item = buildById[id], why = placeWhy(item, x, z, false, ry); if (why) { say(why); return false; }
+export function placeProp(id, x, z, ry, mat) {
+  const item = buildById[id], why = placeWhy(item, x, z, false, ry, mat); if (why) { say(why); return false; }
   if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
     const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
     addCash(-item.price); game.home = { ...game.home, openings: [...openingKeys(), seg.key] }; game.propsV = (game.propsV || 0) + 1; save();
     say(`Cut a doorway through the garage's ${seg.wall === 'R' ? 'right' : 'back'} wall (−$${item.price})`); return true;
   }
-  addCash(-item.price);
-  game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry }];
-  game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name} (−$${item.price})`); return true;
+  const m = item.struct ? (mat || DEFAULT_MAT) : undefined, price = item.struct ? piecePrice(id, m) : item.price;
+  addCash(-price);
+  game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry, ...(m ? { mat: m } : {}) }];
+  game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (−$${price})`); return true;
 }
 /** nearest cut doorway to a world point: { key, d } or null */
 export function nearestOpening(x, z) {
@@ -209,7 +210,7 @@ export function removeProp(uidN) {
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
   if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
-  const back = Math.round(buildById[p.id].price * 0.5);
+  const back = Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 0.5);
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };

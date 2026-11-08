@@ -107,3 +107,19 @@ export function inBuilding(piece, x, z, tol = 0.25) {
   const e = p.kind === 'vertex' ? -0.01 : 0.01;   // a corner post may stand on the garage's outer wall line (a T-junction); a wall may not
   return x > B.x0 - e && x < B.x1 + e && z > B.z0 - e && z < B.z1 + e;
 }
+
+// ---- materials: what a piece is made of. PROPOSAL: ids, names and price multipliers are placeholders. The look of each lives in StructureModels.jsx. ----
+export const MATERIALS = [
+  { id: 'sheet', name: 'Painted steel sheet', mult: 1.0 },
+  { id: 'siding', name: 'Wood siding', mult: 1.25 },
+  { id: 'block', name: 'Concrete block', mult: 1.4 },
+  { id: 'stucco', name: 'Stucco', mult: 1.3 },
+  { id: 'rusty', name: "Weathered steel (like Walt's)", mult: 0.8 },
+];
+export const DEFAULT_MAT = 'sheet';   // what new pieces are made of unless you pick another: the newer, cleaner look
+export const LEGACY_MAT = 'rusty';    // pieces built before materials existed keep the old weathered look
+export const matOf = piece => piece?.mat || LEGACY_MAT;
+export const nextMat = (id, d = 1) => { const i = MATERIALS.findIndex(m => m.id === id), n = MATERIALS.length; return MATERIALS[((i < 0 ? 0 : i) + d + n) % n].id; };
+export const matName = id => (MATERIALS.find(m => m.id === id) || MATERIALS[0]).name;
+/** what a piece costs in a material (whole dollars) */
+export const piecePrice = (pieceId, mat = DEFAULT_MAT) => Math.round(PIECES[pieceId].price * (MATERIALS.find(m => m.id === mat)?.mult ?? 1));

@@ -298,3 +298,13 @@ Chris asked for my recommendation for what is next; I recommended this first, si
 - **How:** `worlds/openings.js` (pure, 5 new tests) splits the right wall (6 segments) and back wall (7) at grid lines; the openings are stored in `game.home.openings` (saved with the home state). `OriginalWall` in `worlds/Sites.jsx` draws those two walls from the list (lintel and wooden trim over each cut); their collision circles moved from `siteData.js` to `propObstacles` in `game/home.js` so a cut frees a 1.1 m walk-through.
 - Checked in Chromium: with a lean-to built against the right wall, the wall blocks before the cut; refusal without a slab; after the cut I walked from the garage into the new room; the next segment stays solid; duplicate cut refused; the real ghost flow and X (+$60) work. 59/59 tests, build passes.
 - Not done: the wing's walls and the front wall, door leaves in cut openings (they are open gaps), and the free-drive test world (`TEST_WORLD`) no longer has the garage's right/back wall circles.
+
+## November 8, 2026: a newer look and a choice of materials for the building kit
+
+Chris's direction (queued earlier), then "your rec": new construction should look newer and less rusted, and the player picks what to build with.
+
+- **Five materials** (PROPOSAL: names and price multipliers are placeholders): Painted steel sheet (x1.0, the new default), Wood siding (x1.25), Concrete block (x1.4), Stucco (x1.3), Weathered steel like Walt's (x0.8). In build mode, **N** cycles the material (Shift+N goes back); the build bar lists them and shows the real price. Each placed piece remembers its material (`mat`); refunds are 50% of what that material cost.
+- **The new look:** clean textures drawn in `worlds/StructureModels.jsx` (steel ribs without rust, board siding, block courses, stucco, a clean slab, standing-seam roofs, painted trim and doors in a contrasting colour). Walt's rusty look is the "weathered steel" option, and pieces built before materials existed keep it.
+- **Seams for the later overhauls:** material ids and the `LOOKS` table (which texture and colours each material uses) are the only things a skin changes; `MATERIALS`, `piecePrice`, and `matOf` live in `worlds/structures.js` and are tested.
+- Checked in Chromium: five sheds, one per material, with the right prices; N and Shift+N; new default; refund by material; the old-look piece unchanged. 60/60 tests, build passes.
+- Not done: the upgrade track (garage and yard upgrades with levels), colour choice within a material, and unlocking materials through upgrades.

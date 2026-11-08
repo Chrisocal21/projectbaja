@@ -2,6 +2,7 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
 import { SUPPLIES, jobById, jobCheck } from './jobs.js';
+import { MATERIALS, DEFAULT_MAT, matName, piecePrice } from '../worlds/structures.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
@@ -58,11 +59,12 @@ export function LetterPanel({ onClose }) {
 export function BuildBar() {
   useGame();
   const bm = game.buildMode; if (!bm) return null;
-  const it = buildById[bm.item], i = BUILD_ITEMS.indexOf(it);
+  const it = buildById[bm.item], i = BUILD_ITEMS.indexOf(it), mat = bm.mat || DEFAULT_MAT, price = it.struct ? piecePrice(it.id, mat) : it.price;
   return <div className="build-bar">
     <div className="bb-cats">{BUILD_CATS.map(c => <span key={c} className={c === it.cat ? 'on' : ''}>{c}</span>)}</div>
     <div className="bb-cat">{BUILD_ITEMS.filter(b => b.cat === it.cat).map(b => <span key={b.id} className={b.id === it.id ? 'on' : ''}>{b.name.replace(/ \(.*\)/, '')}</span>)}</div>
-    <div className="bb-item"><b>{it.name}</b> {bm.moving ? <span className="price">moving: free</span> : <span className="price">${it.price.toLocaleString()}</span>}{it.note && !bm.moving && <small>{it.note}</small>}</div>
+    <div className="bb-item"><b>{it.name}</b> {bm.moving ? <span className="price">moving: free</span> : <span className="price">${price.toLocaleString()}</span>}{it.note && !bm.moving && <small>{it.note}</small>}</div>
+    {it.struct && !bm.moving && <div className="bb-mats">{MATERIALS.map(m => <span key={m.id} className={m.id === mat ? 'on' : ''}>{m.name}</span>)}<small>N — change material</small></div>}
     <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || (bm.moving ? 'E / click — put it down here · B — cancel' : 'E / click — build here')}</div>
     <div className="bb-keys">Wheel / [ ] — item · , . — category · R — rotate · V — pick up the nearest to move it · X — take down the nearest build (50% back) · B — done</div>
   </div>;

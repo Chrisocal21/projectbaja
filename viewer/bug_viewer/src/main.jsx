@@ -25,6 +25,7 @@ import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, BuildBar, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
+import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
 import './style.css';
@@ -188,11 +189,12 @@ function App() {
         const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), cyc = d => { game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
         if ((e.code === 'KeyB' || e.code === 'Escape') && bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); return; }
         if (e.code === 'KeyB' || e.code === 'Escape') { game.buildMode = null; say('Build mode off'); return; }
+        if (e.code === 'KeyN') { if (buildById[bm.item]?.struct) { game.buildMode = { ...bm, mat: nextMat(bm.mat || DEFAULT_MAT, e.shiftKey ? -1 : 1) }; say(`Material: ${matName(game.buildMode.mat)}`); } else say('Materials are for building pieces: foundations, floors, walls, doors, roofs.'); return; }
         if (e.code === 'KeyV') { if (!bm.moving && bm.x !== undefined) startMove(bm.x, bm.z); return; }
         if (e.code === 'BracketRight') return cyc(1); if (e.code === 'BracketLeft') return cyc(-1);
         if (e.code === 'Period' || e.code === 'Comma') { game.buildMode = { ...bm, item: nextCatItem(bm.item, e.code === 'Period' ? 1 : -1) }; say(`${buildById[game.buildMode.item].cat}: ${buildById[game.buildMode.item].name}`); return; }
         if (e.code === 'KeyR') { game.buildMode = { ...bm, ry: ((bm.ry || 0) + Math.PI / 4) % (Math.PI * 2) }; return; }
-        if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0); } return; }
+        if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } return; }
         if (e.code === 'KeyX') { const o = nearestOpening(bm.x, bm.z), n0 = game.props.map(q => Math.hypot(q.x - bm.x, q.z - bm.z)).sort((a, b) => a - b)[0]; if (o && o.d < 2.5 && (n0 === undefined || o.d <= n0)) { closeOpening(o.key); return; } const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) { game.buildMode = { item: BUILD_ITEMS[0].id, ry: 0 }; say('Build mode — walk around to place, [ ] or the mouse wheel to pick, E to build'); } else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
@@ -208,7 +210,7 @@ function App() {
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), d = e.deltaY > 0 ? 1 : -1; game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
-    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0); } };
+    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click);
     return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); };
   }, [mode]);
@@ -311,7 +313,7 @@ function App() {
     <LoadingScreen />
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     {game.onFoot && <div className="crosshair" />}
-    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · V move · [ ] item · , . category · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
+    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · V move · N material · [ ] item · , . category · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
     <HudOverlay />
     <BuildBar />
     {pro && <ProDebug />}
