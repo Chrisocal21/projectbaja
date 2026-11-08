@@ -3,9 +3,10 @@
 // (of play, with the OPEN light on) after the last one leaves.
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
-import { pickStall } from '../worlds/lot.js';
+import { pickStall, stallsFor } from '../worlds/lot.js';
 import { homeLocal, isOpen } from './home.js';
 import { standingVehicles } from './fleet.js';
+import { upgradeLevel } from './upgrades.js';
 
 export const SUPPLIES = {
   oil: { name: 'Motor oil (5 qt)', price: 12 }, bulb: { name: 'Headlight bulb', price: 6 },
@@ -44,7 +45,7 @@ export function tickJobs(dt) {
   h.jobClock = (h.jobClock || 0) + dt;
   const due = h.jobsDone ? h.nextJobAt || GAP[0] : FIRST_AFTER;
   if (h.jobClock < due) return;
-  const stall = pickStall(occupiedNow()); if (!stall) return;   // lot full: the customer waits until a stall opens
+  const stall = pickStall(occupiedNow(), Math.random, stallsFor(upgradeLevel('parking'))); if (!stall) return;   // lot full: the customer waits until a stall opens
   const last = h.lastJob, pool = JOBS.filter(j => j.id !== last);
   const j = pool[Math.floor(Math.random() * pool.length)];
   game.job = { id: j.id, stall: stall.id, ...stallPose(stall) };

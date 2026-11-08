@@ -11,6 +11,7 @@ import { propertyTexture } from './propertyTextures.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
 import ProcEngine from '../Engine.jsx';
+import { upgradeLevel } from '../game/upgrades.js';
 
 export const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = base; g.fillRect(0, 0, w, h);
@@ -156,8 +157,9 @@ function Garage() {
       <Box p={[0, open ? 0.06 : -0.06, 0.07]} s={[0.07, 0.14, 0.07]} color="#d9d2c0" metal={0.6} rough={0.4} cast={false} />
       <Box p={[0, 0.17, 0.05]} s={[0.12, 0.07, 0.03]} color={open ? '#ff6a45' : '#4a3a38'} emissive={open ? '#ff6a45' : undefined} ei={open ? 1.4 : 0} cast={false} />
     </group>
-    {/* the lift */}
+    {/* the lift, plus a second once the "Second car lift" upgrade is bought (game/upgrades.js) */}
     <CarLift />
+    {upgradeLevel('lift2') >= 1 && <group position={[4.8, 0, 1.2]}><CarLift /></group>}
     {/* workbench along the back wall, pegboard with tools above it, compressor at the end */}
     <Box p={[-3, 0.92, -d + 0.8]} s={[5.2, 0.12, 1.1]} color="#fff" map={bench} />
     {[-5.4, -0.6].map(x => <Box key={x} p={[x, 0.45, -d + 0.8]} s={[0.12, 0.9, 1]} color="#3b3f42" metal={0.5} />)}

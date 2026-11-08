@@ -60,12 +60,13 @@ export function LotMenu({ onResume, onExit }) {
   return <div className="overlay"><div className="card"><h2>PAUSED</h2><div className="menu"><button className="big" onClick={onResume}>Resume</button><button onClick={onExit}>Exit to title</button></div></div></div>;
 }
 
-export function PauseMenu({ onResume, onSettings, onWiki, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
+export function PauseMenu({ onResume, onSettings, onWiki, onUpgrades, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
   useGame();
   return <div className="overlay"><div className="card">
     <h2>PAUSED</h2>
     <div className="menu">
       <button className="big" onClick={onResume}>Resume</button>
+      {game.onFoot && <button onClick={onUpgrades}>Upgrades (U)</button>}
       <button onClick={onWiki}>Game index (I)</button>
       <button onClick={onSettings}>Settings{game.settings?.creative ? ' · creative mode on' : ''}</button>
       {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}

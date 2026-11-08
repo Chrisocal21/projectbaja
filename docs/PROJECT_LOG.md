@@ -338,3 +338,16 @@ Chris: "add an index of all game pieces / wiki of the game".
 - **Built from the data, not written by hand:** `game/WikiPanel.jsx` reads the same tables the game uses (`BUILD_ITEMS`, `MATERIALS`, the part catalog, `VEHICLE_TYPES`, `JOBS`, `BIOMES`, and so on), so it can't drift and adds no new lore. Dusty's store list moved into `STORE_ITEMS` in `game/jobs.js` so the store and the index share it.
 - Checked in Chromium: opens from the title screen and with I; all 13 sections; search "battery" finds the Bug's battery slot, the store battery and Rosa's job; typing in the search box doesn't close it; Esc closes. 60/60 tests, build passes.
 - Not done: pictures for anything other than build items (car parts, vehicles), "discovered" entries that unlock as you find things, and descriptions for places (none exist in the game data yet).
+
+## November 8, 2026: the upgrade track (first pass)
+
+Chris's rec, confirmed with "your rec": the garage/yard upgrade track queued earlier.
+
+- **Upgrades panel** (key **U** on foot, or Pause → Upgrades): a levelled progression track, separate from the building kit (B). Two upgrades so far, both pure data in `worlds/upgrades.js`:
+  - **Second car lift** (garage, 1 level, $2,200) — a second two-post lift rendered beside the first in the garage bay. It's visual capacity, not a new mechanic: the engine hoist was already available anywhere in the garage zone.
+  - **Parking lot expansion** (yard, 2 levels, $650 then $950) — +2 bays per level (12 → 14 → 16), extending the lot further down the drive lane. `worlds/lot.js` grew `stallsFor(level)`/`lotZ1(level)`; customers (`jobs.js`), the rendered bay lines (`Home.jsx`), and the build-mode keep-clear rules (`home.js`) all read the current level.
+  - Replaces the two loose items this stood in for: the $1,800 `lift` build item and the $200 `carSpot` item (redundant now that customers already auto-park in the real lot).
+  - `game.home.upgrades = { [id]: level }`, saved with the home. `worlds/upgrades.js` is pure and tested (price/level math, no game state); `game/upgrades.js` is the thin stateful half (`upgradeLevel`, `buyUpgrade`) — same split as `structures.js`/`home.js` and `lot.js`/`jobs.js`.
+  - Shows up in the game index too, as its own "Upgrades" section.
+- Checked in Chromium: panel opens with U and from pause; bought the lift (−$2,200) and both parking levels (−$650, −$950), third buy refused as "Fully built"; the second lift rendered in the garage; the lot visibly extended after both levels; the index lists both with level and price. 64/64 tests, build passes.
+- Not done: the office expansion level (queued — it means changing the office's wall geometry, not just placing a prop, so it's deferred rather than faked), and whether upgrades should unlock materials.

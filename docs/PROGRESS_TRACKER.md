@@ -137,12 +137,12 @@ Direction given while building the structure kit. Nothing here is built yet; mar
 
 1. **A newer, less rusted look for player-built construction.** The building pieces should not look like Walt's rusty garage. Skin work only (`worlds/StructureModels.jsx`); sizes and ids stay fixed.
 2. **Material choice when building.** The player picks the material for a piece (for example corrugated metal, wood, block, concrete, painted panel). PROPOSAL: a `material` field on each placed piece, with prices per material, and the skin draws it. The kit's piece ids and sizes do not change.
-3. **Garage and yard upgrades, levelled up over time.** Things you buy and level inside the garage and around it: another car lift, more parking bays, and many more like them (the office expansion is one). They are a progression track of their own. PROPOSAL: an upgrade list with levels, costs and prerequisites, shown in one place, instead of loose build-menu items.
-4. **Building expansions are a different thing.** Putting up new structures with the kit (rooms, sheds, extra buildings) is free-form building; upgrades are bought progression. Keep the two systems separate.
+3. **Garage and yard upgrades, levelled up over time. DONE (first pass).** The Upgrades panel (key **U**, or Pause → Upgrades) lists two levelled upgrades bought with cash, separate from the building kit: **Second car lift** (garage, 1 level, $2,200 — a second two-post lift beside the first) and **Parking lot expansion** (yard, 2 levels, $650/$950 — +2 bays per level, 12 → 14 → 16). Data lives in `worlds/upgrades.js` (pure, tested) with `game/upgrades.js` as the stateful half (`upgradeLevel`, `buyUpgrade`); levels persist in `game.home.upgrades`. The office expansion is queued as a later level — not yet built, since it means changing the office's wall geometry rather than just adding a prop.
+4. **Building expansions are a different thing.** Putting up new structures with the kit (rooms, sheds, extra buildings) is free-form building; upgrades are bought progression. Keep the two systems separate. Done: the two systems don't overlap — the Upgrades panel has no placement step, and the build menu (B) has no levels.
 
 How this settles the open build-mode questions:
-- **Buyable car lift:** becomes an upgrade (a second lift, and later levels), not a loose $1,800 item.
-- **"Car lot space":** becomes the parking-bay upgrade (more bays by level), replacing the loose item.
+- **Buyable car lift:** done — replaced by the "Second car lift" upgrade; the old $1,800 loose `lift` build item is gone.
+- **"Car lot space":** done — replaced by the "Parking lot expansion" upgrade; the old $200 loose `carSpot` build item is gone (the real customer lot already auto-parks cars, so a standalone decorative pad was redundant).
 - **Old PC / parts ordering:** still undecided.
 
 ## Inbox: parked until their phase opens

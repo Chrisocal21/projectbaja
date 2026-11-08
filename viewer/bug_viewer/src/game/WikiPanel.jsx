@@ -10,6 +10,7 @@ import { SUPPLIES, STORE_ITEMS, JOBS } from './jobs.js';
 import { TOOLS, SIZE_NAME } from './items.js';
 import { CONTAINER_RULES } from './loot.js';
 import { DEF } from './workshop.js';
+import { UPGRADES, upgradeLevel } from './upgrades.js';
 import { BIOMES } from '../worlds/county.js';
 import { Icon, Key } from './BuildMenu.jsx';
 
@@ -22,7 +23,7 @@ const FN = { start: 'Needed to start', drive: 'Needed to drive', steer: 'Needed 
 const TOOL_NAME = { hoist: 'Engine hoist (in your garage)', jack: 'Floor jack' };
 
 export const CONTROLS = [
-  ['On foot', [['WASD', 'Walk'], ['Shift', 'Run'], ['Mouse', 'Look'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['G', 'Put down'], ['R', 'Take a part off (at the car)'], ['X', 'Workshop (at the car)'], ['Q', 'Open / close a door (at the car)'], ['B', 'Build menu'], ['M', 'Map'], ['I', 'Game index'], ['Esc', 'Menu']]],
+  ['On foot', [['WASD', 'Walk'], ['Shift', 'Run'], ['Mouse', 'Look'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['G', 'Put down'], ['R', 'Take a part off (at the car)'], ['X', 'Workshop (at the car)'], ['Q', 'Open / close a door (at the car)'], ['B', 'Build menu'], ['U', 'Upgrades'], ['M', 'Map'], ['I', 'Game index'], ['Esc', 'Menu']]],
   ['Driving', [['W / S', 'Throttle / brake-reverse'], ['A / D', 'Steer'], ['Space', 'Handbrake'], ['R', 'Reset'], ['C', 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu']]],
   ['Building', [['Click / E', 'Build'], ['R', 'Rotate'], ['Wheel', 'Next in group'], ['[ ]', 'Previous / next piece'], [', .', 'Previous / next category'], ['1-8', 'Hotbar'], ['N', 'Material'], ['V', 'Move a placed thing'], ['X', 'Take down (50% back)'], ['B', 'Build menu'], ['Q / Right-click', 'Put the build tool away']]],
 ];
@@ -56,9 +57,12 @@ function sections() {
   const jobs = JOBS.map(j => ({ id: 'j:' + j.id, name: j.title, price: j.pay, sub: j.who, tags: ['Customer job'], text: `“${j.ask}”`, stats: [['Customer', j.who], ['Needs', needName(j.need)], ['Pays', $(j.pay)]] }));
   const places = Object.values(BIOMES).map(b => ({ id: 'pl:' + b.name, name: b.name, sub: 'Area of Baja County', tags: ['Place'], text: '', stats: [] }));
   const finds = Object.values(CONTAINER_RULES).map(c => ({ id: 'c:' + c.label, name: c.label[0].toUpperCase() + c.label.slice(1), sub: 'Search it with E', tags: ['Container'], text: '', stats: [] }));
+  const upgrades = UPGRADES.map(u => ({ id: 'u:' + u.id, name: u.name, price: u.prices[0], sub: `${u.zone === 'garage' ? 'Garage' : 'Yard'} · level ${upgradeLevel(u.id)}/${u.levels}`, tags: ['Upgrade (U)', u.zone === 'garage' ? 'Garage' : 'Yard'],
+    text: u.notes[0], stats: u.notes.map((n, i) => [`Level ${i + 1}`, `${n} — $${u.prices[i]}`]) }));
   return [
     { id: 'build', label: 'Building', view: 'grid', items: build },
     { id: 'mats', label: 'Materials', view: 'grid', items: mats },
+    { id: 'upgrades', label: 'Upgrades', view: 'list', items: upgrades },
     { id: 'bug', label: "The '71 Bug", view: 'list', items: bug },
     { id: 'parts', label: 'Car parts', view: 'list', items: carParts },
     { id: 'tires', label: 'Tires & rims', view: 'list', items: tires },

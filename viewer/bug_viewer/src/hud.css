@@ -215,3 +215,14 @@
 .wk-foot { font: 500 12px var(--hud-font); color: var(--hud-dim); }
 .wk-empty { color: var(--hud-dim); margin-top: 40px; text-align: center; }
 .wk .bm-x { margin-left: auto; }
+
+/* upgrades panel */
+.card.upgrades { width: min(620px, 94vw); }
+.up-row { padding: 14px 0; border-bottom: 1px solid var(--hud-line); }
+.up-main { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.up-main b { display: block; font: 600 15px var(--hud-font); } .up-main small { display: block; margin-top: 2px; font: 400 12px var(--hud-font); color: var(--hud-dim); }
+.up-main .buy { min-width: 90px; text-align: center; }
+.up-levels { display: flex; gap: 4px; margin: 8px 0 6px; }
+.up-levels i { width: 22px; height: 6px; background: rgba(255, 255, 255, 0.1); display: block; }
+.up-levels i.on { background: var(--hud-acc); }
+.up-row p { margin: 0; font: 400 12.5px/1.5 var(--hud-font); color: #b9c3c1; }

@@ -16,7 +16,7 @@ import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
 import { CAMPER } from './office.js';
-import { STALL } from './lot.js';
+import { STALL, rowsAtLevel } from './lot.js';
 import { propertyTexture } from './propertyTextures.js';
 
 /** Grandpa's place around the garage: his trailer, windmill and tank, his old race car, the junk you clear, customers' cars, and everything you build. */
@@ -116,11 +116,12 @@ function Forecourt() {
     <mesh position={[0, 0.025, 20.5]} rotation={[-Math.PI / 2, 0, 0]} material={material} receiveShadow>
       <planeGeometry args={[34, 23]} />
     </mesh>
-    {/* parking bays down both sides of the drive lane, nose-out (worlds/lot.js); the lane to the garage door stays open */}
-    {[-1, 1].map(side => <group key={side}>
-      {Array.from({ length: STALL.perSide + 1 }, (_, k) => <mesh key={k} position={[side * (STALL.inner + STALL.d / 2), 0.04, STALL.z0 + k * STALL.w]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[STALL.d, 0.14]} /><M c="#e6dcc0" r={1} /></mesh>)}
-      {Array.from({ length: STALL.perSide }, (_, k) => <B key={k} p={[side * (STALL.inner + STALL.d - 0.4), 0.09, STALL.z0 + (k + 0.5) * STALL.w]} s={[0.22, 0.15, 1.7]} c="#9a9080" />)}
-    </group>)}
+    {/* parking bays down both sides of the drive lane, nose-out (worlds/lot.js); the lane to the garage door stays open.
+        Rows grow with the "Parking lot expansion" yard upgrade (game/upgrades.js). */}
+    {[-1, 1].map(side => { const rows = rowsAtLevel(game.home?.upgrades?.parking || 0); return <group key={side}>
+      {Array.from({ length: rows + 1 }, (_, k) => <mesh key={k} position={[side * (STALL.inner + STALL.d / 2), 0.04, STALL.z0 + k * STALL.w]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[STALL.d, 0.14]} /><M c="#e6dcc0" r={1} /></mesh>)}
+      {Array.from({ length: rows }, (_, k) => <B key={k} p={[side * (STALL.inner + STALL.d - 0.4), 0.09, STALL.z0 + (k + 0.5) * STALL.w]} s={[0.22, 0.15, 1.7]} c="#9a9080" />)}
+    </group>; })}
   </group>;
 }
 

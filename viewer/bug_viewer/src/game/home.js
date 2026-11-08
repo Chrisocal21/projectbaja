@@ -6,7 +6,8 @@ import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree } from '../worlds/office.js';
-import { LANE, STALL } from '../worlds/lot.js';
+import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
+import { upgradeLevel } from './upgrades.js';
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -71,7 +72,6 @@ export const BUILD_ITEMS = [
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: move it with V" },
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. Move it with V' },
   { id: 'toolChest', name: 'Rolling tool chest', price: 260, zone: 'garage', r: 0.5, cat: 'Storage' },
-  { id: 'lift', name: 'Two-post car lift', price: 1800, zone: 'garage', r: 0, cat: 'Garage', note: 'Work under the car (coming soon)' },
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },
   { id: 'bender', name: 'Tube bender', price: 320, zone: 'garage', r: 0.5, cat: 'Fabrication', note: 'Bend tube for hoops and cages' },
@@ -85,7 +85,6 @@ export const BUILD_ITEMS = [
   { id: 'drum', name: 'Oil drum', price: 10, zone: 'any', r: 0.4, cat: 'Decor' },
   { id: 'picnic', name: 'Picnic table', price: 60, zone: 'yard', r: 1.0, cat: 'Yard' },
   { id: 'grill', name: 'Barbecue grill', price: 80, zone: 'yard', r: 0.5, cat: 'Yard' },
-  { id: 'carSpot', name: 'Car lot space (gravel + paint)', price: 200, zone: 'yard', r: 0, cat: 'Car lot', note: 'Park, store and later sell cars here' },
 ];
 export const buildById = Object.fromEntries(BUILD_ITEMS.map(b => [b.id, b]));
 /** build categories in menu order, and the item to land on when you jump to one */
@@ -114,7 +113,7 @@ function structWhy(item, x, z, ry) {
   for (const [px, pz] of probePoints(item.id, l.lx, l.lz, ryl)) {
     if (!(Math.abs(px) < PROPERTY.w / 2 && Math.abs(pz - 8) < PROPERTY.d / 2 + 6)) return "That's past your property line.";
     if (px > 18 && px < 26 && pz > -6 && pz < 8) return 'Keep the camper and its porch clear.';
-    if (Math.abs(px) < STALL.inner + STALL.d + 1 && pz > LANE.z0 - 0.01 && pz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
+    if (Math.abs(px) < STALL.inner + STALL.d + 1 && pz > LANE.z0 - 0.01 && pz < lotZ1(upgradeLevel('parking')) + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
     if (Math.abs(px) < LANE.half + 1 && pz > LANE.z0 && pz < LANE.z1) return 'Keep the driveway clear.';
   }
   if (inBuilding(item.id, l.lx, l.lz)) return "That's where the garage already is.";
@@ -149,7 +148,7 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
   if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
-  if (Math.abs(lx) < STALL.inner + STALL.d + 1 && lz > LANE.z0 && lz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
+  if (Math.abs(lx) < STALL.inner + STALL.d + 1 && lz > LANE.z0 && lz < lotZ1(upgradeLevel('parking')) + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
   const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
