@@ -1,6 +1,8 @@
 # Placement system: status and what's left
 
 Paused November 8, 2026, close to the session limit. This file says where the work stopped and what still needs to be done.
+**Regroup (Nov 8): see [ROADMAP](./ROADMAP.md) for the one-page status, where each test page lives, and the organised backlog.**
+
 Chris's original PLACEMENT_SYSTEM brief governs the work. Its rules of engagement still apply:
 - don't break anything
 - keep edits to existing files as small as possible, and list every one
