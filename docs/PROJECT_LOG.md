@@ -264,3 +264,15 @@ Chris wants to move racks and other things in the garage.
 - Long items get a row of collision circles along their length and rotate with the item (`propObstacles`).
 - Checked in Chromium: new game seeds the five shelves; picking one up, rotating and placing it at a new spot; refusal in the car spot; cancel; X refused on Walt's shelves; position kept after reload. 45/45 tests, build passes.
 - Not movable yet: the workbench and pegboard (the workbench is the part-fitting spot and holds the letter), the lift, the engine stand, the compressor, and the tire stack. Asked Chris which to convert next.
+
+## November 8, 2026: modular building pieces (structure kit, first pass)
+
+Chris: wall pieces, foundations, floors, pillars, window walls, garage doors, doors, in the style of the builds so far; art will be overhauled three times (one soon, two later).
+
+- **Eight pieces** in a new "Structure" category: foundation slab, floor, roof panel (2 x 2 m cells), wall, window wall, door wall (2 m, 1 m walk-through), garage door wall (4 m, 3 m+ opening), pillar. Prices $15 to $220. PROPOSAL: sizes, prices and rules are placeholders.
+- **Rules are pure and tested** (`worlds/structures.js`, `structures.test.js`, 7 new tests): a 2 m grid with lines on even numbers so pieces line up with the garage's own walls; cells snap to cell centres, walls to the nearest cell edge (and turn to follow it), pillars to corners; everything except a foundation needs a foundation under or beside it; two pieces cannot share a slot; a foundation cannot be taken down from under things that rest only on it; pieces cannot go in the garage, the camper, the customer lot or the drive lane.
+- **Collision and floors:** walls are solid along their length, doorways stay open (1.0 m door, 3 m+ garage door), pillars are posts; foundations and floors are walkable steps (`dynFloors` in `worlds/county.js`, filled by `propObstacles` in `game/home.js`).
+- **Overhaul seam:** the look lives only in `worlds/StructureModels.jsx` (a named skin, `SKINS` / `ACTIVE_SKIN`). Piece ids, sizes and pivots must not change between overhauls, so saves keep working. Each overhaul replaces that one file's builders (and textures).
+- Ghost snaps to the grid (walls pick the nearest edge, no rotating needed). Building pieces can be taken down with X (50% back) but not moved with V (take down and rebuild).
+- Checked in Chromium: built a 6 x 4 m shed (6 foundations, floors, windows, a door, a garage door, pillars, roof); refusals (no foundation, duplicate, garage, lot); foundation removal refused while walls stand; walked through the door and was stopped by a plain wall; real ghost aiming snapped to the grid; 52/52 tests, build passes.
+- Not done: upper floors/stairs, opening and closing doors (all doors stand open), lights/power in built rooms, roofs that need walls, diagonal or curved pieces.

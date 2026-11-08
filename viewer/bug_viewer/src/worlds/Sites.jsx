@@ -33,7 +33,7 @@ export const Tire = ({ p, r = 0.38, w = 0.28, rim = '#9aa0a4', rot = [Math.PI / 
   <mesh position={[0, w * 0.52, 0]}><cylinderGeometry args={[r * 0.62, r * 0.62, 0.02, 18]} /><meshStandardMaterial color={rim} metalness={0.7} roughness={0.4} /></mesh></group>;
 
 /** poured concrete: speckle, soft blotches, saw-cut joints, hairline cracks and oil stains */
-const concreteTex = (seed = 21) => canvasTex(512, 512, (g, w, h) => {
+export const concreteTex = (seed = 21) => canvasTex(512, 512, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = '#9c9d98'; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 60; i++) { const x = r() * w, y = r() * h, rad = 30 + r() * 110, gr = g.createRadialGradient(x, y, 0, x, y, rad), dk = r() < 0.5; gr.addColorStop(0, dk ? 'rgba(60,58,52,0.12)' : 'rgba(255,255,250,0.1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
   for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${r() < 0.5 ? '40,40,38' : '235,235,228'},${r() * 0.22})`; g.fillRect(r() * w, r() * h, 1 + r() * 1.5, 1 + r() * 1.5); }
@@ -43,7 +43,7 @@ const concreteTex = (seed = 21) => canvasTex(512, 512, (g, w, h) => {
   g.fillStyle = 'rgba(50,48,44,0.55)'; g.fillRect(0, 0, w, 3); g.fillRect(0, 0, 3, h);   // saw-cut joints at the tile edges
 }, [3, 3]);
 /** corrugated sheet: fine ribs, rust streaks running down from the top, dirt splash along the bottom */
-const corrugatedTex = (base, seed = 31) => canvasTex(512, 512, (g, w, h) => {
+export const corrugatedTex = (base, seed = 31) => canvasTex(512, 512, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = base; g.fillRect(0, 0, w, h);
   const n = 32; for (let i = 0; i < n; i++) { const x = (i * w) / n, gr = g.createLinearGradient(x, 0, x + w / n, 0); gr.addColorStop(0, 'rgba(255,255,255,0.22)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.18)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.2)'); gr.addColorStop(1, 'rgba(255,255,255,0.22)'); g.fillStyle = gr; g.fillRect(x, 0, w / n, h); }
   for (let i = 0; i < 26; i++) { const x = r() * w, len = 60 + r() * 300, wd = 3 + r() * 10, gr = g.createLinearGradient(0, 0, 0, len); gr.addColorStop(0, 'rgba(130,60,25,0.55)'); gr.addColorStop(1, 'rgba(130,60,25,0)'); g.fillStyle = gr; g.fillRect(x, 0, wd, len); }

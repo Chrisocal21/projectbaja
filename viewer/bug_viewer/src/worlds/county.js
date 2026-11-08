@@ -265,9 +265,12 @@ const FLOORS = [
   ['lot', -30, 30, -20, 22, 0.05], ['gas', 'disc', 0, 3, 19.5, 0.045],
 ];
 const floorList = FLOORS.map(([id, ...f]) => ({ s: SITES[id], f, R: f[0] === 'disc' ? f[3] + Math.hypot(f[1], f[2]) : Math.hypot(Math.max(-f[0], f[1]), Math.max(-f[2], f[3])) }));
+/** walkable floors built by the player (foundations, floors): { x0, x1, z0, z1, top } in world metres, top absolute. Filled by game/home.js. */
+export const dynFloors = [];
 /** the top of whatever floor is under (x, z), or -Infinity */
 export function floorAt(x, z) {
   let top = -Infinity;
+  for (const f of dynFloors) if (x >= f.x0 && x <= f.x1 && z >= f.z0 && z <= f.z1 && f.top > top) top = f.top;
   for (const { s, f, R: r } of floorList) {
     const dx = x - s.x, dz = z - s.z; if (Math.abs(dx) > r || Math.abs(dz) > r) continue;
     const c = Math.cos(s.rot), n = Math.sin(s.rot), lx = dx * c - dz * n, lz = dx * n + dz * c;

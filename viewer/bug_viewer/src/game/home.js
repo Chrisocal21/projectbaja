@@ -1,7 +1,8 @@
 // Grandpa's place: the run-down garage you inherit, the mess you clear out of it, and the build mode for your own property
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
-import { SITES, PROPERTY, toWorld } from '../worlds/county.js';
+import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
+import { PIECES, isPiece, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree } from '../worlds/office.js';
 import { LANE, STALL } from '../worlds/lot.js';
 
@@ -56,10 +57,12 @@ export const LETTER = [
 
 // ---------------- build mode: your property ----------------
 /** place-able things. `zone`: 'yard' (outside the garage) or 'garage' (inside). r = collision radius (0 = walk-through) */
+const STRUCTURE_ITEMS = Object.values(PIECES).map(p => ({ id: p.id, name: p.name, price: p.price, zone: 'yard', r: 0, cat: 'Structure', struct: true, note: p.note }));
 export const BUILD_ITEMS = [
   { id: 'fenceWood', name: 'Wooden fence (3 m)', price: 40, zone: 'yard', r: 0, cat: 'Fences', len: 3 },
   { id: 'fenceChain', name: 'Chain-link fence (3 m)', price: 60, zone: 'yard', r: 0, cat: 'Fences', len: 3 },
   { id: 'gate', name: 'Ranch gate', price: 110, zone: 'yard', r: 0, cat: 'Fences', len: 4 },
+  ...STRUCTURE_ITEMS,
   { id: 'floodlight', name: 'Floodlight pole', price: 120, zone: 'yard', r: 0.3, cat: 'Yard' },
   { id: 'yardRack', name: 'Steel parts rack', price: 150, zone: 'any', r: 0.6, cat: 'Storage', note: 'More shelf room for parts' },
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: move it with V" },
@@ -91,9 +94,31 @@ export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos
 const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m);
 export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return Math.abs(lx) < PROPERTY.w / 2 && Math.abs(lz - 8) < PROPERTY.d / 2 + 6; };
 /** can this item go here? → '' or why not */
-export function placeWhy(item, x, z, moving = false) {
+/** why a building piece can't go here ('' = it can). x, z, ry are world values (the snapped ones); the rules run in garage-local metres. */
+function structWhy(item, x, z, ry) {
+  const l = homeLocal(x, z), ryl = ry - G.rot;
+  for (const [px, pz] of probePoints(item.id, l.lx, l.lz, ryl)) {
+    if (!(Math.abs(px) < PROPERTY.w / 2 && Math.abs(pz - 8) < PROPERTY.d / 2 + 6)) return "That's past your property line.";
+    if (px > 18 && px < 26 && pz > -6 && pz < 8) return 'Keep the camper and its porch clear.';
+    if (Math.abs(px) < STALL.inner + STALL.d + 1 && pz > LANE.z0 - 0.01 && pz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
+    if (Math.abs(px) < LANE.half + 1 && pz > LANE.z0 && pz < LANE.z1) return 'Keep the driveway clear.';
+  }
+  const p = PIECES[item.id], inGar = (px, pz, e = 0.01) => px > -13.2 - e && px < 7 + e && pz > -6 - e && pz < 6 + e;   // garage + office wing
+  if (p.kind === 'cell' ? (l.lx + 1 > -13.2 && l.lx - 1 < 7 && l.lz + 1 > -6 && l.lz - 1 < 6) : inGar(l.lx, l.lz)) return "That's where the garage already is.";
+  const existing = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot }; });
+  if (conflicts(item.id, l.lx, l.lz, ryl, existing)) return 'Something is already built there.';
+  if (!supported(item.id, l.lx, l.lz, ryl, existing)) return 'Build a foundation slab there first.';
+  return '';
+}
+/** snap a free world point to a building piece's grid → { x, z, ry } in world terms */
+export function snapWorld(item, x, z) {
+  const l = homeLocal(x, z), s = snapPiece(item.id, l.lx, l.lz), [wx, wz] = toWorld(G, s.x, s.z);
+  return { x: wx, z: wz, ry: G.rot + s.ry };
+}
+export function placeWhy(item, x, z, moving = false, ry = 0) {
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
+  if (item.struct) return structWhy(item, x, z, ry) || (!moving && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
   if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
   if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
@@ -108,7 +133,7 @@ export function placeWhy(item, x, z, moving = false) {
   return '';
 }
 export function placeProp(id, x, z, ry) {
-  const item = buildById[id], why = placeWhy(item, x, z); if (why) { say(why); return false; }
+  const item = buildById[id], why = placeWhy(item, x, z, false, ry); if (why) { say(why); return false; }
   addCash(-item.price);
   game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name} (−$${item.price})`); return true;
@@ -126,10 +151,10 @@ export function ensureStarterFixtures() {
   game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
   game.home = { ...game.home, fixtures: true }; save();
 }
-const propHit = (x, z, max) => game.props.map(q => [q, Math.hypot(q.x - x, q.z - z)]).filter(([, d]) => d < max).sort((a, b) => a[1] - b[1])[0]?.[0];
+const propHit = (x, z, max) => game.props.filter(q => !isPiece(q.id)).map(q => [q, Math.hypot(q.x - x, q.z - z)]).filter(([, d]) => d < max).sort((a, b) => a[1] - b[1])[0]?.[0];
 /** build mode, V: pick the nearest placed thing up to move it (free). It stays where it is until you put it down. */
 export function startMove(x, z) {
-  const p = propHit(x, z, 3.5); if (!p) { say('Nothing to move here.'); return false; }
+  const p = propHit(x, z, 3.5); if (!p) { say('Nothing to move here. (Building pieces stay put: take one down with X for 50% back and rebuild it.)'); return false; }
   game.buildMode = { ...game.buildMode, item: p.id, ry: p.ry || 0, moving: { uid: p.uid, x: p.x, z: p.z, ry: p.ry || 0 } };
   say(`Moving the ${buildById[p.id].name.toLowerCase()}: look where it goes, E to put it down, B to cancel`); return true;
 }
@@ -141,6 +166,10 @@ export function movePropTo(uidN, x, z, ry) {
 }
 export function removeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return;
+  if (isPiece(p.id)) {
+    const l = homeLocal(p.x, p.z), all = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot, uid: q.uid }; });
+    if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
+  }
   if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
   const back = Math.round(buildById[p.id].price * 0.5);
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
@@ -149,12 +178,18 @@ let cache = { v: -1, list: [] };
 /** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
 export function propObstacles() {
   const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0;
-  if (cache.v !== v || cache.n !== game.props.length || cache.mv !== mv) cache = { v, mv, n: game.props.length, list: game.props.filter(p => p.uid !== mv && buildById[p.id]?.r > 0).flatMap(p => {
+  if (cache.v !== v || cache.n !== game.props.length || cache.mv !== mv) cache = { v, mv, n: game.props.length, list: game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+    if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (!it.len) return [[p.x, p.z, it.r, 99]];
     const n = Math.ceil(it.len / 0.8), c = Math.cos(ry), s = Math.sin(ry);
     return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });
   }) };
+  if (cache.floorsV !== `${v}|${game.props.length}`) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
+    dynFloors.length = 0;
+    for (const p of game.props) { if (!isPiece(p.id)) continue; const m = homeLocal(p.x, p.z), f = floorRect(p.id, m.lx, m.lz); if (!f) continue; const [x0, z0] = toWorld(G, f.x0, f.z0), [x1, z1] = toWorld(G, f.x1, f.z1); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: height(p.x, p.z) + f.top }); }
+    cache.floorsV = `${v}|${game.props.length}`;
+  }
   return cache.list;
 }
 
