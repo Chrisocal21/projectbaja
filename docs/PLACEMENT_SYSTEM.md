@@ -88,4 +88,60 @@ An agent was building Stage 3 when the session paused. Its final status report, 
 
 ## Stage 3 handoff
 
-_(The agent's final report goes here when it arrives.)_
+Stage 3 work is uncommitted in `viewer/bug_viewer`. `npm test` passes 109/109. The game loads with the flag off and no page errors.
+
+**Done and checked in a browser**
+- **Click to pick up (E no longer picks up), everywhere:** the prompt reads "Click — Pick up X". Clicking to resume after the pause screen picks nothing up.
+- **The Scrap heap is still on E** ("pick through", which gives scrap, not an item). Chris to decide whether it stays that way.
+- **Bug cargo, behind `?placement=1`:**
+  - The front trunk (0.9×0.6 m) works once the hood is open. Items clip into the corners. Items that are too big are refused.
+  - The luggage shelf works (1.0×0.35 m).
+  - With empty hands, a click takes an item out of the cargo into your pack.
+
+**Existing files touched**
+- `package.json`: the new test file.
+- `main.jsx`:
+  - imports
+  - the item branch of `worldInteract`
+  - a `placementKey` line
+  - the left-click pickup / `placementClick` block
+- `DriveWorld.jsx`: imports, and `<VehicleCargo>` added to both the Vehicle and Fleet groups (behind the flag).
+- `Walker.jsx`:
+  - imports
+  - the prompt text
+  - Shift sprints only when you are not aiming a held item at a surface
+- `WikiPanel.jsx`: a "Click — Pick up" line in the controls list.
+
+**New files in `src/placement/`**
+- `vehicleSurfaces.js`: measured cargo surfaces
+- `gameItems.js`
+- `cargoStore.js`: items saved with `loc:'car', spot:'grid'`
+- `input.js`
+- `flag.js`
+- `VehicleCargo.jsx`
+- `vehicle.test.js`
+- `rules.js` and `types.js` gained poses, walls, blocks (wheel wells), headroom and a wall magnet.
+
+**Findings**
+- The '84 pickup bed has wheel wells **0.84 m apart**. At the real tire size (Ø0.69 m), only **3 upright tires fit across against the cab, not 4.** This was measured, not faked. Chris needs to choose: a wider bed, smaller tires, or mount spots placed over the wells.
+- **There is no towable trailer in the game.** "Trailer" means grandpa's living trailer. The data format would support one.
+- **Existing bug, not touched:** the truck model's bed is at +z, but the truck code treats +z as forward. That puts the existing truck cargo crates inside the cab.
+
+**What's left in Stage 3**
+1. Look at screenshots `scratchpad/pw/shots/s3b_1..4` (not reviewed yet). Check the trunk floor height (0.27) and the shelf position with the hood open.
+2. Replace the temporary **T key** (flat/upright toggle) with Chris's design: `mounts` in the bed data (spots 5–8), where an upright tire snaps into a mount and outlines show while you hold a tire. Remove T from `input.js`, the Lab and the Walker hint.
+3. In the game:
+   - the truck bed
+   - the roof rack (fitted through `build.parts.roofRack`)
+   - a drive test showing items stay put
+   - Lab screenshots of the bed and upright tires
+4. **Open risks**
+   - Grid items on the luggage shelf can overlap the crates that cab storage draws there.
+   - A fitted roof jerry-can part isn't treated as an obstacle.
+   - The aim ray ignores the car body.
+   - With the flag off, grid items aren't drawn, though they're still listed in Tab.
+5. **Proposals to confirm**
+   - reach of 3.2 m
+   - headroom values
+   - crate sizes taken from the item models
+   - one tire size for every tire
