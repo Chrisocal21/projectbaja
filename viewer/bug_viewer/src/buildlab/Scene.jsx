@@ -1,4 +1,4 @@
-// The Build Sandbox's 3D: ground + grid, placed pieces, ghosts (one piece or a whole blueprint), region box, measure tool, scale refs.
+// The Build Sandbox's 3D: ground + grid, placed pieces, ghosts (one piece or a whole blueprint), region box, measure tool.
 // Rules come from rules.js / format.js (the game's own structures.js underneath). No game state is used.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -54,19 +54,11 @@ const Outline = ({ box, color = '#ffd84a' }) => {
 };
 const boxOf = obj => { const b = new THREE.Box3().setFromObject(obj); if (b.isEmpty()) return null; const s = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3()); return { c: [c.x, c.y, c.z], s: [s.x + 0.04, s.y + 0.04, s.z + 0.04] }; };
 
-// ---------------- the interaction layer: pointer, raycast, ghosts, region, measure, WASD, snapshots ----------------
-export function Interact({ ctl, piecesRef }) {
-  const { camera, gl, scene, size, controls } = useThree();
-  const st = ctl.current;
-  const ptr = useRef({ x: 0, y: 0, in: false, down: null, drag: null }), keys = useRef(new Set());
-  const ray = useMemo(() => new THREE.Raycaster(), []), plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-  const mats = useMemo(() => holoMaterials(), []);
-  const ghost = useRef(), inner = useRef(), foot = useRef(), cursor = useRef();
-  const last = useRef({});
-  const [hoverBox, setHoverBox] = useState(null), [regionDrag, setRegionDrag] = useState(null);
+// ---------------- the ghost (one piece or a whole blueprint), shared by the creator camera and the first-person walker ----------------
+export function useGhost(ctl) {
+  const st = ctl.current, mats = useMemo(() => holoMaterials(), []);
+  const ghost = useRef(), inner = useRef(), foot = useRef();
   useEffect(() => () => mats.dispose(), [mats]);
-
-  // the current ghost content: a piece or a turned blueprint
   const g = st.ghostSpec;   // { type: 'piece', id, mat } | { type: 'stamp', rel, turns, lid } | null
   const stampRel = useMemo(() => (g?.type === 'stamp' ? rotateRel(g.rel, g.turns) : null), [g?.type, g?.lid, g?.turns, g?.rel]);
   const ghostKey = g ? (g.type === 'piece' ? `p:${g.id}:${g.mat}` : `s:${g.lid}:${g.turns}`) : '';
@@ -80,33 +72,45 @@ export function Interact({ ctl, piecesRef }) {
       foot.current.add(footprint(Math.max(0.6, s.x + 0.2), Math.max(0.6, s.z + 0.2), mats));
     } else { const bb = boundsOf(stampRel); const f = footprint(bb.w + 0.2, bb.d + 0.2, mats); f.position.set((bb.minX + bb.maxX) / 2, 0.05, (bb.minZ + bb.maxZ) / 2); foot.current.add(f); }
   }, [ghostKey]);
+  /** place the ghost at ground point gp (or hide it); returns the ghost info the UI shows */
+  const update = (gp, t) => {
+    const s = ctl.current, gs = s.ghostSpec; let info = null;
+    if (ghost.current) ghost.current.visible = !!(gs && gp);
+    if (gs && gp && ghost.current && inner.current) {
+      ghostify(inner.current, mats); mats.pulse(t, true);
+      if (gs.type === 'piece') {
+        const sn = snapPiece(gs.id, gp.x, gp.z, gs.id === 'garage' ? s.turns : s.flip), existing = s.moving ? s.pieces.filter(p => pieceKey(p) !== s.moving.key) : s.pieces;
+        const why = placeWhy(gs.id, sn.x, sn.z, sn.ry, existing);
+        mats.set(why ? HOLO.bad : HOLO.ok); ghost.current.position.set(sn.x, 0, sn.z); ghost.current.rotation.set(0, sn.ry, 0);
+        info = { type: 'piece', ...sn, id: gs.id, mat: gs.mat, why };
+      } else if (stampRel) {
+        const o = stampOrigin(stampRel, gp.x, gp.z), abs = placeRel(stampRel, o), r = stampWhy(abs, s.pieces);
+        mats.set(r.why ? HOLO.bad : HOLO.ok); ghost.current.position.set(o.x, 0, o.z); ghost.current.rotation.set(0, 0, 0);
+        info = { type: 'stamp', origin: o, abs, why: r.why ? `${r.bad.length} of ${abs.length} blocked. ${r.why}` : '', bad: r.bad.length };
+      }
+    }
+    return info;
+  };
+  const gsp = st.ghostSpec;
+  const el = <group ref={ghost} visible={false} userData={{ hideInShot: true }}>
+    <group ref={inner} key={ghostKey}>
+      {gsp?.type === 'piece' && (gsp.id === 'garage' ? <GarageModel /> : <StructureModel id={gsp.id} mat={gsp.mat} />)}
+      {gsp?.type === 'stamp' && stampRel && stampRel.map((p, i) => <group key={i} position={[p.x, 0, p.z]} rotation={[0, p.ry, 0]}>{p.id === 'garage' ? <GarageModel /> : <StructureModel id={p.id} mat={p.mat} />}</group>)}
+    </group>
+    <group ref={foot} />
+  </group>;
+  return { el, update };
+}
 
-  // pointer + keys on the canvas
+/** snapshots for blueprint thumbnails (any view) and the creator camera jump. Always mounted. */
+export function Helpers({ ctl, piecesRef }) {
+  const { camera, gl, scene, size, controls } = useThree();
   useEffect(() => {
-    const el = gl.domElement;
-    const pos = e => { const r = el.getBoundingClientRect(); ptr.current.x = ((e.clientX - r.left) / r.width) * 2 - 1; ptr.current.y = -((e.clientY - r.top) / r.height) * 2 + 1; };
-    const move = e => { pos(e); ptr.current.in = true; if (ptr.current.down) { const d = ptr.current.down; if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true; } };
-    const down = e => { if (e.button !== 0) return; pos(e); ptr.current.down = { x: e.clientX, y: e.clientY, moved: false, shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }; if (ctl.current.tool === 'region' && last.current.ground) { const p = last.current.ground; ptr.current.drag = { x0: snapLine(p.x, OX), z0: snapLine(p.z, OZ), x1: snapLine(p.x, OX), z1: snapLine(p.z, OZ) }; } };
-    const up = e => {
-      if (e.button !== 0 || !ptr.current.down) return; const d = ptr.current.down; ptr.current.down = null;
-      const drag = ptr.current.drag; ptr.current.drag = null;
-      if (drag) { setRegionDrag(null); if (d.moved && drag.x0 !== drag.x1 && drag.z0 !== drag.z1) { ctl.current.onRegion(drag); return; } }
-      if (!d.moved) ctl.current.onClick({ shift: d.shift, ctrl: d.ctrl, ...last.current });
-    };
-    const leave = () => { ptr.current.in = false; };
-    const kd = e => { if (e.target.closest?.('input, textarea, select')) return; keys.current.add(e.code); };
-    const ku = e => keys.current.delete(e.code), blur = () => keys.current.clear();
-    el.addEventListener('pointermove', move); el.addEventListener('pointerdown', down); window.addEventListener('pointerup', up); el.addEventListener('pointerleave', leave);
-    window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); window.addEventListener('blur', blur);
-    return () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerdown', down); window.removeEventListener('pointerup', up); el.removeEventListener('pointerleave', leave); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); window.removeEventListener('blur', blur); };
-  }, [gl]);
-
-  // snapshot for blueprint thumbnails: renders a framed view into a corner of the canvas and reads it back in the same task
-  useEffect(() => {
+    const st = ctl.current;
     st.snapshot = (keysToShow, b) => {
       const W = 240, H = 150, hidden = [];
       const hide = o => { if (o && o.visible) { o.visible = false; hidden.push(o); } };
-      hide(ghost.current); hide(cursor.current); scene.traverse(o => { if (o.userData?.hideInShot) hide(o); });
+      scene.traverse(o => { if (o.userData?.hideInShot) hide(o); });
       piecesRef.current?.children.forEach(c => { if (!keysToShow.has(c.userData.pkey)) hide(c); });
       const cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 400);
       const cx = (b.minX + b.maxX) / 2, cz = (b.minZ + b.maxZ) / 2, r = Math.max(2, 0.5 * Math.hypot(b.w, b.d, b.h)) + 0.6, dist = r / Math.sin((35 / 2) * Math.PI / 180);
@@ -120,14 +124,52 @@ export function Interact({ ctl, piecesRef }) {
       hidden.forEach(o => { o.visible = true; });
       return out.toDataURL('image/jpeg', 0.78);
     };
-    st.toScreen = (x, y, z) => { V.set(x, y, z).project(camera); const r = gl.domElement.getBoundingClientRect(); return { x: r.left + (V.x + 1) / 2 * r.width, y: r.top + (1 - V.y) / 2 * r.height }; };
     st.lookAt = (x, z, d = 22) => { if (!controls) return; controls.target.set(x, 0, z); camera.position.set(x + d * 0.55, d * 0.75, z + d * 0.75); controls.update(); };
   });
+  return null;
+}
+
+// ---------------- the creator camera: orbit / pan, pointer, ghost, region, measure ----------------
+export function Interact({ ctl, piecesRef }) {
+  const { camera, gl, scene, controls } = useThree();
+  const ptr = useRef({ x: 0, y: 0, in: false, down: null, drag: null }), keys = useRef(new Set());
+  const ray = useMemo(() => new THREE.Raycaster(), []), plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const cursor = useRef(), last = useRef({});
+  const gh = useGhost(ctl);
+  const [hoverBox, setHoverBox] = useState(null), [regionDrag, setRegionDrag] = useState(null);
+
+  // restore the creator camera (this view mounts every time you switch to it)
+  useEffect(() => {
+    if (!controls) return;
+    camera.rotation.order = 'XYZ'; camera.fov = 50; camera.updateProjectionMatrix();
+    const v = ctl.current.creatorView || { pos: [16, 18, 24], target: [3, 0, 3] };
+    controls.target.set(...v.target); camera.position.set(...v.pos); controls.update();
+    return () => { ctl.current.creatorView = { pos: camera.position.toArray(), target: controls.target.toArray() }; };
+  }, [controls]);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const pos = e => { const r = el.getBoundingClientRect(); ptr.current.x = ((e.clientX - r.left) / r.width) * 2 - 1; ptr.current.y = -((e.clientY - r.top) / r.height) * 2 + 1; };
+    const move = e => { pos(e); ptr.current.in = true; if (ptr.current.down) { const d = ptr.current.down; if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) d.moved = true; } };
+    const down = e => { if (e.button !== 0) return; pos(e); ptr.current.down = { x: e.clientX, y: e.clientY, moved: false, shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }; if (ctl.current.tool === 'region' && last.current.ground) { const p = last.current.ground; ptr.current.drag = { x0: snapLine(p.x, OX), z0: snapLine(p.z, OZ), x1: snapLine(p.x, OX), z1: snapLine(p.z, OZ) }; } };
+    const up = e => {
+      if (e.button !== 0 || !ptr.current.down) return; const d = ptr.current.down; ptr.current.down = null;
+      const drag = ptr.current.drag; ptr.current.drag = null;
+      if (drag) { setRegionDrag(null); if (d.moved && drag.x0 !== drag.x1 && drag.z0 !== drag.z1) { ctl.current.onRegion(drag); return; } }
+      if (!d.moved) ctl.current.onClick({ shift: d.shift, ctrl: d.ctrl, ...last.current });
+    };
+    const leave = () => { ptr.current.in = false; };
+    const kd = e => { if (e.target.closest?.('input, textarea, select') || ctl.current.paused) return; keys.current.add(e.code); };
+    const ku = e => keys.current.delete(e.code), blur = () => keys.current.clear();
+    el.addEventListener('pointermove', move); el.addEventListener('pointerdown', down); window.addEventListener('pointerup', up); el.addEventListener('pointerleave', leave);
+    window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); window.addEventListener('blur', blur);
+    return () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerdown', down); window.removeEventListener('pointerup', up); el.removeEventListener('pointerleave', leave); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); window.removeEventListener('blur', blur); };
+  }, [gl]);
 
   useFrame(({ clock }, dt) => {
     const s = ctl.current;
-    // WASD pan
-    if (controls && keys.current.size) {
+    if (controls) controls.enabled = !s.paused;
+    if (controls && keys.current.size && !s.paused) {
       const f = new THREE.Vector3(); camera.getWorldDirection(f); f.y = 0; if (f.lengthSq() < 1e-6) f.set(0, 0, -1); f.normalize();
       const rgt = new THREE.Vector3(-f.z, 0, f.x), k = keys.current, sp = Math.max(4, camera.position.distanceTo(controls.target)) * 0.8 * Math.min(dt, 0.05) * (k.has('ShiftLeft') || k.has('ShiftRight') ? 2.5 : 1);
       const m = new THREE.Vector3();
@@ -135,28 +177,11 @@ export function Interact({ ctl, piecesRef }) {
       if (m.lengthSq() && !(k.has('ControlLeft') || k.has('ControlRight'))) { m.normalize().multiplyScalar(sp); camera.position.add(m); controls.target.add(m); controls.update(); }
     }
     ray.setFromCamera(ptr.current, camera);
-    const gp = ptr.current.in ? ray.ray.intersectPlane(plane, new THREE.Vector3()) : null;
+    const gp = ptr.current.in && !s.paused ? ray.ray.intersectPlane(plane, new THREE.Vector3()) : null;
     if (gp) { gp.x = clampW(gp.x); gp.z = clampW(gp.z); }
-    const hit = ptr.current.in && piecesRef.current ? ray.intersectObject(piecesRef.current, true).find(h => h.object.visible) : null;
+    const hit = ptr.current.in && !s.paused && piecesRef.current ? ray.intersectObject(piecesRef.current, true).find(h => h.object.visible) : null;
     const hkey = hit ? keyOf(hit.object) : null;
-    const gs = s.ghostSpec;
-    let ghostInfo = null;
-    // ghost
-    if (ghost.current) ghost.current.visible = !!(gs && gp);
-    if (gs && gp && ghost.current && inner.current) {
-      ghostify(inner.current, mats); mats.pulse(clock.elapsedTime, true);
-      if (gs.type === 'piece') {
-        const sn = snapPiece(gs.id, gp.x, gp.z, gs.id === 'garage' ? s.turns : s.flip), existing = s.moving ? s.pieces.filter(p => pieceKey(p) !== s.moving.key) : s.pieces;
-        const why = placeWhy(gs.id, sn.x, sn.z, sn.ry, existing);
-        mats.set(why ? HOLO.bad : HOLO.ok); ghost.current.position.set(sn.x, 0, sn.z); ghost.current.rotation.set(0, sn.ry, 0);
-        ghostInfo = { type: 'piece', ...sn, id: gs.id, mat: gs.mat, why };
-      } else if (stampRel) {
-        const o = stampOrigin(stampRel, gp.x, gp.z), abs = placeRel(stampRel, o), r = stampWhy(abs, s.pieces);
-        mats.set(r.why ? HOLO.bad : HOLO.ok); ghost.current.position.set(o.x, 0, o.z); ghost.current.rotation.set(0, 0, 0);
-        ghostInfo = { type: 'stamp', origin: o, abs, why: r.why ? `${r.bad.length} of ${abs.length} blocked. ${r.why}` : '', bad: r.bad.length };
-      }
-    }
-    // measure cursor: first thing under the mouse (pieces, refs, ground), snapped to 5 cm
+    const ghostInfo = gh.update(gp, clock.elapsedTime);
     let mpt = null;
     if (s.tool === 'measure' && ptr.current.in) {
       const tgt = [piecesRef.current, scene.getObjectByName('ground')].filter(Boolean);
@@ -164,10 +189,8 @@ export function Interact({ ctl, piecesRef }) {
       if (h) { const r = v => Math.round(v * 20) / 20; mpt = [r(h.point.x), r(h.point.y), r(h.point.z)]; }
     }
     if (cursor.current) { cursor.current.visible = !!mpt; if (mpt) cursor.current.position.set(...mpt); }
-    // region drag
     if (ptr.current.drag && gp) { const d = ptr.current.drag, x1 = snapLine(gp.x, OX), z1 = snapLine(gp.z, OZ); if (d.x1 !== x1 || d.z1 !== z1) { d.x1 = x1; d.z1 = z1; setRegionDrag({ ...d }); } }
     last.current = { ground: gp ? { x: gp.x, z: gp.z } : null, pieceKey: hkey, ghost: ghostInfo, mpt };
-    // tell the UI when something it shows changed
     const sig = `${hkey}|${ghostInfo ? `${ghostInfo.x ?? ghostInfo.origin.x},${ghostInfo.z ?? ghostInfo.origin.z},${ghostInfo.ry},${ghostInfo.why}` : ''}|${gp ? `${snapLine(gp.x, OX)},${snapLine(gp.z, OZ)}` : ''}|${mpt}`;
     if (sig !== s.lastSig) {
       s.lastSig = sig;
@@ -177,21 +200,15 @@ export function Interact({ ctl, piecesRef }) {
     }
   });
 
-  const gsp = st.ghostSpec;
   return <group>
-    <OrbitControls makeDefault mouseButtons={{ LEFT: -1, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }} target={[3, 0, 3]} maxPolarAngle={Math.PI / 2 - 0.03} minDistance={2} maxDistance={140} enableDamping={false} />
-    <group ref={ghost} visible={false} userData={{ hideInShot: true }}>
-      <group ref={inner} key={ghostKey}>
-        {gsp?.type === 'piece' && (gsp.id === 'garage' ? <GarageModel /> : <StructureModel id={gsp.id} mat={gsp.mat} />)}
-        {gsp?.type === 'stamp' && stampRel && stampRel.map((p, i) => <group key={i} position={[p.x, 0, p.z]} rotation={[0, p.ry, 0]}>{p.id === 'garage' ? <GarageModel /> : <StructureModel id={p.id} mat={p.mat} />}</group>)}
-      </group>
-      <group ref={foot} />
-    </group>
+    <OrbitControls makeDefault mouseButtons={{ LEFT: -1, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE }} maxPolarAngle={Math.PI / 2 - 0.03} minDistance={2} maxDistance={140} enableDamping={false} />
+    {gh.el}
     <mesh ref={cursor} visible={false} raycast={() => {}} userData={{ hideInShot: true }}><sphereGeometry args={[0.07, 12, 8]} /><meshBasicMaterial color="#ff2bd6" depthTest={false} /></mesh>
-    <group userData={{ hideInShot: true }}>{st.tool !== 'measure' && <Outline box={hoverBox} />}</group>
+    <group userData={{ hideInShot: true }}>{ctl.current.tool !== 'measure' && <Outline box={hoverBox} />}</group>
     {regionDrag && <RegionBox r={regionDrag} color="#4aa3ff" />}
   </group>;
 }
+
 
 export function RegionBox({ r, color = '#4aa3ff', label }) {
   const x0 = Math.min(r.x0, r.x1), x1 = Math.max(r.x0, r.x1), z0 = Math.min(r.z0, r.z1), z1 = Math.max(r.z0, r.z1);
@@ -214,4 +231,4 @@ export function Measure({ a, b }) {
   </group>;
 }
 
-export { Grid, keyOf };
+export { Grid, keyOf, boxOf, Outline };
