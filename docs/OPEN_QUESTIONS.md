@@ -29,7 +29,7 @@ Each has the Forge's recommendation, so you can answer yes or give a counter.
 
 ## Build mode: decisions from Chris (November 8)
 
-- **Buyable lift and "Car lot space":** done. Both are now garage/yard upgrades with levels (Second car lift; Parking lot expansion), bought from the Upgrades panel (key U, or Pause → Upgrades) — separate from the structure kit. See PROGRESS_TRACKER, "Queued by Chris". Still open: the office expansion level (queued, not built — it needs the office's wall geometry to change, not just a prop placed), and whether upgrades should ever unlock materials.
+- **Buyable lift and "Car lot space":** done. Both are now garage/yard upgrades with levels (Second car lift; Parking lot expansion), bought from the Upgrades panel (key U, or Pause → Upgrades) — separate from the structure kit. See PROGRESS_TRACKER, "Queued by Chris". The office expansion is also done (a real back room, cut doorway, real collision — see PROJECT_LOG). Still open: whether a second office level adds more room or furniture zones (build-mode furniture can't reach the annex yet — it's outside the `inOffice`/`wingFree` boxes those checks use), and whether upgrades should ever unlock materials.
 - **Old PC / parts ordering:** still open (build the catalogue and delivery now, or later?).
 - **Structure kit look and materials:** newer and less rusted than Walt's garage; the player chooses the material. Still to settle: which materials, prices, and whether upgrades unlock materials.
 

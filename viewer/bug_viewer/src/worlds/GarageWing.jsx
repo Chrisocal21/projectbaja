@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { OFFICE, STAIRS, LOFT } from './office.js';
+import { OFFICE, STAIRS, LOFT, ANNEX } from './office.js';
 import { signTex } from '../lot/CarLot.jsx';
+import OriginalWall from './OriginalWall.jsx';
+import { game } from '../game/store.js';
+import { upgradeLevel } from '../game/upgrades.js';
 
 const Box = ({ p, s, map, color = '#b7a58a', rot }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><meshStandardMaterial map={map} color={color} roughness={0.88} /></mesh>;
 function Label({ text, p, w = 1.8 }) {
@@ -12,7 +15,9 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
   const { x0, x1, z0, z1, H, entry } = OFFICE;
   return <group>
     <Box p={[-10.1, 0.06, 0]} s={[6.8, 0.12, 12.6]} map={floor} color="#fff" />
-    <Box p={[x0, H / 2, 0]} s={[0.2, H, 12]} map={wall} color="#fff" />
+    {/* west wall: solid, unless the "Office expansion" upgrade has cut a doorway through it (game/upgrades.js, openings.js WALLS.OW) */}
+    <OriginalWall which="OW" map={wall} lining={timber} open={game.home?.openings || []} height={H} />
+    {upgradeLevel('office') >= 1 && <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />}
     <Box p={[-10.1, H / 2, z0]} s={[6.2, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x0 + entry.x0) / 2, H / 2, z1]} s={[entry.x0 - x0, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x1 + entry.x1) / 2, H / 2, z1]} s={[x1 - entry.x1, H, 0.2]} map={wall} color="#fff" />
@@ -66,5 +71,23 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-11.8, 3.55, -4.9]} s={[1.4, 0.65, 1.6]} map={timber} />
     <Label text="LOFT · ARCHIVE" p={[-11, 4.5, -5.85]} w={2.5} />
     {[[-11, 2.5, 2], [-11, 5.25, -4]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 13 : 0} distance={8} decay={2} />)}
+  </group>;
+}
+
+/** the "Office expansion" upgrade: a back room through the new doorway in the office's west wall. A bare room on
+ *  purpose — build-mode furniture can't reach it yet (open question; see docs/OPEN_QUESTIONS.md), so it stays undressed
+ *  but for a desk, to make clear what it's for without promising the old PC / parts-ordering feature that isn't built. */
+function OfficeAnnex({ wall, timber, roof, floor, power }) {
+  const { x0, x1, z0, z1, H } = ANNEX, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, t = 0.2;
+  return <group>
+    <Box p={[cx, 0.06, cz]} s={[x1 - x0, 0.12, z1 - z0]} map={floor} color="#fff" />
+    <Box p={[x0, H / 2, cz]} s={[t, H, z1 - z0 + t]} map={wall} color="#fff" />
+    <Box p={[cx, H / 2, z0]} s={[x1 - x0, H, t]} map={wall} color="#fff" />
+    <Box p={[cx, H / 2, z1]} s={[x1 - x0, H, t]} map={wall} color="#fff" />
+    <Box p={[cx, H + 0.1, cz]} s={[x1 - x0 + 0.3, 0.16, z1 - z0 + 0.3]} map={roof} color="#fff" />
+    <Box p={[x0 + 0.5, 0.74, cz]} s={[0.05, 0.74, 1.3]} map={timber} color="#8a6a44" />
+    <Box p={[x0 + 0.52, 1.12, cz]} s={[0.9, 0.04, 0.6]} map={timber} color="#a88a5c" />
+    <Label text="BACK OFFICE" p={[cx, H - 0.6, z1 - 0.05]} w={2.2} />
+    <pointLight position={[cx, H - 0.8, cz]} color="#ffca81" intensity={power ? 11 : 0} distance={7} decay={2} />
   </group>;
 }

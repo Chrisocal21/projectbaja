@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, walkingLevel, inOffice, wingFree } from './office.js';
+import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles } from './office.js';
+import { segByKey } from './openings.js';
 
 test('office is attached left, camper and door are right, forecourt stays clear', () => {
   assert.equal(OFFICE.x1, -7);
@@ -44,4 +45,19 @@ test('the wing keeps its walkways: free floor is inside the wing, off the stairs
   assert.ok(!wingFree(-11.8, 1.7));               // the reception counter
   assert.ok(!wingFree(-8.3, 1));                  // the stairs
   assert.ok(!wingFree(0, 15));
+});
+test('the office annex (the "Office expansion" upgrade) sits behind the west wall, its doorway matching openings.js segment OW3 exactly', () => {
+  const door = segByKey('OW3');
+  assert.equal(door.wall, 'OW');
+  assert.equal(ANNEX.doorZ0, door.c - 1); assert.equal(ANNEX.doorZ1, door.c + 1);
+  assert.equal(ANNEX.x1, OFFICE.x0, "the annex's near wall is the office's west wall, so the doorway lines up");
+  assert.ok(ANNEX.z0 < ANNEX.doorZ0 && ANNEX.z1 > ANNEX.doorZ1, 'the annex is wider than its own doorway');
+});
+test("the annex's three solid walls block walking, but its doorway (z 0..2, through the office wall) does not", () => {
+  const cs = annexWallCircles(), crossing = (x, z) => !cs.some(([cx, cz, r]) => Math.hypot(cx - x, cz - z) < r + 0.3);
+  assert.ok(crossing(ANNEX.x0 + 2, 1), 'the middle of the room is clear');
+  assert.ok(crossing(OFFICE.x0, 1), 'the doorway (z=1, inside the door span) is clear of the annex\'s own walls');
+  assert.ok(!crossing(ANNEX.x0, 1), 'the far (west) wall blocks');
+  assert.ok(!crossing(ANNEX.x0 + 2, ANNEX.z0), 'the south wall blocks');
+  assert.ok(!crossing(ANNEX.x0 + 2, ANNEX.z1), 'the north wall blocks');
 });

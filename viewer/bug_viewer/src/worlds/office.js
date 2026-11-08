@@ -21,3 +21,14 @@ export function walkingLevel(x, z, previous = 0.12) {
 export const WING_FREE = [{ x0: -10.0, x1: -7.5, z0: -4.3, z1: -2.2 }];
 /** can a thing of radius r stand at (lx, lz) on the wing's free floor? */
 export const wingFree = (lx, lz, r = 0) => WING_FREE.some(f => lx >= f.x0 + r && lx <= f.x1 - r && lz >= f.z0 + r && lz <= f.z1 - r);
+
+// ---- the "Office expansion" upgrade (game/upgrades.js): a back room through a cut doorway in the office's west wall ----
+// The doorway is openings.js segment 'OW3' (the office west wall's 2 m run at z = 0..2); buying the upgrade opens it.
+export const ANNEX = { x0: -17.2, x1: OFFICE.x0, z0: -1, z1: 3, H: 4.4, doorZ0: 0, doorZ1: 2 };
+/** collision circles (garage-local, [lx, lz, r]) for the annex's three solid exterior walls (west, north, south — the fourth side is the doorway through the office wall) */
+export function annexWallCircles() {
+  const { x0, x1, z0, z1 } = ANNEX, r = 0.15, step = 0.5, out = [];
+  for (let z = z0; z <= z1 + 1e-9; z += step) out.push([x0, z, r]);           // west (far) wall
+  for (let x = x0; x <= x1 + 1e-9; x += step) { out.push([x, z0, r]); out.push([x, z1, r]); }   // north + south walls
+  return out;
+}

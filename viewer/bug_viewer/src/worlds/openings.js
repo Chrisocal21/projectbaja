@@ -1,23 +1,26 @@
-// Doorways cut through the original garage's walls, so a room you build next to it can be walked into from inside.
+// Doorways cut through an original wall, so a room you build next to it can be walked into from inside.
 // PURE rules (no rendering, no game state). Coordinates are garage-local metres, on the same grid as structures.js:
 // each original wall is split into 2 m segments that start and end on grid lines; one segment = one possible opening.
-// First pass: the garage's right wall (x = 7) and back wall (z = -6). The front has the roller door and the left joins the office wing.
-// PROPOSAL: more walls (the wing's) and door types can follow.
+// The garage's right wall (x = 7), back wall (z = -6), and the office wing's west wall (x = OFFICE.x0). The front has
+// the roller door, the office's other walls are reception/bath/stairs (not grid-aligned enough to cut safely yet).
+import { OFFICE } from './office.js';
+
 export const OPENING_PRICE = 120;
-export const WALL_H = 4.6;       // the garage's wall height (Sites.jsx)
+export const WALL_H = 4.6;       // the garage's wall height (Sites.jsx); callers with a taller wall (the office wing) pass their own
 export const OPEN_H = 2.6;       // the top of a cut doorway
 const SEG = 2;
 
 export const WALLS = {
-  R: { key: 'R', axis: 'z', at: 7, from: -6, to: 6, ry: Math.PI / 2, inside: -1, label: 'right wall' },    // runs along z; inside is -x
-  B: { key: 'B', axis: 'x', at: -6, from: -7, to: 7, ry: 0, inside: 1, label: 'back wall' },              // runs along x; inside is +z
+  R: { key: 'R', axis: 'z', at: 7, from: -6, to: 6, ry: Math.PI / 2, inside: -1, label: 'right wall' },                 // runs along z; inside is -x
+  B: { key: 'B', axis: 'x', at: -6, from: -7, to: 7, ry: 0, inside: 1, label: 'back wall' },                           // runs along x; inside is +z
+  OW: { key: 'OW', axis: 'z', at: OFFICE.x0, from: OFFICE.z0, to: OFFICE.z1, ry: -Math.PI / 2, inside: 1, label: "office's west wall" },   // runs along z; inside is +x
 };
 /** every possible opening: { key, wall, c (centre along the wall), x, z (centre), ry, out: [x, z] the grid cell centre just outside } */
 export const SEGMENTS = Object.values(WALLS).flatMap(w => Array.from({ length: Math.round((w.to - w.from) / SEG) }, (_, i) => {
-  const c = w.from + SEG / 2 + i * SEG;
+  const c = w.from + SEG / 2 + i * SEG, outAt = w.at - w.inside;   // one grid step past the wall, away from the inside
   return w.axis === 'z'
-    ? { key: `R${i}`, wall: 'R', i, c, x: w.at, z: c, ry: w.ry, out: [w.at + 1, c] }
-    : { key: `B${i}`, wall: 'B', i, c, x: c, z: w.at, ry: w.ry, out: [c, w.at - 1] };
+    ? { key: `${w.key}${i}`, wall: w.key, i, c, x: w.at, z: c, ry: w.ry, out: [outAt, c] }
+    : { key: `${w.key}${i}`, wall: w.key, i, c, x: c, z: w.at, ry: w.ry, out: [c, outAt] };
 }));
 export const segByKey = key => SEGMENTS.find(s => s.key === key);
 
@@ -38,7 +41,7 @@ export function wallCircles(open = []) {
   const out = [];
   for (const s of SEGMENTS) {
     if (open.includes(s.key)) continue;
-    for (let t = -SEG / 2; t <= SEG / 2 + 1e-9; t += 0.5) out.push(s.wall === 'R' ? [s.x, s.z + t, 0.15] : [s.x + t, s.z, 0.15]);
+    for (let t = -SEG / 2; t <= SEG / 2 + 1e-9; t += 0.5) out.push(WALLS[s.wall].axis === 'z' ? [s.x, s.z + t, 0.15] : [s.x + t, s.z, 0.15]);
   }
   return out;
 }
