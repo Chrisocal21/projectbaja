@@ -7,6 +7,7 @@ import { buggyConfig } from './vehicle/config.js';
 import { createInput } from './vehicle/input.js';
 import { proStore } from './vehicle/store.js';
 import { game } from './game/store.js';
+import { lookScale } from './game/settings.js';
 import GameObjects from './game/GameObjects.jsx';
 
 /** Flat tarmac test pad: 5 m grid, a 25 m skid-pad ring and a slalom, so slides and weight transfer are easy to judge. */
@@ -53,7 +54,7 @@ function ProVehicle({ children, hud, dims }) {
     camera.far = 900; camera.fov = 60; camera.near = 0.1; camera.updateProjectionMatrix();
     const el = gl.domElement, l = look.current;
     const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { el.requestPointerLock()?.catch?.(() => {}); } catch {} } };
-    const move = e => { if (document.pointerLockElement !== el) return; l.yaw -= e.movementX * 0.004; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004)); l.idle = 0; };
+    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); l.yaw -= e.movementX * 0.004 * kx; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const key = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; } };
     lock(); el.addEventListener('pointerdown', lock); window.addEventListener('mousemove', move); window.addEventListener('keydown', key);

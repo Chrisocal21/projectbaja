@@ -1,6 +1,7 @@
 // Grandpa's place: the run-down garage you inherit, the mess you clear out of it, and the build mode for your own property
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
+import { creative } from './settings.js';
 import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
@@ -138,13 +139,13 @@ export function snapCutWorld(x, z) {
 function cutWhy(item, x, z) {
   const l = homeLocal(x, z), s = snapCut(l.lx, l.lz);
   if (!s) return "Aim at the garage's right wall or its back wall.";
-  return openWhy(s, foundationsLocal(), openingKeys()) || (game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
+  return openWhy(s, foundationsLocal(), openingKeys()) || (!creative() && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
 }
 export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (item.cut) return cutWhy(item, x, z);
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
-  if (item.struct) { const price = piecePrice(item.id, mat || DEFAULT_MAT); return structWhy(item, x, z, ry) || (!moving && game.cash < price ? `Not enough cash ($${price}).` : ''); }
+  if (item.struct) { const price = piecePrice(item.id, mat || DEFAULT_MAT); return structWhy(item, x, z, ry) || (!moving && !creative() && game.cash < price ? `Not enough cash ($${price}).` : ''); }
   if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
   if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
@@ -155,20 +156,21 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
   if (inG && item.zone !== 'yard' && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
-  if (!moving && game.cash < item.price) return `Not enough cash ($${item.price}).`;
+  if (!moving && !creative() && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
 }
 export function placeProp(id, x, z, ry, mat) {
   const item = buildById[id], why = placeWhy(item, x, z, false, ry, mat); if (why) { say(why); return false; }
   if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
     const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
-    addCash(-item.price); game.home = { ...game.home, openings: [...openingKeys(), seg.key] }; game.propsV = (game.propsV || 0) + 1; save();
-    say(`Cut a doorway through the garage's ${seg.wall === 'R' ? 'right' : 'back'} wall (−$${item.price})`); return true;
+    const free = creative(); if (!free) addCash(-item.price);
+    game.home = { ...game.home, openings: [...openingKeys(), seg.key], ...(free ? { freeOpenings: [...(game.home.freeOpenings || []), seg.key] } : {}) }; game.propsV = (game.propsV || 0) + 1; save();
+    say(`Cut a doorway through the garage's ${seg.wall === 'R' ? 'right' : 'back'} wall (${free ? 'creative: free' : `−$${item.price}`})`); return true;
   }
   const m = item.struct ? (mat || DEFAULT_MAT) : undefined, price = item.struct ? piecePrice(id, m) : item.price;
-  addCash(-price);
-  game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry, ...(m ? { mat: m } : {}) }];
-  game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (−$${price})`); return true;
+  const free = creative(); if (!free) addCash(-price);
+  game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : {}) }];
+  game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (${free ? 'creative: free' : `−$${price}`})`); return true;
 }
 /** nearest cut doorway to a world point: { key, d } or null */
 export function nearestOpening(x, z) {
@@ -178,8 +180,9 @@ export function nearestOpening(x, z) {
 }
 /** wall a cut doorway back up (50% back) */
 export function closeOpening(key) {
-  game.home = { ...game.home, openings: openingKeys().filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
-  const back = Math.round(OPENING_PRICE * 0.5); addCash(back); save(); say(`Closed the doorway (+$${back})`);
+  const wasFree = (game.home.freeOpenings || []).includes(key);
+  game.home = { ...game.home, openings: openingKeys().filter(k => k !== key), freeOpenings: (game.home.freeOpenings || []).filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
+  const back = wasFree ? 0 : Math.round(OPENING_PRICE * 0.5); addCash(back); save(); say(`Closed the doorway (+$${back})`);
 }
 /** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased) */
 export const STARTER_FIXTURES = [
@@ -221,7 +224,7 @@ export function removeProp(uidN) {
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
   if (p.starter) return say("That's Walt's own shelving: you can move it with V, but it stays.");
-  const back = Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 0.5);
+  const back = p.free ? 0 : Math.round((isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price) * 0.5);   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };

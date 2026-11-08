@@ -9,7 +9,7 @@ import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
-export function TitleScreen({ onNew, onContinue, onDev }) {
+export function TitleScreen({ onNew, onContinue, onDev, onSettings }) {
   useGame();
   const [dev, setDev] = React.useState(false), [secret, setSecret] = React.useState(() => /[?&]dev/.test(location.search)), has = game.owned.has('car:bug');
   React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
@@ -21,6 +21,7 @@ export function TitleScreen({ onNew, onContinue, onDev }) {
       <div className="menu">
         <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
         {has && game.build && <button className="big" onClick={onContinue}>Continue</button>}
+        <button onClick={onSettings}>Settings</button>
         {secret && <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>}
         {secret && dev && <><button onClick={() => onDev('drive', 'county')}>Baja County (free drive)</button><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
           <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
@@ -58,12 +59,13 @@ export function LotMenu({ onResume, onExit }) {
   return <div className="overlay"><div className="card"><h2>PAUSED</h2><div className="menu"><button className="big" onClick={onResume}>Resume</button><button onClick={onExit}>Exit to title</button></div></div></div>;
 }
 
-export function PauseMenu({ onResume, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
+export function PauseMenu({ onResume, onSettings, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
   useGame();
   return <div className="overlay"><div className="card">
     <h2>PAUSED</h2>
     <div className="menu">
       <button className="big" onClick={onResume}>Resume</button>
+      <button onClick={onSettings}>Settings{game.settings?.creative ? ' · creative mode on' : ''}</button>
       {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}
       {teleports?.length > 0 && <div className="tp"><small>TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
       <button onClick={onFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>

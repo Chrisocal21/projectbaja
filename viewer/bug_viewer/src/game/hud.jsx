@@ -19,6 +19,7 @@ export function HudOverlay() {
       <div className="hs-cash"><small>$</small>{game.cash.toLocaleString()}</div>
       {story && h && <div className="hs-chips">
         <span className={`hs-chip ${open ? 'ok' : h.power ? 'off' : 'dead'}`}><i />{open ? 'Shop open' : h.power ? 'Shop closed' : 'No power'}</span>
+        {game.settings?.creative && <span className="hs-chip creative"><i />Creative</span>}
         {(game.mats?.scrap || 0) > 0 && <span className="hs-chip plain">Scrap {game.mats.scrap}</span>}
       </div>}
     </div>
@@ -37,6 +38,7 @@ export function HudOverlay() {
 export function KeyHints({ driving, pro, cabLabel }) {
   useGame();
   const bm = game.buildMode;
+  if (!game.settings?.keyHints) return null;
   const list = bm ? (bm.moving ? [['Click', 'Set down'], ['R', 'Rotate'], ['B', 'Cancel']]
     : [['Click', 'Build'], ['R', 'Rotate'], ['Wheel', 'Next in group'], ['1-8', 'Hotbar'], ['N', 'Material'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Q', 'Put away']])
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]
@@ -46,6 +48,6 @@ export function KeyHints({ driving, pro, cabLabel }) {
 
 export function Crosshair() {
   useGame();
-  if (!game.onFoot) return null;
+  if (!game.onFoot || !game.settings?.crosshair) return null;
   return <div className={`xhair${game.buildMode ? ' build' : ''}${game.target ? ' hot' : ''}`}><i /></div>;
 }

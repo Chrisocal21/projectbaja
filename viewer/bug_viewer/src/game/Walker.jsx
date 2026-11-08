@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
+import { lookScale, settings } from './settings.js';
 import { TARGETS } from '../worlds/siteData.js';
 import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
@@ -81,7 +82,7 @@ export default function Walker({ world, sun }) {
   useEffect(() => {
     const s = st.current, el = gl.domElement;
     window.__walk = s;   // test hook
-    const move = e => { if (!game.onFoot || document.pointerLockElement !== el || game.paused) return; s.yaw -= e.movementX * 0.0022; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - e.movementY * 0.0022)); };
+    const move = e => { if (!game.onFoot || document.pointerLockElement !== el || game.paused) return; const [kx, ky] = lookScale(); s.yaw -= e.movementX * 0.0022 * kx; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - e.movementY * 0.0022 * ky)); };
     const kd = e => { s.keys[e.code] = true; }, ku = e => { s.keys[e.code] = false; }, blur = () => { s.keys = {}; };
     window.addEventListener('mousemove', move); window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); window.addEventListener('blur', blur);
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); window.removeEventListener('blur', blur); camera.rotation.order = 'XYZ'; };
@@ -94,7 +95,7 @@ export default function Walker({ world, sun }) {
       if (!s.on) {   // just stepped out (or the scene was rebuilt): take the saved spot
         s.on = true; s.vx = s.vz = 0; s.pitch = 0;
         const at = game.walkStart || game.walkPose || { x: 0, z: 0, yaw: 0 }; game.walkStart = null;
-        s.x = at.x; s.z = at.z; s.yaw = at.yaw; s.y = at.y ?? world.height(s.x, s.z); camera.rotation.order = 'YXZ'; camera.fov = 70; camera.updateProjectionMatrix();
+        s.x = at.x; s.z = at.z; s.yaw = at.yaw; s.y = at.y ?? world.height(s.x, s.z); camera.rotation.order = 'YXZ'; camera.fov = settings().fov; camera.updateProjectionMatrix();
       }
       const k = s.keys, fwd = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0), side = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
       const hs = held() ? sizeOf(held().kind, held().id) : 0, load = hs >= 4 ? 0.55 : hs >= 3 ? 0.75 : hs ? 0.9 : 1;
@@ -125,6 +126,7 @@ export default function Walker({ world, sun }) {
       s.t += Math.hypot(s.vx, s.vz) * dt * 2.1;
       const bob = Math.sin(s.t) * 0.028 * Math.min(1, Math.hypot(s.vx, s.vz) / 3);
       camera.position.set(s.x, s.y + 1.72 + bob, s.z); camera.rotation.set(s.pitch, s.yaw, 0);
+      if (camera.fov !== settings().fov) { camera.fov = settings().fov; camera.updateProjectionMatrix(); }
       game.pos.x = s.x; game.pos.z = s.z; game.walkPose = { x: s.x, y: s.y, z: s.z, yaw: s.yaw };
       game.face.x = -Math.sin(s.yaw); game.face.z = -Math.cos(s.yaw);
       if (sun.current) { sun.current.position.set(s.x + 30, s.y + (world.id === 'county' ? 18 : 45), s.z + 20); sun.current.target.position.set(s.x, s.y, s.z); sun.current.target.updateMatrixWorld(); }

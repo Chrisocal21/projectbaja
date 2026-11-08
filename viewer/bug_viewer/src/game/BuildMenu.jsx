@@ -5,9 +5,11 @@ import { game, useGame } from './store.js';
 import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar } from './home.js';
 import { MATERIALS, DEFAULT_MAT, matName, piecePrice, nextMat } from '../worlds/structures.js';
 import { iconOf } from './icons.js';
+import { creative } from './settings.js';
 
 export const shortName = it => it.name.replace(/ \(.*\)/, '');
-const priceFor = (it, mat) => (it.struct ? piecePrice(it.id, mat) : it.price);
+const priceFor = (it, mat) => (creative() ? 0 : it.struct ? piecePrice(it.id, mat) : it.price);
+const money = p => (creative() ? 'FREE' : `$${p.toLocaleString()}`);
 const ZONE = { garage: 'Inside the garage', yard: 'Outside, on your lot', any: 'Anywhere on your property' };
 const blurb = it => it.note || (it.struct ? 'Snaps to the 2 m building grid.' : it.cut ? '' : ZONE[it.zone] + '.');
 
@@ -62,7 +64,7 @@ export function BuildMenu({ onPick, onClose }) {
         <div className="bm-grid">{list.map(it => { const p = priceFor(it, mat), slot = hotbar().findIndex(e => e?.id === it.id);
           return <button key={it.id} className={`bm-tile${it.id === sel ? ' on' : ''}${game.cash < p ? ' poor' : ''}`} onMouseEnter={() => setHover(it.id)} onMouseLeave={() => setHover(h => (h === it.id ? null : h))} onClick={() => { setSel(it.id); onPick(it.id, mat); }}>
             <Icon id={it.id} mat={mat} />{slot >= 0 && <kbd className="bm-slot">{slot + 1}</kbd>}
-            <span className="bm-tname">{shortName(it)}</span><span className="bm-tprice">${p.toLocaleString()}</span>
+            <span className="bm-tname">{shortName(it)}</span><span className="bm-tprice">{money(p)}</span>
           </button>; })}</div></div>) : <p className="bm-none">Nothing matches "{q}".</p>}</section>
       <aside className="bm-detail">
         <div className="bm-stage"><Icon id={shown.id} mat={mat} cls="big" /></div>
@@ -70,8 +72,8 @@ export function BuildMenu({ onPick, onClose }) {
         <div className="bm-tags"><span>{shown.cat}</span><span>{shown.struct ? 'Grid piece' : shown.cut ? 'Wall cut' : ZONE[shown.zone]}</span>{shown.len && <span>{shown.len} m</span>}</div>
         {blurb(shown) && <p>{blurb(shown)}</p>}
         {shown.struct && <><h5>MATERIAL <Key k="N" /></h5><div className="bm-mats">{MATERIALS.map(m => <button key={m.id} className={m.id === mat ? 'on' : ''} onClick={() => setMat(m.id)} title={m.name}>
-          <Icon id={shown.id} mat={m.id} /><span>{m.name.replace(/ \(.*\)/, '')}</span><em>${piecePrice(shown.id, m.id)}</em></button>)}</div></>}
-        <div className="bm-cost"><span>COST</span><b className={short ? 'bad' : ''}>${price.toLocaleString()}</b>{shown.struct && <small>{matName(mat)}</small>}{short && <small className="bad">You have ${game.cash.toLocaleString()}</small>}</div>
+          <Icon id={shown.id} mat={m.id} /><span>{m.name.replace(/ \(.*\)/, '')}</span><em>{money(piecePrice(shown.id, m.id))}</em></button>)}</div></>}
+        <div className="bm-cost"><span>COST</span><b className={short ? 'bad' : ''}>{money(price)}</b>{creative() && <small>Creative mode: building is free</small>}{shown.struct && <small>{matName(mat)}</small>}{short && <small className="bad">You have ${game.cash.toLocaleString()}</small>}</div>
         <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Select <Key k="Enter" /></button>
       </aside>
     </div>
@@ -94,7 +96,7 @@ export function BuildHud() {
       <div className="bh-info">
         <small>{bm.moving ? 'MOVING' : it.cat.toUpperCase()}</small>
         <b>{shortName(it)}</b>
-        <span>{it.struct && !bm.moving ? `${matName(mat)} · ` : ''}{bm.moving ? 'free' : `$${price.toLocaleString()}`}{it.struct || it.cut ? '' : ` · ${deg}°`}</span>
+        <span>{it.struct && !bm.moving ? `${matName(mat)} · ` : ''}{bm.moving ? 'free' : money(price)}{it.struct || it.cut ? '' : ` · ${deg}°`}</span>
       </div>
       <div className={`bh-why ${bm.why ? 'bad' : 'ok'}`}><i />{status}</div>
     </div>

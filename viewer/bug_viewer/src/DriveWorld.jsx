@@ -2,6 +2,7 @@ import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef 
 import { bugAsleep } from './game/home.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from './game/store.js';
+import { lookScale } from './game/settings.js';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
@@ -176,7 +177,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   useEffect(() => {
     const el = gl.domElement, l = look.current;
     const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { const r = el.requestPointerLock(); r?.catch?.(() => {}); } catch {} } };
-    const move = e => { if (document.pointerLockElement !== el) return; l.yaw -= e.movementX * 0.004; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004)); l.idle = 0; };
+    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); l.yaw -= e.movementX * 0.004 * kx; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const cabKey = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; l.idle = 0; } };
     window.addEventListener('keydown', cabKey);

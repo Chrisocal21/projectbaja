@@ -320,3 +320,12 @@ Chris asked for a build menu like the big base-building games and a HUD that loo
 - **HUD (`game/hud.jsx`, `src/hud.css`):** cash plus a shop status chip (open / closed / no power) top left; notifications slide in top right; the interaction prompt shows real key caps ("E", "G"); a carry panel with pack and car storage meters bottom right; key hints as key caps bottom left (a column on the right while building); a crosshair that lights up on something you can use; the driving speed as a large readout. The other panels (pause, inventory, shops, workshop) share the same panel style. Fonts: Barlow and Barlow Condensed from Google Fonts (falls back to system fonts offline).
 - Checked in Chromium at 1600x900: menu, categories, search, material picker, binding slot 8, picking a piece, keys 8 and 2, the wheel, B reopening, Esc closing, Q putting it away, the prompt key cap, and the driving readout. 60/60 tests, build passes.
 - Not done: gamepad navigation of the menu, a radial or quick-swap material menu, drag-and-drop onto the hotbar, and the upgrades tab (waits on the upgrade track).
+
+## November 8, 2026: settings and creative mode
+
+Chris: "add settings along with creative mode toggle where building doesn't cost".
+
+- **Settings** (title screen and pause menu; Esc goes back to the pause menu). Kept in their own `localStorage` key (`baja-settings-v1`), not the save, so they apply to every save. Only settings that do something: **Creative mode**, **mouse sensitivity**, **invert look up/down** (on foot and the chase camera), **field of view on foot**, **render resolution** (Auto / 100% / 75% / 50%), **show key hints**, **show crosshair**. There is no sound in the game yet, so there is no volume setting.
+- **Creative mode:** placing pieces and cutting doorways costs nothing, and the cash check is skipped. Anything built while it's on is tagged (`free` on the prop, `home.freeOpenings` for doorways) and gives **$0 back** when taken down, so creative can't be used to make money. The build menu and placement card show FREE, and the HUD shows a purple "Creative" chip. PROPOSAL: it applies to whatever save you're playing; a separate creative-only save is possible later.
+- `game/settings.js` (store + the row list), `game/SettingsPanel.jsx`.
+- Checked in Chromium: toggled from the title screen; a $260 tool chest placed with $100 cash in creative ($0 spent, $0 back); after turning it off a block floor cost $35 and gave $18 back; FOV 90 applied; the panel opens from pause. 60/60 tests, build passes.

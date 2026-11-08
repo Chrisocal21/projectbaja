@@ -184,3 +184,17 @@
 .inv-row { border-bottom-color: var(--hud-line); }
 .card.letter { clip-path: none; border-top: 0; font-family: 'Courier New', monospace; }
 .card.letter .menu button.big { background: #2a2016; color: #efe6cf; border-color: #2a2016; }
+
+/* creative chip + settings panel */
+.hs-chip.creative { color: #b69cff; } .hs-chip.creative i { background: #b69cff; box-shadow: 0 0 8px #b69cff; }
+.card.settings { width: min(620px, 94vw); }
+.set-sec { margin: 18px 0 6px; font: 700 12px var(--hud-cond); letter-spacing: 0.2em; text-transform: uppercase; color: var(--hud-acc); }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0; border-bottom: 1px solid var(--hud-line); }
+.set-row b { font: 600 15px var(--hud-font); } .set-row small { display: block; margin-top: 3px; font: 400 12px/1.4 var(--hud-font); color: var(--hud-dim); max-width: 360px; }
+.set-row.hot b { color: #b69cff; }
+.card .set-toggle { display: inline-flex; align-items: center; gap: 9px; min-width: 84px; padding: 7px 12px; text-align: left; }
+.set-toggle i { width: 28px; height: 14px; border-radius: 7px; background: #3a4447; position: relative; } .set-toggle i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: #9aa5a7; transition: left .12s; }
+.set-toggle.on { border-color: var(--hud-acc); color: var(--hud-acc); } .set-toggle.on i { background: var(--hud-acc-soft); } .set-toggle.on i::after { left: 16px; background: var(--hud-acc); }
+.set-range { display: flex; align-items: center; gap: 10px; } .set-range input { width: 190px; accent-color: var(--hud-acc); } .set-range em { min-width: 50px; text-align: right; font: 700 14px var(--hud-cond); font-style: normal; color: var(--hud-acc); }
+.set-choice { display: flex; } .card .set-choice button { padding: 6px 10px; font-size: 12px; margin-left: -1px; } .card .set-choice button.on { border-color: var(--hud-acc); color: #1a1206; background: var(--hud-acc); }
+.set-foot { margin-top: 16px; }
