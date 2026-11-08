@@ -56,6 +56,17 @@ An agent was building Stage 3 when the session paused. Its final status report, 
 4. Check it in a browser: put items in the Bug's front trunk, drive, and confirm they stay put. Also check the luggage well, the roof rack, a truck bed and the trailer.
 5. Send the stage summary to Chris, then commit.
 
+## Side project: Build Sandbox (dev tool, outside the game)
+
+Page: `viewer/bug_viewer/buildlab.html`, code in `src/buildlab/`. Status: in progress, not committed. Its own README is `src/buildlab/README.md`.
+- A 60×60 m grid world for devs to test build pieces, spot what needs scaling, and find missing pieces.
+- **Starts completely empty.** The full garage is a placeable item, so a tester can build onto it or build separately. No person, no Bug.
+- **Two views with a toggle:** *Game feel* (default: first person, the in-game build menu and HUD) and *Creator view* (overhead orbit camera). Export, import and the library work in both.
+- **Export and import:** versioned `.baja-build.json` file or copy-as-text, so a dev on another computer can send Chris a build. Satisfactory-style blueprint library (save a region, stamp it as one ghost, one undo).
+- Touches no existing game files. Own localStorage keys only (`baja-buildlab-v1`, `baja-buildlab-library-v1`).
+- The first creator-style UI was rejected by Chris and is being reworked to match the in-game build menu.
+- Not yet done: the "placeable template found in the world" step (turning an exported build into a world pickup) is a later stage.
+
 ## Backlog: Chris's ideas, not scoped yet
 
 1. **Phone and PC ecosystem, Rockstar-style.**
