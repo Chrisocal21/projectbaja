@@ -5,6 +5,16 @@ import { game, useGame } from './store.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf } from './items.js';
 import { activeType } from './fleet.js';
 import { Key } from './BuildMenu.jsx';
+import { clockHour } from './clock.js';
+import { formatClock, isNight } from '../worlds/clock.js';
+
+/** the time of day, ticking on its own (game.clock changes every frame without emit(), to avoid a 60fps React re-render) */
+function ClockChip() {
+  const [, tick] = React.useState(0);
+  React.useEffect(() => { const id = setInterval(() => tick(n => n + 1), 1000); return () => clearInterval(id); }, []);
+  const h = clockHour(), night = isNight(h);
+  return <span className={`hs-chip plain clock${night ? ' night' : ''}`}><i />{formatClock(h)}</span>;
+}
 
 /** "Press E — Get in  ·  X — Take a part off" → [['E', 'Get in'], ['X', 'Take a part off']] (text without a key stays plain) */
 export const promptParts = s => s.split(/\s+·\s+/).map(p => { const m = /^(?:Press )?([A-Z][A-Za-z0-9]{0,4}|Esc|Tab|Shift) — (.+)$/.exec(p.trim()); return m ? [m[1], m[2]] : [null, p.trim()]; });
@@ -18,6 +28,7 @@ export function HudOverlay() {
     <div className="hud-status">
       <div className="hs-cash"><small>$</small>{game.cash.toLocaleString()}</div>
       {story && h && <div className="hs-chips">
+        <ClockChip />
         <span className={`hs-chip ${open ? 'ok' : h.power ? 'off' : 'dead'}`}><i />{open ? 'Shop open' : h.power ? 'Shop closed' : 'No power'}</span>
         {game.settings?.creative && <span className="hs-chip creative"><i />Creative</span>}
         {(game.mats?.scrap || 0) > 0 && <span className="hs-chip plain">Scrap {game.mats.scrap}</span>}

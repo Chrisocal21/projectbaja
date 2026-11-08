@@ -181,4 +181,4 @@ These were the next steps before the canon arrived. They wait now unless a slice
 ## Not started
 - Marketplace and classifieds, NPC buyers.
 - Racing events, bikes.
-- Night, weather, time of day.
+- Weather.

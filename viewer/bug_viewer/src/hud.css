@@ -187,6 +187,7 @@
 
 /* creative chip + settings panel */
 .hs-chip.creative { color: #b69cff; } .hs-chip.creative i { background: #b69cff; box-shadow: 0 0 8px #b69cff; }
+.hs-chip.clock i { background: #ffd28e; box-shadow: 0 0 8px #ffd28e; } .hs-chip.clock.night { color: #8fa6d6; } .hs-chip.clock.night i { background: #8fa6d6; box-shadow: 0 0 8px #8fa6d6; }
 .card.settings { width: min(620px, 94vw); }
 .set-sec { margin: 18px 0 6px; font: 700 12px var(--hud-cond); letter-spacing: 0.2em; text-transform: uppercase; color: var(--hud-acc); }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0; border-bottom: 1px solid var(--hud-line); }

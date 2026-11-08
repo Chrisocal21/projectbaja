@@ -9,6 +9,8 @@ import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, SCRAP_HEAP
 import { jobById } from './jobs.js';
 import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
+import { sunDirection } from '../worlds/clock.js';
+import { clockHour, SUN_FOLLOW } from './clock.js';
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
@@ -129,7 +131,7 @@ export default function Walker({ world, sun }) {
       if (camera.fov !== settings().fov) { camera.fov = settings().fov; camera.updateProjectionMatrix(); }
       game.pos.x = s.x; game.pos.z = s.z; game.walkPose = { x: s.x, y: s.y, z: s.z, yaw: s.yaw };
       game.face.x = -Math.sin(s.yaw); game.face.z = -Math.cos(s.yaw);
-      if (sun.current) { sun.current.position.set(s.x + 30, s.y + (world.id === 'county' ? 18 : 45), s.z + 20); sun.current.target.position.set(s.x, s.y, s.z); sun.current.target.updateMatrixWorld(); }
+      if (sun.current) { const [dx, dy, dz] = sunDirection(clockHour()); sun.current.position.set(s.x + dx * SUN_FOLLOW, s.y + dy * SUN_FOLLOW, s.z + dz * SUN_FOLLOW); sun.current.target.position.set(s.x, s.y, s.z); sun.current.target.updateMatrixWorld(); }
     } else s.on = false;
 
     // ---- what would E do right now? ----  (guarded: an error here must never stop the frame, or the whole screen goes black)

@@ -11,6 +11,9 @@ import * as TC from './worlds/testcenter.js';
 import TestCenterScene from './worlds/TestCenter.jsx';
 import * as CO from './worlds/county.js';
 import CountyScene from './worlds/County.jsx';
+import DayNightSky from './worlds/DayNightSky.jsx';
+import { sunDirection } from './worlds/clock.js';
+import { clockHour, SUN_FOLLOW } from './game/clock.js';
 import { propObstacles } from './game/home.js';
 import { vehicleType, standingVehicles } from './game/fleet.js';
 import TruckModel from './Truck.jsx';
@@ -306,7 +309,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     g.position.set(st.x, st.y, st.z);
     g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
     if (!game.onFoot) {
-      sun.current.position.set(st.x + 30, st.y + (world.id === 'county' ? 18 : 45), st.z + 20);
+      if (world.id === 'county') { const [dx, dy, dz] = sunDirection(clockHour()); sun.current.position.set(st.x + dx * SUN_FOLLOW, st.y + dy * SUN_FOLLOW, st.z + dz * SUN_FOLLOW); }
+      else sun.current.position.set(st.x + 30, st.y + 45, st.z + 20);
       sun.current.target.position.set(st.x, st.y, st.z);
       sun.current.target.updateMatrixWorld();
     }
@@ -406,12 +410,14 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
   const race = useRef(newRace());
   const sun = useRef();
   return <WorldCtx.Provider value={world}>
-    {world.id === 'open' && <><color attach="background" args={['#cfd9e0']} /><fog attach="fog" args={['#cfd9e0', 80, 380]} /></>}
-    <ambientLight intensity={world.id === 'county' ? 0.45 : 0.9} />
-    <hemisphereLight args={['#dfeaff', '#8a6e45', world.id === 'county' ? 0.65 : 1.1]} />
-    <directionalLight ref={sun} position={[30, world.id === 'county' ? 18 : 45, 20]} color={world.id === 'county' ? '#ffd4a3' : '#ffffff'} intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
-      shadow-camera-left={world.id === 'county' ? -36 : -16} shadow-camera-right={world.id === 'county' ? 36 : 16} shadow-camera-top={world.id === 'county' ? 36 : 16} shadow-camera-bottom={world.id === 'county' ? -36 : -16}
-      shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
+    {world.id === 'county' ? <DayNightSky sun={sun} /> : <>
+      {world.id === 'open' && <><color attach="background" args={['#cfd9e0']} /><fog attach="fog" args={['#cfd9e0', 80, 380]} /></>}
+      <ambientLight intensity={0.9} />
+      <hemisphereLight args={['#dfeaff', '#8a6e45', 1.1]} />
+      <directionalLight ref={sun} position={[30, 45, 20]} color="#ffffff" intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
+        shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
+    </>}
     {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : world.id === 'county' ? <CountyScene /> : <TestCenterScene />}
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle key={vehKey} hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>

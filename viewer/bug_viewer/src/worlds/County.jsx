@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Sky } from '@react-three/drei';
 import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -212,8 +211,7 @@ export default function CountyScene() {
   const { camera } = useThree();
   useEffect(() => { camera.far = 5200; camera.updateProjectionMatrix(); }, [camera]);
   return <>
-    <Sky distance={9000} sunPosition={[200, 120, 133]} turbidity={7} rayleigh={1.6} mieCoefficient={0.008} mieDirectionalG={0.85} />
-    <fog attach="fog" args={['#d9c6a9', 420, 4300]} />
+    {/* sky, fog, sun and the day/night cycle are DriveWorld.jsx's DayNightSky, so the drive and on-foot cameras share one clock */}
     <Terrain />
     {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind]; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} />)}

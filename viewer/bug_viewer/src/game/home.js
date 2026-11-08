@@ -8,6 +8,7 @@ import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, in
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { upgradeLevel } from './upgrades.js';
+import { MORNING_HOUR } from './clock.js';
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -317,5 +318,5 @@ export function upgradeTrailer(id) {
 }
 export function sleep() {
   if (!trailerHas('roof')) return say('The roof leaks right onto the bed. Patch it first.');
-  game.home = { ...game.home, jobClock: 1e6 }; save(); say('You sleep like a rock. Morning.');
+  game.home = { ...game.home, jobClock: 1e6 }; game.clock = MORNING_HOUR; save(); say('You sleep like a rock. Morning.');
 }

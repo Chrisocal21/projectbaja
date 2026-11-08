@@ -133,4 +133,4 @@ One vehicle is **active**: the one you drive and work on. Every other vehicle yo
 - Barn finds (settled in FEATURE_MAP): abandoned barns in the empty stretches the bigger map opened up, found only by exploring.
 - A second town past the highway passes, and a coastal or Baja region beyond.
 - Real race events at the Proving Grounds and a lakebed speed trap.
-- Night, weather and time of day.
+- Weather.

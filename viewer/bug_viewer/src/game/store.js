@@ -14,14 +14,14 @@ export const game = {
   toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,
   fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
-  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: null,
+  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: null, clock: saved.clock ?? 9,
   onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: false, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
 WEAR.value = game.wear;
 if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
 // Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
-const writeSave = () => { if (game.dev) return; try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats })); } catch {} };
+const writeSave = () => { if (game.dev) return; try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock })); } catch {} };
 const tx = createTx({ snapshot: () => snapshotOf(game), restore: s => Object.assign(game, s), write: writeSave });
 const persist = () => tx.request();
 /** run one player action (fit, detach, buy...) as a single save write; if it throws, nothing changes */
@@ -52,7 +52,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9;
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
