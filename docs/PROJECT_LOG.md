@@ -280,3 +280,12 @@ Chris: wall pieces, foundations, floors, pillars, window walls, garage doors, do
 ## November 8, 2026: direction queued (upgrades, materials, newer look)
 
 Chris, after the structure kit: new construction should look newer and less rusted, and the player picks the materials; the garage and the land around it need levelled upgrades (another lift, more parking bays, the office expansion and more); building expansions with the kit are a different thing. Recorded as queued work in PROGRESS_TRACKER and OPEN_QUESTIONS, which also settles the buyable lift ($1,800) and the "Car lot space" item (both become upgrades). Nothing built yet.
+
+## November 8, 2026: the building grid now meets the original garage
+
+Chris: new walls should meet up with the original builds for easy, seamless expansion.
+
+- **Cause:** the kit's grid lines sat on even x, but the garage's side walls are at x = +-7, so the nearest slab beside the garage straddled the wall or left a 1 m gap.
+- **Fix:** the grid is now aligned to the original buildings (`OX = 1`, `OZ = 0` in `worlds/structures.js`): the garage's side walls, front and back, and the office wing's edge are all grid lines. Slabs sit flush against them; a wall can run out from the garage wall to make a T; a wall line can carry on past the garage corner; a pillar can stand on the garage's outer wall line. Walls and slabs still cannot sit on or over the garage itself, because it already has walls (`inBuilding`, with 0.2 m of allowed overlap for the wing's off-grid outer wall at x = -13.2).
+- **Old saves:** pieces built on the earlier grid move 1 m along x once (`migrateGrid`, `home.gridV`).
+- Checked in Chromium: a lean-to flush against the garage's right wall (slabs, floors, windows, a 4 m garage door, corner pillars, roof) and a room flush against the wing's left side; refusals on the garage itself; migration runs once. 54/54 tests, build passes.

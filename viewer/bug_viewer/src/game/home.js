@@ -2,7 +2,7 @@
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
-import { PIECES, isPiece, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
+import { PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree } from '../worlds/office.js';
 import { LANE, STALL } from '../worlds/lot.js';
 
@@ -103,8 +103,7 @@ function structWhy(item, x, z, ry) {
     if (Math.abs(px) < STALL.inner + STALL.d + 1 && pz > LANE.z0 - 0.01 && pz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
     if (Math.abs(px) < LANE.half + 1 && pz > LANE.z0 && pz < LANE.z1) return 'Keep the driveway clear.';
   }
-  const p = PIECES[item.id], inGar = (px, pz, e = 0.01) => px > -13.2 - e && px < 7 + e && pz > -6 - e && pz < 6 + e;   // garage + office wing
-  if (p.kind === 'cell' ? (l.lx + 1 > -13.2 && l.lx - 1 < 7 && l.lz + 1 > -6 && l.lz - 1 < 6) : inGar(l.lx, l.lz)) return "That's where the garage already is.";
+  if (inBuilding(item.id, l.lx, l.lz)) return "That's where the garage already is.";
   const existing = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot }; });
   if (conflicts(item.id, l.lx, l.lz, ryl, existing)) return 'Something is already built there.';
   if (!supported(item.id, l.lx, l.lz, ryl, existing)) return 'Build a foundation slab there first.';
@@ -143,6 +142,13 @@ export const STARTER_FIXTURES = [
   ['shelfTires', -6.5, -2.4, Math.PI / 2], ['shelfTires', -6.5, 0, Math.PI / 2], ['shelfTires', -6.5, 2.4, Math.PI / 2],
   ['shelfSupplies', 6.5, -3.0, -Math.PI / 2], ['shelfSupplies', 6.5, -0.6, -Math.PI / 2],
 ];
+/** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
+export function migrateGrid() {
+  if (game.home.gridV >= 2) return;
+  const had = game.props.some(p => isPiece(p.id));
+  if (had) { game.props = game.props.map(p => (isPiece(p.id) ? { ...p, x: p.x + Math.cos(G.rot) } : p)); game.propsV = (game.propsV || 0) + 1; }
+  game.home = { ...game.home, gridV: 2 }; save();
+}
 /** seed the movable wall shelving once per save (new games and saves from before they were movable) */
 export function ensureStarterFixtures() {
   if (game.home.fixtures) return;
