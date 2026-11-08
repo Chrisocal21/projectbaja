@@ -1,5 +1,84 @@
 # Project: Baja — PROGRESS_TRACKER
 
+*Updated November 8, 2026. Key: ✅ done, 🟡 in progress, ⬜ not started.*
+
+## Right now
+- **Building now:** Stage 4c, tire racks that show real tires (not committed yet).
+- **Next:** one shared crosshair aim rule, so E and click aim the same way.
+- **Waiting on Chris:** the decisions list at the bottom of this section.
+
+## At a glance, by area
+
+| Area | Status | Done | Bar | What it means |
+|---|---|---|---|---|
+| Core game (Phase 1 checks) | 🟡 | 29% | [###-------] | 4 of 14 first-playable checks fully pass; 7 more are partly there |
+| Garage and furniture | 🟡 | 33% | [###-------] | Sell, store, click-place work; racks, bench, lift, pegboard, walls not yet |
+| Placement system | 🟡 | 54% | [#####-----] | The grid rules, lab, cargo, sell/store and click-place are in |
+| Vehicles | 🟡 | 55% | [#####-----] | Bug, '84 truck (drives front-first), glows work; no tire wear, no trailer |
+| Map | 🟡 | 64% | [######----] | 6 km county, terrain, roads done; map turn-around bug and barn check-off open |
+| Phone / PC | ⬜ | 0% | [----------] | Not started; will replace the Esc menu |
+| Deliveries / NPCs | 🟡 | 20% | [##--------] | Odd jobs only; no ordering, no arriving trucks, no visitors |
+| Story / Canon | 🟡 | 63% | [######----] | Canon locked, garage start, #7 and hoops quest in; letter text is a placeholder |
+| Polish / Testing | 🟡 | 40% | [####------] | Loading screen, tests, asset scripts done; play-test, saves, licences open |
+| Later phases | ⬜ | 0% | [----------] | Cabin, map expansion, boat, trailers, weather, racing, marketplace |
+
+## Overall
+
+| Whole thing | Done | Bar |
+|---|---|---|
+| **Whole project** | **40%** (34 of 84 items) | [####------] |
+| **Phase 1 (first playable)** | **41%** (13 of 32 items) | [####------] |
+
+## Placement stages
+
+| Stage | What | Status | Done |
+|---|---|---|---|
+| 0 | Repo inspection | ✅ | 100% |
+| 1 | Rules and data types | ✅ | 100% |
+| 2 | Lab test scene | ✅ | 100% |
+| 2b | Like items clip together | ✅ | 100% |
+| 3 | Vehicle cargo (truck bed, roof rack, trailer data, 100% refund) | ✅ | 100% |
+| 4a | Sell Walt's fixtures, store and take out furniture | ✅ | 100% |
+| 4b | Click to pick up and place furniture | ✅ | 100% |
+| 4c | Tire racks show real tires | 🟡 | in progress, counted 0% until committed |
+| 4d | Bench, lift, pegboard as props, plus tool slots | ⬜ | 0% |
+| 4e | Wall surface (hang photos and things) | ⬜ | 0% |
+| 4f | Retire the B menu for furniture | ⬜ | 0% |
+| 5 | World placement | ⬜ | 0% |
+| 6 | Versioned save and load | ⬜ | 0% |
+
+Placement stages total: 7 of 13 done = 54%. Garage and furniture row = 4a to 4f: 2 of 6 = 33%.
+
+## Chris decisions waiting
+1. Are Phase 2 and later officially open? (Phone, ordering, arriving vehicles depend on it.)
+2. Truck bed: wider bed, smaller tires, or mounts over the wheel wells? (Only 3 upright tires fit across.)
+3. Scrap heap: keep "pick through" on E?
+4. Does the Index keep its I key once it is a phone app?
+5. Grandpa's letter text: Chris writes it (canon).
+6. Cabin (D7) and boat (D9): lock into canon? Everything about them is UNKNOWN until you say.
+7. Old saves: what happens to them? Licence check for the public web build.
+8. Commit and merge the branch; purge the truck zips from git history (needs a force-push OK).
+9. PROPOSAL: build order after 4c is aim rule, 4d, 4e, 4f, phone and PC, ordering, arriving vehicles (D1-D3), Stages 5-6, then cabin, map expansion, boat, trailers.
+
+## How the % is calculated
+- Every % is items done divided by items counted. Nothing partly done is counted as done.
+- Core game: the 14 acceptance checks below (4 pass, 7 partly, 1 missing, 2 need a playtest). 4 of 14.
+- Garage and furniture: sub-stages 4a to 4f. 2 of 6.
+- Placement: 13 stages (0, 1, 2, 2b, 3, 4a-4f, 5, 6). 7 of 13.
+- Vehicles: 6 done (Bug restoration, doors, fleet and '84 truck, truck fixed, fit glow, detach glow) of 11 (adds restorable truck, aimable engine and battery, tire wear, trailer, engine swap). 6 of 11.
+- Map: 7 done of 11 (open: turn-around fix D5, barn check-off D4, horizon and road polish, expansion D6).
+- Phone / PC: 5 items (phone, apps, PC, ordering, replacing the Esc menu). 0 of 5.
+- Deliveries / NPCs: 5 items (odd jobs done; ordering, arriving vehicles, visitors, Al's roster open). 1 of 5.
+- Story: 5 done (canon, garage start, #7, hoops quest, trailer fix-up) of 8 (adds Chris's letter, photo clues, cabin lore). 5 of 8.
+- Polish: 4 done (loading screen, no black screens, asset scripts, tests passing) of 10 (adds play-test, old saves, licences, zip purge, manual save, art). 4 of 10.
+- Later phases: 7 items (cabin, map expansion, boat, trailers, weather, racing, marketplace). 0 of 7.
+- Whole project adds every area except Garage (it overlaps Placement): 34 of 84 = 40%. Phase 1 = Core + Story + Polish: 13 of 32 = 41%.
+- These counts are my PROPOSAL for how to slice the work; items differ in size, so treat the % as a rough guide.
+
+---
+
+## Older detail (kept from before)
+
 **Canon arrived November 8, 2026:** read [CANON](./CANON.md) first. Phase 1 / Slice A is the only open work; see "Direction" below.
 
 **Breakpoint: November 7, 2026 (night).** Everything under "Completed" builds (`npx vite build`), passes tests (32/32 then; 38/38 after the November 8 Slice A work, `npm test`) and was checked in a real browser (headless Chromium on the GPU). Items marked *not played* were built and tested but nobody has played them yet. Code is in `viewer/bug_viewer`; it deploys to Vercel from GitHub `main`.

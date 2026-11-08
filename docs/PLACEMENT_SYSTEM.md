@@ -19,8 +19,14 @@ Chris's original PLACEMENT_SYSTEM brief governs the work. Its rules of engagemen
 | 1 | Rules and data types (`src/placement/types.js`, `rules.js`, tests) | ✅ Done, `5a07262` |
 | 2 | Placement Lab test scene (`/?lab=placement`) | ✅ Done, `30918e2` |
 | 2b | Like items clip together (jerry cans, bottles, toolboxes) | ✅ Done, `6ce4665` |
-| 3 | Vehicle cargo surfaces, plus switching world pickup from E to click | 🟡 **Paused mid-build, not committed.** See "Resume here". |
-| 4 | Garage: **everything** moves onto the new grid. Furniture, Walt's fixtures, the lift and the bench can all be stored, sold or placed anywhere | ⬜ |
+| 3 | Vehicle cargo surfaces, plus switching world pickup from E to click | ✅ Shipped (truck bed, roof rack, trailer data, 100% refund, `db3994d`). Placement is now ON by default. "Resume here" below is history. |
+| 4a | Sell Walt's fixtures at 100%, store and take out furniture (Shift+X) | ✅ Shipped, `8243cd0` |
+| 4b | Click to pick up and place furniture, free/Shift snap, rotate, reason shown | ✅ Shipped, `19b1591` |
+| 4c | Tire racks show the real tires | 🟡 In progress, not committed |
+| 4d | Bench, lift, pegboard as props, plus tool slots | ⬜ |
+| 4e | Wall surface (hang photos and things) | ⬜ |
+| 4f | Retire the B menu for furniture | ⬜ |
+| 4 | (Umbrella) Garage: **everything** moves onto the new grid. Furniture, Walt's fixtures, the lift and the bench can all be stored, sold or placed anywhere | 🟡 2 of 6 sub-stages done |
 | 5 | World: coarsest grid, free placement | ⬜ |
 | 6 | Save and load: versioned placement data, and old saves still load | ⬜ |
 

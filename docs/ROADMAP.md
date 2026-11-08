@@ -10,7 +10,7 @@ One page that says where everything stands. Written because work had spread acro
 |---|---|---|
 | The game | `/` | Playable. Garage, county, Bug, '84 truck, odd jobs, build mode, upgrades, index (I). |
 | Placement Lab (test room for the new grid placement) | `/?lab=placement` | Works. Test scene only. |
-| Placement in the real game (cargo in the Bug's trunk, etc.) | `/?placement=1` | Half done: Bug trunk and luggage shelf work. Truck bed, roof rack, mount spots 5–8 not done. |
+| Placement in the real game (cargo, sell/store, click place) | in the main game, ON by default (no flag) | Stage 3 cargo shipped (Bug trunk, truck bed, roof rack, trailer data); Stage 4a sell/store and 4b click placement shipped; 4c tire racks in progress. |
 | Build Sandbox (dev tool, build with all pieces, export/import) | `/buildlab.html` | Works. Only the 8 building pieces plus the garage so far. **Chris wants all parts in it.** |
 | Click to pick up (E no longer picks up) | in the main game | Live, not behind a flag. |
 
@@ -21,10 +21,10 @@ Garage start, breaker, letter, Grandma's Bug and restoration, #7 under the tarp,
 
 ## 3. Half finished (the "sitting on another page" list)
 
-1. **Placement Stage 3 (vehicles).** Truck bed mount spots 5–8, roof rack, a drive test with items aboard, remove the temporary T key. Open: the truck bed only fits **3** upright tires across (wheel wells 0.84 m apart), not 4. There is **no towable trailer** in the game yet.
-2. **Placement Stages 4–6.** Garage furniture onto the grid (everything movable, storable, sellable), world placement, versioned save.
+1. **Placement Stage 3 (vehicles): DONE.** Open question only: the truck bed fits **3** upright tires across (wheel wells 0.84 m apart), not 4. There is still **no towable trailer** (data format is ready).
+2. **Placement Stages 4c–6.** 4a (sell/store) and 4b (click place) shipped; 4c tire racks in progress; then 4d bench/lift/pegboard and tool slots, 4e wall surface, 4f retire the B menu for furniture, then world placement (5) and versioned save (6).
 3. **Build Sandbox parts.** Add fences, props, furniture, vehicles and parts (needs export format v2). Hide the axes in Game view. Then the step that turns an exported build into a **placeable template in the world** (not built).
-4. **Truck cargo bug (existing).** The truck model's bed is at +z but the code treats +z as forward, so truck crates sit inside the cab.
+4. **Truck cargo bug: FIXED** (`5f80a4e`). The truck model was turned 180 degrees so it drives front-first, and wheel, cab-eye and bed data were adjusted.
 5. **Scrap heap "pick through"** is still on E. Needs a decision.
 6. **Carried over from the tracker:** the whole play-test list (frame rate on 6 km, load time, battery start, doors), old-save handling, licence check for the public web build, tire condition ("bald"), a physical jack, a real manual save with versions and backups.
 
@@ -62,7 +62,7 @@ Nothing below is in [CANON](./CANON.md), so it is **PROPOSED by Chris, not locke
 - **The boat (D9).** Same: whose lake cabin, which friend, all UNKNOWN. Canon names no family members besides Walt, the grandmother and the co-driver.
 - **Map names (D6).** Real regions (Mojave, Baja California) are fine as geography; any town, person or business inside them is still unknown.
 - **Phase gating.** Canon says only Phase 1 / Slice A is open. D1–D3 and D6–D9 are Phase 2–5. Chris has been opening later phases on request; **please confirm those phases are open** (already an open question).
-- **Refund rule.** Canon #024 says 100% refund; the game pays 50%. Matters for "sell furniture".
+- **Refund rule.** Settled: canon #024 says 100% refund and the game now refunds 100% (doorway close and furniture sale).
 
 ## 6. Suggested order (PROPOSAL)
 1. **Now, small:** map orientation fix (D5), barn check-off (D4), Build Sandbox: all parts.
@@ -76,6 +76,5 @@ Nothing below is in [CANON](./CANON.md), so it is **PROPOSED by Chris, not locke
 - Is Phase 2+ now open, so work on D1–D3 can start?
 - Lock the cabin and boat into CANON? If yes, who gave the player permission to collect things, and what is the town? (UNKNOWN until you say.)
 - Truck bed: wider bed, smaller tires, or mount spots over the wheel wells?
-- Refunds: 50% or 100%?
 - Scrap heap stays on E?
 - Should the Index keep its I key once it's a phone app?
