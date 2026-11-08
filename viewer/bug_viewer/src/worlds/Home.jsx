@@ -410,7 +410,7 @@ function Ghost({ T }) {
     let x, z, ry = game.buildMode.ry || 0;
     if (item.cut) { const sn = snapCutWorld(camera.position.x + game.face.x * 3, camera.position.z + game.face.z * 3); if (sn) { x = sn.x; z = sn.z; ry = sn.ry; } else { x = camera.position.x + game.face.x * 3; z = camera.position.z + game.face.z * 3; } }
     else if (item.struct) { const sn = snapWorld(item, camera.position.x + game.face.x * 4.5, camera.position.z + game.face.z * 4.5); x = sn.x; z = sn.z; ry = sn.ry; }   // building pieces snap to the 2 m grid and turn to the nearest edge
-    else { const d = 4 + (item.len || 0) * 0.5; furn.cx = camera.position.x; furn.cz = camera.position.z; ({ x, z } = ghostSpot(camera.position.x, camera.position.z, game.face, d, furn.shift)); }   // Stage 4b: free by default, Shift = 0.5 m grid
+    else { const d = 4 + (item.len || 0) * 0.5; furn.cx = camera.position.x; furn.cz = camera.position.z; { const dv = camera.getWorldDirection(new THREE.Vector3()); furn.aim = { origin: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, dir: { x: dv.x, y: dv.y, z: dv.z } }; } ({ x, z } = ghostSpot(camera.position.x, camera.position.z, game.face, d, furn.shift)); }   // Stage 4b: free by default, Shift = 0.5 m grid
     const why = placeWhy(item, x, z, !!game.buildMode.moving, ry, game.buildMode.mat);
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, item.struct || item.cut ? height(x, z) : groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);

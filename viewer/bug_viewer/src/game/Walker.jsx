@@ -11,6 +11,7 @@ import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
+import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
 import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift snaps (not runs) while a held item is aimed at a vehicle surface
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
@@ -75,6 +76,9 @@ function carAction0(zone) {
   }
   return { type: 'none', text: 'X — Workshop' };
 }
+// PROPOSAL (design guesses): aim volumes for fixed targets. r = how far the crosshair may be from the centre line, h = height, dy = height of the base above the floor.
+const AIM_DEFAULT = { r: 1.0, h: 1.8 };
+const AIM_TARGET = { tarp: { r: 1.4, h: 0.8 }, al: { r: 1.0, h: 1.8 }, bench: { r: 1.3, h: 1.2 }, letter: { r: 0.4, h: 0.2, dy: 0.98 }, breaker: { r: 0.5, h: 1.0, dy: 0.9 }, openSwitch: { r: 0.6, h: 1.2, dy: 0.5 }, pump: { r: 0.8, h: 1.8 }, store: { r: 2.5, h: 3.0 } };
 const SHOP = SITES.shop, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
@@ -139,33 +143,36 @@ export default function Walker({ world, sun }) {
     try {
     const px = game.pos.x, pz = game.pos.z, foot = game.onFoot, pose = game.pose;
     let best = null, bd = 1e9;
-    const consider = (id, x, z, r, face, bonus = 1) => {
+    const eye = { x: camera.position.x, y: camera.position.y, z: camera.position.z }, look = lookDir(s.yaw, s.pitch);
+    // shape = { r, h, dy } vertical post (radius, height, offset above the floor you stand on) or { box:{hx,hz,h,yaw} }. On foot the view ray must pass through it.
+    const consider = (id, x, z, r, face, bonus = 1, shape = AIM_DEFAULT) => {
       if (foot && world.id === 'county' && s.y > world.height(x, z) + 1.4) return;
       const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;
-      if (face && foot && (dx * game.face.x + dz * game.face.z) / (d || 1) < 0.3 && d > 1.2) return;
+      if (foot && !(shape.box ? aimsAtBox(eye, look, { x, z, y: s.y, ...shape.box }, r) : aimsAt(eye, look, { x, z, y: s.y + (shape.dy || 0), h: shape.h, r: shape.r }, r))) return;
       if (d * bonus < bd) { bd = d * bonus; best = id; }
     };
-    if (Math.hypot(px - SHOP.x, pz - SHOP.z) < 11) consider('shop', SHOP.x, SHOP.z, 11, false);
+    if (Math.hypot(px - SHOP.x, pz - SHOP.z) < 11) consider('shop', SHOP.x, SHOP.z, 11, false, 1, { r: 3.5, h: 4 });
     let nearPump = false;
     for (const t of TARGETS) {
       if (t.id === 'pump') { if (Math.hypot(px - t.x, pz - t.z) < 14) nearPump = true; if (!foot && game.fueled) continue; }
       if (!foot && !t.car) continue;
-      consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1);
+      consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1, AIM_TARGET[t.id]);
     }
     if (!nearPump) game.fueled = false;
     const cl = foot && pose ? carLocal() : null;
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
-    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5);
-    if (foot) for (const c of containers) { if (c.id === 'racecar' && !game.home.raceCar) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55); }
-    if (foot && !game.home.raceCar) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6);
-    if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6);
-    if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5);
-    if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8);
-    if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6);
-    if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7); }
+    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0 });
+    if (foot) for (const c of containers) { if (c.id === 'racecar' && !game.home.raceCar) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
+    if (foot && !game.home.raceCar) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6, { r: 1.6, h: 1.5 });
+    if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
+    if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
+    if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8, { r: 0.9, h: 2.0 });
+    if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6, { r: 0.8, h: 0.9 });
+    if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7, { box: { hx: t.width / 2, hz: t.length / 2, h: 1.7, yaw: v.pose.h } }); }
     if (pose) {
-      if (foot && cl?.near && (!best || bd > 0.9)) {
+      const bt = activeType(), carAimed = foot && cl?.near && aimsAtBox(eye, look, { x: pose.x, z: pose.z, y: s.y, hx: bt.width / 2 + 0.1, hz: bt.length / 2, h: 1.7, yaw: pose.h }, 4.5);   // the car itself (door/hood/boot zone still comes from where you stand)
+      if (carAimed && (!best || bd > 0.9)) {
         if (!(game.owned.has('car:bug') || game.dev)) best = 'bug';
         else { game.carPlan = carAction(cl.zone); best = 'car:' + game.carPlan.type; }
       }
