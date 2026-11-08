@@ -32,7 +32,14 @@ export function clearJunk(id) {
 }
 export function flipBreaker() {
   if (game.home.power) { say('The lights are on. Grandpa wired this panel himself — best not to touch it again.'); return; }
-  game.home = { ...game.home, power: true }; save(); say('*clunk* ... the old fluorescent tubes flicker on.');
+  game.home = { ...game.home, power: true }; save(); say('*clunk* ... the old fluorescent tubes flicker on. The lights inside are just lights: flip the OPEN switch by the roller door when you want customers.');
+}
+/** open for business = power is on AND the sign light is switched on. Only this brings customers. */
+export const isOpen = () => !!(game.home?.open && game.home?.power);
+export function toggleOpen() {
+  if (!game.home.power) { say('The sign light needs power: flip the main breaker inside the garage first.'); return; }
+  const open = !game.home.open; game.home = { ...game.home, open }; save();
+  say(open ? 'The light over the sign is on, and so are the road signs: you are open for business.' : 'Sign light off: you are closed. No new customers until you open again.');
 }
 // PLACEHOLDER: canon says Chris writes Walt's letter (under 150 words; OPEN_QUESTIONS F10). Only the last line is canon.
 export const LETTER = [

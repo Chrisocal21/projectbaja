@@ -5,6 +5,7 @@ import { game, useGame } from '../game/store.js';
 import { GARAGE, BARN, CACTI } from './siteData.js';
 import { OFFICE } from './office.js';
 import GarageWing from './GarageWing.jsx';
+import RoadSigns from './RoadSigns.jsx';
 import { propertyTexture } from './propertyTextures.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
@@ -86,7 +87,7 @@ function ShelfStuff({ kind, p }) {
 /** The player's garage: concrete slab, roller door, two-post lift, workbench + pegboard, shelves, an engine on a stand. Local +z = the door. */
 function Garage() {
   useGame();
-  const { w, d, door } = GARAGE, t = 0.2, H = 4.6, power = game.home?.power;
+  const { w, d, door } = GARAGE, t = 0.2, H = 4.6, power = game.home?.power, open = !!(game.home?.open && power);
   const wallBack = useMemo(() => { const m = corrugatedTex('#8a9893'); m.repeat.set(5, 1); return m; }, []);
   const wallSide = useMemo(() => { const m = corrugatedTex('#8a9893', 33); m.repeat.set(4, 1); return m; }, []);
   const wallFront = useMemo(() => { const m = corrugatedTex('#8a9893', 35); m.repeat.set(1.3, 1); return m; }, []);
@@ -128,13 +129,19 @@ function Garage() {
     {[-4.8, 0, 4.8].map(x => <group key={x} position={[x, x === 0 ? 6.25 : 3.5, 6.5]}>
       <Box p={[0, 0.15, -0.15]} s={[0.07, 0.4, 0.4]} color="#423e31" metal={0.7} />
       <mesh rotation={[0, 0, Math.PI]}><coneGeometry args={[0.25, 0.15, 16, 1, true]} /><meshStandardMaterial color="#554b36" side={THREE.DoubleSide} /></mesh>
-      <mesh position={[0, -0.05, 0]}><sphereGeometry args={[0.08, 10, 8]} /><meshStandardMaterial color="#ffe4ae" emissive="#ffc577" emissiveIntensity={power ? 3 : 0} /></mesh>
-      <pointLight position={[0, -0.25, 0.2]} color="#ffc577" intensity={power ? 14 : 0} distance={9} />
+      <mesh position={[0, -0.05, 0]}><sphereGeometry args={[0.08, 10, 8]} /><meshStandardMaterial color="#ffe4ae" emissive="#ffc577" emissiveIntensity={(x === 0 ? open : power) ? 3 : 0} /></mesh>
+      <pointLight position={[0, -0.25, 0.2]} color="#ffc577" intensity={(x === 0 ? open : power) ? 14 : 0} distance={9} />
     </group>)}
     <GarageWing wall={wallSide} timber={bench} roof={roof} floor={floor} power={power} />
     {[-4.5, -1.5, 1.5, 4.5].map(z => <Box key={z} p={[0, H - 0.1, z]} s={[w * 2, 0.22, 0.1]} color="#3c4346" metal={0.6} rough={0.5} />)}
     {[-4.5, 0, 4.5].map(x => <Box key={x} p={[x, H - 0.02, 0]} s={[0.08, 0.08, d * 2]} color="#4a5255" metal={0.6} rough={0.5} cast={false} />)}
-    <mesh position={[0, H + 0.75, d + 0.2]}><boxGeometry args={[6, 1.15, 0.12]} /><meshStandardMaterial map={sign} roughness={0.7} /></mesh>
+    <mesh position={[0, H + 0.75, d + 0.2]}><boxGeometry args={[6, 1.15, 0.12]} /><meshStandardMaterial map={sign} roughness={0.7} emissive="#ffffff" emissiveMap={sign} emissiveIntensity={open ? 0.4 : 0} /></mesh>
+    {/* the OPEN switch, right of the roller door (press E): lights the lamp over the sign and the road signs */}
+    <group position={[5.4, 1.45, 6.3]}>
+      <Box p={[0, 0, 0]} s={[0.32, 0.5, 0.08]} color="#3a3d40" metal={0.5} rough={0.5} />
+      <Box p={[0, open ? 0.06 : -0.06, 0.07]} s={[0.07, 0.14, 0.07]} color="#d9d2c0" metal={0.6} rough={0.4} cast={false} />
+      <Box p={[0, 0.17, 0.05]} s={[0.12, 0.07, 0.03]} color={open ? '#ff6a45' : '#4a3a38'} emissive={open ? '#ff6a45' : undefined} ei={open ? 1.4 : 0} cast={false} />
+    </group>
     {/* the lift */}
     <CarLift />
     {/* workbench along the back wall, pegboard with tools above it, compressor at the end */}
@@ -360,5 +367,6 @@ export default function Sites() {
     <Placed site={SITES.shack3}><Shack /></Placed>
     <Furniture />
     <Scenery />
+    <RoadSigns />
   </>;
 }

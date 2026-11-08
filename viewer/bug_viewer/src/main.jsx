@@ -8,7 +8,7 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -156,6 +156,7 @@ function App() {
     else if (id === 'dealer') setPanel('dealer');
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
     else if (id === 'breaker') flipBreaker();
+    else if (id === 'openSwitch') toggleOpen();
     else if (id === 'racecar') uncoverRaceCar();
     else if (id === 'crank') crankBug();
     else if (id.startsWith('heap:')) takeHeap(id.slice(5));

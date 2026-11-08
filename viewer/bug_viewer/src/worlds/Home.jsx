@@ -78,6 +78,22 @@ function Tank({ T }) {
   </group>;
 }
 
+const glowTex = (() => { let t; return () => t || (t = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,224,170,0.55)'); r.addColorStop(1, 'rgba(255,224,170,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })()); })();
+/** floodlight poles around the customer lot: lit whenever the garage has power; purely lighting, not the OPEN signal */
+const LOT_LIGHTS = [[-14.5, 12], [14.5, 12], [-14.5, 28], [14.5, 28], [-3.2, 31], [3.2, 31]];
+function LotLights() {
+  useGame();
+  const on = !!game.home?.power, glow = glowTex();
+  return <group>
+    {LOT_LIGHTS.map(([x, z], i) => <group key={i}>
+      <Cyl p={[x, 3.1, z]} a={[0.07, 0.1, 6.2, 6]} c="#3c4346" m={0.4} />
+      <B p={[x, 6.2, z]} s={[0.9, 0.14, 0.4]} c="#2a2d2f" />
+      <mesh position={[x, 6.1, z]}><boxGeometry args={[0.8, 0.05, 0.3]} /><meshStandardMaterial color="#ddd" emissive="#fff0c8" emissiveIntensity={on ? 2.4 : 0} /></mesh>
+      <mesh position={[x, 0.06, z]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[8, 24]} /><meshBasicMaterial map={glow} transparent opacity={on ? 1 : 0} depthWrite={false} blending={THREE.AdditiveBlending} /></mesh>
+    </group>)}
+  </group>;
+}
+
 function Forecourt() {
   const map = useMemo(() => propertyTexture(4, 16, 11), []);
   const normalMap = useMemo(() => propertyTexture(4, 16, 11, true), []);
@@ -93,6 +109,7 @@ function Forecourt() {
   }, [map, normalMap]);
   useEffect(() => () => material.dispose(), [material]);
   return <group>
+    <LotLights />
     <mesh position={[0, 0.025, 20.5]} rotation={[-Math.PI / 2, 0, 0]} material={material} receiveShadow>
       <planeGeometry args={[34, 23]} />
     </mesh>

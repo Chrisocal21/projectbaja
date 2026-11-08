@@ -233,3 +233,13 @@ Chris: turn the lot 90 degrees, put bays down the left and right of the drive, d
 - `game/jobs.js`: a customer parks in a random open bay (no parked vehicle of yours within 2 m, and not the car you are driving). If the lot is full they wait. One customer at a time is unchanged.
 - `worlds/Home.jsx` paints the bays and wheel stops from the same data; `game/home.js` keeps the lane and bays clear of build items.
 - Checked in Chromium: three customers took three different bays, nose-out. 44/44 tests, build passes.
+
+## November 8, 2026: the OPEN light, lot lights and road signs
+
+Chris: customers should only come when the whole place is open; the lamp above the garage sign means open, other lights mean nothing; lot lights for night; signs leading folks off the highway, lit by the same switch.
+
+- **Open for business = power on AND the OPEN switch on.** New `isOpen()` / `toggleOpen()` in `game/home.js`; the switch is a target on the garage's front wall right of the roller door (press E). Customers (`game/jobs.js`) and the job clock only run while open. Saves from before this change start closed: flip the switch once.
+- The lamp over the garage sign (and a soft glow on the sign) is the OPEN light. The two side lamps, the tube lights and the new lot floodlights are just lighting (power only).
+- `worlds/RoadSigns.jsx`: a two-face billboard at the Highway 9 / Old Mill Rd junction, three signs along Old Mill Rd, a turn sign at the driveway, and a parking sign at the foot of the driveway. Each has a lamp and an OPEN/CLOSED tag that follow the same switch.
+- `worlds/Home.jsx`: six floodlight poles around the lot with a soft ground glow (power only). There is no night cycle yet, so they are decoration until there is one.
+- Checked in Chromium: power alone brought no customer; walking to the switch and pressing E opened the shop and a customer pulled into a bay; the garage lamp, billboard and road signs lit. 44/44 tests, build passes.

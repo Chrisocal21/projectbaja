@@ -1,10 +1,10 @@
 // Odd jobs: now and then a local pulls into the yard with a small problem. Nothing big, no timer, no stress - just steady
 // pocket money that keeps you chipping away at the garage. One customer at a time; the next one turns up a few minutes
-// (of play, with the power on) after the last one leaves.
+// (of play, with the OPEN light on) after the last one leaves.
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { pickStall } from '../worlds/lot.js';
-import { homeLocal } from './home.js';
+import { homeLocal, isOpen } from './home.js';
 import { standingVehicles } from './fleet.js';
 
 export const SUPPLIES = {
@@ -31,7 +31,7 @@ export const jobById = Object.fromEntries(JOBS.map(j => [j.id, j]));
 
 /** called every frame while playing: counts play time with the power on, and sends the next customer when it's due */
 export function tickJobs(dt) {
-  if (game.dev || game.paused || game.job || !game.home?.power) return;
+  if (game.dev || game.paused || game.job || !isOpen()) return;
   const h = game.home;
   h.jobClock = (h.jobClock || 0) + dt;
   const due = h.jobsDone ? h.nextJobAt || GAP[0] : FIRST_AFTER;

@@ -109,6 +109,7 @@ export const TARGETS = [
   T('bench', G, -3, -4, 3.4),
   T('letter', G, -2.6, -5.25, 2.6, { bonus: 0.35 }),
   T('breaker', G, 6.75, -1.2, 2.2),
+  T('openSwitch', G, 5.4, 6.6, 2.0),
   T('pump', S, -3.6, 6.2, 5, { car: true, face: false }),
   T('pump', S, 3.6, 6.2, 5, { car: true, face: false }),
   T('store', S, 0, -6.6, 4.2),
