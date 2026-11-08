@@ -3,6 +3,9 @@ import { game, useGame } from './store.js';
 import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
 import { standingVehicles, vehicleType } from './fleet.js';
 import { OFFICE, CAMPER } from '../worlds/office.js';
+import { worldToMap, arrowRot, siteCleared } from './mapmath.js';
+import { containers, spots } from './loot.js';
+import { SCRAP_HEAPS } from './home.js';
 
 /** the county drawn once (surface colours + hill shading + roads); markers are drawn on top every time the map opens */
 const PX = 640, STEP = SIZE / PX * 1.25;
@@ -13,14 +16,14 @@ function baseMap() {
   const n = Math.floor(PX / 1.25), img = g.createImageData(n, n), hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const cache = new Map();
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const x = -HALF + (i + 0.5) * STEP, z = HALF - (j + 0.5) * STEP;   // north (+z) at the top
+    const x = HALF - (i + 0.5) * STEP, z = HALF - (j + 0.5) * STEP;   // north (+z) at the top
     const sf = surface(x, z), col = cache.get(sf.key) || (cache.set(sf.key, hex(sf.color)), cache.get(sf.key));
-    const h = height(x, z), shade = 1 + Math.max(-0.35, Math.min(0.35, (height(x - STEP, z + STEP) - h) * 0.09)) + Math.min(0.25, Math.max(0, h - 20) * 0.006);
+    const h = height(x, z), shade = 1 + Math.max(-0.35, Math.min(0.35, (height(x + STEP, z + STEP) - h) * 0.09)) + Math.min(0.25, Math.max(0, h - 20) * 0.006);
     const k = (j * n + i) * 4; img.data[k] = col[0] * shade; img.data[k + 1] = col[1] * shade; img.data[k + 2] = col[2] * shade; img.data[k + 3] = 255;
   }
   const tmp = document.createElement('canvas'); tmp.width = tmp.height = n; tmp.getContext('2d').putImageData(img, 0, 0);
   g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, PX, PX);
-  const P = (x, z) => [(x + HALF) / SIZE * PX, (HALF - z) / SIZE * PX];
+  const P = (x, z) => worldToMap(x, z, HALF).map(v => v * PX);
   const line = (pts, w, col, closed) => { g.strokeStyle = col; g.lineWidth = w; g.lineJoin = g.lineCap = 'round'; g.beginPath(); pts.forEach((p, i) => { if (i % 6) return; const [a, b] = P(p.x, p.z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); if (closed) g.closePath(); g.stroke(); };
   const W = { highway: [4, '#2b2d30'], street: [3.5, '#2b2d30'], gravel: [2.4, '#8b7f68'], dirt: [2, '#9a7a4e'] };
   for (const r of ROADS) { line(r.path.pts, W[r.kind][0] + 2, '#00000055'); line(r.path.pts, W[r.kind][0], W[r.kind][1]); }
@@ -35,25 +38,27 @@ const LABELS = { garage: "Walt's Garage", lot: "Honest Al's", gas: "Dusty's Fuel
 
 export default function MapPanel({ onClose }) {
   useGame();
-  const ref = useRef(), [zoom, setZoom] = useState(1);
+  const ref = useRef(), [zoom, setZoom] = useState(3);
   useEffect(() => {
     const c = ref.current, g = c.getContext('2d'), m = baseMap();
-    const pl = game.pos, s = zoom, cx = (pl.x + HALF) / SIZE * PX, cz = (HALF - pl.z) / SIZE * PX;
+    const pl = game.pos, s = zoom, [cx, cz] = worldToMap(pl.x, pl.z, HALF).map(v => v * PX);
     g.clearRect(0, 0, PX, PX); g.save();
     if (s > 1) { g.translate(PX / 2, PX / 2); g.scale(s, s); g.translate(-cx, -cz); }
     g.drawImage(m, 0, 0);
-    const P = (x, z) => [(x + HALF) / SIZE * PX, (HALF - z) / SIZE * PX];
+    const P = (x, z) => worldToMap(x, z, HALF).map(v => v * PX);
     g.font = `600 ${11 / s}px system-ui, sans-serif`; g.textAlign = 'left';
-    for (const [k, label] of Object.entries(LABELS)) { const st = SITES[k], [a, b] = P(st.x, st.z); g.fillStyle = k === 'garage' ? '#f2c14e' : '#ffffff'; g.beginPath(); g.arc(a, b, (k === 'garage' ? 5 : 3.5) / s, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.stroke(); g.lineWidth = 3 / s; g.strokeStyle = '#000000aa'; g.strokeText(label, a + 6 / s, b + 4 / s); g.fillText(label, a + 6 / s, b + 4 / s); }
+    for (const [k, label0] of Object.entries(LABELS)) { let label = label0; const st = SITES[k], [a, b] = P(st.x, st.z); g.fillStyle = k === 'garage' ? '#f2c14e' : '#ffffff'; g.beginPath(); g.arc(a, b, (k === 'garage' ? 5 : 3.5) / s, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.stroke();
+      if (siteCleared(k, { boxes: game.boxes, items: game.items, heaps: game.home.heaps }, { containers, spots, heaps: SCRAP_HEAPS })) { g.strokeStyle = '#3ddc84'; g.lineWidth = 2.5 / s; g.beginPath(); g.moveTo(a - 3 / s, b); g.lineTo(a - 0.5 / s, b + 3 / s); g.lineTo(a + 4 / s, b - 3.5 / s); g.stroke(); label += ' ✓'; }
+      g.lineWidth = 3 / s; g.strokeStyle = '#000000aa'; g.strokeText(label, a + 6 / s, b + 4 / s); g.fillText(label, a + 6 / s, b + 4 / s); }
     for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = P(v.pose.x, v.pose.z); g.fillStyle = '#5bd8ff'; g.fillRect(a - 3 / s, b - 3 / s, 6 / s, 6 / s); g.fillStyle = '#fff'; g.fillText(vehicleType(v.id).name, a + 6 / s, b - 4 / s); }
     if (game.job) { const [a, b] = P(game.job.x, game.job.z); g.fillStyle = '#ff9a3c'; g.beginPath(); g.arc(a, b, 5 / s, 0, 7); g.fill(); }
     // you: an arrow pointing where you face (on foot) or drive
     const [a, b] = P(pl.x, pl.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : (game.pose?.h || 0);
-    g.translate(a, b); g.rotate(Math.PI - yaw); g.fillStyle = '#ff4a3c'; g.strokeStyle = '#fff'; g.lineWidth = 1.5 / s;
+    g.translate(a, b); g.rotate(arrowRot(yaw)); g.fillStyle = '#ff4a3c'; g.strokeStyle = '#fff'; g.lineWidth = 1.5 / s;
     g.beginPath(); g.moveTo(0, -9 / s); g.lineTo(6 / s, 7 / s); g.lineTo(0, 3 / s); g.lineTo(-6 / s, 7 / s); g.closePath(); g.fill(); g.stroke();
     g.restore();
     void startLine;
-  }, [zoom, game.pos.x, game.pos.z]);
+  }, [zoom, game.pos.x, game.pos.z, game.pose?.h, game.face.x, game.face.z, game.items, game.boxes, game.home]);
   return <div className="overlay"><div className="card map-card">
     <div className="shop-head"><h2>BAJA COUNTY</h2><span className="map-btns"><button onClick={() => setZoom(z => (z === 1 ? 3 : 1))}>{zoom === 1 ? 'Zoom in' : 'Whole county'}</button><button onClick={onClose}>Close (M)</button></span></div>
     <canvas ref={ref} width={PX} height={PX} className="map-canvas" />
