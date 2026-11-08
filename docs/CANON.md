@@ -56,13 +56,17 @@ Pillar 3 is a promise, not a feature. When a new system is proposed, ask which p
 **UNKNOWN (do not invent):**
 - the accident year, the place and who was at fault
 - the full text of Walt's letter
-- every name except Walt's
-- the in-world year
+- every name except Walt's and the townsfolk locked below
+- the in-world year (never stated on screen; it is present-day enough for a smartphone, see below)
 - the player's name and appearance
 - the names of the co-driver and his son
 - the final title
 - fictional car makes
-- the NPC roster
+- the rest of the NPC roster
+
+**LOCKED by Chris, November 8, 2026:**
+- Townsfolk names already used in the game are canon: **Rosa** (the diner), **Pastor Dale**, **Deputy Ruiz**, **Mrs. Hollis**, **Old Man Hollis**, **Dusty** (the corner store), **Al** (Honest Al's).
+- The player carries a **smartphone**. Its apps include messages and a record of what has been said, so nothing in the story is missed. Walt's old PC in the office works alongside it.
 
 ## World bible
 
