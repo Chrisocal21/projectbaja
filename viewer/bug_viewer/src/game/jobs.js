@@ -3,6 +3,9 @@
 // (of play, with the power on) after the last one leaves.
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
+import { pickStall } from '../worlds/lot.js';
+import { homeLocal } from './home.js';
+import { standingVehicles } from './fleet.js';
 
 export const SUPPLIES = {
   oil: { name: 'Motor oil (5 qt)', price: 12 }, bulb: { name: 'Headlight bulb', price: 6 },
@@ -20,8 +23,10 @@ export const JOBS = [
   { id: 'tune', who: 'Old Man Hollis', car: ['#6e5a3a', '#cfc4a4'], title: 'Rough idle', ask: "She coughs. Walt'd just twist something. You got his wrench?", need: { tool: 'wrench' }, pay: 70 },
 ];
 const FIRST_AFTER = 75, GAP = [200, 380];
-/** where the customer parks: on the driveway, nose to the garage */
-export const JOB_SPOT = (() => { const [x, z] = toWorld(SITES.garage, 4.5, 17); return { x, z, h: SITES.garage.rot + Math.PI }; })();
+/** the world pose of a customer parked nose-in at a lot stall (see worlds/lot.js) */
+const stallPose = st => { const [x, z] = toWorld(SITES.garage, st.lx, st.lz); return { x, z, h: SITES.garage.rot + Math.atan2(st.fx, st.fz) }; };
+/** vehicles already in the lot, in garage-local metres: your parked cars plus the one you are driving */
+const occupiedNow = () => [...standingVehicles().map(v => v.pose), game.pose].filter(Boolean).map(p => homeLocal(p.x, p.z));
 export const jobById = Object.fromEntries(JOBS.map(j => [j.id, j]));
 
 /** called every frame while playing: counts play time with the power on, and sends the next customer when it's due */
@@ -31,11 +36,12 @@ export function tickJobs(dt) {
   h.jobClock = (h.jobClock || 0) + dt;
   const due = h.jobsDone ? h.nextJobAt || GAP[0] : FIRST_AFTER;
   if (h.jobClock < due) return;
+  const stall = pickStall(occupiedNow()); if (!stall) return;   // lot full: the customer waits until a stall opens
   const last = h.lastJob, pool = JOBS.filter(j => j.id !== last);
   const j = pool[Math.floor(Math.random() * pool.length)];
-  game.job = { id: j.id, ...JOB_SPOT };
+  game.job = { id: j.id, stall: stall.id, ...stallPose(stall) };
   h.jobClock = 0; h.nextJobAt = GAP[0] + Math.random() * (GAP[1] - GAP[0]);
-  save(); say(`A car just pulled into the yard — ${j.who} needs a hand.`);
+  save(); say(`A car just pulled into the lot — ${j.who} needs a hand.`);
 }
 /** can you do the job right now? → { ok, why, item } */
 export function jobCheck(j) {

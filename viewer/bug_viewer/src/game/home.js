@@ -3,6 +3,7 @@
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld } from '../worlds/county.js';
 import { inOffice } from '../worlds/office.js';
+import { LANE, STALL } from '../worlds/lot.js';
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -83,7 +84,7 @@ export function placeWhy(item, x, z) {
   if (!onProperty(x, z)) return "That's past your property line.";
   if (inOffice(lx, lz, -0.4)) return 'Keep reception, bathroom, storage and loft access clear.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
-  if (Math.abs(lx) < 16 && lz > 6 && lz < 40) return 'Keep the forecourt parking and garage approach clear.';
+  if (Math.abs(lx) < STALL.inner + STALL.d + 1 && lz > LANE.z0 && lz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
   const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';

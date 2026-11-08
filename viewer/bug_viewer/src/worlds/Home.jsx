@@ -13,6 +13,7 @@ import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
 import { CAMPER } from './office.js';
+import { STALL } from './lot.js';
 import { propertyTexture } from './propertyTextures.js';
 
 /** Grandpa's place around the garage: his trailer, windmill and tank, his old race car, the junk you clear, customers' cars, and everything you build. */
@@ -95,11 +96,11 @@ function Forecourt() {
     <mesh position={[0, 0.025, 20.5]} rotation={[-Math.PI / 2, 0, 0]} material={material} receiveShadow>
       <planeGeometry args={[34, 23]} />
     </mesh>
-    {/* two rows of parking stalls with a drive lane between them: five bays a row */}
-    {[14.5, 25.5].map((z, row) => [-12, -6, 0, 6, 12].map(x => <group key={row + '_' + x}>
-      {[-2.8, 2.8].map(dx => <mesh key={dx} position={[x + dx, 0.04, z]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.16, 5.2]} /><M c="#e6dcc0" r={1} /></mesh>)}
-    </group>))}
-    {[-12, 12].map(x => <B key={x} p={[x, 0.09, 12]} s={[1.8, 0.15, 0.22]} c="#9a9080" />)}
+    {/* parking bays down both sides of the drive lane, nose-out (worlds/lot.js); the lane to the garage door stays open */}
+    {[-1, 1].map(side => <group key={side}>
+      {Array.from({ length: STALL.perSide + 1 }, (_, k) => <mesh key={k} position={[side * (STALL.inner + STALL.d / 2), 0.04, STALL.z0 + k * STALL.w]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[STALL.d, 0.14]} /><M c="#e6dcc0" r={1} /></mesh>)}
+      {Array.from({ length: STALL.perSide }, (_, k) => <B key={k} p={[side * (STALL.inner + STALL.d - 0.4), 0.09, STALL.z0 + (k + 0.5) * STALL.w]} s={[0.22, 0.15, 1.7]} c="#9a9080" />)}
+    </group>)}
   </group>;
 }
 

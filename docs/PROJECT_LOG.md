@@ -224,3 +224,12 @@ Chris: the foundation and parking lot should be bigger and blend into the dirt r
 - `worlds/Home.jsx`: the gravel apron is 34 x 23 m with a wide soft edge, and two rows of five parking stalls (was two stalls). It stops at z = 32 because the graded road sits above it further out.
 - `worlds/flora.js`: no grass in the lot. `game/home.js`: the keep-clear rule covers the whole lot.
 - Checked in Chromium from the gate, the side and the road; 41/41 tests, build passes.
+
+## November 8, 2026: parking bays beside the drive lane, customers take an open bay
+
+Chris: turn the lot 90 degrees, put bays down the left and right of the drive, driveway straight into the garage, and customers park in whichever bay is open.
+
+- `worlds/lot.js` (new, pure data): a 9 m drive lane kept clear, 12 bays (6 a side, 3 m x 5.4 m), cars nose-out. PROPOSAL layout. `worlds/lot.test.js` checks the lane, the building and camper clearances and the open-bay logic.
+- `game/jobs.js`: a customer parks in a random open bay (no parked vehicle of yours within 2 m, and not the car you are driving). If the lot is full they wait. One customer at a time is unchanged.
+- `worlds/Home.jsx` paints the bays and wheel stops from the same data; `game/home.js` keeps the lane and bays clear of build items.
+- Checked in Chromium: three customers took three different bays, nose-out. 44/44 tests, build passes.
