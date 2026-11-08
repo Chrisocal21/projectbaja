@@ -3,11 +3,14 @@
 // Each surface also carries a world transform `at` = where its CENTRE (top face) sits in the world + its turn about y. The rules only ever see
 // surface-local coords (origin at a corner, x across w, z across d, see types.js); toLocal / toWorld below convert, PURE (no three.js).
 import { surface, placeable, placement, byId } from './types.js';
+import { VEHICLE_SURFACES } from './vehicleSurfaces.js';
 
 export const SURFACES = [
   { ...surface({ id: 'floor', size: [4, 3], gridSteps: [0.5, 0.25, 0.05], accepts: ['*'] }), name: 'Floor', at: { x: 0, y: 0, z: 0, rotY: 0 } },
   { ...surface({ id: 'shelf', size: [1.2, 0.4], gridSteps: [0.25, 0.15, 0.05], accepts: ['small'] }), name: 'Shelf', at: { x: -0.6, y: 1.0, z: -1.95, rotY: 0 } },
   { ...surface({ id: 'trunk', size: [1.2, 0.9], gridSteps: [0.25, 0.05], accepts: ['small', 'medium'] }), name: 'Trunk bed', at: { x: 3.1, y: 0.3, z: 0.3, rotY: -0.35 } },
+  // the '84 pickup's real bed (measured, see vehicleSurfaces.js): cab wall along its z0 edge, wheel wells as blocks
+  { ...VEHICLE_SURFACES.pickup84[0], id: 'bed', accepts: ['*'], name: "'84 bed", at: { x: 2.3, y: 0.5, z: -2.7, rotY: Math.PI / 2 } },
 ];
 export const surfaceById = byId(SURFACES);
 
@@ -16,7 +19,7 @@ export const ITEMS = [
   { ...placeable({ id: 'bottle', footprint: [0.1, 0.1], height: 0.26, tags: ['small'], clip: true }), name: 'Water bottle', look: { shape: 'bottle', color: '#5fb4e6' } },
   { ...placeable({ id: 'toolbox', footprint: [0.5, 0.25], height: 0.25, tags: ['small', 'medium'], clip: true }), name: 'Toolbox', look: { shape: 'box', color: '#c23a2b', handle: true } },
   { ...placeable({ id: 'jerrycan', footprint: [0.35, 0.18], height: 0.45, tags: ['medium'], clip: true }), name: 'Jerry can', look: { shape: 'can', color: '#3f6b35' } },
-  { ...placeable({ id: 'tire', footprint: [0.64, 0.64], height: 0.22, tags: ['large'], stackable: true }), name: 'Tire', look: { shape: 'tire', color: '#1c1c1c' } },
+  { ...placeable({ id: 'tire', footprint: [0.64, 0.64], height: 0.22, tags: ['large'], stackable: true, poses: { upright: { footprint: [0.22, 0.64], height: 0.64, stackable: false, clip: 'tireUpright' } } }), name: 'Tire', look: { shape: 'tire', color: '#1c1c1c' } },
   { ...placeable({ id: 'crate', footprint: [0.6, 0.4], height: 0.4, tags: ['medium', 'large'], stackOn: ['large'] }), name: 'Crate', look: { shape: 'box', color: '#9a7446' } },
 ];
 export const itemById = byId(ITEMS);

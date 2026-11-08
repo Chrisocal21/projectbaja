@@ -11,6 +11,7 @@ import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
+import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift snaps (not runs) while a held item is aimed at a vehicle surface
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
@@ -34,7 +35,7 @@ export const promptText = id => {
   if (id.startsWith('heap:')) return 'Press E — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
-  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Press E — Pick up ${nameOfItem(it)}`) : ''; }
+  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Click — Pick up ${nameOfItem(it)}`) : ''; }   // left click picks up (main.jsx), E never does
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
@@ -101,7 +102,7 @@ export default function Walker({ world, sun }) {
       }
       const k = s.keys, fwd = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0), side = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
       const hs = held() ? sizeOf(held().kind, held().id) : 0, load = hs >= 4 ? 0.55 : hs >= 3 ? 0.75 : hs ? 0.9 : 1;
-      const speed = (k.ShiftLeft || k.ShiftRight ? 6 : 3.2) * load, len = Math.hypot(fwd, side) || 1;
+      const speed = ((k.ShiftLeft || k.ShiftRight) && !aimingHeld() ? 6 : 3.2) * load, len = Math.hypot(fwd, side) || 1;
       const wx = (-Math.sin(s.yaw) * fwd + Math.cos(s.yaw) * side) / len * speed, wz = (-Math.cos(s.yaw) * fwd - Math.sin(s.yaw) * side) / len * speed;
       s.vx += (wx - s.vx) * Math.min(1, dt * 10); s.vz += (wz - s.vz) * Math.min(1, dt * 10);
       const oldX = s.x, oldZ = s.z;

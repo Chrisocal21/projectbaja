@@ -30,6 +30,7 @@ import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
+import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
 import WikiPanel from './game/WikiPanel.jsx';
 import UpgradesPanel from './game/UpgradesPanel.jsx';
@@ -154,7 +155,7 @@ function App() {
   const worldInteract = id => {
     if (id === 'shop') setPanel('shop');
     else if (id === 'bug') setPanel('dealer');
-    else if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); if (it?.kind === 'shell') setPanel('shell:' + it.uid); else pickUp(+id.slice(5)); }
+    else if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); if (it?.kind === 'shell') setPanel('shell:' + it.uid); }   // loose items are picked up with a left click now (see `click`), never E
     else if (id.startsWith('box:')) { searchBox(id.slice(4)); setPanel(id); }
     else if (id === 'car:fit') doFit(game.carPlan?.uid);
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
@@ -205,6 +206,7 @@ function App() {
         if ((e.code === 'KeyB' || e.code === 'Escape') && !e.repeat) { e.preventDefault(); resume(); }
         return;
       }
+      if (p === null && game.onFoot && !bm && placementKey(e)) return;   // ?placement=1: Q / E / R / T turn a held item while it's aimed at a vehicle surface
       if (bm && p === null && !e.repeat) {   // build mode keys (you keep walking around while building)
         const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), cyc = d => { game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
         if ((e.code === 'KeyB' || e.code === 'Escape') && bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); return; }
@@ -235,7 +237,9 @@ function App() {
     };
     const wheel = e => { const bm = game.buildMode; if (!bm || bm.moving || panelRef.current !== null) return; game.buildMode = { ...bm, item: nextInCat(bm.item, e.deltaY > 0 ? 1 : -1) }; };
     const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
-      if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } };
+      if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); }
+      // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
+      if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') pickUp(it.uid); } };
     document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
     return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);

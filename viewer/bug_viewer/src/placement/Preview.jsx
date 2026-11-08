@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { HOLO, holoMaterials, ghostify, footprint } from '../hologram.js';
-import { snapPoint, rotatedFootprint, restY, why, clipTo } from './rules.js';
+import { snapPoint, rotatedFootprint, restY, why, clipTo, posed } from './rules.js';
 import { placement } from './types.js';
 import { surfaceById, itemById, toWorld, toLocal, worldRot } from './labData.js';
 
@@ -28,6 +28,7 @@ export function probe(raycaster, group) {
 /** an item drawn with primitives, base at y = 0, centred, footprint w along x at rot 0 */
 export function ItemModel({ item, surf, plId, cast = true }) {
   const [w, d] = item.footprint, h = item.height, { shape, color, handle } = item.look;
+  if (shape === 'tire' && item.pose === 'upright') return <TireModel dia={d} width={w} color={color} ud={{ surf, plId }} cast={cast} upright />;
   const ud = { surf, plId };   // what probe() reads back off a hit
   // a plain function, not a component: a component defined in here would remount (and lose its ghost materials) on every render
   const m = (key, geo, pos, col = color, rough = 0.7, metal = 0) => <mesh key={key} position={pos} castShadow={cast} receiveShadow userData={ud}>{geo}<meshStandardMaterial color={col} roughness={rough} metalness={metal} /></mesh>;
@@ -50,8 +51,17 @@ export function ItemModel({ item, surf, plId, cast = true }) {
   </group>;
 }
 
+/** a tire with its hub, base at y = 0: lying flat (axle up) or standing upright (axle along x). Also drawn by the in-game cargo. */
+export function TireModel({ dia, width, color = '#1c1c1c', ud = {}, cast = true, upright = false }) {
+  const r = dia / 2, body = <>
+    <mesh castShadow={cast} receiveShadow userData={ud}><cylinderGeometry args={[r, r, width, 28]} /><meshStandardMaterial color={color} roughness={0.95} /></mesh>
+    <mesh userData={ud}><cylinderGeometry args={[r * 0.55, r * 0.55, width * 1.02, 20]} /><meshStandardMaterial color="#8d9296" roughness={0.4} metalness={0.6} /></mesh>
+  </>;
+  return upright ? <group position={[0, r, 0]} rotation={[0, 0, Math.PI / 2]}>{body}</group> : <group position={[0, width / 2, 0]}>{body}</group>;
+}
+
 /** grid lines at `step` across a w x d surface (local coords, corner origin) + a brighter border */
-function useGridGeometry(s, step) {
+export function useGridGeometry(s, step) {
   const g = useMemo(() => {
     if (!s) return null;
     const [w, d] = s.size, pts = [], n = (span) => Math.floor(span / step + 1e-6);
@@ -65,7 +75,7 @@ function useGridGeometry(s, step) {
   return g;
 }
 
-const UNIT_SQUARE = new THREE.BufferGeometry().setFromPoints([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [-0.5, -0.5]].map(([x, z]) => new THREE.Vector3(x, 0, z)));
+export const UNIT_SQUARE = new THREE.BufferGeometry().setFromPoints([[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [-0.5, -0.5]].map(([x, z]) => new THREE.Vector3(x, 0, z)));
 
 /**
  * holding: { itemId, moveId, rot } | null. placed: placements already down (a moved item's original stays in the list; the shared id makes the rules skip it).
@@ -76,7 +86,7 @@ export default function Preview({ holding, placed, stepIdx, snapRef, groupRef, o
   const ghost = useRef(), inner = useRef(), land = useRef(), patch = useMemo(() => { const m = footprint(1, 1, mats); m.position.y = 0; return m; }, [mats]);
   const [gridOn, setGridOn] = useState(null);   // { sid, step } of the surface currently showing its grid (local view state only)
   const hudKey = useRef('');
-  const item = holding ? itemById[holding.itemId] : null;
+  const item = holding ? posed(itemById[holding.itemId], holding.pose) : null;
   useEffect(() => () => { mats.dispose(); patch.geometry.dispose(); }, [mats, patch]);
   const gs = gridOn ? surfaceById[gridOn.sid] : null, grid = useGridGeometry(gs, gridOn?.step || 1);
   const gridAt = gs ? toWorld(gs, 0, 0, 0.004) : null;
@@ -96,7 +106,7 @@ export default function Preview({ holding, placed, stepIdx, snapRef, groupRef, o
     const g = holding.grab;
     if (g && g.sid === s.id && raycaster.ray.intersectPlane(PLANE.set(UP, -(s.at.y + g.y)), TMP)) { const l = toLocal(s, TMP.x, TMP.z); at = { x: l.x + g.x, z: l.z + g.z }; }
     const p = snapPoint(s, at.x, at.z, free ? 'free' : si, item.footprint, rot);
-    let cand = placement({ id: holding.moveId || GHOST_ID, item: item.id, surface: s.id, x: p.x, z: p.z, rot, free });
+    let cand = placement({ id: holding.moveId || GHOST_ID, item: item.id, surface: s.id, x: p.x, z: p.z, rot, free, pose: item.pose || null });
     cand.y = restY(cand, item, placed, itemById);
     // free placement: near one of its own kind it clips flush beside it (if there's room). With Shift held the grid wins, so no clip.
     const clipped = free ? clipTo(s, item, cand, placed, itemById) : cand;
@@ -115,7 +125,7 @@ export default function Preview({ holding, placed, stepIdx, snapRef, groupRef, o
 
   if (!item) return null;
   return <>
-    <group ref={ghost} visible={false}><group ref={inner} key={item.id}><ItemModel item={item} cast={false} /></group></group>
+    <group ref={ghost} visible={false}><group ref={inner} key={item.id + (item.pose || '')}><ItemModel item={item} cast={false} /></group></group>
     <group ref={land} visible={false}><primitive object={patch} /><lineLoop geometry={UNIT_SQUARE} material={mats.edge} renderOrder={12} /></group>
     {grid && gridAt && <group position={[gridAt.x, gridAt.y, gridAt.z]} rotation={[0, gs.at.rotY, 0]}>
       <lineSegments geometry={grid.lines} renderOrder={8}><lineBasicMaterial color="#dff6ff" transparent opacity={0.28} depthWrite={false} /></lineSegments>

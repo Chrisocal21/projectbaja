@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { snapRot, bounds, overlaps, stackHeight, EPS } from './rules.js';
+import { snapRot, bounds, overlaps, stackHeight, posed, EPS } from './rules.js';
 import { placement } from './types.js';
 import { SURFACES, ITEMS, itemById, surfaceById, START, toWorld, toLocal, worldRot } from './labData.js';
 import Preview, { ItemModel, probe } from './Preview.jsx';
@@ -21,8 +21,8 @@ const deg = r => Math.round(r / DEG) % 360;
 
 /** something sitting right on top of pl? (then it can't be picked up out from under it) */
 const loadOn = (pl, placed) => {
-  const it = itemById[pl.item], top = stackHeight(pl, it), b = bounds(pl, it);
-  return placed.some(e => e.id !== pl.id && e.surface === pl.surface && Math.abs((e.y || 0) - top) < EPS && overlaps(b, bounds(e, itemById[e.item])));
+  const it = posed(itemById[pl.item], pl.pose), top = stackHeight(pl, it), b = bounds(pl, it);
+  return placed.some(e => e.id !== pl.id && e.surface === pl.surface && Math.abs((e.y || 0) - top) < EPS && overlaps(b, bounds(e, posed(itemById[e.item], e.pose))));
 };
 
 /** the surfaces as solid things + an invisible hit plane on each top (what the pointer ray lands on) */
@@ -35,17 +35,18 @@ function SurfaceView({ s }) {
   else if (s.id === 'shelf') body = <>{solid('b', [w, 0.03, d], [0, -0.015, 0], '#8a6a45')}{solid('l', [0.04, s.at.y, 0.04], [-w / 2 + 0.05, -s.at.y / 2, d / 2 - 0.05], '#3b4246')}{solid('r', [0.04, s.at.y, 0.04], [w / 2 - 0.05, -s.at.y / 2, d / 2 - 0.05], '#3b4246')}
     {solid('k', [w, 1.6, 0.03], [0, -0.2, -d / 2 - 0.015], '#2b3336')}</>;
   else {   // trunk/bed: a box whose inside floor is the surface; the walls stand OUTSIDE the w x d bed so the rules' rect is the usable space
-    const t = 0.05, wh = 0.32;
+    const t = 0.05, wh = s.id === 'bed' ? 0.5 : 0.32, cab = s.id === 'bed' ? 1.3 : wh;   // the bed's z0 wall is the cab: taller
     body = <>{solid('b', [w + 2 * t, s.at.y, d + 2 * t], [0, -s.at.y / 2, 0], '#4a3d33')}
-      {solid('n', [w + 2 * t, wh, t], [0, wh / 2, -d / 2 - t / 2], '#6d5a4a')}{solid('s', [w + 2 * t, wh, t], [0, wh / 2, d / 2 + t / 2], '#6d5a4a')}
-      {solid('e', [t, wh, d], [w / 2 + t / 2, wh / 2, 0], '#6d5a4a')}{solid('w', [t, wh, d], [-w / 2 - t / 2, wh / 2, 0], '#6d5a4a')}</>;
+      {solid('n', [w + 2 * t, cab, t], [0, cab / 2, -d / 2 - t / 2], s.id === 'bed' ? '#3d4a55' : '#6d5a4a')}{solid('s', [w + 2 * t, wh, t], [0, wh / 2, d / 2 + t / 2], '#6d5a4a')}
+      {solid('e', [t, wh, d], [w / 2 + t / 2, wh / 2, 0], '#6d5a4a')}{solid('w', [t, wh, d], [-w / 2 - t / 2, wh / 2, 0], '#6d5a4a')}
+      {(s.blocks || []).map((k, i) => solid('k' + i, [k.x1 - k.x0, k.top, k.z1 - k.z0], [(k.x0 + k.x1) / 2 - w / 2, k.top / 2, (k.z0 + k.z1) / 2 - d / 2], '#5a4a3e'))}</>;
   }
   return <group position={[c.x, c.y, c.z]} rotation={[0, s.at.rotY, 0]}>{body}{hit}</group>;
 }
 
 function PlacedView({ pl }) {
   const s = surfaceById[pl.surface], it = itemById[pl.item], w = toWorld(s, pl.x, pl.z, pl.y || 0);
-  return <group position={[w.x, w.y, w.z]} rotation={[0, worldRot(s, pl.rot), 0]}><ItemModel item={it} surf={s.id} plId={pl.id} /></group>;
+  return <group position={[w.x, w.y, w.z]} rotation={[0, worldRot(s, pl.rot), 0]}><ItemModel item={posed(it, pl.pose)} surf={s.id} plId={pl.id} /></group>;
 }
 
 /** lab-only scripting hook: window.__lab.screen(surfaceId, lx, lz, ly) -> client pixel coords of a surface-local point, so a test can drive the real mouse */
@@ -87,7 +88,7 @@ const css = {
 };
 const COLORS = { ok: '#55ff77', bad: '#ff5544', none: '#9aa8ab' };
 const LEGEND = [['1-5', 'pick an item'], ['L-click item', 'pick it up (move it)'], ['L-click', 'put down (Ctrl: keep placing)'], ['', 'placement is free by default'], ['', 'like items clip together when close (Shift: grid instead)'], ['hold Shift', 'snap to the grid'],
-  ['wheel', 'rotate 5° (Shift: 90°)'], ['Q / E', 'rotate 15° each way (Shift: 90°)'], ['R', 'next 90°'], ['[  ]', 'grid step coarser / finer'],
+  ['wheel', 'rotate 5° (Shift: 90°)'], ['Q / E', 'rotate 15° each way (Shift: 90°)'], ['R', 'next 90°'], ['T', 'stand a tire up / lay it flat'], ['[  ]', 'grid step coarser / finer'],
   ['Esc / R-click', 'cancel'], ['Del / X', 'discard held item'], ['R-drag', 'orbit · M-drag pan · wheel zoom (empty-handed)']];
 
 export default function Lab() {
@@ -98,7 +99,11 @@ export default function Lab() {
 
   const act = useMemo(() => {
     const S = () => st.current;
-    const pick = i => { const it = ITEMS[i]; if (!it) return; setHolding(h => ({ itemId: it.id, moveId: null, rot: h?.rot ?? 0 })); setMsg(`Holding: ${it.name}`); };
+    const pick = i => { const it = ITEMS[i]; if (!it) return; setHolding(h => ({ itemId: it.id, moveId: null, rot: h?.rot ?? 0, pose: h?.itemId === it.id ? h.pose : null })); setMsg(`Holding: ${it.name}`); };
+    const togglePose = () => {   // T: next pose of the held item (a tire: flat <-> upright); things with one pose say so
+      const h = S().holding; if (!h) return; const names = [null, ...Object.keys(itemById[h.itemId].poses || {})]; if (names.length < 2) return setMsg(`${itemById[h.itemId].name} only goes one way`);
+      const next = names[(names.indexOf(h.pose ?? null) + 1) % names.length]; setHolding({ ...h, pose: next }); setMsg(`${itemById[h.itemId].name}: ${next || 'flat'}`);
+    };
     const rotate = f => setHolding(h => h && { ...h, rot: f(h.rot) });
     const cancel = () => { if (S().holding) { setHolding(null); setMsg(S().holding.moveId ? 'Move cancelled: it stays where it was' : 'Put away'); } };
     const discard = () => { const h = S().holding; if (!h) return; if (h.moveId) setPlaced(p => p.filter(e => e.id !== h.moveId)); setHolding(null); setMsg(`Discarded: ${itemById[h.itemId].name}`); };
@@ -106,7 +111,7 @@ export default function Lab() {
       const h = S().holding, out = outRef.current; if (!h) return false;
       if (!out?.cand) { setMsg('Point at a surface first'); return false; }
       if (out.reason) { setMsg(`Can't put it there: ${out.reason}`); return false; }
-      const { item, surface, x, z, rot, y, free } = out.cand, pl = placement({ id: h.moveId || undefined, item, surface, x, z, rot, y, free });
+      const { item, surface, x, z, rot, y, free, pose } = out.cand, pl = placement({ id: h.moveId || undefined, item, surface, x, z, rot, y, free, pose });
       setPlaced(p => h.moveId ? p.map(e => (e.id === h.moveId ? pl : e)) : [...p, pl]);
       setHolding(keep && !h.moveId ? { ...h } : null);
       setMsg(`Placed: ${itemById[item].name} on the ${surfaceById[surface].name.toLowerCase()}${y > EPS ? ` (stacked, y ${y.toFixed(2)} m)` : ''}`);
@@ -117,14 +122,14 @@ export default function Lab() {
       const pl = S().placed.find(e => e.id === hit.plId); if (!pl) return false;
       if (loadOn(pl, S().placed)) { setMsg("Something's sitting on it: take that off first"); return false; }
       const grab = hit.base ? { sid: pl.surface, y: pl.y || 0, x: pl.x - hit.base.x, z: pl.z - hit.base.z } : null;   // keep the item where it is under the cursor
-      setHolding({ itemId: pl.item, moveId: pl.id, rot: pl.rot, grab }); setMsg(`Moving: ${itemById[pl.item].name}`); return true;
+      setHolding({ itemId: pl.item, moveId: pl.id, rot: pl.rot, pose: pl.pose, grab }); setMsg(`Moving: ${itemById[pl.item].name}`); return true;
     };
     const cycleStep = d => {
       const s = outRef.current?.surface; if (!s) return setMsg('Point at a surface to change its grid');
       const n = s.gridSteps.length, i = (((S().stepIdx[s.id] ?? 0) + d) % n + n) % n;
       setStepIdx(m => ({ ...m, [s.id]: i })); setMsg(`${s.name} grid: ${s.gridSteps[i]} m`);
     };
-    return { pick, rotate, cancel, discard, confirm, pickUp, cycleStep };
+    return { pick, rotate, cancel, discard, confirm, pickUp, cycleStep, togglePose };
   }, []);
 
   useEffect(() => {
@@ -140,6 +145,7 @@ export default function Lab() {
       if (e.code === 'KeyR') act.rotate(r => snapRot(r + QUARTER, '90'));
       else if (e.code === 'KeyQ') turn(-1, KEY_STEP, e.shiftKey);
       else if (e.code === 'KeyE') turn(1, KEY_STEP, e.shiftKey);
+      else if (e.code === 'KeyT') act.togglePose();
       else if (e.code === 'BracketRight') act.cycleStep(1);
       else if (e.code === 'BracketLeft') act.cycleStep(-1);
       else if (e.code === 'Delete' || e.code === 'KeyX') act.discard();
@@ -175,7 +181,7 @@ export default function Lab() {
   const api = useRef(); api.current = { ...act, get: () => ({ placed: st.current.placed, holding: st.current.holding, hud: st.current.hud, msg, ghost: outRef.current?.cand || null }) };
   const shown = holding?.moveId ? placed.filter(p => p.id !== holding.moveId) : placed;   // a moved item's original is hidden (the rules still know it by id)
   const held = holding && itemById[holding.itemId];
-  const rotTxt = holding ? (quarter(holding.rot) ? `90° snap · ${deg(holding.rot)}°` : `free · ${deg(holding.rot)}°`) : '-';
+  const rotTxt = holding ? (quarter(holding.rot) ? `90° snap · ${deg(holding.rot)}°` : `free · ${deg(holding.rot)}°`) + (holding.pose ? ` · ${holding.pose}` : '') : '-';
   const stepTxt = !hud?.surface ? '-' : hud.step === 'free' ? `free (Shift snaps to ${hud.gridStep} m)` : `snapped ${hud.step} m  [${hud.steps.join(' / ')}]`;
   const reasonTxt = !hud ? '' : hud.reason ? hud.reason : hud.stacked ? 'fits (stacked)' : hud.clipped ? 'fits (clipped beside its own kind)' : 'fits';
 
@@ -198,7 +204,7 @@ export default function Lab() {
     <div style={{ ...css.panel, left: 14, top: 14, width: 210 }}>
       <div style={{ fontWeight: 700, letterSpacing: 1, fontSize: 12, color: '#9fb3b6' }}>PLACEMENT LAB</div>
       {ITEMS.map((it, i) => <button key={it.id} style={css.btn(held?.id === it.id)} onClick={() => act.pick(i)}><span style={css.key}>{i + 1}</span>{it.name} <span style={{ color: '#7f9093', fontSize: 11 }}>{it.tags.join(', ')}{it.stackable ? ', stacks' : ''}{it.clip ? ', clips' : ''}</span></button>)}
-      <div style={{ color: '#7f9093', fontSize: 11, marginTop: 6 }}>Floor takes anything · Shelf: small · Trunk: small, medium</div>
+      <div style={{ color: '#7f9093', fontSize: 11, marginTop: 6 }}>Floor takes anything · Shelf: small · Trunk: small, medium · '84 bed: anything (wheel wells block)</div>
     </div>
 
     <div style={{ ...css.panel, right: 14, top: 14, width: 270 }}>

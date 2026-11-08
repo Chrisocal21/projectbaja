@@ -68,6 +68,14 @@ export const canStackOn = (top, bottom) => (top.stackable && bottom.stackable) |
 /** the y an item sits at when put on top of a placed one */
 export const stackHeight = (bottomPl, bottomItem) => (bottomPl.y || 0) + bottomItem.height;
 
+/** the placeable as it is in a pose: the pose's fields over the default ones. No pose / an unknown pose = the default. */
+export function posed(item, pose) {
+  const p = pose && item?.poses?.[pose];
+  return p ? { ...item, ...p, pose } : item;
+}
+/** the placeable a placement is (its pose applied); undefined for an unknown item id */
+const itemOf = (e, items) => { const it = items[e.item]; return it && posed(it, e.pose); };
+
 /** is e the placement being checked? Same id (a moved item's preview vs its old spot), else the very same object (placements without ids). */
 const isSelf = (e, pl) => e === pl || (pl.id != null && e.id === pl.id);
 const sameSurface = (pl, existing) => existing.filter(e => !isSelf(e, pl) && e.surface === pl.surface);
@@ -75,7 +83,7 @@ const sameSurface = (pl, existing) => existing.filter(e => !isSelf(e, pl) && e.s
 export function restY(pl, item, existing, items) {
   let y = 0;
   for (const e of sameSurface(pl, existing)) {
-    const it = items[e.item];
+    const it = itemOf(e, items);
     if (it && overlaps(bounds(pl, item), bounds(e, it)) && canStackOn(item, it)) y = Math.max(y, stackHeight(e, it));
   }
   return y;
@@ -86,9 +94,11 @@ export function why(surface, item, pl, existing = [], items = {}) {
   if (!accepts(surface, item)) return "this surface doesn't take that";
   if (!insideSurface(surface, pl, item)) return 'off the surface';
   const y = pl.y || 0, top = y + item.height, b = bounds(pl, item);
+  if (top > (surface.clearance ?? Infinity) + EPS) return 'too tall for here';
+  for (const k of surface.blocks || []) if (overlaps(b, k) && y < k.top - EPS) return "something's in the way";   // a wheel well, a seat back...
   let support = null;
   for (const e of sameSurface(pl, existing)) {
-    const it = items[e.item];
+    const it = itemOf(e, items);
     if (!it) return 'unknown item in the way';            // bad save data: refuse rather than guess its size
     const eb = bounds(e, it);
     if (!overlaps(b, eb)) continue;
@@ -122,17 +132,18 @@ export const clipsWith = (a, b) => !!a.clip && !!b.clip && (a.id === b.id || (ty
  * small overlap counts too). The clipped spot copies that neighbour's rotation, sits flush against that side and lines up along it (centres,
  * or either end edge, whichever is nearest), and is only taken if why() passes there (there's room). Closest neighbour first; the first that
  * fits wins. Free placement only: with Shift held the grid wins, so callers don't call this then. Stacked tires etc. are untouched (they
- * don't opt in, and a different height never clips).
+ * don't opt in, and a different height never clips). With no neighbour to clip to, it pulls flush against a wall of the surface (toWall).
+ * `item` is the placeable in its pose (posed()); neighbours are read in theirs (placement.pose).
  * Works in the neighbour's own frame, so a neighbour turned by any angle gives a flush spot along ITS sides. (why() still checks AABBs, see the
  * note at the top: beside a neighbour at a non-quarter turn the AABBs overlap and the clip is refused. PROPOSAL: exact rect overlap later.)
  */
 export function clipTo(surface, item, pl, existing = [], items = {}, opts = {}) {
   const magnet = opts.magnet ?? CLIP_MAGNET, y = pl.y || 0;
-  if (!item.clip || !(magnet > 0)) return pl;
+  if (!item.clip || !(magnet > 0)) return pl;   // (items that don't clip don't pull to walls either: a flat tire stays where you hold it)
   const [hw2, hd2] = [item.footprint[0] / 2, item.footprint[1] / 2];
   const tries = [];
   for (const e of sameSurface(pl, existing)) {
-    const it = items[e.item];
+    const it = itemOf(e, items);
     if (!it || !clipsWith(item, it) || Math.abs((e.y || 0) - y) > EPS) continue;
     const r = e.rot || 0, c = Math.cos(r), s = Math.sin(r), dx = pl.x - e.x, dz = pl.z - e.z;
     // pl's centre in e's frame (three.js rotation.y: local (u, v) -> (u c + v s, -u s + v c), so the inverse is below)
@@ -153,5 +164,18 @@ export function clipTo(surface, item, pl, existing = [], items = {}, opts = {}) 
     const cand = { ...pl, x: t.x, z: t.z, rot: t.rot, y: t.y };
     if (why(surface, item, cand, existing, items) === null) return cand;
   }
-  return pl;
+  return toWall(surface, item, pl, existing, items, magnet);
+}
+
+/** no neighbour to clip to: pull flush against a wall of the surface (surface.walls) when within the magnet, if it fits there. PURE. */
+export function toWall(surface, item, pl, existing = [], items = {}, magnet = CLIP_MAGNET) {
+  if (!surface.walls?.length || (pl.y || 0) > EPS) return pl;
+  const b = bounds(pl, item), [w, d] = surface.size, out = { ...pl };
+  const pull = { x0: ['x', -b.x0], x1: ['x', b.x1 - w], z0: ['z', -b.z0], z1: ['z', b.z1 - d] };   // [axis, signed shift that makes it flush]
+  let moved = false;
+  for (const wall of surface.walls) {
+    const [ax, shift] = pull[wall], gap = Math.abs(shift);
+    if (gap > EPS && gap <= magnet && out[ax] === pl[ax]) { out[ax] = pl[ax] + shift; moved = true; }
+  }
+  return moved && why(surface, item, out, existing, items) === null ? out : pl;
 }
