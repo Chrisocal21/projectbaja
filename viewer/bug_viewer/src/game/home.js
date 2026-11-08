@@ -2,6 +2,7 @@
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
+import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree } from '../worlds/office.js';
 import { LANE, STALL } from '../worlds/lot.js';
@@ -63,6 +64,7 @@ export const BUILD_ITEMS = [
   { id: 'fenceChain', name: 'Chain-link fence (3 m)', price: 60, zone: 'yard', r: 0, cat: 'Fences', len: 3 },
   { id: 'gate', name: 'Ranch gate', price: 110, zone: 'yard', r: 0, cat: 'Fences', len: 4 },
   ...STRUCTURE_ITEMS,
+  { id: 'wallOpening', name: 'Doorway through an original wall (2 m)', price: OPENING_PRICE, zone: 'yard', r: 0, cat: 'Structure', cut: true, note: "Needs a foundation slab against the garage's right or back wall" },
   { id: 'floodlight', name: 'Floodlight pole', price: 120, zone: 'yard', r: 0.3, cat: 'Yard' },
   { id: 'yardRack', name: 'Steel parts rack', price: 150, zone: 'any', r: 0.6, cat: 'Storage', note: 'More shelf room for parts' },
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: move it with V" },
@@ -114,7 +116,21 @@ export function snapWorld(item, x, z) {
   const l = homeLocal(x, z), s = snapPiece(item.id, l.lx, l.lz), [wx, wz] = toWorld(G, s.x, s.z);
   return { x: wx, z: wz, ry: G.rot + s.ry };
 }
+/** garage-local points of the placed foundation slabs */
+const foundationsLocal = () => game.props.filter(q => q.id === 'foundation').map(q => { const m = homeLocal(q.x, q.z); return { x: m.lx, z: m.lz }; });
+export const openingKeys = () => game.home?.openings || [];
+/** the original-wall opening nearest a world point → { key, x, z, ry } in world terms, or null */
+export function snapCutWorld(x, z) {
+  const l = homeLocal(x, z), s = snapCut(l.lx, l.lz); if (!s) return null;
+  const [wx, wz] = toWorld(G, s.x, s.z); return { key: s.key, x: wx, z: wz, ry: G.rot + s.ry };
+}
+function cutWhy(item, x, z) {
+  const l = homeLocal(x, z), s = snapCut(l.lx, l.lz);
+  if (!s) return "Aim at the garage's right wall or its back wall.";
+  return openWhy(s, foundationsLocal(), openingKeys()) || (game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
+}
 export function placeWhy(item, x, z, moving = false, ry = 0) {
+  if (item.cut) return cutWhy(item, x, z);
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
   if (item.struct) return structWhy(item, x, z, ry) || (!moving && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
@@ -133,9 +149,25 @@ export function placeWhy(item, x, z, moving = false, ry = 0) {
 }
 export function placeProp(id, x, z, ry) {
   const item = buildById[id], why = placeWhy(item, x, z, false, ry); if (why) { say(why); return false; }
+  if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
+    const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
+    addCash(-item.price); game.home = { ...game.home, openings: [...openingKeys(), seg.key] }; game.propsV = (game.propsV || 0) + 1; save();
+    say(`Cut a doorway through the garage's ${seg.wall === 'R' ? 'right' : 'back'} wall (−$${item.price})`); return true;
+  }
   addCash(-item.price);
   game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name} (−$${item.price})`); return true;
+}
+/** nearest cut doorway to a world point: { key, d } or null */
+export function nearestOpening(x, z) {
+  const l = homeLocal(x, z); let best = null;
+  for (const k of openingKeys()) { const s = segByKey(k), d = Math.hypot(s.x - l.lx, s.z - l.lz); if (!best || d < best.d) best = { key: k, d }; }
+  return best;
+}
+/** wall a cut doorway back up (50% back) */
+export function closeOpening(key) {
+  game.home = { ...game.home, openings: openingKeys().filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
+  const back = Math.round(OPENING_PRICE * 0.5); addCash(back); save(); say(`Closed the doorway (+$${back})`);
 }
 /** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased) */
 export const STARTER_FIXTURES = [
@@ -183,14 +215,14 @@ export function removeProp(uidN) {
 let cache = { v: -1, list: [] };
 /** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
 export function propObstacles() {
-  const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0;
-  if (cache.v !== v || cache.n !== game.props.length || cache.mv !== mv) cache = { v, mv, n: game.props.length, list: game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+  const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0, wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
+  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.n !== game.props.length || cache.mv !== mv) cache = { v, mv, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (!it.len) return [[p.x, p.z, it.r, 99]];
     const n = Math.ceil(it.len / 0.8), c = Math.cos(ry), s = Math.sin(ry);
     return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });
-  }) };
+  })] };
   if (cache.floorsV !== `${v}|${game.props.length}`) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
     dynFloors.length = 0;
     for (const p of game.props) { if (!isPiece(p.id)) continue; const m = homeLocal(p.x, p.z), f = floorRect(p.id, m.lx, m.lz); if (!f) continue; const [x0, z0] = toWorld(G, f.x0, f.z0), [x1, z1] = toWorld(G, f.x1, f.z1); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: height(p.x, p.z) + f.top }); }
