@@ -31,6 +31,7 @@ import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
 import SettingsPanel from './game/SettingsPanel.jsx';
+import WikiPanel from './game/WikiPanel.jsx';
 import { canvasDpr } from './game/settings.js';
 import './style.css';
 import './hud.css';
@@ -190,6 +191,12 @@ function App() {
     const key = e => {
       const p = panelRef.current;
       const bm = game.buildMode;
+      if (p === 'wiki') {   // the game index: typing goes to its search box; I / Esc close it
+        if (e.target?.tagName === 'INPUT' && e.code !== 'Escape') return;
+        if ((e.code === 'KeyI' || e.code === 'Escape') && !e.repeat) { e.preventDefault(); resume(); }
+        return;
+      }
+      if (e.code === 'KeyI' && !e.repeat && p === null) { setPanel('wiki'); return; }
       if (p === 'build') {   // the build menu: it handles its own keys (search, 1-8, N, Enter); B / Esc close it
         if (e.target?.tagName === 'INPUT' && e.code !== 'Escape') return;
         if ((e.code === 'KeyB' || e.code === 'Escape') && !e.repeat) { e.preventDefault(); resume(); }
@@ -322,7 +329,7 @@ function App() {
     </aside>;
 
   const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
-  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
+  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'wiki' && <WikiPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onWiki={() => setPanel('wiki')} onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
   if (mode === 'play') return <div className="full">
     {stageEl}
     <LoadingScreen />
@@ -334,6 +341,7 @@ function App() {
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
     {pro && <ProDebug />}
     {panel === 'settings' && <SettingsPanel onClose={() => setPanel('pause')} />}
+    {panel === 'wiki' && <WikiPanel onClose={resume} />}
     {panel === 'pause' && <PauseMenu onResume={resume} onSettings={() => setPanel('settings')} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={!game.dev ? [] : play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : play.world === 'county' ? COUNTY_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}

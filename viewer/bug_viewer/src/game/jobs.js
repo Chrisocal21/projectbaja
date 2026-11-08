@@ -12,6 +12,14 @@ export const SUPPLIES = {
   plug: { name: 'Tire plug kit', price: 10 }, wipers: { name: 'Wiper blades', price: 14 },
   belt: { name: 'Fan belt', price: 18 },
 };
+/** Dusty's corner store, in shelf order: [what, name, price, note]. 'supply:*' rows come from SUPPLIES. */
+export const STORE_ITEMS = [
+  ['stock:battery', '12V car battery', 60, 'small · fits in your pack'],
+  ['tool:wrench', 'Wrench', 15, 'small · bolts most things on and off'],
+  ['tool:jack', 'Floor jack', 90, 'large · change tires anywhere'],
+  ...Object.entries(SUPPLIES).map(([id, s]) => ['supply:' + id, s.name, s.price, 'small · for customer jobs']),
+  ['wash', 'Hand wash & wax', 120, 'cleans up the paint a bit'],
+];
 /** what a job needs: an item you carry (used up) or just a tool */
 export const JOBS = [
   { id: 'battery', who: 'Rosa from the diner', car: ['#c9b48a', '#f0e8d4'], title: 'Won\'t start', ask: "Clicks and nothing. I think it's the battery, hon.", need: { kind: 'stock', id: 'battery' }, pay: 110 },

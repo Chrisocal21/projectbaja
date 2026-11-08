@@ -329,3 +329,12 @@ Chris: "add settings along with creative mode toggle where building doesn't cost
 - **Creative mode:** placing pieces and cutting doorways costs nothing, and the cash check is skipped. Anything built while it's on is tagged (`free` on the prop, `home.freeOpenings` for doorways) and gives **$0 back** when taken down, so creative can't be used to make money. The build menu and placement card show FREE, and the HUD shows a purple "Creative" chip. PROPOSAL: it applies to whatever save you're playing; a separate creative-only save is possible later.
 - `game/settings.js` (store + the row list), `game/SettingsPanel.jsx`.
 - Checked in Chromium: toggled from the title screen; a $260 tool chest placed with $100 cash in creative ($0 spent, $0 back); after turning it off a block floor cost $35 and gave $18 back; FOV 90 applied; the panel opens from pause. 60/60 tests, build passes.
+
+## November 8, 2026: game index (wiki)
+
+Chris: "add an index of all game pieces / wiki of the game".
+
+- **Index panel** (key **I**, "Game index" in the pause menu and on the title screen): 163 entries in 13 sections: Building (with the rendered icons and every material's price), Materials, the '71 Bug's restoration parts (what's needed to start or drive, the tool, what it sits behind), Car parts (price, fits, top-speed and power gains), Tires & rims (grip per surface), Vehicles (price, condition, storage), Store & supplies, Fabrication, Trailer upgrades, Customer jobs (who, what they need, pay), Places, Containers, Controls. One search box covers every name, note and stat.
+- **Built from the data, not written by hand:** `game/WikiPanel.jsx` reads the same tables the game uses (`BUILD_ITEMS`, `MATERIALS`, the part catalog, `VEHICLE_TYPES`, `JOBS`, `BIOMES`, and so on), so it can't drift and adds no new lore. Dusty's store list moved into `STORE_ITEMS` in `game/jobs.js` so the store and the index share it.
+- Checked in Chromium: opens from the title screen and with I; all 13 sections; search "battery" finds the Bug's battery slot, the store battery and Rosa's job; typing in the search box doesn't close it; Esc closes. 60/60 tests, build passes.
+- Not done: pictures for anything other than build items (car parts, vehicles), "discovered" entries that unlock as you find things, and descriptions for places (none exist in the game data yet).

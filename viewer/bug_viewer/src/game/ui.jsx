@@ -1,7 +1,7 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
-import { SUPPLIES, jobById, jobCheck } from './jobs.js';
+import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
@@ -9,7 +9,7 @@ import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
-export function TitleScreen({ onNew, onContinue, onDev, onSettings }) {
+export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
   useGame();
   const [dev, setDev] = React.useState(false), [secret, setSecret] = React.useState(() => /[?&]dev/.test(location.search)), has = game.owned.has('car:bug');
   React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
@@ -22,6 +22,7 @@ export function TitleScreen({ onNew, onContinue, onDev, onSettings }) {
         <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
         {has && game.build && <button className="big" onClick={onContinue}>Continue</button>}
         <button onClick={onSettings}>Settings</button>
+        <button onClick={onWiki}>Game index</button>
         {secret && <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>}
         {secret && dev && <><button onClick={() => onDev('drive', 'county')}>Baja County (free drive)</button><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
           <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
@@ -59,12 +60,13 @@ export function LotMenu({ onResume, onExit }) {
   return <div className="overlay"><div className="card"><h2>PAUSED</h2><div className="menu"><button className="big" onClick={onResume}>Resume</button><button onClick={onExit}>Exit to title</button></div></div></div>;
 }
 
-export function PauseMenu({ onResume, onSettings, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
+export function PauseMenu({ onResume, onSettings, onWiki, onCustomize, onExit, onTeleport, teleports, fullscreen, onFullscreen }) {
   useGame();
   return <div className="overlay"><div className="card">
     <h2>PAUSED</h2>
     <div className="menu">
       <button className="big" onClick={onResume}>Resume</button>
+      <button onClick={onWiki}>Game index (I)</button>
       <button onClick={onSettings}>Settings{game.settings?.creative ? ' · creative mode on' : ''}</button>
       {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}
       {teleports?.length > 0 && <div className="tp"><small>TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
@@ -190,11 +192,7 @@ export function StorePanel({ onBuy, onClose }) {
   useGame();
   const row = (what, label, price, note) => <div key={what} className="inv-row"><span>{label}<small>{note}</small></span><span className="inv-btns"><button disabled={game.cash < price} onClick={() => onBuy(what, price)}>${price}</button></span></div>;
   return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>DUSTY'S CORNER STORE</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
-    {row('stock:battery', '12V car battery', 60, 'small · fits in your pack')}
-    {row('tool:wrench', 'Wrench', 15, 'small · bolts most things on and off')}
-    {row('tool:jack', 'Floor jack', 90, 'large · change tires anywhere')}
-    {Object.entries(SUPPLIES).map(([id, s]) => row('supply:' + id, s.name, s.price, 'small · for customer jobs'))}
-    {row('wash', 'Hand wash & wax', 120, 'cleans up the paint a bit')}
+    {STORE_ITEMS.map(r => row(...r))}
     <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;
 }
 

@@ -198,3 +198,20 @@
 .set-range { display: flex; align-items: center; gap: 10px; } .set-range input { width: 190px; accent-color: var(--hud-acc); } .set-range em { min-width: 50px; text-align: right; font: 700 14px var(--hud-cond); font-style: normal; color: var(--hud-acc); }
 .set-choice { display: flex; } .card .set-choice button { padding: 6px 10px; font-size: 12px; margin-left: -1px; } .card .set-choice button.on { border-color: var(--hud-acc); color: #1a1206; background: var(--hud-acc); }
 .set-foot { margin-top: 16px; }
+
+/* game index (reuses the build menu frame) */
+.wk-cats button { grid-template-columns: 1fr auto; padding: 9px 12px; }
+.wk-rows { display: flex; flex-direction: column; }
+.wk-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 12px; background: none; border: 0; border-bottom: 1px solid var(--hud-line); text-align: left; }
+.wk-row b { display: block; font: 600 14px var(--hud-font); } .wk-row small { display: block; margin-top: 2px; font: 400 12px var(--hud-font); color: var(--hud-dim); }
+.wk-row em { font: 700 15px var(--hud-cond); font-style: normal; color: var(--hud-acc); white-space: nowrap; }
+.wk-row:hover { background: rgba(255, 255, 255, 0.035); } .wk-row.on { background: var(--hud-acc-soft); box-shadow: inset 3px 0 0 var(--hud-acc); }
+.wk-stats { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 14px 0 0; font: 500 13px var(--hud-font); }
+.wk-stats dt { color: var(--hud-dim); } .wk-stats dd { margin: 0; text-align: right; color: var(--hud-text); }
+.wk-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+.wk-controls h5 { margin: 0 0 8px; font: 700 13px var(--hud-cond); letter-spacing: 0.18em; text-transform: uppercase; color: var(--hud-acc); }
+.wk-key { display: flex; align-items: center; gap: 10px; padding: 4px 0; font: 500 13px var(--hud-font); color: #cfd6d4; }
+.wk-key .kc { min-width: 54px; }
+.wk-foot { font: 500 12px var(--hud-font); color: var(--hud-dim); }
+.wk-empty { color: var(--hud-dim); margin-top: 40px; text-align: center; }
+.wk .bm-x { margin-left: auto; }
