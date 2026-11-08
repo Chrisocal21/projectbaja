@@ -88,8 +88,19 @@ export const BUILD_ITEMS = [
 ];
 export const buildById = Object.fromEntries(BUILD_ITEMS.map(b => [b.id, b]));
 /** build categories in menu order, and the item to land on when you jump to one */
-export const BUILD_CATS = [...new Set(BUILD_ITEMS.map(b => b.cat))];
+export const BUILD_CATS = ['Structure', ...new Set(BUILD_ITEMS.map(b => b.cat).filter(c => c !== 'Structure'))];
 export const nextCatItem = (itemId, d) => { const c = BUILD_CATS.indexOf(buildById[itemId].cat), n = BUILD_CATS[(c + d + BUILD_CATS.length) % BUILD_CATS.length]; return BUILD_ITEMS.find(b => b.cat === n).id; };
+/** the next item within the same category (mouse wheel while placing) */
+export const nextInCat = (itemId, d) => { const list = BUILD_ITEMS.filter(b => b.cat === buildById[itemId].cat), i = list.findIndex(b => b.id === itemId); return list[(i + d + list.length) % list.length].id; };
+/** build hotbar (keys 1-8): [{ id, mat? } | null] x 8, saved with the home. Building pieces fill it until you rebind slots. */
+export const HOTBAR_N = 8;
+const HOTBAR_DEFAULT = ['foundation', 'wall', 'windowWall', 'door', 'garageDoor', 'floor', 'roof', 'pillar'];
+export const hotbar = () => Array.from({ length: HOTBAR_N }, (_, i) => { const h = game.home?.hotbar; if (h && h[i] !== undefined) return h[i] && buildById[h[i].id] ? h[i] : null; return buildById[HOTBAR_DEFAULT[i]] ? { id: HOTBAR_DEFAULT[i] } : null; });
+export function bindHotbar(i, id, mat) {
+  const h = hotbar().map(e => (e && e.id === id && (e.mat || null) === (mat || null) ? null : e));   // one slot per piece+material: binding it again moves it
+  h[i] = { id, ...(mat ? { mat } : {}) };
+  game.home = { ...game.home, hotbar: h }; save(); say(`Hotbar ${i + 1}: ${buildById[id].name.replace(/ \(.*\)/, '')}${mat ? ` (${MATERIALS.find(m => m.id === mat)?.name})` : ''}`);
+}
 /** garage-local coordinates of a world point */
 export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos(G.rot), s = Math.sin(G.rot); return { lx: dx * c - dz * s, lz: dx * s + dz * c }; }
 /** inside the garage building or its attached office (m > 0 shrinks the box, m < 0 grows it) */

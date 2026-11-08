@@ -2,7 +2,6 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
 import { SUPPLIES, jobById, jobCheck } from './jobs.js';
-import { MATERIALS, DEFAULT_MAT, matName, piecePrice } from '../worlds/structures.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
@@ -53,21 +52,6 @@ export function LetterPanel({ onClose }) {
   return <div className="overlay"><div className="card letter">
     {LETTER.map((l, i) => <p key={i} className={i === 0 || i === LETTER.length - 1 ? 'sig' : ''}>{l}</p>)}
     <div className="menu"><button className="big" onClick={onClose}>Fold it up (Esc)</button></div></div></div>;
-}
-
-/** build mode: what you are placing, its price and why it can't go here */
-export function BuildBar() {
-  useGame();
-  const bm = game.buildMode; if (!bm) return null;
-  const it = buildById[bm.item], i = BUILD_ITEMS.indexOf(it), mat = bm.mat || DEFAULT_MAT, price = it.struct ? piecePrice(it.id, mat) : it.price;
-  return <div className="build-bar">
-    <div className="bb-cats">{BUILD_CATS.map(c => <span key={c} className={c === it.cat ? 'on' : ''}>{c}</span>)}</div>
-    <div className="bb-cat">{BUILD_ITEMS.filter(b => b.cat === it.cat).map(b => <span key={b.id} className={b.id === it.id ? 'on' : ''}>{b.name.replace(/ \(.*\)/, '')}</span>)}</div>
-    <div className="bb-item"><b>{it.name}</b> {bm.moving ? <span className="price">moving: free</span> : <span className="price">${price.toLocaleString()}</span>}{it.note && !bm.moving && <small>{it.note}</small>}</div>
-    {it.struct && !bm.moving && <div className="bb-mats">{MATERIALS.map(m => <span key={m.id} className={m.id === mat ? 'on' : ''}>{m.name}</span>)}<small>N — change material</small></div>}
-    <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || (bm.moving ? 'E / click — put it down here · B — cancel' : 'E / click — build here')}</div>
-    <div className="bb-keys">Wheel / [ ] — item · , . — category · R — rotate · V — pick up the nearest to move it · X — take down the nearest build (50% back) · B — done</div>
-  </div>;
 }
 
 export function LotMenu({ onResume, onExit }) {
@@ -129,16 +113,6 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUn
     </div>
     {game.unlockAll && <p className="hint">Everything is unlocked (testing). Untick "Unlock everything" in the pause menu to try real buying.</p>}
   </div></div>;
-}
-
-export function HudOverlay() {
-  useGame();
-  return <>
-    <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
-    {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
-    {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
-    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack} · Scrap {game.mats?.scrap || 0}<br />{activeType().name}: {Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · no roof rack' : ''} · Tab inventory{game.canBuild && !game.buildMode ? ' · B build' : ''}</div>}
-  </>;
 }
 
 const Row = ({ it, children }) => <div className="inv-row"><span>{nameOfItem(it)}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : it.spot === 'bed' ? ' · bed' : ''}</small></span><span className="inv-btns">{children}</span></div>;

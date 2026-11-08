@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { SITES, groundHeight, height } from './county.js';
 import { StructureModel } from './StructureModels.jsx';
+import IconBaker from './IconBaker.jsx';
 import { isPiece } from './structures.js';
 import { game, useGame, emit } from '../game/store.js';
 import { junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken } from '../game/home.js';
@@ -422,5 +423,6 @@ export default function Home() {
     {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} /></group>)}
     <Customer />
     <Ghost T={T} />
+    <IconBaker Model={PropModel} T={T} />
   </>;
 }

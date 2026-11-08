@@ -360,7 +360,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) hud.current.textContent = game.onFoot ? '' : `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 teleport' : ''}`);
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

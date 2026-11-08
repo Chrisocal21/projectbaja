@@ -8,7 +8,7 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, toggleOpen, nextCatItem, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -22,13 +22,16 @@ import LoadingScreen from './game/Loading.jsx';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, BuildBar, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
+import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
+import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
+import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
 import './style.css';
+import './hud.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
 const CAT_TITLES = { Body: 'BODY PANELS', Protection: 'BUMPERS & CAGE', Mechanical: 'ENGINE & SUSPENSION', Lighting: 'LIGHTING' };
@@ -185,10 +188,18 @@ function App() {
     const key = e => {
       const p = panelRef.current;
       const bm = game.buildMode;
+      if (p === 'build') {   // the build menu: it handles its own keys (search, 1-8, N, Enter); B / Esc close it
+        if (e.target?.tagName === 'INPUT' && e.code !== 'Escape') return;
+        if ((e.code === 'KeyB' || e.code === 'Escape') && !e.repeat) { e.preventDefault(); resume(); }
+        return;
+      }
       if (bm && p === null && !e.repeat) {   // build mode keys (you keep walking around while building)
         const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), cyc = d => { game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
         if ((e.code === 'KeyB' || e.code === 'Escape') && bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); return; }
-        if (e.code === 'KeyB' || e.code === 'Escape') { game.buildMode = null; say('Build mode off'); return; }
+        if (e.code === 'KeyB') { setPanel('build'); return; }
+        if (e.code === 'Escape' || e.code === 'KeyQ') { game.buildMode = null; say('Build tool put away'); return; }
+        const slot = /^Digit([1-8])$/.exec(e.code);
+        if (slot && !bm.moving) { const h = hotbar()[+slot[1] - 1]; if (h) { game.buildMode = { ...bm, item: h.id, ...(h.mat ? { mat: h.mat } : {}) }; say(buildById[h.id].name.replace(/ \(.*\)/, '')); } return; }
         if (e.code === 'KeyN') { if (buildById[bm.item]?.struct) { game.buildMode = { ...bm, mat: nextMat(bm.mat || DEFAULT_MAT, e.shiftKey ? -1 : 1) }; say(`Material: ${matName(game.buildMode.mat)}`); } else say('Materials are for building pieces: foundations, floors, walls, doors, roofs.'); return; }
         if (e.code === 'KeyV') { if (!bm.moving && bm.x !== undefined) startMove(bm.x, bm.z); return; }
         if (e.code === 'BracketRight') return cyc(1); if (e.code === 'BracketLeft') return cyc(-1);
@@ -197,7 +208,7 @@ function App() {
         if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } return; }
         if (e.code === 'KeyX') { const o = nearestOpening(bm.x, bm.z), n0 = game.props.map(q => Math.hypot(q.x - bm.x, q.z - bm.z)).sort((a, b) => a - b)[0]; if (o && o.d < 2.5 && (n0 === undefined || o.d <= n0)) { closeOpening(o.key); return; } const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
-      if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) { game.buildMode = { item: BUILD_ITEMS[0].id, ry: 0 }; say('Build mode — walk around to place, [ ] or the mouse wheel to pick, E to build'); } else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
+      if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
@@ -209,10 +220,11 @@ function App() {
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
-    const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), d = e.deltaY > 0 ? 1 : -1; game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
-    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } };
-    document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click);
-    return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); };
+    const wheel = e => { const bm = game.buildMode; if (!bm || bm.moving || panelRef.current !== null) return; game.buildMode = { ...bm, item: nextInCat(bm.item, e.deltaY > 0 ? 1 : -1) }; };
+    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
+      if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } };
+    document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
+    return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
   useEffect(() => {   // turning "unlock everything" off strips parts you do not own yet
     if (game.unlockAll) return;
@@ -312,10 +324,11 @@ function App() {
     {stageEl}
     <LoadingScreen />
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
-    {game.onFoot && <div className="crosshair" />}
-    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · V move · N material · [ ] item · , . category · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
+    <Crosshair />
+    <KeyHints driving={!game.onFoot} pro={pro} cabLabel={body.cabLabel} />
     <HudOverlay />
-    <BuildBar />
+    {panel !== 'build' && <BuildHud />}
+    {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
     {pro && <ProDebug />}
     {panel === 'pause' && <PauseMenu onResume={resume} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={!game.dev ? [] : play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : play.world === 'county' ? COUNTY_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
