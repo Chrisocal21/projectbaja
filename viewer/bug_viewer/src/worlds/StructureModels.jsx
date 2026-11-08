@@ -8,7 +8,7 @@ import { WALL_H as H, DEFAULT_MAT, LEGACY_MAT } from './structures.js';
 //   Overhaul 1 (this one): a newer, cleaner look for everything the player builds, in five materials.
 //   Overhauls 2 and 3 (later): final art. Piece ids, sizes, pivots and material ids must not change, or saves would break.
 // Pivot of every model: the piece's centre on the ground; local x runs along the piece, local z across it.
-const T = 0.16;   // wall thickness (m)
+const T = 0.2;   // wall thickness (m) — matches the original garage/office walls' thickness (worlds/OriginalWall.jsx), so a built wall sits flush with no step where it meets one
 
 // ---- clean textures (no rust, no cracks): a little sheen, a little dirt at the bottom ----
 const cache = new Map();
