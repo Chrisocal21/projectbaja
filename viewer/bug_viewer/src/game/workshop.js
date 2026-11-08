@@ -4,6 +4,7 @@ import { held, packItems, itemSize, nameOfItem, inGarageZone } from './items.js'
 import { BUG, UPGRADE_FIT, WHEEL_FIT, slotById } from '../rules/vehicles.js';
 import { isFitted, checkFit, checkDetach, withSlot, zoneAt, isDriveable, missingToDrive, listNames, TOOL_WHY } from '../rules/restore.js';
 import { partById, setPart, setWheels, setRim, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
+import { activeType } from './fleet.js';
 
 export const DEF = BUG;
 export const STOCK_NAMES = Object.fromEntries(BUG.slots.map(s => [s.id, s.name]));
@@ -23,8 +24,8 @@ export function carLocal() {
   const p = game.pose; if (!p) return null;
   const dx = game.pos.x - p.x, dz = game.pos.z - p.z, c = Math.cos(p.h), s = Math.sin(p.h);
   const lx = dx * c - dz * s, lz = dx * s + dz * c;
-  const near = Math.abs(lx) < DEF.width / 2 + 1.5 && Math.abs(lz) < DEF.length / 2 + 1.5;
-  return { lx, lz, near, zone: zoneAt(DEF, lx, lz) };
+  const t = activeType(), near = Math.abs(lx) < t.width / 2 + 1.5 && Math.abs(lz) < t.length / 2 + 1.5;
+  return { lx, lz, near, zone: t.kind === 'build' ? zoneAt(DEF, lx, lz) : 'any' };
 }
 
 /**

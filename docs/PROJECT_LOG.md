@@ -71,3 +71,14 @@ Newest entries last. Records what happened and what was decided, not plans.
 - Synchronized all seven project Markdown files to this implementation state.
   [Viewer README](../viewer/bug_viewer/README.md) holds the technical details and
   regeneration commands.
+
+
+## November 7, 2026
+
+- Took the user's Systems Blueprint as the base spec. Built restoration as pure rules: every part detachable, lids and doors swing, the shell lifts off, a procedural engine with mods. Added physical items and inventory, loot in buildings, and one shared world.
+- **Story decided (user):** a kid inherits his grandfather's run-down garage after college. The Bug is found in the garage; Al's lot has the pricier vehicles. Implemented as the new-game start: junk to clear, a breaker to flip, grandpa's letter, the Bug half apart with its parts nearby.
+- **Official map decided (user):** the garage is the centre biome, with roads out to other biomes and places to explore. Built Baja County (3 × 3 km): Dry Wells town, Hollis farm, Red Rock Canyon, Sidewinder Dunes, Bitter Lake, the Proving Grounds (the old test tracks moved in), a warehouse and shacks.
+- **Build mode decided (user):** grow the yard and garage (racks, lifts, an office and PC, funny decor, fences, add-ons, your own car lot). First slice built; the idea list is in BUILD_MODE.md.
+- **Truck:** the user supplied a Hilux model pack. It was exported unbranded and trimmed to 68k triangles and 5.4 MB. It's buyable at Al's and drivable, with cab and bed storage. A fleet system keeps the other vehicles parked where they were left.
+- **Plants:** the user supplied plant and tree packs (2.3 GB, git-ignored). Two low-poly trees and the dead grass, grass bushes, ferns and nettles were exported to two small GLBs and placed over the county.
+- **Repo:** the truck zips (330 MB) had been committed by accident. They're untracked and ignored now, and unused models were deleted. Purging them from history needs a force-push and is waiting on the user's OK.

@@ -2,7 +2,8 @@
 // in your hands ('hand'), in your pack ('pack') or in the car ('car', cab or roof). Nothing floats, nothing is magic.
 import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
-import { SITES, toWorld } from '../worlds/testcenter.js';
+import { SITES, toWorld } from '../worlds/county.js';
+import { activeType } from './fleet.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
 import { BUG } from '../rules/vehicles.js';
 
@@ -20,10 +21,16 @@ export const itemSize = it => sizeOf(it.kind, it.id);
 /** pack: small parts only. car: the cab, plus a roof deck when a roof rack is fitted (anything up to "large") */
 export const CAPACITY = { pack: 4, cab: 4, roof: 6 };
 export const hasRack = () => !!game.build?.parts?.roofRack;
-export const used = spot => game.items.filter(i => (spot === 'pack' ? i.loc === 'pack' : i.loc === 'car' && i.spot === spot)).reduce((n, i) => n + itemSize(i), 0);
+const vehOf = i => i.veh || 'bug';
+export const used = (spot, veh = game.active) => game.items.filter(i => (spot === 'pack' ? i.loc === 'pack' : i.loc === 'car' && vehOf(i) === veh && i.spot === spot)).reduce((n, i) => n + itemSize(i), 0);
+/** the active vehicle's storage spots: the Bug has a cab (+ a roof deck with a rack), trucks have a cab and a bed */
+export function storageOf() {
+  const t = activeType(); if (t.storage) return t.storage;
+  return { cab: { cap: CAPACITY.cab, max: 4, label: 'car' }, ...(hasRack() ? { roof: { cap: CAPACITY.roof, max: 3, label: 'roof rack' } } : {}) };
+}
 export const held = () => game.items.find(i => i.loc === 'hand');
 export const packItems = () => game.items.filter(i => i.loc === 'pack');
-export const carItems = () => game.items.filter(i => i.loc === 'car');
+export const carItems = (veh = game.active) => game.items.filter(i => i.loc === 'car' && vehOf(i) === veh);
 export const garageItems = () => game.items.filter(i => i.loc === 'garage');
 /** the garage shelves: unlimited storage, only reachable inside your garage */
 export function storeInGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || !['hand', 'pack', 'car'].includes(it.loc)) return; at(it).loc = 'garage'; commit(); say(`${nameOfItem(it)} → garage shelves`); }
@@ -32,14 +39,13 @@ export function giveToGarage(kind, id, extra = {}) { game.items.push({ uid: uid(
 export const boxItems = id => game.items.filter(i => i.loc === 'box' && i.box === id);
 export function spotFor(it) {
   const s = itemSize(it);
-  if (used('cab') + s <= CAPACITY.cab) return 'cab';
-  if (hasRack() && s <= 3 && used('roof') + s <= CAPACITY.roof) return 'roof';
+  for (const [k, v] of Object.entries(storageOf())) if (s <= v.max && used(k) + s <= v.cap) return k;
   return null;
 }
 const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= CAPACITY.pack;
 const commit = () => { game.items = [...game.items]; save(); };
 const uid = () => Math.max(0, ...game.items.map(i => i.uid)) + 1;
-const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.spot; delete it.box; return it; };
+const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.spot; delete it.box; delete it.veh; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
 /** can the player take this right now (pack or free hands)? */
@@ -79,8 +85,8 @@ export function holdItem(uidN) {
 export function stowInCar(uidN) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
   const spot = spotFor(it);
-  if (!spot) return say(itemSize(it) >= 4 || !hasRack() ? "Won't fit in the car. You'll need a bigger vehicle (or a roof rack for smaller parts)." : 'The car is full.');
-  at(it); it.loc = 'car'; it.spot = spot; commit(); say(`${nameOfItem(it)} → ${spot === 'roof' ? 'roof rack' : 'car'}`);
+  if (!spot) return say(activeType().storage ? `The ${activeType().name} is full.` : itemSize(it) >= 4 || !hasRack() ? "Won't fit in the Bug. You need a truck for that (Al has one), or a roof rack for smaller parts." : 'The car is full.');
+  at(it); it.loc = 'car'; it.spot = spot; it.veh = game.active; commit(); say(`${nameOfItem(it)} → ${storageOf()[spot].label}`);
 }
 export const loadHeld = () => stowInCar();
 export function takeFromCar(uidN) {
@@ -111,10 +117,10 @@ export function dropRemoved(oldB, newB) {
 }
 
 /** the part shop's pickup area: bought boxes are set down here */
-const SHOP_PICKUP = { x: 10.7, z: 14.2, px: -0.59, pz: 0.81 };
 export function boxAtShop(kind, id) {
-  const k = game.items.filter(i => i.loc === 'world' && Math.hypot(i.x - SHOP_PICKUP.x, i.z - SHOP_PICKUP.z) < 5).length;
-  spawnItem(kind, id, SHOP_PICKUP.x + SHOP_PICKUP.px * (k % 5), SHOP_PICKUP.z + SHOP_PICKUP.pz * (k % 5) + Math.floor(k / 5) * 1.1);
+  const s = SITES.shop, at0 = toWorld(s, -5.5, 5), k = game.items.filter(i => i.loc === 'world' && Math.hypot(i.x - at0[0], i.z - at0[1]) < 6).length;
+  const [x, z] = toWorld(s, -5.5 + (k % 5) * 1.1, 5 + Math.floor(k / 5) * 1.1);
+  spawnItem(kind, id, x, z);
 }
 
 /** new game: stock the garage, then hide parts and cash around the map */
@@ -126,6 +132,8 @@ export function seedWorld(bodyId) {
   let n = 0; const add = (o) => game.items.push({ uid: ++n, ...o });
   const g = SITES.garage;
   for (const [k, id, lx, lz, ly] of [STARTER.garageBench, STARTER.garageFloor]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
+  // grandpa had the Bug half apart: its rear-right wheel leans by the car, the driver's seat sits on the floor
+  for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0.12, ry: g.rot + 0.4, ...extra }); }
   for (const c of containers) {
     const rule = CONTAINER_RULES[c.type], fixed = STARTER[c.id];
     game.boxes[c.id] = { cash: fixed ? fixed.cash : Math.random() < 0.6 ? rint(rule.cash) : 0, searched: false };

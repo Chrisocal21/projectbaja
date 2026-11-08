@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
-import { OBSTACLES, TARGETS } from '../worlds/siteData.js';
+import { TARGETS } from '../worlds/siteData.js';
+import { SITES } from '../worlds/county.js';
+import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
+import { junkWorld, isCleared, garageClean, onProperty } from './home.js';
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
@@ -11,11 +14,14 @@ import { isFitted } from '../rules/restore.js';
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
   bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
+  letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
+  if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
+  if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
   if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Press E — Pick up ${nameOfItem(it)}`) : ''; }
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
@@ -28,6 +34,7 @@ export const promptText = id => {
 const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (!body) return false; return it.kind === 'part' ? partState(partById[it.id], body) === 'ok' : it.kind === 'wheel' ? wheelSetFits(wheelById[it.id], b.body) : true; };
 /** what E does at the car from this side (blueprint §2.2 + §3.4) */
 function carAction(zone) {
+  if (activeType().kind !== 'build') return held() ? { type: 'why', why: '', text: `F — Load ${nameOfItem(held())} into the ${activeType().name}` } : { type: 'enter', text: `Press E — Get in  ·  F — Unload  ·  Tab — Inventory` };
   const b = game.build; if (!b) return { type: 'none', text: '' };
   const fc = fitCandidate(b, zone), h = held();
   const where = zone === 'driver' || zone === 'passenger' ? '' : '';
@@ -45,7 +52,7 @@ function carAction(zone) {
   }
   return { type: 'none', text: 'X — Workshop' };
 }
-const SHOP = { x: 16, z: 18 }, PUMPS = TARGETS.filter(t => t.id === 'pump');
+const SHOP = SITES.shop, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
 export default function Walker({ world, sun }) {
@@ -77,8 +84,8 @@ export default function Walker({ world, sun }) {
       s.x += s.vx * dt; s.z += s.vz * dt;
       const car = game.pose;
       for (let pass = 0; pass < 2; pass++) {
-        for (const [cx, cz, r] of OBSTACLES) { const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
-        if (car) for (const o of [-1.3, 0, 1.3]) { const cx = car.x + Math.sin(car.h) * o, cz = car.z + Math.cos(car.h) * o, dx = s.x - cx, dz = s.z - cz, rr = 1.3 + 0.3, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
+        for (const [cx, cz, r] of world.obstacles) { const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
+        if (car) for (const o of (activeType().length > 4.5 ? [-1.9, -0.65, 0.65, 1.9] : [-1.3, 0, 1.3])) { const cx = car.x + Math.sin(car.h) * o, cz = car.z + Math.cos(car.h) * o, dx = s.x - cx, dz = s.z - cz, rr = 1.3 + 0.3, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
       }
       s.x = Math.max(-world.half, Math.min(world.half, s.x)); s.z = Math.max(-world.half, Math.min(world.half, s.z));
       s.y += (world.height(s.x, s.z) - s.y) * Math.min(1, dt * 16);
@@ -103,7 +110,7 @@ export default function Walker({ world, sun }) {
     for (const t of TARGETS) {
       if (t.id === 'pump') { if (Math.hypot(px - t.x, pz - t.z) < 14) nearPump = true; if (!foot && game.fueled) continue; }
       if (!foot && !t.car) continue;
-      consider(t.id, t.x, t.z, t.r, t.face);
+      consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1);
     }
     if (!nearPump) game.fueled = false;
     const cl = foot && pose ? carLocal() : null;
@@ -111,6 +118,8 @@ export default function Walker({ world, sun }) {
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
     if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5);
     if (foot) for (const c of containers) consider('box:' + c.id, c.x, c.z, 2.2, true, 0.55);
+    if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6);
+    if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7); }
     if (pose) {
       if (foot && cl?.near && (!best || bd > 0.9)) {
         if (!(game.owned.has('car:bug') || game.dev)) best = 'bug';
@@ -118,7 +127,9 @@ export default function Walker({ world, sun }) {
       }
       else if (!foot && !best && Math.abs(game.speed) < 4) best = 'exit';
     }
-    game.target = best; setPrompt(promptText(best));
+    if (game.buildMode) best = null;
+    game.onProperty = foot && onProperty(px, pz); game.canBuild = game.onProperty && garageClean();
+    game.target = best; setPrompt(game.buildMode ? '' : promptText(best));
   });
   return null;
 }

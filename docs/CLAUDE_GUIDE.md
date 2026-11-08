@@ -32,7 +32,16 @@ and classic Stage 2 asset work.
 - 20k to 40k triangles for the exterior is a planning guideline, not a measured budget.
 - Check pivots, assembly fit and overlaps before calling a part done.
 
-## Current workspace and asset authority
+## Current state (November 7, 2026)
+
+- The game is playable: `viewer/bug_viewer`, Vercel from GitHub `main`. Read [PROGRESS_TRACKER](./PROGRESS_TRACKER.md), [STORY_AND_WORLD](./STORY_AND_WORLD.md), [BUILD_MODE](./BUILD_MODE.md) and [BLUEPRINT_GAP_PLAN](./BLUEPRINT_GAP_PLAN.md) first.
+- The story world is `src/worlds/county.js` + `County.jsx`. Sites, obstacles and targets are in `worlds/siteData.js`, loot in `game/loot.js`, grandpa's place and build mode in `game/home.js` + `worlds/Home.jsx`, vehicles in `game/fleet.js`, plants in `worlds/flora.js` + `Flora.jsx`.
+- Rules stay pure and tested in `src/rules/*.js` (`npm test`).
+- Large source packs (`assets/truck/*.zip`, `assets/plants/`) are git-ignored. Export trimmed GLBs into `public/models` with the scripts in `assets/truck` and `assets/pipeline`. Never commit raw packs.
+- Headless checks: puppeteer scripts in `C:\Users\chris\shots` against `vite preview` on :4173. Test hooks: `window.__game`, `__walk`, `__baja`, `__fleet`.
+- The sections below describe the earlier asset-lab stage and are kept for history.
+
+## Asset-lab history (November 6, 2026)
 
 - The local workspace is an asset lab, not a playable game or an initialized
   Git repository. No GitHub/Vercel deployment or Salvage Road code transfer

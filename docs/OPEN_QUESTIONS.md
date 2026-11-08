@@ -1,6 +1,6 @@
 # Project: Baja — OPEN_QUESTIONS
 
-Last updated: November 6, 2026 - after Stage 2 validation. Only undecided items
+Last updated: November 7, 2026. Answered since last time: camera (both: first person on foot, chase or cab in a vehicle) and first world slice (Baja County, 3 × 3 km). Only undecided items
 are listed. Settled items live in [FEATURE_MAP](./FEATURE_MAP.md).
 
 ## Current blockers
@@ -27,8 +27,12 @@ rigging/collision decisions below still block claiming production readiness.
 
 ## World
 
-9. Camera view: third person, first person, or both?
-10. How large is the first playable slice of the world?
+9. ~~Camera view~~: answered, both.
+10. ~~First playable slice~~: answered, Baja County.
+10a. What should each build-mode item actually do? Proposals are in [BUILD_MODE](./BUILD_MODE.md).
+10b. Can the player buy more land around the garage to grow the build grid, and how much does it cost?
+10c. When do the '78 half-ton and other roster vehicles become available (money, time, story beats)?
+10d. Do Proving Grounds races give the first income from racing?
 
 ## Racing and later
 
@@ -46,8 +50,8 @@ rigging/collision decisions below still block claiming production readiness.
 
 ## Assets and the next Baja stage
 
-17. What are the redistribution/production licenses for the supplied Beetle
-    and tire assets, and how will native branding be removed or cleared?
+17. What are the redistribution/production licenses for the supplied Beetle,
+    tire, pickup (Hilux) and plant/tree assets, and how will native branding be removed or cleared?
 18. Will a detailed engine asset be supplied, or should the current refitted
     flat-four visual blockout be remodeled? What running-gear fidelity is required?
 19. What exact visual target defines the later full Baja/Class 1-inspired

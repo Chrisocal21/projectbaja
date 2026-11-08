@@ -1,6 +1,8 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
+import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
+import { LETTER, BUILD_ITEMS, buildById, garageClean } from './home.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
@@ -12,14 +14,14 @@ export function TitleScreen({ onNew, onContinue, onDev }) {
   React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
   return <div className="title-screen">
     <div className="title-panel">
-      <span className="eyebrow">A USED-CAR, BUILD-IT-YOURSELF STORY</span>
+      <span className="eyebrow">AN INHERITED-GARAGE, BUILD-IT-YOURSELF STORY</span>
       <h1>PROJECT <b>BAJA</b></h1>
-      <p>You have {'$2,500'}, a dusty lot at the edge of the desert, and a garage waiting to be filled. Find a car, then build it into something that can take the dunes.</p>
+      <p>College is done. Grandpa Walt left you his garage in the middle of Baja County — run-down, full of junk, with grandma's old Bug sitting dead inside. Clean it out, bring the Bug back to life, build the place up, then go fast.</p>
       <div className="menu">
         <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
-        {has && <button className="big" onClick={onContinue}>Continue — drive the Bug home</button>}
+        {has && game.build && <button className="big" onClick={onContinue}>Continue</button>}
         {secret && <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>}
-        {secret && dev && <><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
+        {secret && dev && <><button onClick={() => onDev('drive', 'county')}>Baja County (free drive)</button><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
           <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
       </div>
     </div>
@@ -27,26 +29,41 @@ export function TitleScreen({ onNew, onContinue, onDev }) {
   </div>;
 }
 
-export function DealerPanel({ onBuy, onDrive, onClose }) {
+export function DealerPanel({ onBuy, onClose }) {
   useGame();
-  const owned = game.owned.has('car:bug'), afford = game.cash >= 1800;
-  const bar = (label, v) => <div className="cond"><span>{label}</span><i><b style={{ width: `${v}%` }} /></i></div>;
+  const bar = (label, v) => <div key={label} className="cond"><span>{label}</span><i><b style={{ width: `${v}%` }} /></i></div>;
   return <div className="overlay"><div className="card dealer">
     <div className="shop-head"><h2>HONEST AL'S USED CARS</h2><span className="cash">${game.cash.toLocaleString()}</span><button onClick={onClose}>Back</button></div>
-    <div className="dealer-cars">
-      <div className="car-card">
-        <h3>'71 Classic Bug</h3><small>"Runs. Mostly. Don't ask about the heater."</small>
-        {bar('Paint', 38)}{bar('Interior', 31)}{bar('Engine', 55)}{bar('Frame', 72)}
-        <p className="price">$1,800</p>
-        {owned ? <button className="buy" onClick={onDrive}>Drive it home</button> : <button className="buy" disabled={!afford} onClick={onBuy}>{afford ? 'Buy the Bug' : 'Not enough cash'}</button>}
-      </div>
-      <div className="car-card locked">
-        <h3>'78 Half-ton Pickup</h3><small>"Good bones, no motor. Another month, kid."</small>
-        <p className="price">$2,300</p><button disabled>Not available yet</button>
-      </div>
-    </div>
-    <p className="hint">You can afford one of the two. Whatever you buy goes into your garage, where you will build it yourself.</p>
+    <div className="dealer-cars">{FOR_SALE.map(({ id }) => { const t = VEHICLE_TYPES[id], mine = !!game.fleet[id], sellable = !!t.dims;
+      return <div key={id} className={`car-card${sellable ? '' : ' locked'}`}>
+        <h3>{t.name}</h3><small>"{t.pitch}"</small>
+        {Object.entries(t.condition).map(([k, v]) => bar(k, v))}
+        <p className="price">${t.price.toLocaleString()}</p>
+        {mine ? <button disabled>Yours — parked out front</button> : !sellable ? <button disabled>Not for sale yet</button>
+          : <button className="buy" disabled={game.cash < t.price} onClick={() => onBuy(id)}>{game.cash < t.price ? `Need $${t.price.toLocaleString()}` : `Buy the ${t.name}`}</button>}
+      </div>; })}</div>
+    <p className="hint">The Bug can't haul an engine or a set of big tires. A truck can — load the bed with F, then drive it home.</p>
   </div></div>;
+}
+
+/** grandpa's letter, left on the workbench */
+export function LetterPanel({ onClose }) {
+  return <div className="overlay"><div className="card letter">
+    {LETTER.map((l, i) => <p key={i} className={i === 0 || i === LETTER.length - 1 ? 'sig' : ''}>{l}</p>)}
+    <div className="menu"><button className="big" onClick={onClose}>Fold it up (Esc)</button></div></div></div>;
+}
+
+/** build mode: what you are placing, its price and why it can't go here */
+export function BuildBar() {
+  useGame();
+  const bm = game.buildMode; if (!bm) return null;
+  const it = buildById[bm.item], i = BUILD_ITEMS.indexOf(it);
+  return <div className="build-bar">
+    <div className="bb-cat">{it.cat.toUpperCase()} · {i + 1}/{BUILD_ITEMS.length}</div>
+    <div className="bb-item"><b>{it.name}</b> <span className="price">${it.price.toLocaleString()}</span>{it.note && <small>{it.note}</small>}</div>
+    <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || 'E / click — build here'}</div>
+    <div className="bb-keys">Mouse wheel / [ ] — change item · R — rotate · X — take down the nearest build (50% back) · B — done</div>
+  </div>;
 }
 
 export function LotMenu({ onResume, onExit }) {
@@ -116,11 +133,11 @@ export function HudOverlay() {
     <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
     {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
     {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
-    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack}<br />Car: cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · no roof rack'} · Tab inventory</div>}
+    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack}<br />{activeType().name}: {Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · no roof rack' : ''} · Tab inventory{game.canBuild && !game.buildMode ? ' · B build' : ''}</div>}
   </>;
 }
 
-const Row = ({ it, children }) => <div className="inv-row"><span>{nameOfItem(it)}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : ''}</small></span><span className="inv-btns">{children}</span></div>;
+const Row = ({ it, children }) => <div className="inv-row"><span>{nameOfItem(it)}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : it.spot === 'bed' ? ' · bed' : ''}</small></span><span className="inv-btns">{children}</span></div>;
 
 /** what's inside a toolbox / chest / box / crate you just opened */
 export function ContainerPanel({ id, onClose }) {
@@ -141,7 +158,7 @@ export function InventoryPanel({ onClose }) {
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{near && <button onClick={() => stowInCar(h.uid)}>Put in car</button>}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
     <div className="inv-sec">PACK <span>{used('pack')}/{CAPACITY.pack} · small parts only</span></div>
     {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
-    <div className="inv-sec">CAR <span>cab {used('cab')}/{CAPACITY.cab}{hasRack() ? ` · roof ${used('roof')}/${CAPACITY.roof}` : ' · fit a roof rack for more'}</span></div>
+    <div className="inv-sec">{activeType().name.toUpperCase()} <span>{Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
     {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
     <div className="inv-sec">GARAGE SHELVES <span>{shelf.length} parts{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}

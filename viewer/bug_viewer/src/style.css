@@ -72,3 +72,19 @@
 .shop-info{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 16px;background:#11191c;border-top:1px solid #2c3d41}.shop-info strong{display:block;font-size:16px}.shop-info small{display:block;color:#8aa0a3;font-size:12px;margin-top:3px}
 .shop-info button{min-width:130px;text-align:center}.shop-info .buy{border-color:#4f9a64;color:#9be8ad;font-weight:700}.shop-info button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:800px){.shop-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr}}
+
+/* grandpa's letter */
+.card.letter { max-width: 560px; background: #efe6cf; color: #2a2016; font-family: 'Courier New', monospace; box-shadow: 0 20px 60px #0008; }
+.card.letter p { font-size: 15px; line-height: 1.55; margin: 0 0 10px; }
+.card.letter p.sig { font-style: italic; }
+.card.letter .menu button { color: #2a2016; }
+/* build mode bar */
+.build-bar { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); background: #10181bdd; color: #e8efe8; border: 1px solid #f2c14e66; border-radius: 10px; padding: 10px 16px; min-width: 420px; text-align: center; pointer-events: none; font-size: 14px; }
+.build-bar .bb-cat { font-size: 11px; letter-spacing: 0.12em; color: #f2c14e; }
+.build-bar .bb-item b { font-size: 17px; }
+.build-bar .bb-item .price { color: #ffd23f; margin-left: 8px; }
+.build-bar .bb-item small { display: block; color: #9fb4b8; }
+.build-bar .bb-why { margin: 6px 0 4px; font-weight: 600; }
+.build-bar .bb-why.ok { color: #5be08a; } .build-bar .bb-why.bad { color: #ff7a5a; }
+.build-bar .bb-keys { font-size: 11px; color: #9fb4b8; }
+@media (max-width: 520px) { .build-bar { min-width: 0; left: 16px; right: 16px; transform: none; } }

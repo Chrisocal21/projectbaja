@@ -202,8 +202,9 @@ test('hidden stock wheels do not duplicate prebuilt or named replacement wheels'
   disposeSuspensionVisual(visual);
 });
 
-test('missing wheel assets fail explicitly before partially modifying the model', () => {
+test('a car with wheels off (on stands) still rigs: every mount gets an empty hub', () => {
   const root = new THREE.Group();
-  assert.throws(() => buildWheelRig(root, dimsFor().mounts), /Missing visible FL wheel/);
-  assert.equal(root.children.length, 0);
+  const rig = buildWheelRig(root, dimsFor().mounts);
+  assert.equal(rig.wheels.length, 4);
+  assert.ok(rig.wheels.every(w => w.spin.children.length === 0));
 });

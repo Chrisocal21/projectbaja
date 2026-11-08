@@ -3,11 +3,13 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, openCrate, setPrompt } from './store.js';
 import * as TC from '../worlds/testcenter.js';
+import { SITES } from '../worlds/county.js';
 
 const at = (path, f) => { const p = path.pts[Math.floor(path.pts.length * f)]; return [p.x, p.z]; };
 
 /** Where the shop and the loot crates sit in each world. */
 export function placesFor(kind) {
+  if (kind === 'county') return { shop: SITES.shop, crates: [] };   // Baja Parts in Dry Wells; loot only inside buildings
   if (kind === 'test') return { shop: { x: 16, z: 18, rot: -2.2 }, crates: [] };   // loot is found inside buildings now (game/loot.js), never floating
   if (kind === 'open') return { shop: { x: 14, z: -16, rot: -2.2 }, crates: [[28, 14], [-34, 40], [52, -34], [-62, -52], [10, 90], [-90, 20]] };
   return { shop: { x: -22, z: 10, rot: 0.6 }, crates: [[20, -15], [40, 70], [-30, 60], [70, 40], [-60, -30]] };   // pro pad
@@ -61,5 +63,5 @@ function Crates({ spots, height, kind, bodyId }) {
 
 export default function GameObjects({ kind, height, bodyId }) {
   const p = useMemo(() => placesFor(kind), [kind]);
-  return <><Shop spot={p.shop} height={height} prompts={kind !== 'test'} /><Crates spots={p.crates} height={height} kind={kind} bodyId={bodyId} /></>;
+  return <><Shop spot={p.shop} height={height} prompts={kind === 'open'} /><Crates spots={p.crates} height={height} kind={kind} bodyId={bodyId} /></>;
 }

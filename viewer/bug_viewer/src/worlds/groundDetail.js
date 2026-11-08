@@ -25,7 +25,7 @@ export function noiseTexture() {
 }
 
 /** Per-surface detail strength: [grain, bump] multipliers. */
-const KIND = { asphalt: [0.45, 0.35], concrete: [0.4, 0.3], curb: [0.5, 0.4], grass: [1.2, 0.9], gravel: [1.8, 1.8], dirt: [1, 1], looseDirt: [1.2, 1.3], rock: [1.5, 2.2], mud: [0.55, 0.5], sand: [0.6, 0.45] };
+const KIND = { asphalt: [0.45, 0.35], concrete: [0.4, 0.3], curb: [0.5, 0.4], grass: [1.2, 0.9], gravel: [1.8, 1.8], dirt: [1, 1], looseDirt: [1.2, 1.3], rock: [1.5, 2.2], mud: [0.55, 0.5], sand: [0.6, 0.45], playa: [0.5, 0.35], redDirt: [1.1, 1.1], scrub: [1.3, 1.1] };
 export const kindOf = s => KIND[s?.key] || KIND[s?.name?.toLowerCase?.().replace(/ (\w)/g, (_, c) => c.toUpperCase())] || [1, 1];
 
 /**

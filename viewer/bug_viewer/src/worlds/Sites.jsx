@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { SITES, height } from './testcenter.js';
+import { SITES, height } from './county.js';
+import { game, useGame } from '../game/store.js';
 import { GARAGE, BARN, BOULDERS, CACTI } from './siteData.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
@@ -28,10 +29,11 @@ const Tire = ({ p, r = 0.38, w = 0.28, rim = '#9aa0a4', rot = [Math.PI / 2, 0, 0
 
 /** The player's garage: concrete slab, roller door, workbench, parts shelves, an engine on a stand. Local +z = the door. */
 function Garage() {
-  const { w, d, door } = GARAGE, t = 0.2, H = 4.6;
+  useGame();
+  const { w, d, door } = GARAGE, t = 0.2, H = 4.6, power = game.home?.power;
   const metal = useMemo(() => { const m = metalTex('#7b8b86'); m.repeat.set(3, 1); return m; }, []);
   const roof = useMemo(() => metalTex('#59615f', 9), []);
-  const sign = useMemo(() => signTex([['BAJA GARAGE', 70, '#f2c14e'], ['your workshop', 36, '#cfd8d6']], '#1c2a2e', '#fff', '#f2c14e'), []);
+  const sign = useMemo(() => signTex([["WALT'S GARAGE", 66, '#f2c14e'], ['repairs · welding · est. 1968', 32, '#cfd8d6']], '#1c2a2e', '#fff', '#f2c14e'), []);
   const bench = useMemo(() => wood('#8a6a44', '#3a2a18', false, 4), []);
   return <group>
     <Box p={[0, 0.06, 0]} s={[w * 2 + 1.2, 0.12, d * 2 + 1.2]} color="#8a8b87" rough={1} cast={false} />
@@ -61,8 +63,13 @@ function Garage() {
     {[-3.8, -2.2, -0.6, 1.0, 2.2].map((z, i) => <Box key={i} p={[w - 0.5, 0.78 + (i % 3) * 0.9, z - 0.6]} s={[0.55, 0.36, 0.55 + (i % 2) * 0.3]} color={['#c8a46a', '#b58b55', '#a9854f'][i % 3]} rough={1} />)}
     <Tire p={[5.3, 0.14, -2.6]} rot={[0, 0, 0]} /><Tire p={[5.3, 0.42, -2.6]} rot={[0, 0, 0]} rim="#cf3e2f" />
     <mesh position={[1.4, 0.13, -1.4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[1.1, 20]} /><meshBasicMaterial color="#17120d" transparent opacity={0.35} depthWrite={false} /></mesh>
-    {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.18, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color="#fff6dc" emissive="#fff0c0" emissiveIntensity={1.4} /></mesh>)}
-    <pointLight position={[0, H - 0.8, 0]} intensity={32} distance={20} decay={1.6} color="#ffeccc" />
+    {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.18, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>)}
+    <pointLight position={[0, H - 0.8, 0]} intensity={power ? 32 : 6} distance={20} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />
+    {/* grandpa's letter on the bench */}
+    <mesh position={[-2.6, 0.985, -5.25]} rotation={[-Math.PI / 2, 0, 0.2]}><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} /></mesh>
+    {/* the main breaker panel (press E) */}
+    <Box p={[w - 0.16, 1.5, -1.2]} s={[0.12, 0.7, 0.5]} color="#5b6266" metal={0.5} rough={0.5} />
+    <Box p={[w - 0.23, 1.55, -1.2]} s={[0.04, 0.12, 0.05]} color={power ? '#3fbf5a' : '#c8372b'} emissive={power ? '#3fbf5a' : '#c8372b'} ei={0.8} cast={false} />
   </group>;
 }
 
@@ -223,14 +230,14 @@ function Scenery() {
 }
 
 /** big banded mesas far beyond the drivable map */
-function Mesas() {
+export function Mesas({ d0 = 470, dr = 120, sc = 1, n = 16 }) {
   const geo = useMemo(() => {
     const g = new THREE.CylinderGeometry(0.55, 1, 1, 9, 8, false); const pos = g.attributes.position, col = [], c = new THREE.Color();
     const bands = ['#a5683f', '#b9825a', '#8e5333', '#c79568', '#9c6040'];
     for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) + 0.5, band = Math.floor(y * 9) % bands.length; c.set(bands[(band + (y > 0.98 ? 1 : 0)) % bands.length]); col.push(c.r, c.g, c.b); const a = Math.atan2(pos.getZ(i), pos.getX(i)); pos.setX(i, pos.getX(i) * (1 + 0.12 * Math.sin(a * 3 + y * 5))); pos.setZ(i, pos.getZ(i) * (1 + 0.12 * Math.cos(a * 2 + y * 4))); }
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals(); return g;
   }, []);
-  const list = useMemo(() => { const r = rnd(41); return Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * Math.PI * 2 + r() * 0.3, d = 470 + r() * 120; return [Math.cos(a) * d, Math.sin(a) * d, 70 + r() * 90, 40 + r() * 70]; }); }, []);
+  const list = useMemo(() => { const r = rnd(41); return Array.from({ length: n }, (_, i) => { const a = (i / n) * Math.PI * 2 + r() * 0.3, d = d0 + r() * dr; return [Math.cos(a) * d, Math.sin(a) * d, (70 + r() * 90) * sc, (40 + r() * 70) * sc]; }); }, [d0, dr, sc, n]);
   return <>{list.map(([x, z, w, h], i) => <mesh key={i} geometry={geo} position={[x, h / 2 - 10, z]} scale={[w, h, w * 0.8]} rotation={[0, i, 0]}><meshStandardMaterial vertexColors roughness={1} flatShading /></mesh>)}</>;
 }
 
@@ -243,7 +250,8 @@ export default function Sites() {
     <Placed site={SITES.warehouse}><Warehouse /></Placed>
     <Placed site={SITES.shack1}><Shack /></Placed>
     <Placed site={SITES.shack2}><Shack /></Placed>
+    <Placed site={SITES.shack3}><Shack /></Placed>
     <Furniture />
-    <Scenery /><Mesas />
+    <Scenery />
   </>;
 }

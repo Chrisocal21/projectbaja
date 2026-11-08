@@ -3,30 +3,30 @@ import * as THREE from 'three';
 import { Sky } from '@react-three/drei';
 import { applyGroundDetail, kindOf } from './groundDetail.js';
 import { SIZE, height, surface, isRoad, circuit, pitLane, dirtRoad, offroad, spawns, startLine, baseHeight, townRoads, trails } from './testcenter.js';
-import Sites from './Sites.jsx';
+import { Mesas } from './Sites.jsx';
 
-const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
-const tex = (w, h, draw, repeatY = 1) => {
+export const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
+export const tex = (w, h, draw, repeatY = 1) => {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 16; t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1, repeatY); return t;
 };
-const blurred = (g, px, fn) => { g.save(); g.filter = `blur(${px}px)`; fn(); g.restore(); };
-const dots = (g, r, w, h, n, colors, smin, smax, alpha = 1) => {
+export const blurred = (g, px, fn) => { g.save(); g.filter = `blur(${px}px)`; fn(); g.restore(); };
+export const dots = (g, r, w, h, n, colors, smin, smax, alpha = 1) => {
   for (let i = 0; i < n; i++) { g.globalAlpha = alpha * (0.4 + r() * 0.6); g.fillStyle = colors[Math.floor(r() * colors.length)]; const s = smin + r() * (smax - smin); g.fillRect(r() * w, r() * h, s, s * (0.6 + r() * 0.8)); }
   g.globalAlpha = 1;
 };
-const blotches = (g, r, w, h, n, lightA, darkA, size) => {   // big soft tonal patches: patched, weathered, uneven surface
+export const blotches = (g, r, w, h, n, lightA, darkA, size) => {   // big soft tonal patches: patched, weathered, uneven surface
   blurred(g, size * 0.35, () => { for (let i = 0; i < n; i++) { const l = r() > 0.5; g.fillStyle = l ? `rgba(255,255,255,${lightA * r()})` : `rgba(0,0,0,${darkA * r()})`; g.beginPath(); g.ellipse(r() * w, r() * h, size * (0.5 + r()), size * (0.4 + r() * 1.2), r() * 3, 0, 6.3); g.fill(); } });
 };
-const crack = (g, r, x, y, len, a, wid = 1) => {   // random-walk crack with side branches
+export const crack = (g, r, x, y, len, a, wid = 1) => {   // random-walk crack with side branches
   g.strokeStyle = `rgba(10,10,12,${a})`; g.lineWidth = wid; g.beginPath(); g.moveTo(x, y); let ang = r() * 6.3;
   for (let i = 0; i < len; i++) { ang += (r() - 0.5) * 0.9; x += Math.cos(ang) * 6; y += Math.sin(ang) * 6; g.lineTo(x, y); if (r() < 0.08) { const sx = x, sy = y; g.stroke(); crack(g, r, sx, sy, Math.floor(len * 0.4), a * 0.8, wid * 0.8); g.beginPath(); g.moveTo(sx, sy); } }
   g.stroke();
 };
-const wrapDraw = (g, w, h, fn) => { for (const dy of [-h, 0, h]) { g.save(); g.translate(0, dy); fn(); g.restore(); } };   // draw across the tile seam so it tiles invisibly
+export const wrapDraw = (g, w, h, fn) => { for (const dy of [-h, 0, h]) { g.save(); g.translate(0, dy); fn(); g.restore(); } };   // draw across the tile seam so it tiles invisibly
 
 // ribbon textures: u across the road, v along it (one tile = `tile` metres)
-const circuitTex = () => tex(512, 768, (g, w, h) => {
+export const circuitTex = () => tex(512, 768, (g, w, h) => {
   const r = rnd(7), M = w / 15;   // px per metre across (road is 15 m wide)
   g.fillStyle = '#3a3d41'; g.fillRect(0, 0, w, h);
   blotches(g, r, w, h, 70, 0.07, 0.16, 70);
@@ -55,7 +55,7 @@ const circuitTex = () => tex(512, 768, (g, w, h) => {
   g.globalCompositeOperation = 'destination-out'; dots(g, r, w, h, 0, ['#000'], 1, 2); g.globalCompositeOperation = 'source-over';
   dots(g, r, w, h, 3500, ['#3a3d41', '#4a4d51'], 1, 3, 0.7);
 });
-const pitTex = () => tex(512, 512, (g, w, h) => {
+export const pitTex = () => tex(512, 512, (g, w, h) => {
   const r = rnd(11);
   g.fillStyle = '#8d8e8a'; g.fillRect(0, 0, w, h); blotches(g, r, w, h, 50, 0.1, 0.18, 55);
   dots(g, r, w, h, 20000, ['#a3a49f', '#74756f', '#b4b5b0', '#666762'], 1, 2.2, 0.5);
@@ -90,9 +90,9 @@ const trackTex = loose => () => tex(512, 1280, (g, w, h) => {
   for (let i = 0; i < 2600; i++) { const side = r() > 0.5, x = side ? w - r() * 0.12 * w : r() * 0.12 * w; g.fillStyle = `rgba(0,0,0,${0.3 + r() * 0.6})`; g.fillRect(x, r() * h, 2 + r() * 5, 2 + r() * 6); }
   g.globalCompositeOperation = 'source-over';
 });
-const dirtTex = trackTex(false), looseTex = trackTex(true);
+export const dirtTex = trackTex(false), looseTex = trackTex(true);
 
-function Ribbon({ path, half, makeTexture, tile, lift = 0.012, step = 2, segs = 6, hide = null, feather = false, detail = {} }) {
+export function Ribbon({ path, half, makeTexture, tile, lift = 0.012, step = 2, segs = 6, hide = null, feather = false, detail = {}, heightFn = height }) {
   const geo = useMemo(() => {
     const pts = path.pts.filter((_, i) => i % step === 0); if (path.closed) pts.push({ ...path.pts[0], s: path.total });
     const pos = [], uv = [], idx = [];
@@ -100,14 +100,14 @@ function Ribbon({ path, half, makeTexture, tile, lift = 0.012, step = 2, segs = 
       const nx = p.tz, nz = -p.tx;
       for (let j = 0; j <= segs; j++) {
         const d = (j / segs * 2 - 1) * half, x = p.x + nx * d, z = p.z + nz * d;
-        pos.push(x, height(x, z) + lift, z); uv.push(j / segs, p.s / tile);
+        pos.push(x, heightFn(x, z) + lift, z); uv.push(j / segs, p.s / tile);
         if (k && j && !(hide && (hide(p) || hide(pts[k - 1])))) { const a = (k - 1) * (segs + 1) + j - 1, b = a + 1, c = k * (segs + 1) + j - 1, e = c + 1; idx.push(a, c, b, b, c, e); }
       }
     });
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx); g.computeVertexNormals(); return g;
-  }, [path, half, tile, lift, step, segs]);
+  }, [path, half, tile, lift, step, segs, heightFn]);
   const map = useMemo(() => makeTexture(), [makeTexture]);
   const mat = useMemo(() => applyGroundDetail(new THREE.MeshStandardMaterial({ map, roughness: 0.93, transparent: feather, depthWrite: !feather, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), detail), [map, feather]);
   return <mesh geometry={geo} material={mat} receiveShadow renderOrder={feather ? 1 : 0} />;
@@ -133,11 +133,11 @@ function Terrain() {
   return <mesh geometry={geo} material={mat} receiveShadow />;
 }
 
-const labelTex = (text, sub, color = '#1d2a2f') => tex(512, 256, (g, w, h) => {
+export const labelTex = (text, sub, color = '#1d2a2f') => tex(512, 256, (g, w, h) => {
   g.fillStyle = color; g.fillRect(0, 0, w, h); g.fillStyle = '#f2c14e'; g.fillRect(0, 0, w, 14); g.fillRect(0, h - 14, w, 14);
   g.fillStyle = '#fff'; g.font = 'bold 66px sans-serif'; g.textAlign = 'center'; g.fillText(text, w / 2, 120); g.fillStyle = '#9fc0c8'; g.font = '38px sans-serif'; g.fillText(sub, w / 2, 190);
 });
-const checkerTex = () => tex(128, 16, (g, w, h) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 2; y++) { g.fillStyle = (x + y) % 2 ? '#fff' : '#111'; g.fillRect(x * 8, y * 8, 8, 8); } });
+export const checkerTex = () => tex(128, 16, (g, w, h) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 2; y++) { g.fillStyle = (x + y) % 2 ? '#fff' : '#111'; g.fillRect(x * 8, y * 8, 8, 8); } });
 
 function Props() {
   const tyres = useRef(), shrubs = useRef();
@@ -191,6 +191,6 @@ export default function TestCenterScene() {
     {townRoads.map((p, i) => <Ribbon key={'t' + i} path={p} half={3.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.42, bump: 0.8, macro: 0.15 }} lift={0.014} segs={4} />)}
     {trails.map((p, i) => <Ribbon key={'r' + i} path={p} half={2.6} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} />)}
     <Props />
-    <Sites />
+    <Mesas />
   </>;
 }

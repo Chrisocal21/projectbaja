@@ -1,6 +1,6 @@
 # Project: Baja — FEATURE_MAP
 
-Provisional working title. Last updated: November 6, 2026 - current asset lab state.
+Provisional working title. Last updated: November 7, 2026, after the Baja County map, the new story start, the drivable truck and build mode.
 
 Status key: SETTLED (decided), PLANNED (agreed direction, not started), LATER (explicitly deferred), OPEN (undecided, see OPEN_QUESTIONS).
 
@@ -11,9 +11,16 @@ gameplay feature or production-ready asset.
 
 The vehicle on screen tells the story of everything the player found, repaired, bought and built. Lived-in and populated, not lonely or post-apocalyptic.
 
+## Story
+
+- You inherit grandpa Walt's run-down garage in the middle of nowhere after college. You clean it out, restore grandma's Bug (found in the garage, half apart) and build the place up. SETTLED, IMPLEMENTED (start of the game). See [STORY_AND_WORLD](./STORY_AND_WORLD.md).
+- Honest Al's lot in town sells the bigger, pricier vehicles; the Bug is yours from the start. SETTLED, IMPLEMENTED.
+
 ## World
 
-- Free-roam open world across Southern California and Baja Mexico. SETTLED
+- Free-roam open world across Southern California and Baja Mexico. SETTLED (long term)
+- First official map: **Baja County**, 3 × 3 km, garage at the centre, roads out to a town, farm, canyon, dunes, dry lake and the Proving Grounds (test tracks). IMPLEMENTED. The Test Center stays as a dev map.
+- Plants and trees from the supplied asset packs dress the map. IMPLEMENTED.
 - Environments: lived-in towns, coastal roads, dry lakebeds, desert, mountains, border-region feel. SETTLED
 - Ordinary working shops and junkyards, warm afternoon light. SETTLED
 - World reuses terrain and town generators from Salvage Road, re-fed with SoCal and Baja inputs. PLANNED
@@ -34,7 +41,9 @@ The vehicle on screen tells the story of everything the player found, repaired, 
 - Other vehicle types in scope visually: buggies, trophy trucks, rock crawlers, trucks. SETTLED as visual scope
 - Bikes later. LATER
 - Building: parts change both performance and appearance (tires, shocks, roll cage, bumpers, fenders and more). SETTLED
-- Driving: carried over from Salvage Road's vehicle driving setup. PLANNED
+- Driving: our own arcade-sim physics (fast and fun first). IMPLEMENTED.
+- Several vehicles: one active, the rest parked where you left them. The '84 4x4 pickup is buyable and drivable, with a cab and bed for hauling big parts. IMPLEMENTED. The '78 half-ton is a project for later. PLANNED
+- Every part is detachable; the shell lifts off to a rolling chassis; a step-by-step engine. IMPLEMENTED (Bug). A high-power rear swap and buggy bodies. PLANNED
 
 ## Parts sources
 
@@ -42,6 +51,10 @@ The vehicle on screen tells the story of everything the player found, repaired, 
 - Barn finds: abandoned barns out in the middle of nowhere holding vehicles or rare parts, found purely by exploring, no map markers or hints. SETTLED
 - Racing rewards. LATER
 - Scrapyard and loot container code carried over from Salvage Road. PLANNED
+
+## Your property (build mode)
+
+- Grid-build the yard and garage: fences, racks, a lift, an office with a PC, funny decor, your own car lot. SETTLED. First slice IMPLEMENTED (B key, 19 items, unlocks once the garage is clean). Making items functional is PLANNED. See [BUILD_MODE](./BUILD_MODE.md).
 
 ## Marketplace
 

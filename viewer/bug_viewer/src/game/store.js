@@ -12,11 +12,14 @@ export const game = {
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
   toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,
+  fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
+  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [],
   onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: false, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
 WEAR.value = game.wear;
+if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build })); } catch {} };
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props })); } catch {} };
 export const save = () => { persist(); emit(); };
 export const saveBuild = b => { game.build = b; if (!game.dev) persist(); };
 
@@ -40,18 +43,22 @@ export function addCash(n) { game.cash += n; persist(); emit(); }
 export function grant(kind, id) { game.owned.add(itemKey(kind, id)); persist(); emit(); }
 export function setUnlockAll(v) { game.unlockAll = v; persist(); emit(); }
 export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
-/** Start the story: a pocket of cash, nothing owned, every part has to be found or bought. */
-export function newGame() { game.cash = 2500; game.owned.clear(); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85; persist(); emit(); }
+/** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
+export function newGame() {
+  game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = [];
+  persist(); emit();
+}
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
 /** Press E on something in the world. Panels (shop, dealer, workbench) are opened by the app; everything else is handled here. */
 export function interact(id) {
-  const lines = ["Al: 'Two cars on the lot, one wallet. Pick one.'", "Al: 'The Bug's no beauty, but she's honest. Mostly.'", "Al: 'Parts? Take her to your garage and build it yourself.'", "Al: 'Battery was dead so I pulled it. Dusty's gas station sells 'em.'"];
+  const lines = ["Al: 'You're Walt's grandkid? Sorry about the old man. He bought half his junk off me.'", "Al: 'That Bug of his has been sitting since '09. Battery'll be long dead — Dusty sells 'em.'", "Al: 'Need to haul an engine? That four-by-four out front'll do it. Cash only.'", "Al: 'The half-ton? No motor. Find one and she's a project.'"];
   if (id === 'enter') { game.onFoot = false; game.walkPose = null; emit(); }
   else if (id === 'exit') {
     const p = game.pose; if (p) game.walkStart = { x: p.x + Math.cos(p.h) * 2.6, z: p.z - Math.sin(p.h) * 2.6, yaw: p.h + Math.PI };
     game.onFoot = true; emit();
   }
-  else if (id === 'tarp') say("Al: 'The pickup? Good truck, no motor. Give me a month and she's yours.'");
+  else if (id === 'tarp') say("Al: 'The half-ton's got good bones and no motor. Not for sale till I find one.'");
   else if (id === 'al') say(lines[(game.alLine = ((game.alLine ?? -1) + 1)) % lines.length]);
   else if (id === 'pump') { if (game.fueled) say('Tank is already full.'); else if (game.cash < 25) say('Not enough cash for gas.'); else { addCash(-25); game.fueled = true; say('Tank filled up — $25'); } }
   else if (id === 'wash') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }

@@ -298,7 +298,7 @@ export function buildWheelRig(root, mounts) {
     o.children.forEach(visit);
   };
   root.children.forEach(visit);
-  for (const mount of mounts) if (!sets[mount.name].length) throw new Error(`[drive] Missing visible ${mount.name} wheel; cannot build suspension rig.`);
+  for (const mount of mounts) if (!sets[mount.name].length) console.info(`[drive] no ${mount.name} wheel fitted (car on a stand there)`);
   const wheels = mounts.map(mount => {
     const steer = new THREE.Group(), spin = new THREE.Group();
     steer.name = `Hub_${mount.name}`; steer.position.set(...mount.center);

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held } from './items.js';
 import { containers } from './loot.js';
-import { height } from '../worlds/testcenter.js';
+import { height } from '../worlds/county.js';
 import { ShellProp } from '../BuildModel.jsx';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
@@ -54,10 +54,17 @@ export default function Items() {
 }
 
 const CAB = [[-0.3, 0.62, -0.6], [0.3, 0.62, -0.6], [0, 0.95, -0.6], [0, 0.62, -1.15]];
-/** what the car is carrying: inside the cab, and up on the roof rack. Rendered inside the vehicle so it moves with it. */
-export function Cargo() {
+const TRUCK_CAB = [[-0.35, 1.05, -0.55], [0.35, 1.05, -0.55], [0, 1.35, -0.55]];
+/** what a vehicle is carrying: the Bug's cab and roof rack, a truck's cab and bed. Rendered inside the vehicle so it moves with it. */
+export function Cargo({ veh }) {
   useGame();
-  const cab = game.items.filter(i => i.loc === 'car' && i.spot === 'cab'), roof = game.items.filter(i => i.loc === 'car' && i.spot === 'roof');
+  const v = veh || game.active, mine = game.items.filter(i => i.loc === 'car' && (i.veh || 'bug') === v);
+  if (v !== 'bug') {   // truck: crates stand in two rows on the bed floor
+    let row = [0, 0];
+    return <>{mine.map((it, i) => { const [w, , d] = DIM[sizeOf(it.kind, it.id)]; if (it.spot === 'cab') return <group key={it.uid} position={TRUCK_CAB[i % 3]}><Crate item={it} scale={0.7} /></group>;
+      const side = row[0] <= row[1] ? 0 : 1, z = -0.75 - row[side] - d / 2; row[side] += d + 0.06; return <group key={it.uid} position={[side ? -0.42 : 0.42, 0.98, z]}><Crate item={it} /></group>; })}</>;
+  }
+  const cab = mine.filter(i => i.spot === 'cab'), roof = mine.filter(i => i.spot === 'roof');
   let z = -0.5;
   return <>
     {cab.map((it, i) => <group key={it.uid} position={CAB[i % 4]}><Crate item={it} scale={0.8} /></group>)}

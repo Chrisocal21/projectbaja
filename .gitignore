@@ -15,3 +15,10 @@ assets/generated/raw/
 # build output and dependencies
 node_modules/
 dist/
+
+# downloaded source model archives (hundreds of MB) - keep local, export a game-ready GLB instead
+assets/truck/*.zip
+assets/truck/src/
+
+# downloaded plant/tree packs (GBs) - keep local, export trimmed GLBs into public/models
+assets/plants/

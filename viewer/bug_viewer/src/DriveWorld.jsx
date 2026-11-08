@@ -1,12 +1,18 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { game } from './game/store.js';
+import { game, useGame } from './game/store.js';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
 import { WORLD, TERRAIN_SEGMENTS, smooth, terrainHeight, terrainVertexHeight } from './terrain.js';
 import * as TC from './worlds/testcenter.js';
 import TestCenterScene from './worlds/TestCenter.jsx';
+import * as CO from './worlds/county.js';
+import CountyScene from './worlds/County.jsx';
+import { propObstacles } from './game/home.js';
+import { vehicleType, standingVehicles } from './game/fleet.js';
+import TruckModel from './Truck.jsx';
+import BuildModel from './BuildModel.jsx';
 import Walker from './game/Walker.jsx';
 import Items, { Cargo } from './game/Items.jsx';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
@@ -148,7 +154,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const s = useRef(null);
   if (!s.current) { s.current = spawnState(); if (game.keepPose && game.pose) { Object.assign(s.current, { x: game.pose.x, z: game.pose.z, h: game.pose.h, y: world.height(game.pose.x, game.pose.z) + 0.5 }); game.keepPose = false; } }
   useEffect(() => {   // number keys teleport between test-center areas
-    const tp = e => { const w = world.spawns.find(p => e.code === 'Digit' + p.key); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
+    const tp = e => { if (!game.dev || game.paused) return; const w = world.spawns.find(p => e.code === 'Digit' + p.key); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
   }, [world]);
   useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
@@ -162,7 +168,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   }, [dims]);
 
   useEffect(() => {
-    camera.far = 700; camera.fov = 60; camera.near = 0.1; camera.updateProjectionMatrix();
+    camera.far = world.far || 700; camera.fov = 60; camera.near = 0.1; camera.updateProjectionMatrix();
     return () => { camera.far = 100; camera.fov = 43; camera.near = 0.05; camera.updateProjectionMatrix(); };
   }, [camera]);
 
@@ -353,7 +359,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) hud.current.textContent = game.onFoot ? '' : `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}  |  keys 0-4 teleport`);
+    if (hud.current) hud.current.textContent = game.onFoot ? '' : `${Math.round(Math.abs(st.v) * 2.23694)} mph (top ${Math.round(MAXV * 2.23694)}) · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 teleport' : ''}`);
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -371,10 +377,30 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
 const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, get spawn() { return game.start === 'lot' ? BUG_SPOT : game.start === 'garage' ? GARAGE_DRIVE : { x: 0, z: 0, h: Math.PI / 2 }; }, gates: [], spawns: TC.spawns, area: TC.areaAt, obstacles: SITE_OBSTACLES };
+/** circles of the vehicles parked around the county (and the one for sale on Al's lot) */
+const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
+let obsCache = { key: '', list: [] };
+const COUNTY_WORLD = {
+  id: 'county', height: CO.height, surface: CO.surface, half: CO.HALF_DRIVE, far: 2600, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  get spawn() { return GARAGE_DRIVE; },
+  get obstacles() {
+    const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}`;
+    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length))] };
+    return obsCache.list;
+  },
+};
+/** every vehicle that is not the one you are using: parked where you left it, or waiting on Al's lot */
+function Fleet() {
+  useGame();
+  return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.height(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
+    <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : <TruckModel />}</Suspense>
+    <Cargo veh={v.id} />
+  </group>)}</>;
+}
 const WorldCtx = createContext(OPEN_WORLD);
 
 export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId }) {
-  const world = worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
+  const world = worldId === 'county' ? COUNTY_WORLD : worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
   const race = useRef(newRace());
   const sun = useRef();
   return <WorldCtx.Provider value={world}>
@@ -384,10 +410,11 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     <directionalLight ref={sun} position={[30, 45, 20]} intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
       shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
       shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
-    {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : <TestCenterScene />}
+    {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : world.id === 'county' ? <CountyScene /> : <TestCenterScene />}
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
-    {world.id === 'test' && <Walker world={world} sun={sun} />}
-    {world.id === 'test' && <Items />}
+    {world.id === 'county' && <Walker world={world} sun={sun} />}
+    {world.id === 'county' && <Items />}
+    {world.id === 'county' && <Fleet />}
   </WorldCtx.Provider>;
 }
