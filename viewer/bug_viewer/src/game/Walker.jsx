@@ -5,6 +5,7 @@ import { lookScale, settings } from './settings.js';
 import { TARGETS } from '../worlds/siteData.js';
 import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
+import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
 import { jobById } from './jobs.js';
 import { toWorld as toW } from '../worlds/county.js';
@@ -22,7 +23,7 @@ import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
-  bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
+  peg: 'Press E — Pegboard: hang a tool, or take one', bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
   letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Move the boxes and see what\'s under the tarp', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {
@@ -156,9 +157,11 @@ export default function Walker({ world, sun }) {
     for (const t of TARGETS) {
       if (t.id === 'pump') { if (Math.hypot(px - t.x, pz - t.z) < 14) nearPump = true; if (!foot && game.fueled) continue; }
       if (!foot && !t.car) continue;
+      if (t.id === 'bench') { const b = nearestProp(game.props, 'workbench', px, pz); if (!b) continue; const [bx, bz] = benchSpot(b); consider('bench', bx, bz, t.r, t.face, t.bonus || 1, AIM_TARGET.bench); continue; }   // Stage 4d: the workbench is a prop, E works wherever it stands
       consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1, AIM_TARGET[t.id]);
     }
     if (!nearPump) game.fueled = false;
+    if (foot) { const pb = nearestProp(game.props, 'pegboard', px, pz); if (pb) consider('peg', pb.x, pb.z, 4.5, false, 0.9, { box: { hx: PEG.w / 2, hz: 0.6, y: s.y + PEG.y - PEG.h / 2, h: PEG.h, yaw: pb.ry || 0 } }); }
     const cl = foot && pose ? carLocal() : null;
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);

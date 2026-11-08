@@ -52,7 +52,7 @@ export const corrugatedTex = (base, seed = 31) => canvasTex(512, 512, (g, w, h) 
   const gr = g.createLinearGradient(0, h * 0.82, 0, h); gr.addColorStop(0, 'rgba(90,70,45,0)'); gr.addColorStop(1, 'rgba(90,70,45,0.55)'); g.fillStyle = gr; g.fillRect(0, h * 0.82, w, h * 0.18);
 }, [1, 1]);
 /** pegboard: grey hardboard with a hole grid and painted tool outlines */
-const pegTex = () => canvasTex(512, 160, (g, w, h) => {
+export const pegTex = () => canvasTex(512, 160, (g, w, h) => {
   g.fillStyle = '#8f8a7c'; g.fillRect(0, 0, w, h);
   g.fillStyle = 'rgba(30,28,24,0.75)'; for (let y = 6; y < h; y += 10) for (let x = 6; x < w; x += 10) { g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.fill(); }
   g.strokeStyle = 'rgba(200,40,30,0.6)'; g.lineWidth = 2; for (let i = 0; i < 12; i++) { const x = 30 + i * 38; g.strokeRect(x, 30, 10, 70 + (i % 3) * 15); }
@@ -96,7 +96,6 @@ function Garage() {
   const floor = useMemo(() => propertyTexture(7, 5, 4), []);
   const apron = useMemo(() => propertyTexture(7, 3, 2), []);
   const ply = useMemo(() => { const m = wood('#a88a5c', '#5a4428', true, 41); m.repeat.set(6, 1); return m; }, []);
-  const peg = useMemo(() => pegTex(), []);
   const sign = useMemo(() => signTex([["WALT'S GARAGE", 66, '#803c29'], ['REPAIR · WELDING · SALVAGE', 30, '#59422e']], '#d4bd8d', '#74583b', '#a28a62'), []);
   const bench = useMemo(() => wood('#8a6a44', '#3a2a18', false, 4), []);
   return <group>
@@ -142,21 +141,9 @@ function Garage() {
       <Box p={[0, 0.17, 0.05]} s={[0.12, 0.07, 0.03]} color={open ? '#ff6a45' : '#4a3a38'} emissive={open ? '#ff6a45' : undefined} ei={open ? 1.4 : 0} cast={false} />
     </group>
     {/* the lift, plus a second once the "Second car lift" upgrade is bought (game/upgrades.js) */}
-    <CarLift />
+    {/* lift 1, the workbench and the pegboard are movable props now (game/home.js starter fixtures V3, worlds/Home.jsx PropModel) */}
     {upgradeLevel('lift2') >= 1 && <group position={[4.8, 0, 1.2]}><CarLift /></group>}
     {/* workbench along the back wall, pegboard with tools above it, compressor at the end */}
-    <Box p={[-3, 0.92, -d + 0.8]} s={[5.2, 0.12, 1.1]} color="#fff" map={bench} />
-    {[-5.4, -0.6].map(x => <Box key={x} p={[x, 0.45, -d + 0.8]} s={[0.12, 0.9, 1]} color="#3b3f42" metal={0.5} />)}
-    <Box p={[-3, 0.35, -d + 0.8]} s={[5, 0.7, 0.9]} color="#a33a2e" rough={0.6} metal={0.3} />
-    {[-4.6, -3.4, -2.2].map(x => <Box key={x} p={[x, 0.55, -d + 1.26]} s={[0.4, 0.03, 0.02]} color="#cfd2d4" metal={0.8} rough={0.3} cast={false} />)}
-    <mesh position={[-3, 2.0, -d + 0.15]}><boxGeometry args={[5.4, 1.5, 0.04]} /><meshStandardMaterial map={peg} roughness={0.85} /></mesh>
-    {Array.from({ length: 12 }, (_, i) => { const x = -5.3 + i * 0.42, y = 2.05 + ((i * 7) % 5) * 0.12 - 0.25, kind = i % 3;
-      return <group key={i} position={[x, y, -d + 0.22]}>
-        <Box p={[0, 0, 0]} s={[0.04, 0.32 + (i % 3) * 0.08, 0.02]} color={kind === 2 ? '#c8372b' : '#c9ccd0'} metal={0.7} rough={0.35} cast={false} />
-        {kind === 0 && <mesh position={[0, 0.2 + (i % 3) * 0.04, 0]}><torusGeometry args={[0.04, 0.013, 6, 14]} /><meshStandardMaterial color="#c9ccd0" metalness={0.8} roughness={0.3} /></mesh>}
-        {kind === 1 && <Box p={[0, 0.2, 0]} s={[0.14, 0.06, 0.04]} color="#3a3f44" metal={0.6} rough={0.4} cast={false} />}
-        {kind === 2 && <Box p={[0, -0.2, 0]} s={[0.035, 0.12, 0.035]} color="#e8b43a" rough={0.5} cast={false} />}
-      </group>; })}
     {/* compressor, engine-on-a-stand and the loose tire stack are now movable props too (game/home.js starter fixtures, worlds/Home.jsx PropModel) */}
     <mesh position={[1.4, 0.123, -1.4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.8, 20]} /><meshBasicMaterial color="#17120d" transparent opacity={0.3} depthWrite={false} /></mesh>
     {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.3, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>)}

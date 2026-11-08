@@ -33,7 +33,7 @@ export function storageOf() {
 export const held = () => game.items.find(i => i.loc === 'hand');
 export const packItems = () => game.items.filter(i => i.loc === 'pack');
 export const carItems = (veh = game.active) => game.items.filter(i => i.loc === 'car' && vehOf(i) === veh);
-export const garageItems = () => game.items.filter(i => i.loc === 'garage' && i.spot !== 'grid');   // (tires set on the floor / racks are placed, not shelf stock: placement/garageStore.js)
+export const garageItems = () => game.items.filter(i => i.loc === 'garage' && i.spot !== 'grid' && i.spot !== 'peg');   // (tires set on the floor / racks are placed, not shelf stock: placement/garageStore.js)
 /** the garage shelves: unlimited storage, only reachable inside your garage */
 export function storeInGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || !['hand', 'pack', 'car'].includes(it.loc)) return; at(it).loc = 'garage'; commit(); say(`${nameOfItem(it)} → garage shelves`); }
 export function takeFromGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'garage') return; const w = takeOnto(it); if (!w) return say(fullMsg(it)); commit(); }

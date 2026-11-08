@@ -30,8 +30,7 @@ const solid = [];
 // (the right and back walls are dynamic: doorways can be cut through them, see openings.js and propObstacles in game/home.js)
 solid.push(...wall(G, [-GAR_W, -GAR_D], [-GAR_W, OFFICE.inner.z0 - 0.6]), ...wall(G, [-GAR_W, OFFICE.inner.z1 + 0.6], [-GAR_W, GAR_D]),
   ...wall(G, [-GAR_W, GAR_D], [-GAR_DOOR, GAR_D]), ...wall(G, [GAR_DOOR, GAR_D], [GAR_W, GAR_D]),
-  ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5),
-  blob(G, -1.65, -0.5, 0.3), blob(G, 1.65, -0.5, 0.3));   // lift posts (engine stand, compressor and the tire stack are now movable props, with dynamic collision)
+  );   // (the workbench wall and the lift posts are now movable props with dynamic collision, game/home.js propObstacles; engine stand, compressor and the tire stack are now movable props, with dynamic collision)
 // the office: back and front walls (the shared wall is the garage's, above); street door in the front face.
 // (the far/west wall is dynamic: the "Office expansion" upgrade cuts a doorway through it, see openings.js WALLS.OW and propObstacles in game/home.js)
 solid.push(...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x1, OFFICE.z0], 0.2, 0.3),
@@ -108,7 +107,7 @@ const T = (id, s, lx, lz, rad, opt = {}) => { const [x, z] = toWorld(s, lx, lz);
 export const TARGETS = [
   T('tarp', lot, LOT_SPOTS.tarp.x, LOT_SPOTS.tarp.z, 5.5),
   T('al', lot, LOT_SPOTS.al.x, LOT_SPOTS.al.z, 4),
-  T('bench', G, -3, -4, 3.4),
+  T('bench', G, -3, -4, 3.4),   // E spot of the workbench in its original place; Walker.jsx follows the workbench prop instead (game/fixtures.js benchSpot)
   T('letter', G, -2.6, -5.25, 2.6, { bonus: 0.35 }),
   T('breaker', G, 6.75, -1.2, 2.2),
   T('openSwitch', G, 5.4, 6.6, 2.0),

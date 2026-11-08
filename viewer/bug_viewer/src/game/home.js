@@ -10,6 +10,7 @@ import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { upgradeLevel } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
+import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
@@ -76,6 +77,9 @@ export const BUILD_ITEMS = [
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. Move it with V' },
   { id: 'toolChest', name: 'Rolling tool chest', price: 260, zone: 'garage', r: 0.5, cat: 'Storage' },
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
+  { id: 'workbench', name: 'Workbench (5.2 m)', price: 400, zone: 'garage', r: 0.5, pickR: 1.5, len: 5.2, cat: 'Garage', note: "Walt's workbench: E to fabricate. Move it with V" },
+  { id: 'carLift', name: 'Two-post car lift', price: 1500, zone: 'garage', r: 0, carBay: true, pickR: 1.7, posts: LIFT_POSTS, cat: 'Garage', note: "Walt's lift: the car drives in between the posts. Move it with V" },
+  { id: 'pegboard', name: 'Pegboard (5.4 m)', price: 60, zone: 'garage', r: 0, wallMount: true, pickR: 2, cat: 'Garage', note: 'Hang tools on it: E. Move it with V' },
   { id: 'compressor', name: 'Air compressor', price: 220, zone: 'garage', r: 0.4, cat: 'Garage', note: "Walt's compressor: move it with V" },
   { id: 'engineOnStand', name: 'Spare engine on a stand', price: 300, zone: 'garage', r: 0.5, cat: 'Garage', note: "An engine Walt was rebuilding. Move it with V" },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },
@@ -154,11 +158,11 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
   if (Math.abs(lx) < STALL.inner + STALL.d + 1 && lz > LANE.z0 && lz < lotZ1(upgradeLevel('parking')) + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
-  const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
+  const inG = insideGarage(lx, lz, item.wallMount ? 0 : 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
-  if (inG && item.zone !== 'yard' && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
+  if (inG && item.zone !== 'yard' && !item.carBay && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
   if (!moving && !creative() && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
@@ -198,7 +202,7 @@ const STARTER_FIXTURES_V1 = [
 const STARTER_FIXTURES_V2 = [
   ['compressor', 0.3, -5.4, 0], ['engineOnStand', -4.3, 0.9, Math.PI / 2], ['tireStack', -5.2, 4.6, 0],
 ];
-export const STARTER_FIXTURES = [...STARTER_FIXTURES_V1, ...STARTER_FIXTURES_V2];
+export const STARTER_FIXTURES = [...STARTER_FIXTURES_V1, ...STARTER_FIXTURES_V2, ...STARTER_FIXTURES_V3];
 /** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
 export function migrateGrid() {
   if (game.home.gridV >= 2) return;
@@ -208,12 +212,12 @@ export function migrateGrid() {
 }
 /** seed Walt's movable fixtures once per save, in batches: old saves (fixtures: true, from before V2 existed) only get the new batch */
 export function ensureStarterFixtures() {
-  const v = seededV(game.home); if (v >= 2) return;
+  const v = seededV(game.home); if (v >= 3) return;
   let uid = Math.max(0, ...game.props.map(p => p.uid));
-  const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : [])];
+  const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : []), ...STARTER_FIXTURES_V3];
   const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
   game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
-  game.home = { ...game.home, fixtures: true, fixturesV: 2 }; save();
+  game.home = { ...game.home, fixtures: true, fixturesV: 3 }; save();
 }
 const propHit = (x, z, max) => game.props.filter(q => !isPiece(q.id)).map(q => [q, Math.hypot(q.x - x, q.z - z)]).filter(([, d]) => d < max).sort((a, b) => a[1] - b[1])[0]?.[0];
 /** build mode, V: pick the nearest placed thing up to move it (free). It stays where it is until you put it down. */
@@ -224,10 +228,18 @@ export function startMove(x, z) {
 }
 /** Stage 4a: stored props live in game.home.stored (saved with home; absent in old saves) */
 export const storedProps = () => storedOf(game.home);
+/** the bench / pegboard is going away: what lay on it falls to the floor (items.js world items; hung tools become loose tools) */
+function dropFixtureItems(p) {
+  const moves = p.id === 'workbench' ? benchDrops(game.items, p) : p.id === 'pegboard' ? pegDrops(game.items, p) : [];
+  if (!moves.length) return;
+  const by = new Map(moves.map(m => [m.uid, m.patch]));
+  game.items = game.items.map(i => { const q = by.get(i.uid); if (!q) return i; const n = { ...i, ...q }; delete n.spot; delete n.peg; return n; });
+  save(); say(`${moves.length === 1 ? 'Something fell' : `${moves.length} things fell`} to the floor`);
+}
 export function storeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return false;
   if (isPiece(p.id)) { say('Building pieces cannot be stored: take them down with X.'); return false; }
-  dropRackTires(uidN, game.props, buildById, G, groundHeight);
+  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p);
   const r = storeMove(game.props, storedProps(), uidN); game.props = r.props; game.home = { ...game.home, stored: r.stored };
   game.propsV = (game.propsV || 0) + 1; save(); say(`Stored the ${buildById[p.id].name.toLowerCase()} (take it out from the build menu, B)`); return true;
 }
@@ -257,7 +269,7 @@ export function removeProp(uidN) {
     const l = homeLocal(p.x, p.z), all = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot, uid: q.uid }; });
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
-  dropRackTires(uidN, game.props, buildById, G, groundHeight);
+  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p);
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
@@ -270,6 +282,8 @@ export function propObstacles() {
   if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office) cache = { v, mv, office, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
+    if (it.posts) return localCircles(p, it.posts);   // car lift: just the two posts, the car drives between
+    if (it.wallMount) return [];   // wall-mounted (pegboard): nothing to bump into
     if (!it.len) return [[p.x, p.z, it.r, 99]];
     const n = Math.ceil(it.len / 0.8), c = Math.cos(ry), s = Math.sin(ry);
     return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });

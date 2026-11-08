@@ -13,7 +13,8 @@ import { junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, tra
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
-import { wood, metalTex, ShelfStuff } from './Sites.jsx';
+import { wood, metalTex, ShelfStuff, pegTex } from './Sites.jsx';
+import { PEG_SLOTS, PEG, pegState } from '../game/fixtures.js';
 import { useGLTF, RoundedBox } from '@react-three/drei';
 import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
@@ -343,7 +344,43 @@ function Junk({ kind }) {
 /** things the player has built on the property (build mode). The same models become the placement hologram. */
 const P = ({ p, s, c = '#fff', rot, map, m = 0, r = 0.8 }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><M c={c} map={map} m={m} r={r} /></mesh>;
 const C = ({ p, a, c = '#fff', rot, m = 0, r = 0.8, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} m={m} r={r} map={map} /></mesh>;
-export function PropModel({ id, T, mat }) {
+/** Stage 4d: Walt's workbench, two-post lift and pegboard as props (the same shapes the fixed garage used to draw) */
+const Arm = ({ a, b, w = 0.1 }) => { const dx = b[0] - a[0], dz = b[2] - a[2]; return <P p={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} s={[Math.hypot(dx, dz), 0.07, w]} c="#e8b43a" m={0.4} r={0.5} rot={[0, Math.atan2(-dz, dx), 0]} />; };
+function CarLiftModel() {
+  return <group position={[0, 0.12, 0]}>
+    {[-1, 1].map(s => <group key={s} position={[s * 1.65, 0, 0]}>
+      <P p={[0, 0.015, 0]} s={[0.62, 0.03, 0.6]} c="#3a3d40" m={0.5} />
+      <P p={[0, 1.8, 0]} s={[0.3, 3.6, 0.34]} c="#b8302a" m={0.35} r={0.5} />
+      <P p={[-s * 0.2, 0.34, 0]} s={[0.24, 0.3, 0.42]} c="#3a3d40" m={0.6} r={0.4} />
+      <Arm a={[-s * 0.25, 0.25, 0.12]} b={[-s * 1.0, 0.2, 1.05]} /><Arm a={[-s * 0.25, 0.25, -0.12]} b={[-s * 1.0, 0.2, -1.0]} />
+    </group>)}
+    <P p={[0, 3.72, 0]} s={[3.64, 0.18, 0.26]} c="#b8302a" m={0.35} r={0.5} />
+    <P p={[1.95, 1.1, 0]} s={[0.26, 0.4, 0.3]} c="#2c4f7a" m={0.4} r={0.5} />
+  </group>;
+}
+function BenchModel({ T }) {
+  return <>
+    <P p={[0, 0.92, 0]} s={[5.2, 0.12, 1.1]} map={T.oldWood} />
+    {[-2.4, 2.4].map(x => <P key={x} p={[x, 0.45, 0]} s={[0.12, 0.9, 1]} c="#3b3f42" m={0.5} />)}
+    <P p={[0, 0.35, 0]} s={[5, 0.7, 0.9]} c="#a33a2e" r={0.6} m={0.3} />
+    {[-1.6, -0.4, 0.8].map(x => <P key={x} p={[x, 0.55, 0.46]} s={[0.4, 0.03, 0.02]} c="#cfd2d4" m={0.8} r={0.3} />)}
+  </>;
+}
+/** a tool on its hook: a wrench is a bar with a ring, the floor jack a little red block with a handle */
+const PegTool = ({ tool }) => tool === 'jack'
+  ? <group><P p={[0, 0, 0]} s={[0.5, 0.18, 0.1]} c="#b8302a" m={0.4} r={0.5} /><P p={[0.3, -0.2, 0]} s={[0.04, 0.4, 0.04]} c="#c9ccd0" m={0.7} r={0.35} /></group>
+  : <group><P p={[0, -0.12, 0]} s={[0.04, 0.4, 0.02]} c="#c9ccd0" m={0.7} r={0.35} /><mesh position={[0, 0.1, 0]}><torusGeometry args={[0.05, 0.016, 6, 14]} /><M c="#c9ccd0" m={0.8} r={0.3} /></mesh></group>;
+function PegboardModel({ uid }) {
+  const peg = useMemo(() => pegTex(), []), items = uid ? game.items : [];
+  return <>
+    <mesh position={[0, PEG.y, 0]}><boxGeometry args={[PEG.w, PEG.h, 0.04]} /><meshStandardMaterial map={peg} roughness={0.85} /></mesh>
+    {pegState(items, uid).map(({ slot, item }) => <group key={slot.id} position={[slot.x, slot.y, 0.06]}>
+      {item ? <PegTool tool={item.id} />   // present: the tool itself
+        : <mesh><planeGeometry args={[slot.tool === 'jack' ? 0.5 : 0.1, slot.tool === 'jack' ? 0.2 : 0.5]} /><meshBasicMaterial color="#e8d9a0" transparent opacity={0.45} depthWrite={false} /></mesh>}   {/* empty: an outline-ish ghost patch */}
+    </group>)}
+  </>;
+}
+export function PropModel({ id, T, mat, uid }) {
   if (isPiece(id)) return <StructureModel id={id} mat={mat} />;
   if (id === 'wallOpening') return <group>{[-0.96, 0.96].map(x => <mesh key={x} position={[x, 1.3, 0]}><boxGeometry args={[0.1, 2.6, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh>)}<mesh position={[0, 2.56, 0]}><boxGeometry args={[2, 0.1, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh></group>;
   switch (id) {
@@ -359,6 +396,9 @@ export function PropModel({ id, T, mat }) {
         ? null   // Stage 4c: the shelving starts empty; real tires you set on it are drawn by placement/GarageCargo.jsx
         : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.4], ['paint', 2.38, 0.6]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
     </>;
+    case 'workbench': return <BenchModel T={T} />;
+    case 'carLift': return <CarLiftModel />;
+    case 'pegboard': return <PegboardModel uid={uid} />;
     case 'compressor': return <>
       <C p={[0, 0.3, 0]} a={[0.22, 0.22, 0.9, 18]} c="#b8302a" m={0.4} r={0.45} rot={[0, 0, Math.PI / 2]} />
       <P p={[0.1, 0.62, 0]} s={[0.35, 0.22, 0.25]} c="#2a2a2a" m={0.5} /><P p={[-0.3, 0.6, 0]} s={[0.1, 0.18, 0.1]} c="#cfd2d4" m={0.8} r={0.3} />
@@ -435,7 +475,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} /></group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></group>)}
     {PLACEMENT && <GarageCargo />}
     <Customer />
     <Ghost T={T} />
