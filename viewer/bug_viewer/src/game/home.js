@@ -74,6 +74,8 @@ export const BUILD_ITEMS = [
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. Move it with V' },
   { id: 'toolChest', name: 'Rolling tool chest', price: 260, zone: 'garage', r: 0.5, cat: 'Storage' },
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
+  { id: 'compressor', name: 'Air compressor', price: 220, zone: 'garage', r: 0.4, cat: 'Garage', note: "Walt's compressor: move it with V" },
+  { id: 'engineOnStand', name: 'Spare engine on a stand', price: 300, zone: 'garage', r: 0.5, cat: 'Garage', note: "An engine Walt was rebuilding. Move it with V" },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },
   { id: 'bender', name: 'Tube bender', price: 320, zone: 'garage', r: 0.5, cat: 'Fabrication', note: 'Bend tube for hoops and cages' },
   { id: 'computer', name: 'Office desk + old PC', price: 320, zone: 'garage', r: 0.6, cat: 'Office', note: 'Order parts online (coming soon)' },
@@ -184,11 +186,17 @@ export function closeOpening(key) {
   game.home = { ...game.home, openings: openingKeys().filter(k => k !== key), freeOpenings: (game.home.freeOpenings || []).filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
   const back = wasFree ? 0 : Math.round(OPENING_PRICE * 0.5); addCash(back); save(); say(`Closed the doorway (+$${back})`);
 }
-/** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased) */
-export const STARTER_FIXTURES = [
+/** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased).
+ *  Batched by when each batch was added, so old saves pick up new batches without re-seeding what's already there. */
+const STARTER_FIXTURES_V1 = [
   ['shelfTires', -6.5, -2.4, Math.PI / 2], ['shelfTires', -6.5, 0, Math.PI / 2], ['shelfTires', -6.5, 2.4, Math.PI / 2],
   ['shelfSupplies', 6.5, -3.0, -Math.PI / 2], ['shelfSupplies', 6.5, -0.6, -Math.PI / 2],
 ];
+// compressor, engine-on-a-stand and the loose tire stack: the workbench stays put (loose parts and a toolbox sit on it, see game/loot.js BENCH_TOP)
+const STARTER_FIXTURES_V2 = [
+  ['compressor', 0.3, -5.4, 0], ['engineOnStand', -4.3, 0.9, Math.PI / 2], ['tireStack', -5.2, 4.6, 0],
+];
+export const STARTER_FIXTURES = [...STARTER_FIXTURES_V1, ...STARTER_FIXTURES_V2];
 /** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
 export function migrateGrid() {
   if (game.home.gridV >= 2) return;
@@ -196,13 +204,14 @@ export function migrateGrid() {
   if (had) { game.props = game.props.map(p => (isPiece(p.id) ? { ...p, x: p.x + Math.cos(G.rot) } : p)); game.propsV = (game.propsV || 0) + 1; }
   game.home = { ...game.home, gridV: 2 }; save();
 }
-/** seed the movable wall shelving once per save (new games and saves from before they were movable) */
+/** seed Walt's movable fixtures once per save, in batches: old saves (fixtures: true, from before V2 existed) only get the new batch */
 export function ensureStarterFixtures() {
-  if (game.home.fixtures) return;
+  const v = game.home.fixturesV ?? (game.home.fixtures ? 1 : 0); if (v >= 2) return;
   let uid = Math.max(0, ...game.props.map(p => p.uid));
-  const add = STARTER_FIXTURES.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
+  const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : [])];
+  const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
   game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
-  game.home = { ...game.home, fixtures: true }; save();
+  game.home = { ...game.home, fixtures: true, fixturesV: 2 }; save();
 }
 const propHit = (x, z, max) => game.props.filter(q => !isPiece(q.id)).map(q => [q, Math.hypot(q.x - x, q.z - z)]).filter(([, d]) => d < max).sort((a, b) => a[1] - b[1])[0]?.[0];
 /** build mode, V: pick the nearest placed thing up to move it (free). It stays where it is until you put it down. */

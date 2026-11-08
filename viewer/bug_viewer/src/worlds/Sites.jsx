@@ -10,7 +10,6 @@ import RoadSigns from './RoadSigns.jsx';
 import { propertyTexture } from './propertyTextures.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
-import ProcEngine from '../Engine.jsx';
 import { upgradeLevel } from '../game/upgrades.js';
 
 export const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, w, h) => {
@@ -158,21 +157,7 @@ function Garage() {
         {kind === 1 && <Box p={[0, 0.2, 0]} s={[0.14, 0.06, 0.04]} color="#3a3f44" metal={0.6} rough={0.4} cast={false} />}
         {kind === 2 && <Box p={[0, -0.2, 0]} s={[0.035, 0.12, 0.035]} color="#e8b43a" rough={0.5} cast={false} />}
       </group>; })}
-    <group position={[0.3, 0.12, -d + 0.6]}>
-      <mesh position={[0, 0.3, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.22, 0.22, 0.9, 18]} /><meshStandardMaterial color="#b8302a" metalness={0.4} roughness={0.45} /></mesh>
-      <Box p={[0.1, 0.62, 0]} s={[0.35, 0.22, 0.25]} color="#2a2a2a" metal={0.5} /><Box p={[-0.3, 0.6, 0]} s={[0.1, 0.18, 0.1]} color="#cfd2d4" metal={0.8} rough={0.3} />
-      {[-0.35, 0.35].map(x => <mesh key={x} position={[x, 0.06, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.06, 0.06, 0.04, 12]} /><meshStandardMaterial color="#1a1a1a" /></mesh>)}
-    </group>
-    {/* engine on a stand (moved to the left side, clear of the #7's corner) */}
-    <group position={[-4.3, 0.12, 0.9]} rotation={[0, Math.PI / 2, 0]}>
-      <Box p={[0, 0.05, 0]} s={[0.9, 0.06, 0.08]} color="#2c4f7a" metal={0.5} /><Box p={[0, 0.05, 0.25]} s={[0.08, 0.06, 0.6]} color="#2c4f7a" metal={0.5} />
-      <Box p={[0, 0.45, 0.25]} s={[0.08, 0.8, 0.08]} color="#2c4f7a" metal={0.5} /><Box p={[0, 0.82, 0.12]} s={[0.12, 0.12, 0.3]} color="#2c4f7a" metal={0.5} />
-      {[[-0.4, 0], [0.4, 0], [0, 0.55]].map(([x, z], i) => <mesh key={i} position={[x, 0.04, z]}><sphereGeometry args={[0.04, 8, 6]} /><meshStandardMaterial color="#111" /></mesh>)}
-      <group position={[0, 0.45, 1.5]}><ProcEngine stockExhaust={false} /></group>
-    </group>
-    {/* left shelves: tires + rims; right shelves: oil, jerry cans, paint, a spare rim, a battery */}
-    {/* the wall shelving is now movable props (game/home.js starter fixtures, worlds/Home.jsx PropModel) */}
-    <Tire p={[-5.2, 0.26, 4.6]} rot={[0, 0, 0]} /><Tire p={[-5.2, 0.54, 4.6]} rot={[0, 0, 0]} rim="#cf3e2f" /><Tire p={[-5.15, 0.82, 4.62]} rot={[0, 0, 0]} />
+    {/* compressor, engine-on-a-stand and the loose tire stack are now movable props too (game/home.js starter fixtures, worlds/Home.jsx PropModel) */}
     <mesh position={[1.4, 0.123, -1.4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.8, 20]} /><meshBasicMaterial color="#17120d" transparent opacity={0.3} depthWrite={false} /></mesh>
     {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.3, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>)}
     <pointLight position={[0, H - 0.8, 0]} intensity={power ? 32 : 6} distance={20} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />

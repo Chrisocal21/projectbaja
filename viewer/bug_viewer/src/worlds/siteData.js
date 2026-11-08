@@ -31,7 +31,7 @@ const solid = [];
 solid.push(...wall(G, [-GAR_W, -GAR_D], [-GAR_W, OFFICE.inner.z0 - 0.6]), ...wall(G, [-GAR_W, OFFICE.inner.z1 + 0.6], [-GAR_W, GAR_D]),
   ...wall(G, [-GAR_W, GAR_D], [-GAR_DOOR, GAR_D]), ...wall(G, [GAR_DOOR, GAR_D], [GAR_W, GAR_D]),
   ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5),
-  blob(G, -1.65, -0.5, 0.3), blob(G, 1.65, -0.5, 0.3), blob(G, -4.3, 0.9, 0.55), blob(G, 0.3, -5.4, 0.45), blob(G, -5.2, 4.6, 0.45));   // lift posts, engine stand, compressor, tire stack
+  blob(G, -1.65, -0.5, 0.3), blob(G, 1.65, -0.5, 0.3));   // lift posts (engine stand, compressor and the tire stack are now movable props, with dynamic collision)
 // the office: back and front walls (the shared wall is the garage's, above); street door in the front face.
 // (the far/west wall is dynamic: the "Office expansion" upgrade cuts a doorway through it, see openings.js WALLS.OW and propObstacles in game/home.js)
 solid.push(...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x1, OFFICE.z0], 0.2, 0.3),
