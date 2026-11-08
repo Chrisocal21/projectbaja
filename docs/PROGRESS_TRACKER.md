@@ -131,6 +131,20 @@ Status key: ✅ in code and tested, 🟡 partly there, ❌ missing, ❔ needs a 
 4. **Decide what happens to old saves** (OPEN_QUESTIONS 10e). Vehicles parked away from the garage keep their old coordinates, which now land on different ground.
 5. **Licensing check for a public web build** (OPEN_QUESTIONS 17). The Unity Asset Store terrain and rock packs are licensed for use embedded in a game. A browser game serves the files openly, so confirm that's allowed before deploying publicly.
 
+## Queued by Chris (November 8), after the current step
+
+Direction given while building the structure kit. Nothing here is built yet; mark each PROPOSAL until Chris confirms.
+
+1. **A newer, less rusted look for player-built construction.** The building pieces should not look like Walt's rusty garage. Skin work only (`worlds/StructureModels.jsx`); sizes and ids stay fixed.
+2. **Material choice when building.** The player picks the material for a piece (for example corrugated metal, wood, block, concrete, painted panel). PROPOSAL: a `material` field on each placed piece, with prices per material, and the skin draws it. The kit's piece ids and sizes do not change.
+3. **Garage and yard upgrades, levelled up over time.** Things you buy and level inside the garage and around it: another car lift, more parking bays, and many more like them (the office expansion is one). They are a progression track of their own. PROPOSAL: an upgrade list with levels, costs and prerequisites, shown in one place, instead of loose build-menu items.
+4. **Building expansions are a different thing.** Putting up new structures with the kit (rooms, sheds, extra buildings) is free-form building; upgrades are bought progression. Keep the two systems separate.
+
+How this settles the open build-mode questions:
+- **Buyable car lift:** becomes an upgrade (a second lift, and later levels), not a loose $1,800 item.
+- **"Car lot space":** becomes the parking-bay upgrade (more bays by level), replacing the loose item.
+- **Old PC / parts ordering:** still undecided.
+
 ## Inbox: parked until their phase opens
 
 These were the next steps before the canon arrived. They wait now unless a slice needs them; the phase is noted where it's clear.

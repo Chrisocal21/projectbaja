@@ -276,3 +276,7 @@ Chris: wall pieces, foundations, floors, pillars, window walls, garage doors, do
 - Ghost snaps to the grid (walls pick the nearest edge, no rotating needed). Building pieces can be taken down with X (50% back) but not moved with V (take down and rebuild).
 - Checked in Chromium: built a 6 x 4 m shed (6 foundations, floors, windows, a door, a garage door, pillars, roof); refusals (no foundation, duplicate, garage, lot); foundation removal refused while walls stand; walked through the door and was stopped by a plain wall; real ghost aiming snapped to the grid; 52/52 tests, build passes.
 - Not done: upper floors/stairs, opening and closing doors (all doors stand open), lights/power in built rooms, roofs that need walls, diagonal or curved pieces.
+
+## November 8, 2026: direction queued (upgrades, materials, newer look)
+
+Chris, after the structure kit: new construction should look newer and less rusted, and the player picks the materials; the garage and the land around it need levelled upgrades (another lift, more parking bays, the office expansion and more); building expansions with the kit are a different thing. Recorded as queued work in PROGRESS_TRACKER and OPEN_QUESTIONS, which also settles the buyable lift ($1,800) and the "Car lot space" item (both become upgrades). Nothing built yet.

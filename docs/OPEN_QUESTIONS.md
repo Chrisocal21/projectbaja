@@ -27,6 +27,12 @@ Each has the Forge's recommendation, so you can answer yes or give a counter.
 
 **Parked on purpose until their phase opens:** player name and appearance, names for the co-driver and his son, the accident year and place, the final title, fictional car makes, the NPC roster, payout values, wages and interest, race lengths, map topology, FPS targets, multiplayer.
 
+## Build mode: decisions from Chris (November 8)
+
+- **Buyable lift and "Car lot space":** answered. Both become garage upgrades with levels (a second lift, more parking bays) as part of a wider upgrade track that also includes the office expansion; building expansions with the structure kit are a separate thing. See PROGRESS_TRACKER, "Queued by Chris". Still to settle: the upgrade list, the levels and costs, and where you buy them.
+- **Old PC / parts ordering:** still open (build the catalogue and delivery now, or later?).
+- **Structure kit look and materials:** newer and less rusted than Walt's garage; the player chooses the material. Still to settle: which materials, prices, and whether upgrades unlock materials.
+
 ## Canon vs the current build (found November 8)
 
 These are places where something built before the canon arrived doesn't match it. Nothing has been removed. Where the fix was pure wording that contradicted a locked fact, it's noted as done.
