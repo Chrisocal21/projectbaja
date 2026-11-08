@@ -26,7 +26,7 @@ const bugSurfaces = dy => [
   cargo({ id: 'roofRack', name: 'Roof rack', size: [0.96, 0.9], at: { x: 0, y: 1.59 + dy, z: -0.38 }, clearance: 0.8, needs: { part: 'roofRack' } }),
 ];
 
-// ---- the '84 4x4 pickup (VEH_010). NOTE the model's bed is at its +z end (cab back wall z 1.27, tailgate inside z 2.79), floor y 1.00,
+// ---- the '84 4x4 pickup (VEH_010). The model is turned 180 deg in Truck.jsx so the nose is +z and the bed is at -z (cab back wall z -1.27, tailgate inside z -2.79; the numbers below are the GLB's raw ones, negated); the bed surface has rotY PI so its local coordinates (what saves store) are unchanged, floor y 1.00,
 // sides x +-0.80 above the wheel wells; the wells rise 0.28 over the floor from the cab wall to z 2.12 and come in to x +-0.42. ----
 const BED = { w: 1.6, d: 1.52, well: { inner: 0.38, len: 0.85, top: 0.28 } };
 // TIRE MOUNTS 5-8 (Chris, locked: 4 real-size upright tires side by side against the cab; mounts 1-4 are the car's own wheel slots). The wells are
@@ -35,7 +35,7 @@ const BED = { w: 1.6, d: 1.52, well: { inner: 0.38, len: 0.85, top: 0.28 } };
 const TIRE_R = 0.345;   // = gameItems TIRE_SIZE.dia / 2
 const bedMounts = [[5, 0.19, BED.well.top], [6, 0.60, 0], [7, 1.00, 0], [8, 1.41, BED.well.top]].map(([n, x, y]) => ({ id: `m${n}`, label: `Tire mount ${n}`, x, z: TIRE_R, y, pose: 'upright', accepts: ['tire'] }));
 const pickupBed = cargo({
-  id: 'bed', name: 'Bed', size: [BED.w, BED.d], at: { x: 0, y: 1.0, z: 2.03 }, clearance: 1.2,   // PROPOSAL headroom: open top, keep loads sane
+  id: 'bed', name: 'Bed', size: [BED.w, BED.d], at: { x: 0, y: 1.0, z: -2.03, rotY: Math.PI }, clearance: 1.2,   // PROPOSAL headroom: open top, keep loads sane
   gridSteps: [0.25, 0.1, 0.05],
   blocks: [{ x0: 0, z0: 0, x1: BED.well.inner, z1: BED.well.len, top: BED.well.top }, { x0: BED.w - BED.well.inner, z0: 0, x1: BED.w, z1: BED.well.len, top: BED.well.top }],
   mounts: bedMounts,
@@ -89,14 +89,14 @@ export function obstacleBoxes(vehId, ctx = {}) {
     // Items.jsx Cargo, truck: bed crates in two rows from just behind the cab wall (z 1.27) toward the tailgate
     const row = [0, 0];
     for (const l of ctx.loose || []) if (l.spot !== 'cab') {
-      const [w, h, d] = CRATE_DIM[l.size], side = row[0] <= row[1] ? 0 : 1, z0 = TRUCK_BED_Z + row[side], x = side ? -0.42 : 0.42; row[side] += d + 0.06;
-      out.push({ x0: x - w / 2, x1: x + w / 2, z0, z1: z0 + d, y0: 0.98, y1: 0.98 + h });
+      const [w, h, d] = CRATE_DIM[l.size], side = row[0] <= row[1] ? 0 : 1, z1 = TRUCK_BED_Z - row[side], x = side ? 0.42 : -0.42; row[side] += d + 0.06;
+      out.push({ x0: x - w / 2, x1: x + w / 2, z0: z1 - d, z1, y0: 0.98, y1: 0.98 + h });
     }
   }
   return out;
 }
 /** where the truck's bed crates start (just behind the cab wall; Items.jsx uses the same number) and the Bug's cab crate spots (= Items.jsx CAB) */
-export const TRUCK_BED_Z = 1.35;
+export const TRUCK_BED_Z = -1.35;   // the bed is behind the cab: -z (the model was turned 180 deg; crates run from here toward -z)
 const BUG_CAB = [[-0.3, 0.62, -0.6], [0.3, 0.62, -0.6], [0, 0.95, -0.6], [0, 0.62, -1.15]];
 /** a car-frame box as a block on surface s (surface-local), or [] when it doesn't overlap the surface in plan or isn't at its height */
 function blockOn(s, b) {

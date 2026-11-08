@@ -162,7 +162,7 @@ test('fixtures and loose crates are solid: fitted roof jerry cans block the rack
   assert.equal(truckBed([]).blocks.length, 2, 'just the wheel wells'); assert.equal(truckBed([{ spot: 'bed', size: 2 }]).blocks.length, 3);
   assert.deepEqual(obstacleBoxes('pickup84', { loose: [{ spot: 'cab', size: 1 }] }), [], 'cab crates are not in the bed');
   const lb = truckBed([{ spot: 'bed', size: 2 }]).blocks[2];
-  assert.ok(lb.z0 >= 0 && lb.z0 < 0.1, 'bed crates start at the cab wall (the bed is at +z)');
+  assert.ok(lb.z0 >= 0 && lb.z0 < 0.1, 'bed crates start at the cab wall (the bed is at -z, surface rotY PI)');
 });
 test('trailer surfaces (data only): a flat deck and an enclosed floor with real sizes, usable, no mounts needed', () => {
   const flat = surfacesFor('trailerFlat', {})[0], box = surfacesFor('trailerEnclosed', {})[0];

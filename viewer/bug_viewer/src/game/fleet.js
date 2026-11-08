@@ -5,7 +5,7 @@ import { SITES, toWorld } from '../worlds/county.js';
 import { LOT_SPOTS } from '../lot/CarLot.jsx';
 
 export const TRUCK_DIMS = {
-  wheelbase: 3.22, track: 1.92, cabEye: [0.4, 1.68, -0.12], lift: 0, bellyHeight: 0.36, offroad: true,
+  wheelbase: 3.22, track: 1.92, cabEye: [-0.4, 1.68, 0.12], lift: 0, bellyHeight: 0.36, offroad: true,
   topSpeed: 38, accelMul: 0.85, tire: { mu: 1.05, rr: 1, surf: {} },
   mounts: [['FL', 0.96, 1.61], ['FR', -0.96, 1.61], ['RL', 0.94, -1.61], ['RR', -0.94, -1.61]].map(([name, x, z]) => ({ name, radius: 0.51, center: [x, 0.513, z], halfWidth: 0.14 })),
 };
