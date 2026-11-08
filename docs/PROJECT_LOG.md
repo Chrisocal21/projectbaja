@@ -82,3 +82,15 @@ Newest entries last. Records what happened and what was decided, not plans.
 - **Truck:** the user supplied a Hilux model pack. It was exported unbranded and trimmed to 68k triangles and 5.4 MB. It's buyable at Al's and drivable, with cab and bed storage. A fleet system keeps the other vehicles parked where they were left.
 - **Plants:** the user supplied plant and tree packs (2.3 GB, git-ignored). Two low-poly trees and the dead grass, grass bushes, ferns and nettles were exported to two small GLBs and placed over the county.
 - **Repo:** the truck zips (330 MB) had been committed by accident. They're untracked and ignored now, and unused models were deleted. Purging them from history needs a force-push and is waiting on the user's OK.
+
+### November 7, 2026 (later): breakpoint
+
+- Fixed tires sinking into floors indoors. Slabs and paving now count as ground (`groundHeight`).
+- Added the county map (M).
+- **Story additions (user):**
+  - Grandpa's old #7 desert race car under a tarp in the side yard. Its shocks and race tires go to the Bug, after you weld in shock hoops made from scrap with a welder and a tube bender.
+  - Odd jobs from locals: small, occasional, no stress.
+  - Fixing up the livable trailer.
+- **Assembly guide adopted (user):** saved as `VEHICLE_ASSEMBLY_GUIDE.md`. The hologram recipe (§7) is used for build mode, and a first slice of the fit glow (§9) works on the Bug.
+- Build props got more detailed, with textures. Final art is to come from Meshy and OpenAI; prompts are in `ART_PROMPTS.md`.
+- Marked a breakpoint in PROGRESS_TRACKER: what's completed, and what's still to be completed.

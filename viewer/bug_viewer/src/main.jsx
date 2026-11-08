@@ -8,7 +8,8 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, placeProp, removeProp, BUILD_ITEMS, buildById } from './game/home.js';
+import { clearJunk, flipBreaker, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep } from './game/home.js';
+import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
   slots, bodies, wheelSets, parts, presets, PALETTE, SIZE, LIFT,
@@ -20,10 +21,11 @@ import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPla
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
-import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, BuildBar } from './game/ui.jsx';
+import { TitleScreen, PauseMenu, ShopPanel, HudOverlay, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, BuildBar, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
+import MapPanel from './game/MapPanel.jsx';
 import './style.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
@@ -140,8 +142,12 @@ function App() {
     else if (id === 'dealer') setPanel('dealer');
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
     else if (id === 'breaker') flipBreaker();
+    else if (id === 'racecar') uncoverRaceCar();
+    else if (id.startsWith('heap:')) takeHeap(id.slice(5));
+    else if (id === 'job') setPanel('job');
+    else if (id === 'trailer') setPanel('trailer');
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));
-    else if (id === 'bench') { if (game.dev) setPanel('garage'); else say('Workbench: parts get fitted by hand — grab them, bring them here. (Coming soon.)'); }
+    else if (id === 'bench') setPanel('fab');
     else interact(id);
   };
   const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
@@ -170,7 +176,8 @@ function App() {
         if (e.code === 'KeyX') { const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) { game.buildMode = { item: BUILD_ITEMS[0].id, ry: 0 }; say('Build mode — walk around to place, [ ] or the mouse wheel to pick, E to build'); } else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'dealer' || p === 'letter' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
+      if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
@@ -281,7 +288,7 @@ function App() {
     {stageEl}
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     {game.onFoot && <div className="crosshair" />}
-    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · [ ] item · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
+    <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · [ ] item · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>
     <HudOverlay />
     <BuildBar />
     {pro && <ProDebug />}
@@ -290,6 +297,10 @@ function App() {
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'dealer' && <DealerPanel onBuy={id => buyVehicle(id)} onClose={resume} />}
     {panel === 'letter' && <LetterPanel onClose={resume} />}
+    {panel === 'map' && <MapPanel onClose={resume} />}
+    {panel === 'fab' && <FabPanel onMake={id => { fabricate(id, giveToPlayer, canCarry); resume(); }} onDev={() => setPanel('garage')} onClose={resume} />}
+    {panel === 'job' && <JobPanel onDo={() => { doJob(); resume(); }} onClose={resume} />}
+    {panel === 'trailer' && <TrailerPanel onUpgrade={upgradeTrailer} onSleep={() => { sleep(); resume(); }} onClose={resume} />}
     {panel?.startsWith('box:') && <ContainerPanel id={panel.slice(4)} onClose={resume} />}
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}

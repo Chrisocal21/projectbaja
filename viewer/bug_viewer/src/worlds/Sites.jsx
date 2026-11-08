@@ -6,7 +6,7 @@ import { GARAGE, BARN, BOULDERS, CACTI } from './siteData.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
 
-const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, w, h) => {
+export const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = base; g.fillRect(0, 0, w, h);
   const n = 16; for (let i = 0; i < n; i++) {
     g.fillStyle = `rgba(0,0,0,${0.08 + r() * 0.16})`; vertical ? g.fillRect((i * w) / n, 0, 2, h) : g.fillRect(0, (i * h) / n, w, 2);
@@ -15,7 +15,7 @@ const wood = (base, dark, vertical = true, seed = 3) => canvasTex(256, 256, (g, 
   for (let i = 0; i < 1500; i++) { g.fillStyle = dark; g.globalAlpha = 0.1 + r() * 0.25; vertical ? g.fillRect(r() * w, r() * h, 1, 4 + r() * 22) : g.fillRect(r() * w, r() * h, 4 + r() * 22, 1); }
   g.globalAlpha = 1;
 }, [1, 1]);
-const metalTex = (base, seed = 5) => canvasTex(256, 256, (g, w, h) => {
+export const metalTex = (base, seed = 5) => canvasTex(256, 256, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = base; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 16; i++) { const x = (i * w) / 16, gr = g.createLinearGradient(x, 0, x + w / 16, 0); gr.addColorStop(0, 'rgba(255,255,255,0.16)'); gr.addColorStop(0.5, 'rgba(0,0,0,0.12)'); gr.addColorStop(1, 'rgba(255,255,255,0.16)'); g.fillStyle = gr; g.fillRect(x, 0, w / 16, h); }
   for (let i = 0; i < 40; i++) { const x = r() * w, y = r() * h, rad = 6 + r() * 26, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(120,56,24,0.3)'); gr.addColorStop(1, 'rgba(120,56,24,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }

@@ -6,7 +6,7 @@ Last updated: November 7, 2026. Building up your property: grandpa's yard and ga
 
 1. **Unlock:** clear all the junk out of the garage interior (3 piles). Until then, B says "Clear the junk out of the garage first."
 2. **Enter:** press **B** on foot anywhere on your property (60 × 50 m around the garage).
-3. **Place:** a ghost of the item stands about 4 m in front of you, snapped to a 0.5 m grid. It's green where it can go and red with the reason where it can't.
+3. **Place:** a hologram of the item stands (assembly guide §7: glowing body, edges that show through walls, a footprint on the ground) about 4 m in front of you, snapped to a 0.5 m grid. It's green where it can go and red with the reason where it can't.
    - E or click builds it.
    - R rotates it 45°.
    - Mouse wheel or [ ] switches items.
@@ -27,6 +27,7 @@ Last updated: November 7, 2026. Building up your property: grandpa's yard and ga
 | Yard | Floodlight pole ($120, real light), picnic table ($60), barbecue grill ($80) |
 | Storage | Steel parts rack ($150), rolling tool chest ($260, garage) |
 | Garage | Two-post car lift ($1,800), engine stand ($140) |
+| Fabrication | MIG welder + cart ($450), tube bender ($320). Needed to make and weld in the shock hoops (workbench) |
 | Office | Desk + old PC ($320), busted couch ($35) |
 | Decor | "OPEN" neon sign ($75), pink flamingo ($15), giant garden gnome ($90), roadside dinosaur ($2,500), tire stack ($20), oil drum ($10) |
 | Car lot | Car lot space, gravel + paint ($200) |

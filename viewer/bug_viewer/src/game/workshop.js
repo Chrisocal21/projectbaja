@@ -5,6 +5,7 @@ import { BUG, UPGRADE_FIT, WHEEL_FIT, slotById } from '../rules/vehicles.js';
 import { isFitted, checkFit, checkDetach, withSlot, zoneAt, isDriveable, missingToDrive, listNames, TOOL_WHY } from '../rules/restore.js';
 import { partById, setPart, setWheels, setRim, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
 import { activeType } from './fleet.js';
+import { hasInGarage } from './home.js';
 
 export const DEF = BUG;
 export const STOCK_NAMES = Object.fromEntries(BUG.slots.map(s => [s.id, s.name]));
@@ -54,6 +55,14 @@ export function planFit(it, b, zone) {
     const r = checkFit(DEF, b, slot, ctx);
     return { ...r, slotName: slot.name, apply: bb => ({ build: slot.id === 'engine' ? (() => { const n = withSlot(DEF, bb, 'engine', true); const p = { ...n.parts }; delete p.engine; return { ...n, parts: p }; })() : withSlot(DEF, bb, slot.id, true), drops: [] }) };
   }
+  if (it.kind === 'fab' && it.id === 'shockHoops') {
+    if (b.fab?.hoops) return { ok: false, why: 'The hoops are already welded in.' };
+    if (!inGarageZone(game.pos.x, game.pos.z) || !hasInGarage('welder')) return { ok: false, why: 'Welding them in needs the welder — in your garage.' };
+    return { ok: true, slotName: 'shock hoops', apply: bb => ({ build: { ...bb, fab: { ...(bb.fab || {}), hoops: true } }, drops: [] }) };
+  }
+  const HOOPS_WHY = "Those need shock hoops welded in first — scrap metal, a welder and a tube bender (workbench).";
+  if (it.kind === 'part' && ['shocks', 'suspension'].includes(partById[it.id]?.slot) && !b.fab?.hoops) return { ok: false, why: HOOPS_WHY };
+  if (it.kind === 'wheel' && it.id !== 'stock' && !b.fab?.hoops) return { ok: false, why: "Those tires won't clear the stock body. " + HOOPS_WHY };
   if (it.kind === 'part') {
     const p = partById[it.id]; if (!p || partState(p, body) !== 'ok') return { ok: false, why: "That doesn't fit this car." };
     const fit = UPGRADE_FIT[p.slot] || { zone: 'any' }, tool = fit.tool || 'wrench';

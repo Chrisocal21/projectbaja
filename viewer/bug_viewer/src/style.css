@@ -88,3 +88,8 @@
 .build-bar .bb-why.ok { color: #5be08a; } .build-bar .bb-why.bad { color: #ff7a5a; }
 .build-bar .bb-keys { font-size: 11px; color: #9fb4b8; }
 @media (max-width: 520px) { .build-bar { min-width: 0; left: 16px; right: 16px; transform: none; } }
+
+/* county map (M) */
+.card.map-card { max-width: 700px; width: min(700px, calc(100vw - 32px)); }
+.map-canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; border: 1px solid #ffffff22; background: #b9a57a; display: block; }
+.map-btns { display: flex; gap: 8px; }

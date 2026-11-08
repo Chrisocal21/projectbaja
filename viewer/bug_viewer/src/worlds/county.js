@@ -166,8 +166,30 @@ export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI 
 export const height = R.heightAt(base);
 export const surface = R.surfaceAt(baseSurface);
 export const isRoad = R.isRoad;
+// ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------
+// [site, x0, x1, z0, z1, top above the pad] in site-local metres, or [site, 'disc', cx, cz, r, top]
+const FLOORS = [
+  ['garage', -7.6, 7.6, -6.6, 6.6, 0.12], ['garage', -4.5, 4.5, 6.0, 11.1, 0.12],
+  ['warehouse', -12, 12, -8, 8, 0.12],
+  ['shack1', -2.6, 2.6, -2.2, 2.2, 0.1], ['shack2', -2.6, 2.6, -2.2, 2.2, 0.1], ['shack3', -2.6, 2.6, -2.2, 2.2, 0.1],
+  ['lot', -30, 30, -20, 22, 0.05], ['gas', 'disc', 0, 3, 19.5, 0.045],
+];
+const floorList = FLOORS.map(([id, ...f]) => ({ s: SITES[id], f, R: f[0] === 'disc' ? f[3] + Math.hypot(f[1], f[2]) : Math.hypot(Math.max(-f[0], f[1]), Math.max(-f[2], f[3])) }));
+/** the top of whatever floor is under (x, z), or -Infinity */
+export function floorAt(x, z) {
+  let top = -Infinity;
+  for (const { s, f, R: r } of floorList) {
+    const dx = x - s.x, dz = z - s.z; if (Math.abs(dx) > r || Math.abs(dz) > r) continue;
+    const c = Math.cos(s.rot), n = Math.sin(s.rot), lx = dx * c - dz * n, lz = dx * n + dz * c;
+    const inside = f[0] === 'disc' ? Math.hypot(lx - f[1], lz - f[2]) <= f[3] : lx >= f[0] && lx <= f[1] && lz >= f[2] && lz <= f[3];
+    if (inside) top = Math.max(top, s.y + (f[0] === 'disc' ? f[4] : f[4]));
+  }
+  return top;
+}
 export const onCore = R.isCore;
 export const baseHeight = base;
+/** what you stand / drive on: the terrain, or a slab or paving on top of it */
+export const groundHeight = (x, z) => Math.max(height(x, z), floorAt(x, z));
 
 /** where you are, for the HUD */
 export function areaAt(x, z) {

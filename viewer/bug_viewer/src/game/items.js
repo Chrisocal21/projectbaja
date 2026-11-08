@@ -4,6 +4,7 @@ import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { activeType } from './fleet.js';
+import { SUPPLIES } from './jobs.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
 import { BUG } from '../rules/vehicles.js';
 
@@ -12,9 +13,10 @@ const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'supply' ? 1 : kind === 'fab' ? 3 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
-export const nameOfItem = it => it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
+export const nameOfItem = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -99,7 +101,8 @@ export function takeFromCar(uidN) {
 // ---- containers ----
 export function searchBox(id) {
   const b = game.boxes[id] || (game.boxes[id] = { cash: 0, searched: false });
-  if (!b.searched) { b.searched = true; if (b.cash) { addCash(b.cash); say(`Found $${b.cash} in the ${CONTAINER_RULES[containerById[id].type].label}.`); } }
+  if (!b.searched) { b.searched = true; if (b.cash) { addCash(b.cash); say(`Found $${b.cash} in the ${CONTAINER_RULES[containerById[id].type].label}.`); }
+    if (b.scrap) { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + b.scrap }; say(`${b.cash ? `Found $${b.cash} and` : 'Found'} ${b.scrap} pieces of scrap metal.`); } }
   save();
 }
 export function takeFromBox(uidN) {
@@ -133,10 +136,10 @@ export function seedWorld(bodyId) {
   const g = SITES.garage;
   for (const [k, id, lx, lz, ly] of [STARTER.garageBench, STARTER.garageFloor]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
   // grandpa had the Bug half apart: its rear-right wheel leans by the car, the driver's seat sits on the floor
-  for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0.12, ry: g.rot + 0.4, ...extra }); }
+  for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0, ry: g.rot + 0.4, ...extra }); }
   for (const c of containers) {
     const rule = CONTAINER_RULES[c.type], fixed = STARTER[c.id];
-    game.boxes[c.id] = { cash: fixed ? fixed.cash : Math.random() < 0.6 ? rint(rule.cash) : 0, searched: false };
+    game.boxes[c.id] = { cash: fixed ? fixed.cash : Math.random() < 0.6 ? rint(rule.cash) : 0, scrap: !fixed && c.type !== 'toolbox' && Math.random() < 0.45 ? 1 + Math.floor(Math.random() * 2) : 0, searched: false };
     const list = fixed ? fixed.items : Array.from({ length: rint(rule.n) }, () => pick(rule.max)).filter(Boolean);
     for (const [k, id] of list) add({ kind: k, id, loc: 'box', box: c.id });
   }

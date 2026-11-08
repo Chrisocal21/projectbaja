@@ -14,6 +14,7 @@ export const FURNITURE = [
 // containers: toolbox (small parts + cash), drawer (tool chest), box (cardboard), crate (wooden)
 const C = (id, site, type, lx, lz, ly = 0, ry = 0) => ({ id, site, type, lx, lz, ly, ry });
 export const CONTAINERS = [
+  C('racecar', 'garage', 'car', 13, 0.5, 0, 0.08),
   C('g-toolbox', 'garage', 'toolbox', -1.2, -5.2, BENCH_TOP), C('g-chest', 'garage', 'drawer', 6.2, 4.2, 0, -Math.PI / 2),
   C('b-crate1', 'barn', 'crate', 2.6, -10.0), C('b-crate2', 'barn', 'crate', -5.7, 1.6, 0, 0.3), C('b-box', 'barn', 'box', -6.9, 3.4, 0, 0.2), C('b-toolbox', 'barn', 'toolbox', 7.3, 1.3, BENCH_TOP, Math.PI / 2),
   C('w-crate1', 'warehouse', 'crate', 6, -2, 0, 0.2), C('w-crate2', 'warehouse', 'crate', 9, 2), C('w-crate3', 'warehouse', 'crate', 7.6, 4.6, 0, -0.3),
@@ -39,6 +40,7 @@ export const CONTAINER_RULES = {
   drawer: { max: 1, n: [0, 2], cash: [5, 45], label: 'tool chest', r: 0.5 },
   box: { max: 2, n: [1, 1], cash: [0, 0], label: 'cardboard box', r: 0.4 },
   crate: { max: 3, n: [1, 1], cash: [0, 25], label: 'wooden crate', r: 0.6 },
+  car: { max: 4, n: [0, 0], cash: [0, 0], label: "grandpa's race car", r: 0 },
 };
 
 const place = o => { const s = SITES[o.site], [x, z] = toWorld(s, o.lx, o.lz); return { ...o, x, z, y: s.y + (o.ly || 0), wry: s.rot + (o.ry || 0) }; };
@@ -49,9 +51,9 @@ export const containerById = Object.fromEntries(containers.map(c => [c.id, c]));
 export const LOOT_COLLIDERS = (() => {
   const out = [];
   for (const f of furniture) { const s = SITES[f.site], n = Math.max(2, Math.round(f.len / 1.1)); for (let i = 0; i < n; i++) { const t = (i / (n - 1) - 0.5) * (f.len - 0.6); const [x, z] = toWorld(s, f.lx + Math.cos(f.ry) * t, f.lz - Math.sin(f.ry) * t); out.push([x, z, f.type === 'rack' ? 0.65 : 0.5, 99]); } }
-  for (const c of containers) if (!c.ly) out.push([c.x, c.z, CONTAINER_RULES[c.type].r, 99]);
+  for (const c of containers) if (!c.ly && CONTAINER_RULES[c.type].r) out.push([c.x, c.z, CONTAINER_RULES[c.type].r, 99]);
   return out;
 })();
 
 /** the garage's starting stock is fixed; everything else is shuffled per new game */
-export const STARTER = { 'g-toolbox': { items: [['part', 'LIGHT_BumperPods']], cash: 40 }, garageBench: ['part', 'ACC_LightBar', -3.9, -5.2, BENCH_TOP], garageFloor: ['part', 'GUARD_MudFlaps', 4.2, 0.6, 0] };
+export const STARTER = { racecar: { items: [['part', 'SHOCK_001_Coilover'], ['wheel', 'tire-beadlock']], cash: 0 }, 'g-toolbox': { items: [['part', 'LIGHT_BumperPods']], cash: 40 }, garageBench: ['part', 'ACC_LightBar', -3.9, -5.2, BENCH_TOP], garageFloor: ['part', 'GUARD_MudFlaps', 4.2, 0.6, 0] };

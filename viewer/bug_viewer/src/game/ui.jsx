@@ -1,7 +1,8 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
-import { LETTER, BUILD_ITEMS, buildById, garageClean } from './home.js';
+import { SUPPLIES, jobById, jobCheck } from './jobs.js';
+import { LETTER, BUILD_ITEMS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
@@ -133,7 +134,7 @@ export function HudOverlay() {
     <div className="hud-top"><b>${game.cash.toLocaleString()}</b></div>
     {game.prompt && <div className="hud-prompt">{game.prompt}</div>}
     {game.toast && <div className="hud-toast">{game.toast.msg}</div>}
-    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack}<br />{activeType().name}: {Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · no roof rack' : ''} · Tab inventory{game.canBuild && !game.buildMode ? ' · B build' : ''}</div>}
+    {game.onFoot && <div className="hud-carry">{held() ? <>Hands: <b>{nameOfItem(held())}</b> ({SIZE_NAME[sizeOf(held().kind, held().id)]}) · G put down</> : 'Hands empty'} · Pack {used('pack')}/{CAPACITY.pack} · Scrap {game.mats?.scrap || 0}<br />{activeType().name}: {Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · no roof rack' : ''} · Tab inventory{game.canBuild && !game.buildMode ? ' · B build' : ''}</div>}
   </>;
 }
 
@@ -160,6 +161,7 @@ export function InventoryPanel({ onClose }) {
     {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
     <div className="inv-sec">{activeType().name.toUpperCase()} <span>{Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
     {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
+    <div className="inv-sec">SCRAP METAL <span>{game.mats?.scrap || 0} pieces · used at the workbench</span></div>
     <div className="inv-sec">GARAGE SHELVES <span>{shelf.length} parts{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
     <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
@@ -212,6 +214,38 @@ export function StorePanel({ onBuy, onClose }) {
     {row('stock:battery', '12V car battery', 60, 'small · fits in your pack')}
     {row('tool:wrench', 'Wrench', 15, 'small · bolts most things on and off')}
     {row('tool:jack', 'Floor jack', 90, 'large · change tires anywhere')}
+    {Object.entries(SUPPLIES).map(([id, s]) => row('supply:' + id, s.name, s.price, 'small · for customer jobs'))}
     {row('wash', 'Hand wash & wax', 120, 'cleans up the paint a bit')}
     <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;
+}
+
+/** the workbench: fabricate parts from scrap metal (needs the shop tools you've built) */
+export function FabPanel({ onMake, onDev, onClose }) {
+  useGame();
+  return <div className="overlay"><div className="card inv"><h2>WORKBENCH</h2>
+    <p className="hint">Scrap metal: <b>{game.mats?.scrap || 0}</b>. Shop tools: welder {hasInGarage('welder') ? '✓' : '✗'} · tube bender {hasInGarage('bender') ? '✓' : '✗'} (build them with B).</p>
+    {RECIPES.map(r => { const tools = r.tools.every(hasInGarage), mats = (game.mats?.scrap || 0) >= r.scrap; return <div key={r.id} className="inv-row"><span>{r.name}<small>{r.scrap} scrap · needs {r.tools.map(t => buildById[t].name.toLowerCase()).join(' + ')} · {r.note}</small></span>
+      <span className="inv-btns"><button disabled={!tools || !mats || game.build?.fab?.hoops} onClick={() => onMake(r.id)}>{game.build?.fab?.hoops ? 'Done' : !tools ? 'Need tools' : !mats ? `${game.mats?.scrap || 0}/${r.scrap}` : 'Make'}</button></span></div>; })}
+    <div className="menu">{game.dev && <button onClick={onDev}>Customizer (testing)</button>}<button className="big" onClick={onClose}>Close (Esc)</button></div></div></div>;
+}
+
+/** a customer with a small job */
+export function JobPanel({ onDo, onClose }) {
+  useGame();
+  const j = game.job && jobById[game.job.id]; if (!j) return null;
+  const c = jobCheck(j);
+  return <div className="overlay"><div className="card inv"><h2>{j.title.toUpperCase()}</h2>
+    <p><b>{j.who}:</b> "{j.ask}"</p>
+    <p className={c.ok ? 'ws-good' : 'ws-bad'}>{c.ok ? `You've got what it needs. Pays $${j.pay}.` : `${c.why} Pays $${j.pay}.`}</p>
+    <div className="menu"><button className="big" disabled={!c.ok} onClick={onDo}>Do the job (+${j.pay})</button><button onClick={onClose}>In a bit (Esc)</button></div>
+    <p className="hint">No rush — they'll wait. Supplies are at Dusty's store in Dry Wells.</p></div></div>;
+}
+
+/** grandpa's trailer: fix it up to live in */
+export function TrailerPanel({ onUpgrade, onSleep, onClose }) {
+  useGame();
+  return <div className="overlay"><div className="card inv"><h2>GRANDPA'S TRAILER</h2>
+    <p className="hint">A 1966 single-wide. Musty, leaky, yours.</p>
+    {TRAILER_UPGRADES.map(u => <div key={u.id} className="inv-row"><span>{u.name}<small>{u.note}</small></span><span className="inv-btns">{trailerHas(u.id) ? <small>done</small> : <button disabled={game.cash < u.price} onClick={() => onUpgrade(u.id)}>${u.price}</button>}</span></div>)}
+    <div className="menu"><button className="big" disabled={!trailerHas('roof')} onClick={onSleep}>{trailerHas('roof') ? 'Sleep until morning' : 'Sleep (patch the roof first)'}</button><button onClick={onClose}>Leave (Esc)</button></div></div></div>;
 }

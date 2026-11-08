@@ -1,8 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { holoMaterials, ghostify, HOLO } from './hologram.js';
+import { fitCandidate, carLocal } from './game/workshop.js';
+import { held } from './game/items.js';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { resolve, partFile, bodyById } from './build.js';
+import { resolve, partFile, bodyById, partById } from './build.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
 import { applyWeathering, kindForMaterial } from './weather.js';
@@ -184,6 +188,62 @@ function Fitted({ file, fit, children }) {
   return <group position={t.pos} scale={t.scale}><group quaternion={t.quat}><group position={[-t.center.x, -t.center.y, -t.center.z]}>{children}</group></group></group>;
 }
 
+/** welded-in shock hoops: a tube tower over each wheel, braced back to the body (fabricated from scrap, see game/home.js) */
+export function ShockHoops({ mounts, ghost = null }) {
+  const steel = useMemo(() => ghost ? ghost.body : new THREE.MeshStandardMaterial({ color: '#3a3d40', metalness: 0.6, roughness: 0.45 }), [ghost]);
+  const g = useMemo(() => {
+    const root = new THREE.Group(), tube = (a, b, r = 0.024) => { const d = new THREE.Vector3().subVectors(b, a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), steel); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); m.castShadow = !ghost; root.add(m); };
+    for (const m of mounts) {
+      const [x, y, z] = m.center, xi = x * 0.72, top = y + m.radius + 0.36, front = m.name.startsWith('F') ? 1 : -1;
+      const a = new THREE.Vector3(xi, y - 0.05, z - 0.3), b = new THREE.Vector3(xi, top, z - 0.18), c = new THREE.Vector3(xi, top, z + 0.18), d = new THREE.Vector3(xi, y - 0.05, z + 0.3);
+      tube(a, b); tube(b, c); tube(c, d);                                                   // the hoop over the tire
+      tube(b, new THREE.Vector3(xi * 0.35, top - 0.05, z - front * 0.15), 0.02);            // brace in to the body
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.02, 0.1), steel); p.position.set(xi, top + 0.01, z); root.add(p);   // shock top plate
+    }
+    if (ghost) ghostify(root, ghost);
+    return root;
+  }, [mounts, steel, ghost]);
+  return <primitive object={g} />;
+}
+
+/** a hologram of part of a GLB (only the meshes whose names start with `only`), e.g. the empty spot a held part bolts into */
+function GhostModel({ file, only, mats }) {
+  const { scene } = useGLTF(`/models/${file}.glb`);
+  const obj = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse(o => { if (o.isMesh) o.visible = !only || only.some(p => sourceNameFor(o).startsWith(p)); });
+    return ghostify(c, mats);
+  }, [scene, (only || []).join('|'), mats]);
+  return <primitive object={obj} />;
+}
+const WHEEL_MESH = { FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' };
+/** §9 of the assembly guide: while you hold a part near the car, the spot where it goes glows - green (go), amber (open the lid first), red (not yet) */
+function FitGhost({ build, r }) {
+  useGame();
+  const mats = useMemo(() => holoMaterials(), []);
+  useEffect(() => () => mats.dispose(), [mats]);
+  useFrame(({ clock }) => mats.pulse(clock.elapsedTime, !!game.nearCar));
+  if (!game.onFoot || !game.pose || game.active !== 'bug' || Math.hypot(game.pos.x - game.pose.x, game.pos.z - game.pose.z) > 10) return null;
+  const fc = held() ? fitCandidate(build, game.nearCar ? game.carZone : undefined) : null; if (!fc) return null;
+  const it = fc.it, plan = fc.plan;
+  mats.set(plan.ok ? HOLO.ok : plan.openCover ? HOLO.amber : HOLO.bad);
+  if (it.kind === 'fab' && it.id === 'shockHoops') return <ShockHoops mounts={r.mounts} ghost={mats} />;
+  if (it.kind === 'stock' && it.id === 'wheel') {
+    const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w)), cl = carLocal(); if (!bare.length) return null;
+    const near = bare.map(w => [w, r.mounts.find(m => m.name === w)]).sort((a, b) => Math.hypot(a[1].center[0] - (cl?.lx || 0), a[1].center[2] - (cl?.lz || 0)) - Math.hypot(b[1].center[0] - (cl?.lx || 0), b[1].center[2] - (cl?.lz || 0)))[0][0];
+    return <GhostModel file={r.body.file} only={[WHEEL_MESH[near]]} mats={mats} />;
+  }
+  if (it.kind === 'stock') {
+    const slot = BUG.slots.find(s => s.id === it.id), piece = slot?.piece && (r.body.pieces || []).find(p => p.id === slot.piece);
+    return piece ? <group position={[0, r.lift, 0]}><GhostModel file={r.body.file} only={piece.match} mats={mats} /></group> : null;
+  }
+  if (it.kind === 'part') {
+    const p = partById[it.id]; if (!p || p.proc || p.engineMod || p.spare || p.fit) return null;
+    return <group position={[0, r.lift, 0]}><group position={p.offset?.[r.body.id] || [0, 0, 0]}><GhostModel file={partFile(p, r.body.id)} only={null} mats={mats} /></group></group>;
+  }
+  return null;
+}
+
 /** a bare body shell (all panels, glass and trim off) standing on its own, e.g. out in the yard */
 export function ShellProp({ bodyId }) {
   const body = bodyById[bodyId] || bodyById.classic;
@@ -211,6 +271,8 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
         return <group key={p.id} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.proc ? <ProcPart id={p.proc} r={r} /> : p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.hardware && <ProcPart id={p.hardware} r={r} />}</group>;
       })}
     </group>
+    {build.fab?.hoops && <ShockHoops mounts={r.mounts} />}
+    {drive && <React.Suspense fallback={null}><FitGhost build={build} r={r} /></React.Suspense>}
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
     {bare.map(w => { const m = r.mounts.find(x => x.name === w); return m && <group key={'stand' + w} position={[m.center[0], 0, m.center[2]]}><mesh position={[0, m.center[1] * 0.45, 0]} castShadow><boxGeometry args={[0.22, m.center[1] * 0.9, 0.22]} /><meshStandardMaterial color="#b8361f" metalness={0.4} roughness={0.5} /></mesh><mesh position={[0, 0.02, 0]}><boxGeometry args={[0.4, 0.04, 0.4]} /><meshStandardMaterial color="#8a2a18" metalness={0.4} roughness={0.5} /></mesh></group>; })}
     {r.tire && r.mounts.filter(m => !bare.includes(m.name)).map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}

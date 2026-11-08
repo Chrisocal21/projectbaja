@@ -381,18 +381,18 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', height: CO.height, surface: CO.surface, half: CO.HALF_DRIVE, far: 2600, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 2600, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
-    const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}`;
-    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length))] };
+    const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
+    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.job ? vehicleCircles(game.job, 5.1) : [])] };
     return obsCache.list;
   },
 };
 /** every vehicle that is not the one you are using: parked where you left it, or waiting on Al's lot */
 function Fleet() {
   useGame();
-  return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.height(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
+  return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.groundHeight(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
     <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : <TruckModel />}</Suspense>
     <Cargo veh={v.id} />
   </group>)}</>;

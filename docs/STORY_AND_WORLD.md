@@ -9,6 +9,15 @@ You just finished college. Your grandfather **Walt** has died and left you his g
 - **It starts run-down.** The garage is full of junk (rotten boxes, paint cans, decades of newspapers). The yard has bald tires, scrap metal, a dead fridge and tumbleweeds. The power is off, and the lights only come on once you flip the main breaker.
 - **Grandma's old Bug is inside.** It hasn't run since 2009. The battery is dead, grandpa had the rear-right wheel off to do the brakes, and the driver's seat is out to fix the runner. Every part is still lying around the garage. Getting it running is the first goal and the tutorial: fit the seat, put the wheel back on, then buy or find a battery.
 - **Grandpa left a letter** on the workbench. It points you at Al (car lot), Dusty (gas station, "good people") and the closed Proving Grounds ("nobody checks the fence"). It ends: "Fix her up. Then fix the place up. Then go fast."
+- **Grandpa's old #7 desert race car** sits under a tarp in the side yard. Its race shocks and four beadlock tires were set aside for the Bug, but they won't clear the stock body. You have to:
+  1. Gather scrap metal.
+  2. Build a welder and a tube bender in the shop.
+  3. Fabricate shock hoops at the workbench.
+  4. Weld them in.
+
+  Only then do the shocks and tires go on.
+- **Odd jobs** keep you going. Once the lights are on, a local now and then pulls into the yard with something small: a dead battery, an oil change, a headlight, a flat, wipers, a fan belt, a tune-up. You buy the supply at Dusty's, do the job and get paid. There's no timer and no stress: just enough to keep chipping away at the garage, then the whole property (the trailer, the yard), and later building cars to sell.
+- **Grandpa's 1966 trailer** is yours to fix up: patch the roof (then you can sleep there), build a porch, paint it, add A/C and string lights.
 - **Honest Al's lot in Dry Wells sells the bigger, pricier vehicles.** The Bug isn't for sale there any more; it's yours from the start.
 - **The arc:** clean the garage → get the Bug running → buy a truck to haul big parts → build up your property → turn the Bug (and later other vehicles) into race machines → race at the Proving Grounds and beyond.
 
@@ -55,6 +64,10 @@ You start with $1,500. Clearing junk pays a little scrap money.
 **Surfaces:** asphalt, concrete, gravel, packed dirt, loose dirt, scrub, sand, red dirt, rock, mud, dry lakebed, grass. Each has its own grip and rolling resistance.
 
 **Terrain tech:** analytic base height, plus biome shaping (dunes, mesas, lakebed, flattened town and proving grounds, mountains round the edge), plus roads and pads painted into a 2 m raster. The terrain is drawn in 250 m tiles. Every tile has a coarse mesh, and tiles within about 430 m get a fine one, built one per tick so it never hitches. Skirts hide any cracks between them.
+
+**Map:** press **M** anywhere for the county map. It shows roads, places, you, your parked vehicles and any customer waiting.
+
+**Floors:** physics and walking stand on slabs and paving (garage, warehouse, shacks, lot, gas station) through `groundHeight` in `county.js`, so wheels never sink into a floor.
 
 **Dev tools:** add `?dev` to the URL or press backquote on the title screen, then choose "Baja County (free drive)". Number keys 0–9 teleport (dev only).
 

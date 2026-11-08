@@ -4,7 +4,9 @@ import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held } from './items.js';
 import { containers } from './loot.js';
-import { height } from '../worlds/county.js';
+import { height, groundHeight } from '../worlds/county.js';
+/** items with a height (on a bench / shelf) are placed from the site's pad; floor items stand on the floor (garage slab, lot paving...) */
+const itemY = it => ((it.y || 0) > 0.3 ? height(it.x, it.z) + it.y : groundHeight(it.x, it.z) + (it.y || 0));
 import { ShellProp } from '../BuildModel.jsx';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
@@ -46,8 +48,8 @@ export default function Items() {
     g.rotation.set(0, camera.rotation.y, 0);
   });
   return <>
-    {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + 0.06, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
-    {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, height(it.x, it.z) + (it.y || 0), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
+    {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
+    {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     {containers.map(c => <group key={c.id} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>)}
     <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={0.75} />}</group>
   </>;
@@ -75,6 +77,7 @@ export function Cargo({ veh }) {
 const M = ({ c, r = 0.6, m = 0 }) => <meshStandardMaterial color={c} roughness={r} metalness={m} />;
 /** toolbox / tool chest / cardboard box / wooden crate; `open` once it has been searched */
 function Container({ type, open }) {
+  if (type === 'car') return null;   // grandpa's race car draws itself (worlds/Home.jsx)
   if (type === 'toolbox') return <group>
     <mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.56, 0.22, 0.26]} /><M c="#b3261e" r={0.45} m={0.5} /></mesh>
     <group position={[0, 0.22, -0.13]} rotation={[open ? -1.9 : 0, 0, 0]}><mesh position={[0, 0.03, 0.13]} castShadow><boxGeometry args={[0.57, 0.06, 0.27]} /><M c="#c22d24" r={0.45} m={0.5} /></mesh></group>

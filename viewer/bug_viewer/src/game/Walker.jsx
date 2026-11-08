@@ -4,7 +4,10 @@ import { game, setPrompt } from './store.js';
 import { TARGETS } from '../worlds/siteData.js';
 import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
-import { junkWorld, isCleared, garageClean, onProperty } from './home.js';
+import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, SCRAP_HEAPS, heapTaken } from './home.js';
+import { jobById } from './jobs.js';
+import { toWorld as toW } from '../worlds/county.js';
+const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, -20.4, -0.8); return { x, z }; })();
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
@@ -14,12 +17,15 @@ import { isFitted } from '../rules/restore.js';
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
   bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
-  letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', dealer: "Press E — Look over the '84 4x4 ($4,800)",
+  letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Pull the tarp off the car in the side yard', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
+  if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
+  if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
+  if (id.startsWith('heap:')) return 'Press E — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
   if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : `Press E — Pick up ${nameOfItem(it)}`) : ''; }
@@ -117,7 +123,11 @@ export default function Walker({ world, sun }) {
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
     if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5);
-    if (foot) for (const c of containers) consider('box:' + c.id, c.x, c.z, 2.2, true, 0.55);
+    if (foot) for (const c of containers) { if (c.id === 'racecar' && !game.home.raceCar) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55); }
+    if (foot && !game.home.raceCar) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6);
+    if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6);
+    if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5);
+    if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8);
     if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6);
     if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7); }
     if (pose) {

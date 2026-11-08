@@ -13,13 +13,13 @@ export const game = {
   toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,
   fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
-  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [],
+  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: null,
   onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: false, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
 WEAR.value = game.wear;
 if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props })); } catch {} };
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats })); } catch {} };
 export const save = () => { persist(); emit(); };
 export const saveBuild = b => { game.build = b; if (!game.dev) persist(); };
 
@@ -46,7 +46,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = [];
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null;
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
