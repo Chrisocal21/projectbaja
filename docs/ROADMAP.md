@@ -2,6 +2,8 @@
 
 One page that says where everything stands. Written because work had spread across several pages and half-finished systems. Read [CANON](./CANON.md) first. Labels: **PROPOSAL** = a design guess, not decided. **CHRIS IDEA** = Chris asked for it, not yet scoped or locked in canon. Nothing here invents lore.
 
+## 0. FOCUS (Nov 8, Chris): main game only. Dev testing tools (Build Sandbox, Placement Lab) are ON HOLD; do not extend them until Chris says so.
+
 ## 1. Where everything lives (all on `main` now)
 
 | What | Where to open it | State |
@@ -28,7 +30,7 @@ Garage start, breaker, letter, Grandma's Bug and restoration, #7 under the tarp,
 
 ## 4. Chris's backlog, organised
 
-**A. Phone + PC ecosystem (Rockstar-style).** Home screen with mini apps: the Index (wiki-style, not called "wiki"), jobs, SMS with suppliers and clients, story log. Walt's PC for ordering parts and looking up vehicles. *App list to be designed together.*
+**A. Phone + PC ecosystem (Rockstar-style).** *Decision Nov 8 (Chris): the phone REPLACES the Esc pause menu. Opening it is how you save, exit, change settings, browse the internet, see car sales, order parts, and so on. Note: browsers always release the mouse on Esc, so Esc must open the phone as the mouse is released, and a second key (PROPOSAL: P) opens it too.* Home screen with mini apps: the Index (wiki-style, not called "wiki"), jobs, SMS with suppliers and clients, story log. Walt's PC for ordering parts and looking up vehicles. *App list to be designed together.*
 **B. Garage furniture.** Everything movable. Tire racks show real tires, shelves show real items.
 **C. Tool spots.** Pegboard outlines become missing-tool slots. Grandpa had the basic, older tools; welder, bender, grinder and other specialty tools are bought or found.
 
