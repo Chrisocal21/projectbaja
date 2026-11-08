@@ -395,4 +395,5 @@ function Slider({ label, value, min, max, step, unit, digits, disabled, hint, on
   </div>;
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+const PlacementLab = new URLSearchParams(location.search).get('lab') === 'placement' && React.lazy(() => import('./placement/Lab.jsx'));   // test scene, only with ?lab=placement (not even loaded otherwise)
+createRoot(document.getElementById('root')).render(PlacementLab ? <Suspense fallback={null}><PlacementLab /></Suspense> : <App />);

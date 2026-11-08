@@ -27,11 +27,15 @@ export function placeable({ id, footprint, height, tags = [], stackable = false,
   return { id, footprint: [...footprint], height, tags: [...tags], stackable: !!stackable, stackOn: [...stackOn] };
 }
 
-/** one item put down: x, z = the item's CENTRE in surface-local metres, rot radians about y, y = height of its base above the surface (0 = on it). */
-export function placement({ item, surface, x, z, rot = 0, y = 0, free = false }) {
+let seq = 0;
+/** one item put down: x, z = the item's CENTRE in surface-local metres, rot radians about y, y = height of its base above the surface (0 = on it).
+ *  id names this one placement (two tires are two placements); left out, a fresh one is made. A preview of a MOVE reuses the id of the
+ *  placement being moved, so why() / restY() skip the original instead of colliding with it. */
+export function placement({ id, item, surface, x, z, rot = 0, y = 0, free = false }) {
   need(typeof item === 'string' && item && typeof surface === 'string' && surface, 'placement needs item and surface ids');
   need(num(x) && num(z) && num(rot) && num(y) && y >= 0, 'placement x, z, rot, y must be numbers (y >= 0)', item);
-  return { item, surface, x, z, rot, y, free: !!free };
+  need(id === undefined || id === null || (typeof id === 'string' && id), 'placement id must be a non-empty string', item);
+  return { id: id || `pl${++seq}`, item, surface, x, z, rot, y, free: !!free };
 }
 
 /** index a catalog by id, refusing duplicates (two 'tire' entries would make why() answer for whichever came last) */

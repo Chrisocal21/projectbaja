@@ -95,6 +95,35 @@ test('why(): null when fine, a reason for each way it can go wrong', () => {
   assert.equal(why(noStack, tire, on(floor, tire, 3, 2, { y: 0.2 }), there, items), "can't stack here");
   assert.equal(why(bench, box, on(bench, box, 1.25, 0.5), there, items), null, 'items on another surface never collide');
 });
+test('placements get an id: auto-made and unique when left out, kept when given', () => {
+  const a = on(floor, box, 1, 1), b = on(floor, box, 1, 1);
+  assert.equal(typeof a.id, 'string'); assert.ok(a.id);
+  assert.notEqual(a.id, b.id, 'two placements, two ids');
+  assert.equal(on(floor, box, 1, 1, { id: 'mine' }).id, 'mine');
+  assert.throws(() => on(floor, box, 1, 1, { id: 7 }), /id/);
+});
+test('why() / restY() skip the placement being checked by id, so a move does not collide with its own old spot', () => {
+  const old = on(floor, box, 1.25, 1.25, { id: 'b1' }), there = [old, on(floor, tire, 3, 2, { id: 't1' })];
+  const moved = on(floor, box, 1.4, 1.3, { id: 'b1' });   // a new object for the same placement, overlapping where it was
+  assert.equal(why(floor, box, moved, there, items), null, 'same id: its old spot is not in the way');
+  assert.equal(why(floor, box, on(floor, box, 1.4, 1.3), there, items), "something's in the way", 'a different box still collides');
+  const tireMove = on(floor, tire, 3, 2, { id: 't1' });
+  near(restY(tireMove, tire, there, items), 0, 'a tire being moved does not stack on itself');
+  assert.equal(why(floor, tire, { ...tireMove, y: 0.2 }, there, items), 'nothing to sit on', 'nor sit on itself');
+});
+test('why() falls back to the object itself for placements without an id', () => {
+  const bare = { item: 'box', surface: 'floor', x: 1.25, z: 1.25, rot: 0, y: 0 };
+  assert.equal(why(floor, box, bare, [bare], items), null, 'the same object in the list is skipped');
+  assert.equal(why(floor, box, { ...bare }, [bare], items), "something's in the way", 'an id-less copy is a different thing');
+});
+test('lab surfaces: surface-local <-> world round-trips, even on a turned surface', async () => {
+  const { SURFACES, toWorld, toLocal } = await import('./labData.js');
+  for (const s of SURFACES) for (const [x, z] of [[0, 0], [s.size[0], s.size[1]], [0.3, 0.1]]) {
+    const w = toWorld(s, x, z, 0.2); near(w.y, s.at.y + 0.2); nearPt(toLocal(s, w.x, w.z), x, z, s.id);
+  }
+  const s = SURFACES.find(q => q.id === 'floor'), c = toWorld(s, s.size[0] / 2, s.size[1] / 2);
+  near(c.x, s.at.x); near(c.z, s.at.z, 'the local centre is the world anchor');
+});
 test('bad catalog data fails at load', () => {
   assert.throws(() => surface({ id: 's', size: [1, 1], gridSteps: [0.25, 0.5] }), /coarsest first/);
   assert.throws(() => placeable({ id: 'p', footprint: [1], height: 1 }), /footprint/);

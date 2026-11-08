@@ -1,4 +1,4 @@
-// Placement rules: snapping, rotation, footprints, collision, stacking and the one-line "why not" that will tint the preview amber/red.
+// Placement rules: snapping, rotation, footprints, collision, stacking and the one-line "why not" that tints the preview red.
 // PURE functions over the plain objects in types.js: no rendering, no game state, no three.js.
 // Coords are surface-local metres (see types.js): x in [0, w], z in [0, d], grid lines at every multiple of the step from the corner.
 // KNOWN SIMPLIFICATION: every footprint is treated as its axis-aligned bounding box. At 90-degree turns that is exact; a free-rotated item
@@ -68,7 +68,9 @@ export const canStackOn = (top, bottom) => (top.stackable && bottom.stackable) |
 /** the y an item sits at when put on top of a placed one */
 export const stackHeight = (bottomPl, bottomItem) => (bottomPl.y || 0) + bottomItem.height;
 
-const sameSurface = (pl, existing) => existing.filter(e => e !== pl && e.surface === pl.surface);
+/** is e the placement being checked? Same id (a moved item's preview vs its old spot), else the very same object (placements without ids). */
+const isSelf = (e, pl) => e === pl || (pl.id != null && e.id === pl.id);
+const sameSurface = (pl, existing) => existing.filter(e => !isSelf(e, pl) && e.surface === pl.surface);
 /** where an item would rest if dropped here: the highest top it can stack on under its footprint, else 0 (the surface). For the preview, before why(). */
 export function restY(pl, item, existing, items) {
   let y = 0;
