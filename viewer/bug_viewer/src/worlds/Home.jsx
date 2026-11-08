@@ -78,27 +78,28 @@ function Tank({ T }) {
 }
 
 function Forecourt() {
-  const map = useMemo(() => propertyTexture(4, 8, 6), []);
-  const normalMap = useMemo(() => propertyTexture(4, 8, 6, true), []);
+  const map = useMemo(() => propertyTexture(4, 16, 11), []);
+  const normalMap = useMemo(() => propertyTexture(4, 16, 11, true), []);
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ map, normalMap, normalScale: new THREE.Vector2(0.45, 0.45), color: '#fff0d6', roughness: 1, transparent: true, depthWrite: false });
     m.onBeforeCompile = shader => {
       shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 propertyUV;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\npropertyUV = uv;');
       shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 propertyUV;')
-        .replace('#include <alphatest_fragment>', 'diffuseColor.a *= smoothstep(0.0, 0.1, min(min(propertyUV.x, 1.0-propertyUV.x), min(propertyUV.y, 1.0-propertyUV.y)));\n#include <alphatest_fragment>');
+        .replace('#include <alphatest_fragment>', 'diffuseColor.a *= smoothstep(0.0, 0.28, min(min(propertyUV.x, 1.0-propertyUV.x), min(propertyUV.y, 1.0-propertyUV.y)));\n#include <alphatest_fragment>');
     };
     return m;
   }, [map, normalMap]);
   useEffect(() => () => material.dispose(), [material]);
   return <group>
-    <mesh position={[0, 0.025, 17]} rotation={[-Math.PI / 2, 0, 0]} material={material} receiveShadow>
-      <planeGeometry args={[17, 15]} />
+    <mesh position={[0, 0.025, 20.5]} rotation={[-Math.PI / 2, 0, 0]} material={material} receiveShadow>
+      <planeGeometry args={[34, 23]} />
     </mesh>
-    {[-6, 6].map(x => <group key={x}>
-      {[-1.45, 1.45].map(dx => <mesh key={dx} position={[x + dx, 0.04, 17]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.08, 5.5]} /><M c="#c8b994" r={1} /></mesh>)}
-      <B p={[x, 0.09, 14.3]} s={[1.8, 0.15, 0.22]} c="#9a9080" />
-    </group>)}
+    {/* two rows of parking stalls with a drive lane between them: five bays a row */}
+    {[14.5, 25.5].map((z, row) => [-12, -6, 0, 6, 12].map(x => <group key={row + '_' + x}>
+      {[-2.8, 2.8].map(dx => <mesh key={dx} position={[x + dx, 0.04, z]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.16, 5.2]} /><M c="#e6dcc0" r={1} /></mesh>)}
+    </group>))}
+    {[-12, 12].map(x => <B key={x} p={[x, 0.09, 12]} s={[1.8, 0.15, 0.22]} c="#9a9080" />)}
   </group>;
 }
 

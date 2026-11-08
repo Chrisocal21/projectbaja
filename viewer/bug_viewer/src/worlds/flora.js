@@ -69,6 +69,7 @@ export function grassAt(ix, iz, surfaceAt) {
   const chance = { scrub: 0.5, dirt: 0.28, redDirt: 0.3, grass: 0.65, sand: m.dunes > 0.4 ? 0.04 : 0.16, looseDirt: 0.12, rock: 0.06 }[sf] || 0;
   if (hash(ix, iz, 3) > chance || baseHeight(x0, z0) > 38) return null;
   if (Object.values(SITES).some(s => Math.hypot(x0 - s.x, z0 - s.z) < s.r * (s.id === 'garage' ? 0.45 : 1))) return null;
+  { const g = SITES.garage, dx = x0 - g.x, dz = z0 - g.z; if (Math.abs(dx) < 19 && dz > -8 && dz < 46) return null; }   // the customer lot stays bare (garage faces +z, rot 0)
   const r = hash(ix, iz, 4), bush = sf === 'grass' ? r < 0.6 : r < 0.62;
   const model = bush ? ['BUSH_GRASS_1', 'BUSH_GRASS_2', 'BUSH_GRASS_3'][Math.floor(hash(ix, iz, 5) * 3)] : ['GRASS_DEAD_1', 'GRASS_DEAD_2'][Math.floor(hash(ix, iz, 5) * 2)];
   return { model, x: x0, z: z0, s: (bush ? 0.55 : 1.3) + hash(ix, iz, 6) * (bush ? 0.6 : 0.9), ry: hash(ix, iz, 7) * 6.28, dry: m.farm < 0.4 };

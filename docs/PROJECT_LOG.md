@@ -215,3 +215,12 @@ Chris asked to keep building out the world, one item at a time: office, dirt par
 - Final validation: production build passed, **41/41 tests passed**, and `git diff --check` reported no whitespace errors. Browser checks exercised the street entrance, shared garage doorway, storage corridor/tool-chest prompt, relocated camper prompt, stair ascent/descent and loft guardrail. Build placement rejected reception/parking/camper locations and accepted the far-left expansion yard. Exterior and loft screenshots were inspected; the parking surface was then lightened and its perimeter blended into the existing terrain. Existing duplicate `bench` key and large-bundle build warnings remain.
 
 **Update, same day:** Copilot's version of the office replaced mine: a two-storey wing on the garage's left (`worlds/GarageWing.jsx`, reception, bath, stairs and loft), a camper on the right, and a graded gravel forecourt with parking lines (`Forecourt` in `worlds/Home.jsx`). I removed my superseded `Office`/`Wall` code from `Sites.jsx`. Checked in Chromium (exterior, forecourt, reception); 41/41 tests, build passes. The list is now: office ✅, dirt parking lot ✅, build mode and build pieces next.
+
+## November 8, 2026: a bigger customer dirt lot
+
+Chris: the foundation and parking lot should be bigger and blend into the dirt road out to the main road.
+
+- `worlds/county.js`: a trail of flattened packed-dirt discs funnels from 17 m radius at the garage to the driveway's width; the driveway now starts inside the lot (`[0,16]`) so it has no square end.
+- `worlds/Home.jsx`: the gravel apron is 34 x 23 m with a wide soft edge, and two rows of five parking stalls (was two stalls). It stops at z = 32 because the graded road sits above it further out.
+- `worlds/flora.js`: no grass in the lot. `game/home.js`: the keep-clear rule covers the whole lot.
+- Checked in Chromium from the gate, the side and the road; 41/41 tests, build passes.

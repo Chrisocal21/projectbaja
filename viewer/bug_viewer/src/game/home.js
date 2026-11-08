@@ -83,7 +83,7 @@ export function placeWhy(item, x, z) {
   if (!onProperty(x, z)) return "That's past your property line.";
   if (inOffice(lx, lz, -0.4)) return 'Keep reception, bathroom, storage and loft access clear.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
-  if (Math.abs(lx) < 8 && lz > 6 && lz < 25) return 'Keep the forecourt parking and garage approach clear.';
+  if (Math.abs(lx) < 16 && lz > 6 && lz < 40) return 'Keep the forecourt parking and garage approach clear.';
   const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';

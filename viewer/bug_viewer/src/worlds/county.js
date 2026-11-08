@@ -75,7 +75,7 @@ export const ROADS = [
   highway,
   road([J.main, [1000, 600], [1240, 600], [1380, 600], [1560, 610]], 'street'),                                                       // Dry Wells main street
   road([J.mill, [500, 140], [200, 170], [0, 125], [-300, 180], [-700, 120], [-1100, 200], [-1500, 260]], 'gravel'),                    // Old Mill Rd
-  road([[0, 30], [2, 60], [1, 95], [0, 125]], 'dirt'),                                                                                // grandpa's driveway
+  road([[0, 16], [0, 30], [2, 60], [1, 95], [0, 125]], 'dirt'),                                                                                // grandpa's driveway
   road([[-300, 180], [-400, -100], [-520, -500], [-660, -840], [-780, -1180], [-830, -1300]], 'gravel'),                               // Lakebed Rd
   road([[200, 170], [180, 500], [80, 840], [0, 1015], [-80, 1200], [-140, 1650], [-200, 1800], canyonEnd], 'gravel'),                 // Canyon Rd
   road([[0, 1015], [-300, 1000], [-600, 985], [-860, 960], [-935, 952]], 'dirt'),                                                     // Hollis farm lane
@@ -200,6 +200,8 @@ export const SITES = {
 export const PROPERTY = { x: 0, z: 0, w: 60, d: 50 };
 for (const s of Object.values(SITES)) { s.y = base(s.x, s.z); R.paintDisc(s.x, s.z, s.r, 14, s.y, s.pad); }
 R.paintDisc(PROPERTY.x, PROPERTY.z, 26, 34, SITES.garage.y, 'dirt');   // the whole yard is levelled
+// the customer lot: a wide packed-dirt apron in front of the garage that funnels down into grandpa's driveway (the road paints over its own width)
+for (let z = 12; z <= 48; z += 4) { const t = (z - 12) / 36; R.paintDisc(0, z, 17 * (1 - t * t) + 4 * t * t, 6, SITES.garage.y, 'dirt'); }
 
 // ---------------- graded road profiles: heights averaged along the road, ends tied to whatever they join ----------------
 const GRADE = { highway: 90, street: 50, gravel: 55, dirt: 30 };
