@@ -243,3 +243,13 @@ Chris: customers should only come when the whole place is open; the lamp above t
 - `worlds/RoadSigns.jsx`: a two-face billboard at the Highway 9 / Old Mill Rd junction, three signs along Old Mill Rd, a turn sign at the driveway, and a parking sign at the foot of the driveway. Each has a lamp and an OPEN/CLOSED tag that follow the same switch.
 - `worlds/Home.jsx`: six floodlight poles around the lot with a soft ground glow (power only). There is no night cycle yet, so they are decoration until there is one.
 - Checked in Chromium: power alone brought no customer; walking to the switch and pressing E opened the shop and a customer pulled into a bay; the garage lamp, billboard and road signs lit. 44/44 tests, build passes.
+
+## November 8, 2026: build mode pass 1 (placement rules and category menu)
+
+Tested build mode in Chromium and by probing `placeWhy` at 14 spots for all 21 items.
+
+- **Working already:** the ghost, placing with E, cash charged, saved to disk, kept after reload, X takes the nearest one down for 50% back.
+- **Bug fixed: the office wing blocked everything,** so the "Office desk + old PC" had nowhere to go. Now the back office under the loft (`WING_FREE` in `worlds/office.js`) takes Office, Decor and Storage items; bay tools (lift, engine stand, welder, bender) are refused in the wing with a reason.
+- **Bug fixed: the drive lane was only protected to 25 m.** Solid items are now refused along the whole lane (`LANE`, 40 m).
+- **Menu:** the bar shows all categories and the items in the current one; `,` and `.` jump category (the `[ ]` keys and wheel still step item by item). A hint in the bar and in the HUD.
+- 45/45 tests (a new one covers the wing's free floor), build passes.

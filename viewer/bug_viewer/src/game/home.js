@@ -2,7 +2,7 @@
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld } from '../worlds/county.js';
-import { inOffice } from '../worlds/office.js';
+import { inOffice, wingFree } from '../worlds/office.js';
 import { LANE, STALL } from '../worlds/lot.js';
 
 const G = SITES.garage;
@@ -80,6 +80,9 @@ export const BUILD_ITEMS = [
   { id: 'carSpot', name: 'Car lot space (gravel + paint)', price: 200, zone: 'yard', r: 0, cat: 'Car lot', note: 'Park, store and later sell cars here' },
 ];
 export const buildById = Object.fromEntries(BUILD_ITEMS.map(b => [b.id, b]));
+/** build categories in menu order, and the item to land on when you jump to one */
+export const BUILD_CATS = [...new Set(BUILD_ITEMS.map(b => b.cat))];
+export const nextCatItem = (itemId, d) => { const c = BUILD_CATS.indexOf(buildById[itemId].cat), n = BUILD_CATS[(c + d + BUILD_CATS.length) % BUILD_CATS.length]; return BUILD_ITEMS.find(b => b.cat === n).id; };
 /** garage-local coordinates of a world point */
 export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos(G.rot), s = Math.sin(G.rot); return { lx: dx * c - dz * s, lz: dx * s + dz * c }; }
 /** inside the garage building or its attached office (m > 0 shrinks the box, m < 0 grows it) */
@@ -89,7 +92,8 @@ export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return
 export function placeWhy(item, x, z) {
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
-  if (inOffice(lx, lz, -0.4)) return 'Keep reception, bathroom, storage and loft access clear.';
+  if (inOffice(lx, lz, -0.4) && item.zone !== 'yard' && !['Office', 'Decor', 'Storage'].includes(item.cat)) return 'Shop tools belong in the garage bay, not the office.';
+  if (inOffice(lx, lz, -0.4) && !(item.zone !== 'yard' && wingFree(lx, lz, item.r))) return item.zone === 'yard' ? 'That goes outside, in the yard.' : 'No room there: keep reception, the bathroom, stairs and walkways clear. The back office under the loft is free.';
   if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
   if (Math.abs(lx) < STALL.inner + STALL.d + 1 && lz > LANE.z0 && lz < STALL.z0 + STALL.w * STALL.perSide + 1) return 'Keep the customer lot clear: the drive lane and the parking bays.';
   const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
@@ -97,7 +101,7 @@ export function placeWhy(item, x, z) {
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
   if (inG && item.zone !== 'yard' && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
-  if (Math.abs(lx) < 4 && lz > 6 && lz < 25 && item.r > 0) return 'Keep the driveway clear.';
+  if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
   if (game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
 }

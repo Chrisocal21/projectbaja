@@ -2,7 +2,7 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
 import { SUPPLIES, jobById, jobCheck } from './jobs.js';
-import { LETTER, BUILD_ITEMS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
+import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
@@ -60,10 +60,11 @@ export function BuildBar() {
   const bm = game.buildMode; if (!bm) return null;
   const it = buildById[bm.item], i = BUILD_ITEMS.indexOf(it);
   return <div className="build-bar">
-    <div className="bb-cat">{it.cat.toUpperCase()} · {i + 1}/{BUILD_ITEMS.length}</div>
+    <div className="bb-cats">{BUILD_CATS.map(c => <span key={c} className={c === it.cat ? 'on' : ''}>{c}</span>)}</div>
+    <div className="bb-cat">{BUILD_ITEMS.filter(b => b.cat === it.cat).map(b => <span key={b.id} className={b.id === it.id ? 'on' : ''}>{b.name.replace(/ \(.*\)/, '')}</span>)}</div>
     <div className="bb-item"><b>{it.name}</b> <span className="price">${it.price.toLocaleString()}</span>{it.note && <small>{it.note}</small>}</div>
     <div className={bm.why ? 'bb-why bad' : 'bb-why ok'}>{bm.why || 'E / click — build here'}</div>
-    <div className="bb-keys">Mouse wheel / [ ] — change item · R — rotate · X — take down the nearest build (50% back) · B — done</div>
+    <div className="bb-keys">Wheel / [ ] — item · , . — category · R — rotate · X — take down the nearest build (50% back) · B — done</div>
   </div>;
 }
 

@@ -16,3 +16,8 @@ export function walkingLevel(x, z, previous = 0.12) {
   if (x >= LOFT.x0 && x <= LOFT.x1 && z >= LOFT.z0 && z <= LOFT.z1 && previous > 2.6) return LOFT.y;
   return 0.12;
 }
+// Free floor in the wing where build-mode furniture may go (everything else is reception, bath, stairs, storage or a walkway). PROPOSAL.
+// The back office under the loft: reached past the stair foot, clear of the bathroom wall (x = -10.4) and the parts shelves (z < -4.4).
+export const WING_FREE = [{ x0: -10.0, x1: -7.5, z0: -4.3, z1: -2.2 }];
+/** can a thing of radius r stand at (lx, lz) on the wing's free floor? */
+export const wingFree = (lx, lz, r = 0) => WING_FREE.some(f => lx >= f.x0 + r && lx <= f.x1 - r && lz >= f.z0 + r && lz <= f.z1 - r);
