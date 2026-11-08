@@ -2,7 +2,7 @@
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
 import { creative } from './settings.js';
-import { SITES, PROPERTY, toWorld, height, dynFloors } from '../worlds/county.js';
+import { SITES, PROPERTY, toWorld, height, groundHeight, dynFloors } from '../worlds/county.js';
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
@@ -10,6 +10,7 @@ import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { upgradeLevel } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
+import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -226,6 +227,7 @@ export const storedProps = () => storedOf(game.home);
 export function storeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return false;
   if (isPiece(p.id)) { say('Building pieces cannot be stored: take them down with X.'); return false; }
+  dropRackTires(uidN, game.props, buildById, G, groundHeight);
   const r = storeMove(game.props, storedProps(), uidN); game.props = r.props; game.home = { ...game.home, stored: r.stored };
   game.propsV = (game.propsV || 0) + 1; save(); say(`Stored the ${buildById[p.id].name.toLowerCase()} (take it out from the build menu, B)`); return true;
 }
@@ -255,6 +257,7 @@ export function removeProp(uidN) {
     const l = homeLocal(p.x, p.z), all = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot, uid: q.uid }; });
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
+  dropRackTires(uidN, game.props, buildById, G, groundHeight);
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }

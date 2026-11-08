@@ -32,7 +32,7 @@ function vehSurfaces(veh, lift, all) {
 }
 
 /** one placed thing, base at y = 0, centred: tires as tires (flat or upright), everything else as the game draws it (a labelled crate / its model) */
-function ItemBody({ it, pose, ghost = false }) {
+export function ItemBody({ it, pose, ghost = false }) {
   const pid = pidOf(it), p = posed(GAME_PLACEABLES[pid], pose);
   if (isTire(it)) return <TireModel dia={GAME_PLACEABLES.tire.footprint[0]} width={GAME_PLACEABLES.tire.height} upright={p.pose === 'upright'} cast={!ghost} />;
   return <Crate item={it} />;
@@ -55,7 +55,7 @@ export default function VehicleCargo({ veh, host = false }) {
 }
 
 /** the hologram of the held item where it would go on this vehicle, its landing outline and the surface grid */
-function Ghost({ veh }) {
+export function Ghost({ veh, src = aim }) {
   const mats = useMemo(() => holoMaterials(), []);
   const patch = useMemo(() => { const m = footprint(1, 1, mats); m.position.y = 0; return m; }, [mats]);
   const g = useRef(), inner = useRef(), land = useRef(), grid = useRef();
@@ -63,7 +63,7 @@ function Ghost({ veh }) {
   useEffect(() => () => { mats.dispose(); patch.geometry.dispose(); }, [mats, patch]);
   const gs = shown?.s, lines = useGridGeometry(gs, shown?.step || 1);
   useFrame(({ clock }) => {
-    const a = aim.cur, it = held(), on = a?.mode === 'place' && a.veh === veh && !!it;   // (aim.cur is last frame's: the item may have just been put down)
+    const a = src.cur, it = held(), on = a?.mode === 'place' && a.veh === veh && !!it;   // (aim.cur is last frame's: the item may have just been put down)
     if (!on) { if (shown) setShown(null); return; }
     const key = `${it.uid}|${a.cand.pose || ''}|${a.surface.id}|${a.surface.gridSteps[0]}`;
     if (shown?.key !== key) setShown({ key, it, pose: a.cand.pose || null, s: a.surface, step: a.surface.gridSteps[0] });

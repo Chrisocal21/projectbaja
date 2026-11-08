@@ -8,10 +8,12 @@ import { say } from '../game/store.js';
 import { snapRot } from './rules.js';
 import { PLACEMENT } from './flag.js';
 import { aim, keys, placeHeld, takeFromGrid, turnHeld } from './cargoStore.js';
+import { garageAim, placeHeldGarage, takeFromGarageGrid } from './garageStore.js';   // Stage 4c: tires on the garage floor / racks
+const cur = () => aim.cur || garageAim.cur;
 
 const DEG = Math.PI / 180, QUARTER = Math.PI / 2;
 /** is a held item being aimed at a cargo surface right now? (then Shift snaps instead of running, Q / E / R / wheel turn it) */
-export const aimingHeld = () => PLACEMENT && aim.cur?.mode === 'place' && !!held();
+export const aimingHeld = () => PLACEMENT && cur()?.mode === 'place' && !!held();
 const turn = (dir, step, locked) => turnHeld(held(), r => (locked ? snapRot(r + dir * QUARTER, '90') : snapRot(r + dir * step, 'free')));
 
 /** keydown: true = handled here (the caller stops) */
@@ -26,11 +28,11 @@ export function placementKey(e) {
 }
 /** left click (pointer already locked): put the held item down / take the aimed item out. true = handled. */
 export function placementClick() {
-  const a = PLACEMENT && aim.cur; if (!a) return false;
-  if (a.mode === 'take') return takeFromGrid(a.uid);
+  const a = PLACEMENT && cur(); if (!a) return false;
+  if (a.mode === 'take') return a.veh === 'garage' ? takeFromGarageGrid(a.uid) : takeFromGrid(a.uid);
   if (a.mode === 'place') {
     if (a.reason) { say(`Can't put it there: ${a.reason}`); return true; }
-    return placeHeld(a.veh, a.surface, a.cand);
+    return a.veh === 'garage' ? placeHeldGarage(a.surface, a.cand) : placeHeld(a.veh, a.surface, a.cand);
   }
   return false;
 }

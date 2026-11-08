@@ -7,11 +7,13 @@ import IconBaker from './IconBaker.jsx';
 import { isPiece } from './structures.js';
 import { game, useGame, emit } from '../game/store.js';
 import { furn, ghostSpot } from '../game/furnish.js';
+import GarageCargo from '../placement/GarageCargo.jsx';
+import { PLACEMENT } from '../placement/flag.js';
 import { junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken } from '../game/home.js';
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
-import { wood, metalTex, Tire as ShelfTire, ShelfStuff } from './Sites.jsx';
+import { wood, metalTex, ShelfStuff } from './Sites.jsx';
 import { useGLTF, RoundedBox } from '@react-three/drei';
 import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
@@ -354,7 +356,7 @@ export function PropModel({ id, T, mat }) {
       {[-1.15, 1.15].flatMap(x => [-0.35, 0.35].map(z => <P key={x + '' + z} p={[x, 1.4, z]} s={[0.07, 2.8, 0.07]} c="#d9962f" m={0.4} r={0.5} />))}
       {[0.55, 1.45, 2.35].map(y => <P key={y} p={[0, y, 0]} s={[2.4, 0.06, 0.8]} c="#4a4f52" m={0.5} r={0.5} />)}
       {id === 'shelfTires'
-        ? <>{[-0.8, 0, 0.8].map((x, i) => <ShelfTire key={i} p={[x, 0.95, 0]} r={0.36} rim={['#9aa0a4', '#d9962f', '#2b2b2b'][i]} />)}{[-0.5, 0.5].map((x, i) => <ShelfTire key={'u' + i} p={[x, 1.85, 0]} r={0.38} rim={['#b8bcc0', '#cf3e2f'][i]} />)}</>
+        ? null   // Stage 4c: the shelving starts empty; real tires you set on it are drawn by placement/GarageCargo.jsx
         : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.4], ['paint', 2.38, 0.6]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
     </>;
     case 'compressor': return <>
@@ -434,6 +436,7 @@ export default function Home() {
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
     {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} /></group>)}
+    {PLACEMENT && <GarageCargo />}
     <Customer />
     <Ghost T={T} />
     <IconBaker Model={PropModel} T={T} />
