@@ -2,18 +2,19 @@
 // (yard + garage upgrades, fences, decor). Pure data + state changes; the 3D lives in worlds/Home.jsx.
 import { game, save, say, addCash } from './store.js';
 import { SITES, PROPERTY, toWorld } from '../worlds/county.js';
+import { inOffice } from '../worlds/office.js';
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
 // garage-local positions (the roller door is at local z = +6, the yard runs out to z = +25)
 export const JUNK = [
-  { id: 'j-boxes', lx: 3.2, lz: -3.6, kind: 'boxes', cash: 0, inside: true, label: 'rotten cardboard boxes' },
+  { id: 'j-boxes', lx: 1.6, lz: -4.1, kind: 'boxes', cash: 0, inside: true, label: 'rotten cardboard boxes' },
   { id: 'j-cans', lx: -4.6, lz: -2.4, kind: 'cans', cash: 6, inside: true, label: 'paint cans and old oil' },
-  { id: 'j-papers', lx: 4.4, lz: 3.6, kind: 'papers', cash: 0, inside: true, label: 'decades of newspapers' },
+  { id: 'j-papers', lx: -3.0, lz: 3.8, kind: 'papers', cash: 0, inside: true, label: 'decades of newspapers' },
   { id: 'j-tires', lx: -13, lz: 17, kind: 'tires', cash: 12, inside: false, label: 'a pile of bald tires' },
   { id: 'j-scrap', lx: -11, lz: 9, kind: 'scrap', cash: 0, scrap: 5, inside: false, label: 'scrap metal' },
   { id: 'j-fridge', lx: 9, lz: 15, kind: 'fridge', cash: 5, scrap: 2, inside: false, label: 'a dead fridge' },
-  { id: 'j-brush', lx: -6, lz: 18, kind: 'brush', cash: 0, inside: false, label: 'tumbleweeds and brush' },
+  { id: 'j-brush', lx: -16, lz: 18, kind: 'brush', cash: 0, inside: false, label: 'tumbleweeds and brush' },
 ];
 export const junkWorld = JUNK.map(j => { const [x, z] = toWorld(G, j.lx, j.lz); return { ...j, x, z }; });
 export const isCleared = id => game.home.cleared.includes(id);
@@ -32,13 +33,14 @@ export function flipBreaker() {
   if (game.home.power) { say('The lights are on. Grandpa wired this panel himself — best not to touch it again.'); return; }
   game.home = { ...game.home, power: true }; save(); say('*clunk* ... the old fluorescent tubes flicker on.');
 }
+// PLACEHOLDER: canon says Chris writes Walt's letter (under 150 words; OPEN_QUESTIONS F10). Only the last line is canon.
 export const LETTER = [
   'Kid —',
   "If you're reading this, the garage is yours. Don't let your mother sell it.",
-  "The Bug in the garage was your grandma's. She hasn't run since '09 — the battery's shot, I had a wheel off for the brakes and pulled the driver's seat to fix the runner. All of it's still here somewhere.",
+  "The Bug in the garage was your grandma's. She hasn't run since '09 — I had her apart chasing rust, she picked up a flat on the back, and I pulled the driver's seat to fix the runner. Battery's good. Put her back together and give her a few cranks; she'll wake up.",
   "Al in Dry Wells will sell you anything with wheels. Count your fingers after. Dusty at the gas station is good people.",
   'The old Proving Grounds down Highway 9 are closed, but nobody checks the fence.',
-  "My old race car's under the tarp in the side yard. The shocks, rims and race tires off her are for the Bug - they won't clear the stock body, so you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
+  "My old race car's in the back corner of the garage, under a tarp and forty years of boxes. The shocks, rims and race tires off her are for the Bug - they won't clear the stock body, so you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
   'Folks around here will bring you their little jobs if the lights are on. Take them. That garage paid for itself one oil change at a time.',
   'Fix her up. Then fix the place up. Then go fast.',
   '— Walt',
@@ -72,12 +74,16 @@ export const BUILD_ITEMS = [
 export const buildById = Object.fromEntries(BUILD_ITEMS.map(b => [b.id, b]));
 /** garage-local coordinates of a world point */
 export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos(G.rot), s = Math.sin(G.rot); return { lx: dx * c - dz * s, lz: dx * s + dz * c }; }
-const insideGarage = (lx, lz, m = 0) => Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m;
+/** inside the garage building or its attached office (m > 0 shrinks the box, m < 0 grows it) */
+const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m);
 export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return Math.abs(lx) < PROPERTY.w / 2 && Math.abs(lz - 8) < PROPERTY.d / 2 + 6; };
 /** can this item go here? → '' or why not */
 export function placeWhy(item, x, z) {
   const { lx, lz } = homeLocal(x, z);
   if (!onProperty(x, z)) return "That's past your property line.";
+  if (inOffice(lx, lz, -0.4)) return 'Keep reception, bathroom, storage and loft access clear.';
+  if (lx > 18 && lx < 26 && lz > -6 && lz < 8) return 'Keep the camper and its porch clear.';
+  if (Math.abs(lx) < 8 && lz > 6 && lz < 25) return 'Keep the forecourt parking and garage approach clear.';
   const inG = insideGarage(lx, lz, 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
@@ -117,13 +123,32 @@ export function takeHeap(id) {
   game.home = { ...game.home, heaps: [...(game.home.heaps || []), id] }; addScrap(h.n);
 }
 
-// ---------------- grandpa's race car (side yard) ----------------
-export const RACECAR = { lx: 13, lz: 0.5, ry: 0.08 };
+// ---------------- grandpa's race car (back-right corner of the garage, under a tarp and a pile of boxes) ----------------
+export const RACECAR = { lx: 4.3, lz: -2.7, ry: 0, ly: 0.12 };   // ly: stands on the garage slab
 export const raceCarWorld = (() => { const [x, z] = toWorld(G, RACECAR.lx, RACECAR.lz); return { x, z, h: G.rot + RACECAR.ry }; })();
 export function uncoverRaceCar() {
   if (game.home.raceCar) return;
   game.home = { ...game.home, raceCar: true }; save();
-  say("Under the tarp: grandpa's old #7 desert racer. Seized engine, cracked frame — but it's still wearing race shocks and four beadlock tires. Those are the Bug's now.");
+  say("You shift the boxes and drag the tarp off. Under it: grandpa's old #7 desert racer. Everything on her has seized from decades of sitting, but she's still wearing race shocks and four beadlock tires. Those are the Bug's now.");
+}
+
+// ---------------- waking grandma's Bug: the first start takes a few cranks ----------------
+/** has the Bug run since you inherited it? Until then the gas does nothing and E turns the key. */
+export const bugAsleep = () => game.active === 'bug' && !game.home.bugFired && !game.dev;
+const CRANKS = [
+  'Rrr-rrr-rrr-rrr… nothing. Fuel\'s been sitting in there since \'09.',
+  'Rrr-rrr-rrr… *pop* — she coughs once and dies. Getting closer.',
+];
+export function crankBug() {
+  if (!bugAsleep() || game.cranking) return;
+  game.cranking = true; say('*click* … rrr-rrr-rrr…');
+  setTimeout(() => {
+    game.cranking = false;
+    const n = (game.crankTries = (game.crankTries || 0) + 1);
+    if (n <= CRANKS.length) { say(CRANKS[n - 1]); return; }
+    game.home = { ...game.home, bugFired: true }; save();
+    say("*BRRRAAAP* — she fires! Grandma's Bug is running for the first time since '09. Let her warm up, then take her out.");
+  }, 1400);
 }
 
 // ---------------- fabrication at the workbench ----------------

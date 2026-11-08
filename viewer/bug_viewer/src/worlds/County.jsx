@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Sky } from '@react-three/drei';
-import { applyGroundDetail, kindOf } from './groundDetail.js';
-import { SIZE, HALF, height, surface, isRoad, baseHeight, biomeMasks, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
+import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
+import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
+import Desert from './Desert.jsx';
 import { Ribbon, tex, rnd, blotches, dots, crack, wrapDraw, blurred, circuitTex, pitTex, dirtTex, looseTex, labelTex, checkerTex } from './TestCenter.jsx';
 import Sites, { Mesas } from './Sites.jsx';
 import { TOWN } from './siteData.js';
@@ -12,24 +13,33 @@ import Home from './Home.jsx';
 import Flora from './Flora.jsx';
 import { game } from '../game/store.js';
 
-// ---------------- terrain: 12 x 12 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
-const TILE = 250, NT = SIZE / TILE, LO = 25, HI = 100, HI_IN = 430, HI_OUT = 640;
-const MOUNTAIN = new THREE.Color('#8f6f52'), SNOWLESS = new THREE.Color('#a48466');
+// ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
+const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
+const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
+const PAVED = new Set(['asphalt', 'concrete', 'curb']);
 function tileGeometry(ix, iz, seg) {
   const x0 = -HALF + ix * TILE, z0 = -HALF + iz * TILE, step = TILE / seg, n = seg + 1, P = n + 2;
   const H = new Float32Array(P * P);   // heights on a grid padded by one ring, for normals across tile edges
   for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) H[j * P + i] = height(x0 + (i - 1) * step, z0 + (j - 1) * step);
-  const count = n * n + 4 * n, pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), col = new Float32Array(count * 3), kind = new Float32Array(count * 2);
+  const count = n * n + 4 * n, pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), col = new Float32Array(count * 3);
+  const w0 = new Float32Array(count * 4), w1 = new Float32Array(count * 4), misc = new Float32Array(count * 2), w = new Float32Array(8);
   const c = new THREE.Color(), r = rnd(ix * 31 + iz * 7 + 3);
   const put = (k, i, j, drop) => {
     const x = x0 + i * step, z = z0 + j * step, h = H[(j + 1) * P + i + 1];
     const dx = (H[(j + 1) * P + i + 2] - H[(j + 1) * P + i]) / (2 * step), dz = (H[(j + 2) * P + i + 1] - H[j * P + i + 1]) / (2 * step), l = Math.hypot(dx, 1, dz);
     pos.set([x, h - drop, z], k * 3); nor.set([-dx / l, 1 / l, -dz / l], k * 3);
-    const sf = surface(x, z), slope = Math.abs(dx) + Math.abs(dz);
-    kind.set(kindOf(sf), k * 2);
-    c.set(sf.color).multiplyScalar(1 - Math.min(0.4, slope * 0.4));
-    if (h > 22) c.lerp(h > 45 ? SNOWLESS : MOUNTAIN, Math.min(0.75, (h - 22) / 30));
-    c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.012, Math.sin(x * 0.017 - z * 0.013) * 0.05, (Math.sin(x * 0.23 + z * 0.17) * Math.sin(z * 0.31 - x * 0.11) * 0.07) + Math.sin(x * 0.041 + z * 0.036) * 0.035 + (r() - 0.5) * 0.05);
+    const sf = surface(x, z), slope = Math.abs(dx) + Math.abs(dz), paved = PAVED.has(sf.key), core = onCore(x, z);
+    // ground layers: the surface's own, plus bare rock on steep ground and sand drifted into the washes (natural ground only)
+    w.fill(0); w[LAYER_OF[sf.key] ?? 1] = 1;
+    if (!core) {
+      const rock = Math.min(0.9, Math.max(0, (slope - 0.35) / 0.5)); if (rock > 0) { for (let q = 0; q < 8; q++) w[q] *= 1 - rock; w[5] += rock; }
+      const sand = sf.key === 'scrub' || sf.key === 'dirt' ? washAt(x, z) * 0.7 : 0; if (sand > 0) { for (let q = 0; q < 8; q++) w[q] *= 1 - sand; w[0] += sand; }
+    }
+    w0.set([w[0], w[1], w[2], w[3]], k * 4); w1.set([w[4], w[5], w[6], w[7]], k * 4);
+    misc.set([sf.key === 'playa' ? 1 : sf.key === 'mud' ? 0.6 : 0, core || paved ? 0 : reliefAt(x, z)], k * 2);
+    c.set(sf.color).multiplyScalar(1 - Math.min(0.3, slope * 0.25));
+    if (h > 30 && !core) c.lerp(h > 110 ? HIGH : MOUNTAIN, Math.min(0.6, (h - 30) / 90));
+    c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.01, Math.sin(x * 0.017 - z * 0.013) * 0.04, Math.sin(x * 0.041 + z * 0.036) * 0.03 + (r() - 0.5) * 0.03);
     col.set([c.r, c.g, c.b], k * 3);
   };
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) put(j * n + i, i, j, 0);
@@ -41,13 +51,14 @@ function tileGeometry(ix, iz, seg) {
   edges.forEach(([f], e) => { for (let t = 0; t < seg; t++) { const [i0, j0] = f(t), [i1, j1] = f(t + 1), a = j0 * n + i0, b = j1 * n + i1, sa = n * n + e * n + t, sb = sa + 1; idx.push(a, sa, b, b, sa, sb, a, b, sa, b, sb, sa); } });
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aGround', new THREE.BufferAttribute(kind, 2));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aW0', new THREE.BufferAttribute(w0, 4)); g.setAttribute('aW1', new THREE.BufferAttribute(w1, 4)); g.setAttribute('aMisc', new THREE.BufferAttribute(misc, 2));
   g.setIndex(idx); g.computeBoundingSphere(); return g;
 }
 
 function Terrain() {
   const group = useRef(), { camera } = useThree();
-  const mat = useMemo(() => applyGroundDetail(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }), { grain: 0.5, bump: 1.15, macro: 0.32, perVertex: true }), []);
+  const mat = useMemo(() => terrainMaterial({ size: SIZE, half: HALF }), []);
   const tiles = useMemo(() => {
     const out = [];
     for (let iz = 0; iz < NT; iz++) for (let ix = 0; ix < NT; ix++) {
@@ -137,8 +148,8 @@ function Scrub() {
   const bush = useRef(), yucca = useRef();
   const { bushes, yuccas } = useMemo(() => {
     const r = rnd(97), b = [], y = [];
-    for (let t = 0; b.length < 1600 && t < 40000; t++) {
-      const x = (r() - 0.5) * 2800, z = (r() - 0.5) * 2800; if (isRoad(x, z) || Math.hypot(x, z) < 40) continue;
+    for (let t = 0; b.length < 4200 && t < 120000; t++) {
+      const x = (r() - 0.5) * (SIZE - 200), z = (r() - 0.5) * (SIZE - 200); if (isRoad(x, z) || Math.hypot(x, z) < 40) continue;
       const m = biomeMasks(x, z); if (m.lake > 0.2 || m.pg > 0.7 || m.town > 0.6 || baseHeight(x, z) > 40 || (m.dunes > 0.5 && r() < 0.9)) continue;
       if (Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + 4)) continue;
       (r() < 0.07 && m.canyon < 0.3 ? y : b).push([x, z, 0.4 + r() * 0.9, r(), m.farm]);
@@ -199,10 +210,10 @@ function Proving() {
 
 export default function CountyScene() {
   const { camera } = useThree();
-  useEffect(() => { camera.far = 2600; camera.updateProjectionMatrix(); }, [camera]);
+  useEffect(() => { camera.far = 5200; camera.updateProjectionMatrix(); }, [camera]);
   return <>
-    <Sky distance={4500} sunPosition={[200, 140, 120]} turbidity={5} rayleigh={1.2} mieCoefficient={0.006} mieDirectionalG={0.85} />
-    <fog attach="fog" args={['#d3dbdf', 260, 2100]} />
+    <Sky distance={9000} sunPosition={[200, 120, 133]} turbidity={7} rayleigh={1.6} mieCoefficient={0.008} mieDirectionalG={0.85} />
+    <fog attach="fog" args={['#d9c6a9', 420, 4300]} />
     <Terrain />
     {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind]; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} />)}
@@ -214,11 +225,12 @@ export default function CountyScene() {
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
+    <React.Suspense fallback={null}><Desert /></React.Suspense>
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}
     <Proving />
     <Sites />
     <Home />
-    <Mesas d0={1750} dr={500} sc={2.6} n={28} />
+    <Mesas d0={3500} dr={700} sc={4} n={30} />
   </>;
 }
 void toWorld;

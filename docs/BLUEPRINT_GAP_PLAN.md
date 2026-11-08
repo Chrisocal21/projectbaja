@@ -1,7 +1,7 @@
 # Blueprint → Project Baja: what we have, what's missing, build order
 
-Maps [SYSTEMS_BLUEPRINT.md](SYSTEMS_BLUEPRINT.md) onto the game as of commit `c620978` (2026-11-07).
-Legend: ✅ have it · 🟡 partial / different · ❌ missing.
+Maps [SYSTEMS_BLUEPRINT.md](SYSTEMS_BLUEPRINT.md) onto the game. First written at commit `c620978` (2026-11-07); statuses re-checked on 2026-11-07 (night) against the uncommitted work after `5c019e8`.
+Legend: ✅ have it · 🟡 partial / different · ❌ missing. Where a status changed, the old one is noted ("was …").
 
 ## Where we stand, section by section
 
@@ -12,16 +12,16 @@ Legend: ✅ have it · 🟡 partial / different · ❌ missing.
 | 1 | Targeting: 2.2 m to *surface*, 57° cone, 0.6 m override | Distance to object *centre*, ~72° cone (dot 0.3), 1.2 m override | 🟡 |
 | 1 | Plain refusals with a reason | Some ("Won't fit in the car…", "doesn't fit this car") | 🟡 |
 | 2 | VehicleDef as data (physics, slots, zones, storage, camera, tow) | Body is data (`bodies.json`), but physics dims are `DEFAULT_DIMS` + `resolve()`, storage is hard-coded in `items.js`, camera hard-coded | 🟡 |
-| 2.2 | Interaction zones (hood / driver / passenger / rear) | One "near the car" radius | ❌ |
-| 3.1 | Slot rules: `after[]`, `cover`, `tool`, `carry`, `function` | Slots exist (`slots.json`) but only as upgrade sockets; parts carry `requires` (roof gear needs rack) | 🟡 |
-| 3.1 | Driveable rule (start/drive/steer/grip filled) | The Bug is always complete and always drives | ❌ |
-| 3.2 | Restorable body pieces | **The Bug model already has 28 named, hideable pieces** (windshield, seats, dash, steering, fenders ×4, hood, nose, engine lid, bumpers, headlights, taillights…) used only by the dev "Body pieces" toggles | 🟡 (big head start) |
-| 3.4 | Fit by hand at the vehicle | E to install, but only inside the garage zone, no deps/tools/cover checks | 🟡 |
+| 2.2 | Interaction zones (hood / driver / passenger / rear) | `zoneAt` in `rules/restore.js`: front hood, rear engine lid, driver and passenger doors | ✅ (was ❌) |
+| 3.1 | Slot rules: `after[]`, `cover`, `tool`, `carry`, `function` | Restoration slots in `rules/vehicles.js` with these rules; `checkFit`/`checkDetach` return a `code` and the blocking slots | ✅ (was 🟡) |
+| 3.1 | Driveable rule (start/drive/steer/grip filled) | Engine, battery, steering wheel, driver's seat and tires needed; a new game starts with a wheel and the seat out, then the 3-try crank | ✅ (was ❌) |
+| 3.2 | Restorable body pieces | Every body piece is a slot; doors and lids swing; doorways are cut so an open door shows the cabin; the shell lifts off | ✅ (was 🟡) |
+| 3.4 | Fit by hand at the vehicle | E to fit from hands or pack, with deps, tools and covers checked; fit glow green/amber/red | ✅ (was 🟡) |
 | 3.5 | Hands vs pack carry, slowdown, put down | Hands (1) + pack (4 small) + slowdown + G drop | ✅ |
 | 3.5 | Tire stacks give the top one; parts runner within 8 m | — | ❌ |
-| 3.6 | Detach with reverse deps, part keeps condition | X in garage drops part on the floor; `normalize` silently strips dependants | 🟡 |
+| 3.6 | Detach with reverse deps, part keeps condition | Aim + R (detach glow) or the X panel; blockers shown in amber. No condition yet | 🟡 (deps done, condition missing) |
 | 3.7 | Replace / damaged parts / upgrades as alternatives | Replace ✅ (old part drops), upgrades ✅ (engines, tires), damaged variants ❌ | 🟡 |
-| 3.8 | Workshop panel (slot readiness) | `RemovePanel` lists fitted parts only | 🟡 |
+| 3.8 | Workshop panel (slot readiness) | X opens the workshop panel: fit/detach every slot, bolt-ons, lids | ✅ (was 🟡) |
 | 4 | Driving maths | Own fixed-step sim: bicycle tire model + per-wheel suspension, landings, rollovers (`suspension.js`, 24 tests) | 🟡 (different engine, keep it) |
 | 4.1 | Brake-then-reverse below 0.5 m/s, rear-only handbrake | Brake-then-reverse ✅ (at 0.5 m/s), Space = handbrake locks rear ✅ | ✅ |
 | 4.2–4.4 | Power-limited force, drag+rolling formula, speed-sensitive steer | Similar shapes, different formulas (`ACC*(1-v/MAXV)`, steer `0.7/(1+0.004v)`) | 🟡 |
@@ -36,9 +36,9 @@ Legend: ✅ have it · 🟡 partial / different · ❌ missing.
 | 7.2 | Capacity model per vehicle | Bug: cab 4 units + roof deck 6 with rack (≈ "physical limits") | 🟡 |
 | 7.3 | Visible cargo | Crates shown in the cab and on the roof | ✅ |
 | 7.4 | Cargo mass affects handling | — | ❌ |
-| 7.5 | Parked vehicles keep position + inventory | Car pose not saved (Continue starts in the garage) | ❌ |
-| 8 | Grid building | — | ❌ |
-| 9 | Rules as pure tested functions; content as data; save everything | Physics is; parts/inventory rules live in `items.js` + `main.jsx`, untested | 🟡 |
+| 7.5 | Parked vehicles keep position + inventory | `game/fleet.js`: one active vehicle, the rest parked at saved poses with their cargo | ✅ (was ❌) |
+| 8 | Grid building | Build mode on your property: 21 items, grid snap, hologram, saved, solid; no levels/stacking | 🟡 (was ❌) |
+| 9 | Rules as pure tested functions; content as data; save everything | Physics and restoration rules are pure and tested (`rules/*.js`, 38 tests); fit and remove are atomic saves (`rules/atomic.js`, November 8); some item glue still in `main.jsx` | 🟡 |
 
 ## What it changes about the game (the new ideas, not already here)
 
@@ -77,3 +77,15 @@ Each phase is playable on its own and adds rule modules with node tests (`src/ru
 - **Phase 6, first slice (2026-11-07):** build mode on your property (`src/game/home.js`, `src/worlds/Home.jsx`). It unlocks after clearing the garage junk: B, grid snap, 19 items, saved and collidable. Items are mostly cosmetic; the functional plans are in [BUILD_MODE](./BUILD_MODE.md).
 - **World (2026-11-07):** the official Baja County map replaces the Test Center for the story (see [STORY_AND_WORLD](./STORY_AND_WORLD.md)).
 - **Breakpoint (2026-11-07):** added fabrication (scrap + welder + bender, then shock hoops that gate race shocks and big tires), odd jobs, trailer upgrades, the map, floors, the build hologram and the fit glow. See PROGRESS_TRACKER for done and to-do.
+- **Phase 1, third slice (2026-11-07, night):**
+  - Amber blockers in the fit glow and a detach glow (aim at a part, R removes it).
+  - Doors that really open, with the side trim moving with the door.
+  - Held and loose parts shown as their real models.
+  - The Bug starts with the battery fitted and wakes up over three cranks.
+  - Fitting parts no longer rebuilds the canvas, so there are no more black screens.
+  - Al no longer sells the Bug; it's in your garage from the start.
+- **World (2026-11-07, night):** Baja County doubled to 6 × 6 km with real heightmap terrain, graded roads, photo ground textures, real rock models, dead trees and shrubs. See STORY_AND_WORLD.
+- **Next by phase:**
+  - Phase 1: the engine and battery as aimable meshes.
+  - Phase 2 (condition and wear) is the next big system.
+  - Phase 3: the truck as a VehicleDef and cargo mass.

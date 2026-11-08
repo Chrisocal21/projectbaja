@@ -7,7 +7,10 @@ import { containers } from './loot.js';
 import { height, groundHeight } from '../worlds/county.js';
 /** items with a height (on a bench / shelf) are placed from the site's pad; floor items stand on the floor (garage slab, lot paving...) */
 const itemY = it => ((it.y || 0) > 0.3 ? height(it.x, it.z) + it.y : groundHeight(it.x, it.z) + (it.y || 0));
-import { ShellProp } from '../BuildModel.jsx';
+import { ShellProp, sourceNameFor, WHEEL_MESH } from '../BuildModel.jsx';
+import { bodyById } from '../build.js';
+import { BUG } from '../rules/vehicles.js';
+import ProcEngine from '../Engine.jsx';
 import { useGLTF } from '@react-three/drei';
 import { partById, wheelById, rimById } from '../build.js';
 import { rimGeometry } from '../Rims.jsx';
@@ -57,6 +60,34 @@ function TireItem({ file, rim }) {
 function RimItem({ rim }) {
   return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.55} side={THREE.DoubleSide} /></mesh>;
 }
+/** a stock body piece (hood, door, seat, wheel...) cut out of the car's own model, lying on y = 0 */
+function StockPiece({ match }) {
+  const file = (bodyById[game.build?.body] || bodyById.classic).file, { scene } = useGLTF(`/models/${file}.glb`);
+  const { obj, off } = useMemo(() => {
+    const c = clone(scene), drop = [];
+    c.traverse(o => { if (o.isMesh && !match.some(m => sourceNameFor(o).startsWith(m))) drop.push(o); });
+    drop.forEach(o => o.parent.remove(o));
+    const box = new THREE.Box3().setFromObject(c), ctr = box.getCenter(new THREE.Vector3());
+    return { obj: c, off: [-ctr.x, -box.min.y, -ctr.z] };
+  }, [scene, file, match.join('|')]);
+  return <group position={off}><primitive object={obj} /></group>;
+}
+function Battery() {
+  return <group>
+    <mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.3, 0.22, 0.18]} /><meshStandardMaterial color="#1e1f22" roughness={0.6} /></mesh>
+    <mesh position={[0, 0.225, 0]}><boxGeometry args={[0.3, 0.01, 0.18]} /><meshStandardMaterial color="#c9a227" roughness={0.5} /></mesh>
+    {[[-0.1, '#c8372b'], [0.1, '#222']].map(([x, c]) => <mesh key={x} position={[x, 0.245, 0]}><cylinderGeometry args={[0.018, 0.018, 0.03, 10]} /><meshStandardMaterial color={c} metalness={0.5} /></mesh>)}
+  </group>;
+}
+function StockItem({ id }) {
+  if (id === 'engine') return <group position={[0, -0.2, 1.57]}><ProcEngine stockExhaust={false} /></group>;
+  if (id === 'battery') return <Battery />;
+  const slot = BUG.slots.find(s => s.id === id), body = bodyById[game.build?.body] || bodyById.classic;
+  const match = id === 'wheel' ? [WHEEL_MESH.FL] : slot?.wheel ? [WHEEL_MESH[slot.wheel]] : (body.pieces || []).find(p => p.id === slot?.piece)?.match;
+  if (!match) return null;
+  return id === 'wheel' || slot?.wheel ? <group rotation={[0, 0, Math.PI / 2]} position={[0.31, 0.11, 0]}><StockPiece match={match} /></group> : <StockPiece match={match} />;
+}
+
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
   const crate = <CrateBox item={item} />;
@@ -64,6 +95,7 @@ export function Crate({ item, scale = 1 }) {
   if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;
   else if (item.kind === 'wheel' && wheelById[item.id]?.file) body = <TireItem file={wheelById[item.id].file} />;
   else if (item.kind === 'rim' && rimById[item.id]) body = <RimItem rim={rimById[item.id]} />;
+  else if (item.kind === 'stock' && (item.id === 'engine' || item.id === 'battery' || item.id === 'wheel' || BUG.slots.some(s => s.id === item.id && (s.piece || s.wheel)))) body = <StockItem id={item.id} />;
   return <group scale={scale}>{body ? <React.Suspense fallback={crate}>{body}</React.Suspense> : crate}</group>;
 }
 

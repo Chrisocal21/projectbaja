@@ -8,18 +8,18 @@ The guide uses two labels:
 - **Proven** means it is working in a shipped prototype.
 - **Extension** means a design built on the proven pieces, not yet tried in play.
 
-> **Project Baja status (November 7, 2026):**
+> **Project Baja status (November 7, 2026, night):**
 > - **Already in the game:**
 >   - §3: build state drives visibility (`BuildModel.jsx`, masks per body piece).
->   - §4: hinges for the hood, engine lid and doors.
+>   - §4: hinges for the hood, engine lid and doors. The doorways are cut out of the body (`assets/pipeline/cut_door_openings.mjs`) and the side trim swings with the door (`split_door_trim.mjs`).
+>   - §5.3: held and loose parts render as the real thing (`Crate` in `game/Items.jsx`): part GLBs, tires, rims, body pieces cut from the Bug, the engine and the battery. Supplies, tools and stock materials are still labelled crates.
 >   - §6: stands under missing wheels.
 >   - §7: build-mode hologram (glowing body, edges through walls, footprint, green/red) in `src/hologram.js` and `worlds/Home.jsx`.
->   - §9: a first slice of the fit glow. Holding a part near the Bug makes its spot glow green, amber or red (`FitGhost` in `BuildModel.jsx`).
+>   - §9: fit glow. Holding a part near the Bug makes its spot glow green or red (`FitGhost` in `BuildModel.jsx`). The blocking slots, or a shut lid, glow amber: `checkFit`/`checkDetach` return a `code` and `blockers`.
+>   - §9.3c: detach glow (`DetachGlow` in `BuildModel.jsx`). Aim at a body piece or wheel: the real part pulses white if it can come off (R), or red with the blockers in amber.
 >   - §10.1: a rust shader in a different form (`weather.js`).
 > - **Not yet:**
->   - Amber blockers in the fit glow (`checkFit` needs to return `blockers`).
->   - The detach glow (§9.3c).
->   - Held parts as real clones (§5.3); today they're labelled crates.
+>   - The engine and battery can't be aimed at for the detach glow (no named meshes).
 >   - Grid levels and stacking (§8).
 >   - Paint restoration uniforms per panel (§10.2).
 >   - Damaged variants (§2.3).

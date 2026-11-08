@@ -1,6 +1,40 @@
-# Project: Baja - Vehicle Asset Lab
+# Project: Baja - game viewer
 
-Last updated: November 6, 2026 - verified imported Stock and classic Stage 2.
+Last updated: November 7, 2026 (night).
+
+## Current state: the game
+
+This folder is the playable game now, not only the asset lab. Story, map and progress are in
+[STORY_AND_WORLD](../../docs/STORY_AND_WORLD.md) and [PROGRESS_TRACKER](../../docs/PROGRESS_TRACKER.md).
+
+- **Run:** `npm install`, then `npm run dev`. Start a new game from the title screen.
+- **Dev tools:** add `?dev` to the URL or press backquote on the title screen, then pick "Baja County (free drive)". Number keys teleport.
+- **Test:** `npm test` runs 32 node tests (physics, restoration rules, assets).
+- **Build:** `npm run build`. `vite.config.js` sets the target to es2022 because `src/worlds/county.js` loads the heightmap with a top-level `await`.
+- **Code map:**
+
+  | Path | What |
+  |---|---|
+  | `src/main.jsx` | App, input, game loop glue |
+  | `src/DriveWorld.jsx` | Driving world and vehicle |
+  | `src/BuildModel.jsx` | The Bug's build state, fit/detach glow |
+  | `src/rules/*.js` | Pure, tested rules |
+  | `src/game/*` | Story, items, loot, fleet, home and build mode, loading screen |
+  | `src/worlds/county.js`, `County.jsx` | Baja County map data and 3D |
+  | `src/worlds/terrainMaterial.js` | Ground textures |
+  | `src/worlds/Desert.jsx` | Rocks, dead trees, shrubs |
+  | `src/worlds/Sites.jsx`, `Home.jsx` | Buildings, grandpa's place |
+  | `src/worlds/flora.js`, `Flora.jsx` | Trees and plants |
+
+- **Runtime assets:**
+  - `public/models/*.glb`: vehicles, parts, `ENV_Trees`, `ENV_Plants` and `ENV_Desert`.
+  - `public/terrain/`: heightmap and macro shading.
+  - `public/textures/ground/`: the 8 ground layers and `SOURCES.md`.
+  - Rebuild them with the scripts in [assets/pipeline](../../assets/pipeline/README.md).
+
+The rest of this README is the asset-lab record from November 6 (imported Stock, Stage 2, tires). It is still accurate for those assets and how to regenerate them.
+
+## Asset lab (November 6, 2026)
 
 A Vite + React 18 + React Three Fiber / Three.js inspector. The active stock
 vehicle is the supplied Blender Beetle, exported as
@@ -308,3 +342,11 @@ packages are unchanged. The body, wheel and Stage 2 generators copy their GLBs t
 `public\models`; they do not overwrite the historical handoff parts. Run
 `npm run build` from this viewer folder and reload the browser after regeneration
 to clear the GLB loader cache.
+
+## Walt's property
+
+The garage uses the Golden Hour and Weathered Desert Garage mockups as visual references: pitched corrugated roof, timber fascia, aged cream/red signage, warm exterior lamps and an open workshop bay. County lighting is warmer and lower-angle; the vehicle test worlds retain their lighting.
+
+`src/worlds/office.js` defines the left service wing, right camper, stairs and loft elevations. `GarageWing.jsx` renders reception, bathroom/shower fixtures, storage shelving and the loft. `Walker.jsx` resolves pedestrian stair/loft levels independently of vehicle ground height, respecting downstairs collider tops and stair/loft rails. Bathroom appliances and office furniture are scenery, not new service mechanics.
+
+The forecourt gravel and workshop concrete reuse layers 4 and 7 of the supplied ground atlas (including the gravel normal map); attribution remains in `public/textures/ground/SOURCES.md`. Architecture uses procedural corrugation/wood because the repository's supplied texture archives contain vegetation/terrain, not workshop siding. No generated model service was used. The map includes a property inset; build mode protects entrances, stairs, camper and parking. `npm test` includes the property layout/elevation regressions.

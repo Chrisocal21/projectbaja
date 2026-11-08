@@ -8,7 +8,7 @@ import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
-import { clearJunk, flipBreaker, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep } from './game/home.js';
+import { clearJunk, flipBreaker, placeProp, removeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -16,8 +16,9 @@ import {
   defaultBuild, normalize, setBody, setWheels, setRim, rims, setPart, applyPreset, resolve,
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
-import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf } from './game/store.js';
+import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
 import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
+import LoadingScreen from './game/Loading.jsx';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
@@ -40,14 +41,17 @@ function CameraReset({ resetKey, cam }) {
   return null;
 }
 
+/** what forces the CAR (not the world or the canvas) to be re-created: build changes that alter its physics or its rigged wheels/steering wheel.
+ *  Everything else re-renders in place. Remounting the whole canvas each time lost the WebGL context (black screen). */
+const physicsKey = (build, r) => JSON.stringify({ b: build.body, w: build.wheels, d: r.dims, s: (build.stripped || []).filter(x => /^(wheel|shell|engine)/.test(x)), st: (build.hidden || []).includes('steering'), h: !!build.fab?.hoops });
 function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, drive, pro, world, hud, cam }) {
   const r = useMemo(() => resolve(build), [build]);
-  if (drive && pro) return <Canvas shadows key={`pro-${JSON.stringify(build)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={[1, 2]}>
+  if (drive && pro) return <Canvas shadows key={`pro-${physicsKey(build, r)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={[1, 2]}>
     <Suspense fallback={null}><ProDrive hud={hud} dims={r.dims} bodyId={build.body}><BuildModel build={build} wireframe={wireframe} drive /></ProDrive></Suspense>
   </Canvas>;
   if (drive) { const t = world === 'county' ? vehicleType(game.active) : vehicleType('bug'), truck = t.kind === 'truck';
-    return <Canvas shadows key={`drive-${world}-${t.id}-${truck ? '' : JSON.stringify(build)}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 2600 }} dpr={[1, 2]}>
-      <Suspense fallback={null}><DriveWorld hud={hud} dims={truck ? t.dims : r.dims} worldId={world} bodyId={build.body}>{truck ? <TruckModel /> : <BuildModel build={build} wireframe={wireframe} drive />}</DriveWorld></Suspense>
+    return <Canvas shadows key={`drive-${world}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 5200 }} dpr={[1, 2]}>
+      <Suspense fallback={null}><DriveWorld hud={hud} dims={truck ? t.dims : r.dims} worldId={world} bodyId={build.body} vehKey={truck ? t.id : `${t.id}-${physicsKey(build, r)}`}>{truck ? <TruckModel /> : <BuildModel build={build} wireframe={wireframe} drive />}</DriveWorld></Suspense>
     </Canvas>; }
   return <Canvas key="view" shadows camera={{ position: CAMERA_POSITION, fov: 43, near: 0.05, far: 100 }} dpr={[1, 2]} onPointerMissed={() => onSelect(null)}>
     <color attach="background" args={['#172124']} />
@@ -85,8 +89,9 @@ function App() {
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
   const startPlay = (kind, w) => { if (w === 'county') game.active = 'bug'; Object.assign(game, { dev: true, onFoot: false, start: w === 'county' ? 'garage' : 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
   const startStory = cont => {
-    // new game: grandma's Bug sits in grandpa's garage, half apart — dead battery, a wheel off, the driver's seat out
-    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: [...DEF.soldStripped, 'wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
+    // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
+    game.dev = false;   // a story session writes the save (dev sessions never do)
+    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h;
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
     Object.assign(game, { dev: false, onFoot: true, open: new Set(), start: 'garage', walkStart: cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, fueled: false, buildMode: null });
@@ -100,25 +105,34 @@ function App() {
     const b = buildRef.current, plan = planFit(it, b, panelRef.current === 'workshop' ? undefined : game.carZone);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
     const before = isDriveable(DEF, b), res = plan.apply(b), nb = normalize(res.build);
-    game.items = game.items.filter(x => x !== it); res.drops.forEach(([k, id]) => dropNearPlayer(k, id)); dropRemoved({ ...b, parts: Object.fromEntries(Object.entries(b.parts).filter(([, id]) => !res.drops.some(d => d[1] === id))) }, nb);
-    say(!before && isDriveable(DEF, nb) ? `Fitted the ${plan.slotName.toLowerCase()} — she'll start now!` : `Fitted: ${plan.slotName}`); rebuild(nb);
+    transact(() => {   // canon: the item leaves your hands and goes on the car in ONE save write
+      game.items = game.items.filter(x => x !== it); res.drops.forEach(([k, id]) => dropNearPlayer(k, id)); dropRemoved({ ...b, parts: Object.fromEntries(Object.entries(b.parts).filter(([, id]) => !res.drops.some(d => d[1] === id))) }, nb);
+      game.build = nb;
+    });
+    say(!before && isDriveable(DEF, nb) ? `Fitted the ${plan.slotName.toLowerCase()} — she's all there. Get in and try the key.` : `Fitted: ${plan.slotName}`); rebuild(nb);
   };
-  const doDetach = slotId => {
-    const b = buildRef.current, plan = planDetach(slotId, b);
+  const doDetach = (slotId, zone) => {
+    const b = buildRef.current, plan = planDetach(slotId, b, zone);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
-    if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n); spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return rebuild(normalize(plan.apply(b))); }
+    if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n), nb = normalize(plan.apply(b)); transact(() => { spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); game.build = nb; }); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return rebuild(nb); }
     const [k, id, extra] = plan.item, name = nameOfItem({ kind: k, id, ...(extra || {}) });
-    if (canCarry(k, id)) { giveToPlayer(k, id, extra); say(`Took off: ${name}`); }
-    else if (inGarageZone(game.pos.x, game.pos.z)) { giveToGarage(k, id, extra); say(`Took off: ${name} — hands full, so it went on the garage shelves.`); }
-    else return say(sizeOf(k, id) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
-    rebuild(normalize(plan.apply(b)));
+    const where = canCarry(k, id) ? 'hands' : inGarageZone(game.pos.x, game.pos.z) ? 'shelves' : null;
+    if (!where) return say(sizeOf(k, id) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
+    const nb = normalize(plan.apply(b));
+    transact(() => { if (where === 'hands') giveToPlayer(k, id, extra); else giveToGarage(k, id, extra); game.build = nb; });   // off the car and into your hands in one write
+    say(where === 'hands' ? `Took off: ${name}` : `Took off: ${name} — hands full, so it went on the garage shelves.`);
+    rebuild(nb);
   };
   const doDetachUpgrade = catSlot => {
     const b = buildRef.current, plan = planDetachUpgrade(catSlot, b);
     if (!plan.ok) return say(plan.why);
     if (!canCarry(...plan.item)) return say('Hands full — put that down first.');
-    const nb = normalize(plan.apply(b)); giveToPlayer(...plan.item);
-    for (const id of Object.values(b.parts)) if (id !== plan.item[1] && !Object.values(nb.parts).includes(id)) dropNearPlayer('part', id);   // things bolted to it come off too
+    const nb = normalize(plan.apply(b));
+    transact(() => {
+      giveToPlayer(...plan.item);
+      for (const id of Object.values(b.parts)) if (id !== plan.item[1] && !Object.values(nb.parts).includes(id)) dropNearPlayer('part', id);   // things bolted to it come off too
+      game.build = nb;
+    });
     say(`Took off: ${nameOf('part', plan.item[1], b.body)}`); rebuild(nb);
   };
   const storeBuy = (what, price) => {
@@ -143,6 +157,7 @@ function App() {
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
     else if (id === 'breaker') flipBreaker();
     else if (id === 'racecar') uncoverRaceCar();
+    else if (id === 'crank') crankBug();
     else if (id.startsWith('heap:')) takeHeap(id.slice(5));
     else if (id === 'job') setPanel('job');
     else if (id === 'trailer') setPanel('trailer');
@@ -182,7 +197,9 @@ function App() {
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyR' && game.nearCar && game.aim && !held()) doDetach(game.aim, game.carZone);
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyQ' && game.nearCar && (game.carZone === 'driver' || game.carZone === 'passenger') && isFitted(DEF, game.build, game.carZone === 'driver' ? 'doorL' : 'doorR')) toggleCover(game.carZone === 'driver' ? 'doorL' : 'doorR');
+      else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; const i = BUILD_ITEMS.findIndex(b => b.id === bm.item), d = e.deltaY > 0 ? 1 : -1; game.buildMode = { ...bm, item: BUILD_ITEMS[(i + d + BUILD_ITEMS.length) % BUILD_ITEMS.length].id }; say(buildById[game.buildMode.item].name); };
@@ -282,10 +299,11 @@ function App() {
       <div className="aside-foot">{fmt(bodyTotal)} builds for this body · add pieces by dropping a GLB + a catalog entry<br />Model units: meters · +Z forward</div>
     </aside>;
 
-  const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin || mode === 'title'} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
-  if (mode === 'title') return <div className="full">{stageEl}<TitleScreen onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
+  const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
+  if (mode === 'title') return <div className="full title-bg"><TitleScreen onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
   if (mode === 'play') return <div className="full">
     {stageEl}
+    <LoadingScreen />
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     {game.onFoot && <div className="crosshair" />}
     <div className="hud-keys">{game.buildMode ? 'Build mode · WASD walk · look where it should go · E build · R rotate · [ ] item · X remove · B done' : game.onFoot ? 'WASD walk · Shift run · Mouse look · E interact · Tab inventory · F car storage · G put down · M map · Esc menu' : `W/S throttle · A/D steer · Space brake · R reset · C ${body.cabLabel || 'cab view'} · E interact / get out · M map · Esc menu${pro ? ' · Gamepad ok' : ''}`}</div>

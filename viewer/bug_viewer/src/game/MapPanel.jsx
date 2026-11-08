@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { game, useGame } from './store.js';
 import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
 import { standingVehicles, vehicleType } from './fleet.js';
+import { OFFICE, CAMPER } from '../worlds/office.js';
 
 /** the county drawn once (surface colours + hill shading + roads); markers are drawn on top every time the map opens */
 const PX = 640, STEP = SIZE / PX * 1.25;
@@ -57,5 +58,21 @@ export default function MapPanel({ onClose }) {
     <div className="shop-head"><h2>BAJA COUNTY</h2><span className="map-btns"><button onClick={() => setZoom(z => (z === 1 ? 3 : 1))}>{zoom === 1 ? 'Zoom in' : 'Whole county'}</button><button onClick={onClose}>Close (M)</button></span></div>
     <canvas ref={ref} width={PX} height={PX} className="map-canvas" />
     <p className="hint">Red arrow — you · blue — your parked vehicles{game.job ? ' · orange — a customer waiting' : ''}</p>
+    <details><summary>Walt's property · facing the garage</summary>
+      <svg viewBox="-36 -12 72 43" style={{ width: '100%', maxHeight: 210, background: '#66543d' }} role="img" aria-label="Office, reception, bathroom and loft on left; garage center; camper right; parking in front; expansion land far left">
+        <g fill="#c6ad82" stroke="#382d23" strokeWidth=".2">
+          <rect x="-7" y="-6" width="14" height="12" />
+          <rect x={OFFICE.x0} y={OFFICE.z0} width={OFFICE.x1 - OFFICE.x0} height="12" />
+          <rect x={CAMPER.x - 1.7} y={CAMPER.z - 5.5} width="3.4" height="11" />
+          <rect x="-8.5" y="10" width="17" height="15" fill="#9d8b6c" />
+        </g>
+        <g fill="#fff1d2" fontSize="1.7" textAnchor="middle">
+          <text x="0" y="0">GARAGE</text><text x="-10.1" y="-8">OFFICE / LOFT</text>
+          <text x="24" y="-8">CAMPER</text><text x="-25" y="4">EXPANSION</text>
+          <text x="0" y="19">CLEAR PARKING</text>
+        </g>
+      </svg>
+      <p className="hint">Reception has the bathroom and parts storage behind it. Take the stairs beside the shared garage wall to the loft.</p>
+    </details>
   </div></div>;
 }

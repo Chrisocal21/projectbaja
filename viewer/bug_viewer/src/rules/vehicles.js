@@ -18,8 +18,8 @@ export const BUG = {
   zones: { front: 0.45, rear: -0.45 },
   covers: {
     engineLid: { piece: 'engineLid', name: 'engine lid', zone: 'rear', hinge: 'front', angle: 1.4, extra: ['B_LicensePlate', 'B_BackHandle'] },   // plate + handle/plate light are bolted to the lid
-    doorL: { piece: 'doorL', name: "driver's door", zone: 'driver', axis: 'y', side: 1, angle: -1.15 },
-    doorR: { piece: 'doorR', name: 'passenger door', zone: 'passenger', axis: 'y', side: -1, angle: 1.15 },
+    doorL: { piece: 'doorL', name: "driver's door", zone: 'driver', axis: 'y', side: 1, angle: -1.0 },
+    doorR: { piece: 'doorR', name: 'passenger door', zone: 'passenger', axis: 'y', side: -1, angle: 1.0 },
     hoodPanel: { piece: 'hoodPanel', name: 'front hood', zone: 'front', hinge: 'rear', angle: -1.1, extra: ['B_HoodTrim', 'B_HoodLogo', 'B_HoodHandle'] },
   },
   slots: [

@@ -1,4 +1,5 @@
 import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import { bugAsleep } from './game/home.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from './game/store.js';
 import GameObjects from './game/GameObjects.jsx';
@@ -163,9 +164,9 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
 
   useEffect(() => {
-    rig.current = buildWheelRig(group.current, dims.mounts);
+    rig.current = buildWheelRig(group.current, dims.mounts);   // once per car: the rig re-parents wheel meshes, so wheel/steering changes re-create the car (vehKey)
     console.info(`[drive] rigged ${rig.current.wheels.length} visible wheels`);
-  }, [dims]);
+  }, []);
 
   useEffect(() => {
     camera.far = world.far || 700; camera.fov = 60; camera.near = 0.1; camera.updateProjectionMatrix();
@@ -197,7 +198,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       camPos.current.set(0, 4, -16);
     }
 
-    const throttle = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+    const throttle = bugAsleep() ? 0 : (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);   // grandma's Bug won't pull until she's fired once
     const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
     let fx = Math.sin(st.h), fz = Math.cos(st.h);
     let rx = fz, rz = -fx;
@@ -304,7 +305,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     g.position.set(st.x, st.y, st.z);
     g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
     if (!game.onFoot) {
-      sun.current.position.set(st.x + 30, st.y + 45, st.z + 20);
+      sun.current.position.set(st.x + 30, st.y + (world.id === 'county' ? 18 : 45), st.z + 20);
       sun.current.target.position.set(st.x, st.y, st.z);
       sun.current.target.updateMatrixWorld();
     }
@@ -381,7 +382,7 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 2600, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
@@ -399,20 +400,20 @@ function Fleet() {
 }
 const WorldCtx = createContext(OPEN_WORLD);
 
-export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId }) {
+export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId, vehKey }) {
   const world = worldId === 'county' ? COUNTY_WORLD : worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
   const race = useRef(newRace());
   const sun = useRef();
   return <WorldCtx.Provider value={world}>
     {world.id === 'open' && <><color attach="background" args={['#cfd9e0']} /><fog attach="fog" args={['#cfd9e0', 80, 380]} /></>}
-    <ambientLight intensity={0.9} />
-    <hemisphereLight args={['#dfeaff', '#8a6e45', 1.1]} />
-    <directionalLight ref={sun} position={[30, 45, 20]} intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
-      shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
+    <ambientLight intensity={world.id === 'county' ? 0.45 : 0.9} />
+    <hemisphereLight args={['#dfeaff', '#8a6e45', world.id === 'county' ? 0.65 : 1.1]} />
+    <directionalLight ref={sun} position={[30, world.id === 'county' ? 18 : 45, 20]} color={world.id === 'county' ? '#ffd4a3' : '#ffffff'} intensity={2.6} castShadow shadow-mapSize={[2048, 2048]}
+      shadow-camera-left={world.id === 'county' ? -36 : -16} shadow-camera-right={world.id === 'county' ? 36 : 16} shadow-camera-top={world.id === 'county' ? 36 : 16} shadow-camera-bottom={world.id === 'county' ? -36 : -16}
       shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
     {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : world.id === 'county' ? <CountyScene /> : <TestCenterScene />}
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
-    <Vehicle hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
+    <Vehicle key={vehKey} hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
     {world.id === 'county' && <Walker world={world} sun={sun} />}
     {world.id === 'county' && <Items />}
     {world.id === 'county' && <Fleet />}

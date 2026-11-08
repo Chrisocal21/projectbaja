@@ -32,6 +32,7 @@
 
 /* ---- game shell: title, pause, shop, HUD ---- */
 .full{position:fixed;inset:0;background:#0d1416;overflow:hidden}.full>canvas,.full>div>canvas{position:absolute!important;inset:0}
+.title-bg{background:#0d1416 url(/images/title-hero.png) center/cover no-repeat}
 .title-screen{position:absolute;inset:0;display:flex;align-items:center;padding:0 7vw;background:linear-gradient(90deg,rgba(8,13,15,.92) 0%,rgba(8,13,15,.55) 45%,rgba(8,13,15,0) 75%);pointer-events:none}
 .title-panel{pointer-events:auto;max-width:430px}.title-panel h1{font-size:64px;line-height:1;margin:10px 0 8px;letter-spacing:-2px}.title-panel h1 b{color:#e0a35a}.title-panel p{color:#9fb2b5;margin:0 0 22px}
 .menu{display:flex;flex-direction:column;gap:9px}.menu button,.card button,.drawer-close{border:1px solid #344448;background:#1b272a;border-radius:8px;padding:11px 14px;font-size:14px;text-align:left}.menu button:hover,.card button:hover{border-color:#ca9b58}
@@ -93,3 +94,15 @@
 .card.map-card { max-width: 700px; width: min(700px, calc(100vw - 32px)); }
 .map-canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; border: 1px solid #ffffff22; background: #b9a57a; display: block; }
 .map-btns { display: flex; gap: 8px; }
+
+/* loading screen over the game while the world loads / rebuilds */
+.loading{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:flex-start;padding:0 0 12vh 7vw;opacity:1;transition:opacity .5s ease;pointer-events:auto}
+.loading::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,12,.82),rgba(8,10,12,.25) 60%,rgba(8,10,12,.1))}
+.loading.done{opacity:0;pointer-events:none}
+.loading-card{position:relative;width:min(440px,86vw);color:#f1e9d6}
+.loading-title{font:900 44px/1 system-ui,sans-serif;letter-spacing:.02em}
+.loading-title span{color:#e3a457}
+.loading-bar{margin:18px 0 10px;height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden}
+.loading-bar div{height:100%;background:#e3a457;border-radius:4px;transition:width .3s ease}
+.loading-sub{font:600 14px system-ui,sans-serif;opacity:.9}
+.loading-tip{margin-top:16px;font:italic 14px system-ui,sans-serif;opacity:.7}

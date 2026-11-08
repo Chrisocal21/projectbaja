@@ -172,7 +172,8 @@
      "B_SideWindows_DoorL",
      "B_SideWindowTrim_DoorL",
      "B_InteriorDoor_DoorL",
-     "B_InteriorDoorHandle_DoorL"
+     "B_InteriorDoorHandle_DoorL",
+     "B_DoorTrim_DoorL"
     ]
    },
    {
@@ -185,7 +186,8 @@
      "B_SideWindows_DoorR",
      "B_SideWindowTrim_DoorR",
      "B_InteriorDoor_DoorR",
-     "B_InteriorDoorHandle_DoorR"
+     "B_InteriorDoorHandle_DoorR",
+     "B_DoorTrim_DoorR"
     ]
    },
    {
@@ -521,7 +523,8 @@
      "B_SideWindows_DoorL",
      "B_SideWindowTrim_DoorL",
      "B_InteriorDoor_DoorL",
-     "B_InteriorDoorHandle_DoorL"
+     "B_InteriorDoorHandle_DoorL",
+     "B_DoorTrim_DoorL"
     ]
    },
    {
@@ -534,7 +537,8 @@
      "B_SideWindows_DoorR",
      "B_SideWindowTrim_DoorR",
      "B_InteriorDoor_DoorR",
-     "B_InteriorDoorHandle_DoorR"
+     "B_InteriorDoorHandle_DoorR",
+     "B_DoorTrim_DoorR"
     ]
    },
    {

@@ -1,7 +1,7 @@
 // Where the trees and plants grow in Baja County (pure data, deterministic). Models: public/models/ENV_Trees.glb + ENV_Plants.glb
 // (assets/pipeline/export_plants.py). Trees: shade around the farm, grandpa's yard, Dry Wells, a canyon spring and the low washes.
 // Plants: dead grass + grass bushes over the scrub, ferns and nettles in the shade of the farm and the canyon spring.
-import { SITES, toWorld, onCore, baseHeight, biomeMasks, HALF } from './county.js';
+import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, SIZE, ROAD_BY, TOWN_D } from './county.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const clearOf = (x, z, pad) => !onCore(x, z) && !onCore(x + 2, z) && !onCore(x - 2, z) && !onCore(x, z + 2) && !onCore(x, z - 2) && !Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + pad);
@@ -10,23 +10,40 @@ const clearOf = (x, z, pad) => !onCore(x, z) && !onCore(x + 2, z) && !onCore(x -
 export const TREES = [];
 const r = rnd(2024), T = (x, z, s = 1, kind) => TREES.push([x, z, kind || (r() < 0.5 ? 'TREE_A' : 'TREE_B'), s * (0.85 + r() * 0.4), r() * 6.28]);
 // grandpa's yard: a big old cottonwood behind the trailer + two by the fence line
-for (const [lx, lz, s] of [[-34, -12, 1.9], [-18, -30, 1.6], [34, 6, 1.7]]) { const [x, z] = toWorld(SITES.garage, lx, lz); T(x, z, s, 'TREE_A'); }
-// Hollis farm: a windbreak row along the lane and a grove round the barn
-for (let x = -430; x < -20; x += 26) T(x + (r() - 0.5) * 4, 512 + (r() - 0.5) * 3, 1.5);
+for (const [lx, lz, s] of [[30, -12, 1.9], [-18, -30, 1.6], [34, 6, 1.7]]) { const [x, z] = toWorld(SITES.garage, lx, lz); T(x, z, s, 'TREE_A'); }
+// Hollis farm: a windbreak row along the lane (north side) and a grove round the barn
+{ const lane = ROAD_BY.farmLane.path.pts; for (let i = 20; i < lane.length - 20; i += 52) { const p = lane[i]; T(p.x + p.tz * 12 + (r() - 0.5) * 4, p.z - p.tx * 12 + (r() - 0.5) * 3, 1.5); } }
 for (const [lx, lz] of [[-25, -6], [-26, 7], [-22, 18], [24, -14], [25, 13], [-6, -27], [9, -28], [-17, -24]]) { const [x, z] = toWorld(SITES.barn, lx, lz); T(x, z, 1.7); }
 // Dry Wells: street trees along main street
-for (let x = 470; x <= 880; x += 34) for (const z of [289, 312]) if (clearOf(x, z, 4) && r() < 0.8) T(x, z, 1.3);
+for (let x = 470; x <= 880; x += 34) for (const z of [289, 312]) { const wx = x + TOWN_D[0], wz = z + TOWN_D[1]; if (clearOf(wx, wz, 4) && r() < 0.8) T(wx, wz, 1.3); }
 // a spring in Red Rock Canyon, by the old shack
 for (let i = 0; i < 9; i++) { const a = i * 0.7, d = 14 + r() * 16; T(SITES.shack1.x + Math.cos(a) * d, SITES.shack1.z + Math.sin(a) * d, 1.5); }
-// lone trees in the low washes of the scrub
-for (let t = 0, n = 0; n < 45 && t < 20000; t++) {
-  const x = (r() - 0.5) * 2600, z = (r() - 0.5) * 2600, m = biomeMasks(x, z);
-  if (baseHeight(x, z) > -3.5 || m.lake > 0.1 || m.dunes > 0.2 || m.pg > 0.3 || !clearOf(x, z, 12)) continue;
+// lone green trees where water collects: the bottoms of the washes
+for (let t = 0, n = 0; n < 110 && t < 60000; t++) {
+  const x = (r() - 0.5) * (SIZE - 800), z = (r() - 0.5) * (SIZE - 800), m = biomeMasks(x, z);
+  if (m.lake > 0.1 || m.dunes > 0.2 || m.pg > 0.3 || m.town > 0.3 || washAt(x, z) < 0.65 || !clearOf(x, z, 12)) continue;
   T(x, z, 1.4); n++;
 }
 for (let i = TREES.length - 1; i >= 0; i--) if (!clearOf(TREES[i][0], TREES[i][1], 1)) TREES.splice(i, 1);
+
+// ---------------- desert: dead trees and shrubs (public/models/ENV_Desert.glb, assets/pipeline/export_desert.py) ----------------
+/** [x, z, model 1..7, scale, ry] bare, sun-killed trees: scattered over the scrub, thicker along the washes and in the canyon */
+export const DEAD_TREES = [];
+for (let t = 0; DEAD_TREES.length < 520 && t < 90000; t++) {
+  const x = (r() - 0.5) * (SIZE - 400), z = (r() - 0.5) * (SIZE - 400), m = biomeMasks(x, z), keep = 0.12 + washAt(x, z) * 0.6 + m.canyon * 0.3;
+  if (r() > keep || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || !clearOf(x, z, 10)) continue;
+  DEAD_TREES.push([x, z, 1 + Math.floor(r() * 7), 0.7 + r() * 0.5, r() * 6.28]);
+}
+for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld(SITES.garage, lx, lz); DEAD_TREES.push([x, z, k, 1, r() * 6.28]); }   // two dead ones in grandpa's yard
+/** [x, z, scale, ry] desert shrubs */
+export const SHRUBS = [];
+for (let t = 0; SHRUBS.length < 2600 && t < 60000; t++) {
+  const x = (r() - 0.5) * (SIZE - 300), z = (r() - 0.5) * (SIZE - 300), m = biomeMasks(x, z);
+  if (m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || !clearOf(x, z, 4)) continue;
+  SHRUBS.push([x, z, 0.5 + r() * 0.8, r() * 6.28]);
+}
 /** trunk colliders [x, z, r, top] */
-export const TREE_COLLIDERS = TREES.map(([x, z, , s]) => [x, z, 0.35 * s, 99]);
+export const TREE_COLLIDERS = [...TREES.map(([x, z, , s]) => [x, z, 0.35 * s, 99]), ...DEAD_TREES.map(([x, z, , s]) => [x, z, 0.3 * s, 99])];
 
 // ---------------- plants, grouped into 250 m blocks so far ones can be skipped ----------------
 export const BLOCK = 250, NB = Math.ceil((HALF * 2) / BLOCK);

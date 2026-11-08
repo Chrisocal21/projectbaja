@@ -14,8 +14,8 @@ export const FURNITURE = [
 // containers: toolbox (small parts + cash), drawer (tool chest), box (cardboard), crate (wooden)
 const C = (id, site, type, lx, lz, ly = 0, ry = 0) => ({ id, site, type, lx, lz, ly, ry });
 export const CONTAINERS = [
-  C('racecar', 'garage', 'car', 13, 0.5, 0, 0.08),
-  C('g-toolbox', 'garage', 'toolbox', -1.2, -5.2, BENCH_TOP), C('g-chest', 'garage', 'drawer', 6.2, 4.2, 0, -Math.PI / 2),
+  C('racecar', 'garage', 'car', 4.3, -2.7, 0, 0),
+  C('g-toolbox', 'garage', 'toolbox', -1.2, -5.2, BENCH_TOP), C('g-chest', 'garage', 'drawer', -8.1, -3.7, 0, -Math.PI / 2),
   C('b-crate1', 'barn', 'crate', 2.6, -10.0), C('b-crate2', 'barn', 'crate', -5.7, 1.6, 0, 0.3), C('b-box', 'barn', 'box', -6.9, 3.4, 0, 0.2), C('b-toolbox', 'barn', 'toolbox', 7.3, 1.3, BENCH_TOP, Math.PI / 2),
   C('w-crate1', 'warehouse', 'crate', 6, -2, 0, 0.2), C('w-crate2', 'warehouse', 'crate', 9, 2), C('w-crate3', 'warehouse', 'crate', 7.6, 4.6, 0, -0.3),
   C('w-box1', 'warehouse', 'box', 10.8, -3.5), C('w-box2', 'warehouse', 'box', -6, 4.5, 0, 0.5), C('w-toolbox', 'warehouse', 'toolbox', -11.2, 1.1, BENCH_TOP, Math.PI / 2),
@@ -51,7 +51,7 @@ export const containerById = Object.fromEntries(containers.map(c => [c.id, c]));
 export const LOOT_COLLIDERS = (() => {
   const out = [];
   for (const f of furniture) { const s = SITES[f.site], n = Math.max(2, Math.round(f.len / 1.1)); for (let i = 0; i < n; i++) { const t = (i / (n - 1) - 0.5) * (f.len - 0.6); const [x, z] = toWorld(s, f.lx + Math.cos(f.ry) * t, f.lz - Math.sin(f.ry) * t); out.push([x, z, f.type === 'rack' ? 0.65 : 0.5, 99]); } }
-  for (const c of containers) if (!c.ly && CONTAINER_RULES[c.type].r) out.push([c.x, c.z, CONTAINER_RULES[c.type].r, 99]);
+  for (const c of containers) if (!c.ly && CONTAINER_RULES[c.type].r) out.push([c.x, c.z, CONTAINER_RULES[c.type].r, c.id === 'g-chest' ? c.y + 1.5 : 99]);
   return out;
 })();
 

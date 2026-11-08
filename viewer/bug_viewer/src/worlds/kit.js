@@ -50,10 +50,16 @@ export function makePath(ctrl, closed, ds = 0.5) {
 /**
  * A square raster of `size` metres at `cell` metres per cell, centred on the origin. Paint roads (`paint`) and flat pads (`paintDisc`),
  * then read the blended height / surface with `heightAt(base)` / `surfaceAt(baseSurface)`.
+ * Storage is sparse: 64 x 64-cell chunks are only allocated where something is painted (a 6 km county at 2 m would be ~120 MB dense).
  */
 export function createRaster(size, cell) {
-  const N = Math.round(size / cell), HALF = size / 2;
-  const wT = new Float32Array(N * N), hwT = new Float32Array(N * N), sid = new Uint8Array(N * N), dist2 = new Float32Array(N * N).fill(1e12);
+  const N = Math.round(size / cell), HALF = size / 2, CH = 64, NC = Math.ceil(N / CH), chunks = new Array(NC * NC).fill(null);
+  const chunk = (c, r, make) => {
+    const k = ((r / CH) | 0) * NC + ((c / CH) | 0); let ch = chunks[k];
+    if (!ch && make) ch = chunks[k] = { w: new Float32Array(CH * CH), hw: new Float32Array(CH * CH), sid: new Uint8Array(CH * CH), d2: new Float32Array(CH * CH).fill(1e12) };
+    return ch;
+  };
+  const li = (c, r) => (r % CH) * CH + (c % CH);
   const cellOf = v => Math.floor((v + HALF) / cell);
   function paint(path, { core, shoulder, centerH = () => 0, tilt = () => 0, extra = () => 0, classify }) {
     const R = core + shoulder;
@@ -62,10 +68,11 @@ export function createRaster(size, cell) {
       const c0 = Math.max(0, cellOf(p.x - R)), c1 = Math.min(N - 1, cellOf(p.x + R)), r0 = Math.max(0, cellOf(p.z - R)), r1 = Math.min(N - 1, cellOf(p.z + R));
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
         const x = (c + 0.5) * cell - HALF, z = (r + 0.5) * cell - HALF, dx = x - p.x, dz = z - p.z, dd = dx * dx + dz * dz;
-        const i = r * N + c; if (dd > R * R || dd >= dist2[i]) continue;
-        dist2[i] = dd;
+        if (dd > R * R) continue;
+        const ch = chunk(c, r, true), i = li(c, r); if (dd >= ch.d2[i]) continue;
+        ch.d2[i] = dd;
         const d = dx * nx + dz * nz, ad = Math.abs(d), w = ad <= core ? 1 : 1 - smooth(core, R, ad);
-        wT[i] = w; hwT[i] = (h0 + tl * d + extra(p, d)) * w; sid[i] = ad <= core ? classify(ad, p, d) : 0;
+        ch.w[i] = w; ch.hw[i] = (h0 + tl * d + extra(p, d)) * w; ch.sid[i] = ad <= core ? classify(ad, p, d) : 0;
       }
     }
   }
@@ -74,24 +81,38 @@ export function createRaster(size, cell) {
     for (let row = cellOf(cz - R); row <= cellOf(cz + R); row++) for (let col = cellOf(cx - R); col <= cellOf(cx + R); col++) {
       if (row < 0 || col < 0 || row >= N || col >= N) continue;
       const d = Math.hypot((col + 0.5) * cell - HALF - cx, (row + 0.5) * cell - HALF - cz); if (d > R) continue;
-      const i = row * N + col, w = d <= r ? 1 : 1 - smooth(r, R, d);
-      if (d > r && wT[i] >= w) continue;   // a pad's soft edge never erases a road painted before it
-      wT[i] = w; hwT[i] = h * w; sid[i] = d <= r ? SID[id] : sid[i]; dist2[i] = -1;
+      const ch = chunk(col, row, true), i = li(col, row), w = d <= r ? 1 : 1 - smooth(r, R, d);
+      if (d > r && ch.w[i] >= w) continue;   // a pad's soft edge never erases a road painted before it
+      ch.w[i] = w; ch.hw[i] = h * w; ch.sid[i] = d <= r ? SID[id] : ch.sid[i]; ch.d2[i] = -1;
     }
   }
-  function bil(arr, x, z) {
+  const val = (key, c, r) => { if (c < 0 || r < 0 || c >= N || r >= N) return 0; const ch = chunk(c, r, false); return ch ? ch[key][li(c, r)] : 0; };
+  function bil(key, x, z) {
     const fx = (x + HALF) / cell - 0.5, fz = (z + HALF) / cell - 0.5;
     const c = Math.floor(fx), r = Math.floor(fz), tx = fx - c, tz = fz - r;
-    const g = (cc, rr) => (cc < 0 || rr < 0 || cc >= N || rr >= N ? 0 : arr[rr * N + cc]);
-    return (g(c, r) * (1 - tx) + g(c + 1, r) * tx) * (1 - tz) + (g(c, r + 1) * (1 - tx) + g(c + 1, r + 1) * tx) * tz;
+    return (val(key, c, r) * (1 - tx) + val(key, c + 1, r) * tx) * (1 - tz) + (val(key, c, r + 1) * (1 - tx) + val(key, c + 1, r + 1) * tx) * tz;
   }
   const inside = (x, z) => x >= -HALF && x <= HALF && z >= -HALF && z <= HALF;
-  const heightAt = base => (x, z) => { const b = base(x, z); if (!inside(x, z)) return b; const w = bil(wT, x, z); return w <= 0 ? b : b * (1 - w) + bil(hwT, x, z); };
-  const surfaceAt = baseSurface => (x, z) => { const c = cellOf(x), r = cellOf(z); if (c >= 0 && r >= 0 && c < N && r < N) { const id = sid[r * N + c]; if (id) return SURFACES[SURFACE_IDS[id]]; } return baseSurface(x, z); };
-  const isRoad = (x, z) => { const c = cellOf(x), r = cellOf(z); return c < 0 || r < 0 || c >= N || r >= N || wT[r * N + c] > 0.01; };
+  const heightAt = base => (x, z) => { const b = base(x, z); if (!inside(x, z)) return b; const w = bil('w', x, z); return w <= 0 ? b : b * (1 - w) + bil('hw', x, z); };
+  const surfaceAt = baseSurface => (x, z) => { const id = val('sid', cellOf(x), cellOf(z)); return id ? SURFACES[SURFACE_IDS[id]] : baseSurface(x, z); };
+  const isRoad = (x, z) => { const c = cellOf(x), r = cellOf(z); return c < 0 || r < 0 || c >= N || r >= N || val('w', c, r) > 0.01; };
   /** on a road / track / pad surface itself (not its soft shoulder) */
-  const isCore = (x, z) => { const c = cellOf(x), r = cellOf(z); return c >= 0 && r >= 0 && c < N && r < N && sid[r * N + c] !== 0; };
+  const isCore = (x, z) => val('sid', cellOf(x), cellOf(z)) !== 0;
   return { N, HALF, cell, paint, paintDisc, heightAt, surfaceAt, isRoad, isCore };
+}
+
+/** Separable box blur of an n x n Float32Array (radius r cells, `passes` times ~ a gaussian). */
+export function boxBlur(src, n, r, passes = 2) {
+  let a = Float32Array.from(src), b = new Float32Array(n * n);
+  for (let p = 0; p < passes; p++) for (const horiz of [true, false]) {
+    for (let line = 0; line < n; line++) {
+      let s = 0; const at = k => a[horiz ? line * n + Math.min(n - 1, Math.max(0, k)) : Math.min(n - 1, Math.max(0, k)) * n + line];
+      for (let k = -r; k <= r; k++) s += at(k);
+      for (let k = 0; k < n; k++) { b[horiz ? line * n + k : k * n + line] = s / (2 * r + 1); s += at(k + r + 1) - at(k - r); }
+    }
+    [a, b] = [b, a];
+  }
+  return a;
 }
 
 /** local site coordinates -> world x, z (`rot` turns the site's local +z, its "front") */

@@ -1,8 +1,9 @@
 // Solid obstacles, loot spots and "press E" targets for the story sites and the scenery scattered over Baja County.
-import { SITES, toWorld, height, isRoad, baseHeight, surface, biomeMasks } from './county.js';
+import { SITES, toWorld, height, isRoad, baseHeight, surface, biomeMasks, SIZE, TOWN_D } from './county.js';
 import { LOT_CIRCLES, LOT_SPOTS } from '../lot/CarLot.jsx';
 import { LOOT_COLLIDERS } from '../game/loot.js';
 import { TREE_COLLIDERS } from './flora.js';
+import { OFFICE } from './office.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const TALL = 99;
@@ -26,9 +27,21 @@ const S = SITES.gas;
 
 const solid = [];
 // garage walls + furniture
-solid.push(...wall(G, [-GAR_W, -GAR_D], [GAR_W, -GAR_D]), ...wall(G, [-GAR_W, -GAR_D], [-GAR_W, GAR_D]), ...wall(G, [GAR_W, -GAR_D], [GAR_W, GAR_D]),
+solid.push(...wall(G, [-GAR_W, -GAR_D], [GAR_W, -GAR_D]), ...wall(G, [GAR_W, -GAR_D], [GAR_W, GAR_D]), ...wall(G, [-GAR_W, -GAR_D], [-GAR_W, OFFICE.inner.z0 - 0.6]), ...wall(G, [-GAR_W, OFFICE.inner.z1 + 0.6], [-GAR_W, GAR_D]),
   ...wall(G, [-GAR_W, GAR_D], [-GAR_DOOR, GAR_D]), ...wall(G, [GAR_DOOR, GAR_D], [GAR_W, GAR_D]),
-  ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5), ...wall(G, [-6.2, -3.6], [-6.2, 3.6], 0.5), ...wall(G, [6.2, -4.2], [6.2, 2.4], 0.5));
+  ...wall(G, [-5.6, -5.1], [-0.4, -5.1], 0.5), ...wall(G, [-6.2, -3.6], [-6.2, 2.4], 0.5), ...wall(G, [6.2, -4.2], [6.2, 2.4], 0.5),
+  blob(G, -1.65, -0.5, 0.3), blob(G, 1.65, -0.5, 0.3), blob(G, -4.3, 0.9, 0.55), blob(G, 0.3, -5.4, 0.45), blob(G, -5.2, 4.6, 0.45));   // lift posts, engine stand, compressor, tire stack
+// the office: back, far and front walls (the shared wall is the garage's, above); street door in the front face
+solid.push(...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x1, OFFICE.z0], 0.2, 0.3), ...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x0, OFFICE.z1], 0.2, 0.3),
+  ...wall(G, [OFFICE.x0 + 0.5, OFFICE.z1], [OFFICE.entry.x0 - 0.45, OFFICE.z1], 0.45), ...wall(G, [OFFICE.entry.x1 + 0.45, OFFICE.z1], [OFFICE.x1, OFFICE.z1], 0.45));
+// Service-wing fixtures have real tops, so upstairs walking is not blocked by downstairs furniture.
+const lowWall = (a, b, top, radius = 0.15) => wall(G, a, b, radius, 0.25).map(c => [c[0], c[1], c[2], G.y + top]);
+solid.push(...lowWall([-12.5, 1.7], [-11.1, 1.7], 1.22, 0.45),
+  ...lowWall([-13.1, -2], [-12, -2], 2.7), ...lowWall([-10.7, -2], [-10.4, -2], 2.7),
+  ...lowWall([-10.4, -5.8], [-10.4, -2], 2.7),
+  ...lowWall([-12.35, -5.3], [-12.35, -4.8], 1.2, 0.3),
+  ...lowWall([-12.7, -3], [-12.7, -3], 1.1, 0.3),
+  ...lowWall([-8.7, -5.2], [-7.5, -5.2], 2.5, 0.25));
 // barn walls + hay + stalls
 solid.push(...wall(B, [-BARN_W, -BARN_D], [BARN_W, -BARN_D]), ...wall(B, [-BARN_W, -BARN_D], [-BARN_W, BARN_D]), ...wall(B, [BARN_W, -BARN_D], [BARN_W, BARN_D]),
   ...wall(B, [-BARN_W, BARN_D], [-BARN_DOOR, BARN_D]), ...wall(B, [BARN_DOOR, BARN_D], [BARN_W, BARN_D]),
@@ -45,25 +58,30 @@ solid.push(...LOOT_COLLIDERS);
 // proving grounds HQ (12 x 8 m block) and the parts shop (9 x 6)
 const PG = SITES.proving; solid.push(...wall(PG, [-6, -14], [6, -14]), ...wall(PG, [-6, -6], [-2.2, -6]), ...wall(PG, [2.2, -6], [6, -6]), ...wall(PG, [-6, -14], [-6, -6]), ...wall(PG, [6, -14], [6, -6]));
 const SH = SITES.shop; solid.push(...wall(SH, [-4.5, -3], [4.5, -3]), ...wall(SH, [-4.5, 3], [4.5, 3]), ...wall(SH, [-4.5, -3], [-4.5, 3]), ...wall(SH, [4.5, -3], [4.5, 3]));
-// grandpa's race car (side yard)
-solid.push(blob(G, 13, -1.0, 0.95), blob(G, 13, 0.5, 0.95), blob(G, 13, 2.0, 0.95));
+// grandpa's race car (back-right of the garage)
+solid.push(blob(G, 4.3, -4.1, 0.95), blob(G, 4.3, -2.7, 0.95), blob(G, 4.3, -1.3, 0.95));
 // grandpa's trailer + water tank
-solid.push(...wall(G, [-24, -4], [-24, 6], 0.7), ...wall(G, [-21, -4], [-21, 6], 0.7), blob(G, 16, -6, 1.6));
+solid.push(...wall(G, [21, -4], [21, 6], 0.7), ...wall(G, [24, -4], [24, 6], 0.7), ...wall(G, [21, -4.5], [24, -4.5], 0.7), ...wall(G, [21, 6.5], [24, 6.5], 0.7), blob(G, 16, -6, 1.6));
 // the car lot's fence, office and props, moved into the world
 const lot = SITES.lot;
 for (const [x, z, r] of LOT_CIRCLES) { const [wx, wz] = toWorld(lot, x, z); solid.push([wx, wz, r, TALL]); }
 
 // ---- scenery: boulders + cacti scattered over the open desert, never on a road or at a site ----
 const r = rnd(777), keepOut = (x, z, pad) => Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + 14 + pad) || isRoad(x, z) || Math.hypot(x, z) < 60;
+// boulders gather on the hill slopes and in the canyon (they roll down off the ridges); `m` picks the rock model
 export const BOULDERS = [], CACTI = [];
-for (let tries = 0; BOULDERS.length < 900 && tries < 30000; tries++) {
-  const x = (r() - 0.5) * 2760, z = (r() - 0.5) * 2760, m = biomeMasks(x, z), big = r() < 0.12 + m.canyon * 0.2, sc = big ? 2.2 + r() * 1.4 : 0.6 + r() * 1.3;
-  if (keepOut(x, z, 3) || baseHeight(x, z) > 45 || m.lake > 0.3 || m.pg > 0.5 || m.town > 0.4 || (m.dunes > 0.5 && r() < 0.85) || (m.canyon < 0.2 && r() < 0.35)) continue;
-  BOULDERS.push({ x, z, s: sc, ry: r() * 6, k: r() });
+const EXT = SIZE - 240;
+const slopeAt = (x, z) => { const h = baseHeight(x, z); return Math.abs(baseHeight(x + 2, z) - h) / 2 + Math.abs(baseHeight(x, z + 2) - h) / 2; };
+for (let tries = 0; BOULDERS.length < 2600 && tries < 90000; tries++) {
+  const x = (r() - 0.5) * EXT, z = (r() - 0.5) * EXT, m = biomeMasks(x, z), coin = r(), coin2 = r();
+  if (m.lake > 0.3 || m.pg > 0.5 || m.town > 0.4 || (m.dunes > 0.5 && coin < 0.85) || keepOut(x, z, 3)) continue;
+  const sl = slopeAt(x, z); if (sl > 0.9 || baseHeight(x, z) > 70 || (m.canyon < 0.2 && sl < 0.12 && coin2 < 0.55)) continue;
+  const big = r() < 0.1 + m.canyon * 0.2 + sl * 0.3, sc = big ? 2.2 + r() * 1.6 : 0.5 + r() * 1.2;
+  BOULDERS.push({ x, z, s: sc, ry: r() * 6, k: r(), m: Math.floor(r() * 12) });
 }
-for (let tries = 0; CACTI.length < 650 && tries < 30000; tries++) {
-  const x = (r() - 0.5) * 2760, z = (r() - 0.5) * 2760, sc = 0.7 + r() * 1.2, m = biomeMasks(x, z);
-  if (keepOut(x, z, 1) || baseHeight(x, z) > 30 || m.lake > 0.2 || m.dunes > 0.3 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4) continue;
+for (let tries = 0; CACTI.length < 1700 && tries < 90000; tries++) {
+  const x = (r() - 0.5) * EXT, z = (r() - 0.5) * EXT, sc = 0.7 + r() * 1.2, m = biomeMasks(x, z);
+  if (m.lake > 0.2 || m.dunes > 0.3 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || keepOut(x, z, 1) || baseHeight(x, z) > 45 || slopeAt(x, z) > 0.4) continue;
   CACTI.push({ x, z, s: sc, ry: r() * 6, arms: r() < 0.6 });
 }
 const scenery = [...BOULDERS.map(b => [b.x, b.z, b.s * 1.05, height(b.x, b.z) + b.s * 0.9]), ...CACTI.map(c => [c.x, c.z, 0.45 * c.s, height(c.x, c.z) + c.s * 2])];
@@ -77,7 +95,7 @@ export const TOWN = [
   { x: 495, z: 272, w: 10, d: 6, h: 4.4, color: '#8f8a7a', trim: '#4a4f52', name: 'COUNTY SHERIFF', sub: 'sub-station' },
   { x: 700, z: 270, w: 11, d: 6, h: 4.8, color: '#9c6040', trim: '#2c3234', name: 'THE RUSTY PISTON', sub: 'cold beer · pool' },
   { x: 860, z: 272, w: 9, d: 6, h: 4, color: '#bfb7a2', trim: '#6e3a24', name: 'LAUNDROMAT', sub: 'closed' },
-].map(b => ({ ...b, rot: b.z > 300 ? Math.PI : 0 }));
+].map(b => ({ ...b, rot: b.z > 300 ? Math.PI : 0, x: b.x + TOWN_D[0], z: b.z + TOWN_D[1] }));   // laid out round the old town centre
 for (const t of TOWN) { const s = { x: t.x, z: t.z, rot: t.rot }, w = t.w / 2, d = t.d / 2; solid.push(...wall(s, [-w, -d], [w, -d]), ...wall(s, [-w, d], [w, d]), ...wall(s, [-w, -d], [-w, d]), ...wall(s, [w, -d], [w, d])); }
 
 /** [x, z, radius, top] circles the car and the walker collide with */

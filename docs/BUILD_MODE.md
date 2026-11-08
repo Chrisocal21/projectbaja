@@ -34,6 +34,8 @@ Last updated: November 7, 2026. Building up your property: grandpa's yard and ga
 
 Most of these are cosmetic for now. The functions below are the plan.
 
+**Already in the garage as fixed decoration (since the November 7 look pass, `Sites.jsx`):** a red two-post lift around the Bug's bay with yellow bay lines, a pegboard with tool shapes, a compressor, an engine stand carrying a flat-four, and shelves of oil, cans, paint and parts. They're solid but do nothing yet. When the lift, engine stand and compressor get real functions, decide whether these built-in ones count as already owned or are replaced by the buyable ones.
+
 ## Ideas: what building should do (proposed, needs your sign-off)
 
 ### Garage upgrades (function first)
@@ -72,3 +74,9 @@ Most of these are cosmetic for now. The functions below are the plan.
 ### Rules to keep
 - Big build pieces (containers, lift, second bay) should arrive like parts do: bought in town and hauled home in the truck, or later by trailer. No magic delivery, except online orders, which take time.
 - Building only happens on land you own; buying the next plot expands the grid.
+
+### Implemented property layout (November 8, 2026)
+
+Facing the roller door, the office/reception service wing is **left** and the camper is **right**. The ground-floor wing contains bathroom/shower fixtures and parts shelving; stairs beside the shared garage wall reach the rear loft. The far-left yard remains available for expansion.
+
+Placement now reserves the service wing (including stairs), camper/porch, and the 16 m-wide front parking/approach strip. These reservations apply to decorative pieces too, not just collidable props. Existing purchased props are retained; they are not automatically moved or refunded. Loft furniture placement and working bathroom appliances are not implemented. The original workshop, container searches, fabrication, cleanup and camper upgrade interactions remain.

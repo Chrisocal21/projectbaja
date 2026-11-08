@@ -2,8 +2,7 @@
 
 Standing guide for Claude Code working in the Baja repo. Read at the start of every session.
 
-Last synchronized: November 6, 2026 - after the imported Beetle, supplied tires
-and classic Stage 2 asset work.
+Last synchronized: November 8, 2026, after the Forge canon arrived (CANON.md, phases, Slice A).
 
 ## Roles
 
@@ -14,6 +13,17 @@ and classic Stage 2 asset work.
 
 ## Rules
 
+- **Read [CANON](./CANON.md) first.** Locked canon is a requirement; do not redesign it. Only Phase 1 is open, and inside it only Slice A. Do not build later phases.
+- Parts exist in exactly one state: installed, held, stored, in the world or consumed. Install and remove are atomic: wrap any change to `game.items` and `game.build` together in `transact()` (`game/store.js`), so the save is written once.
+- Mark every unsettled detail as a PROPOSAL and prefer placeholders that can be reversed. Give exact filenames, run commands and a test checklist, and say plainly whether the code was actually run.
+- **Never:**
+  - invent lore
+  - add player injury or insurance
+  - require a main quest
+  - let parts teleport or duplicate
+  - erase saves or property
+  - advance the world while the game is closed
+  - add business or racing systems to Phase 1
 - Do not make design decisions. Write the question down in your session summary and route it to the Forge.
 - Do not invent game systems, milestones, engines, backends or data models.
 - Do not claim prototype assets are production-ready. Only call something validated if you tested it.
@@ -36,9 +46,23 @@ and classic Stage 2 asset work.
 
 - The game is playable: `viewer/bug_viewer`, Vercel from GitHub `main`. Read [PROGRESS_TRACKER](./PROGRESS_TRACKER.md), [STORY_AND_WORLD](./STORY_AND_WORLD.md), [BUILD_MODE](./BUILD_MODE.md) and [BLUEPRINT_GAP_PLAN](./BLUEPRINT_GAP_PLAN.md) first.
 - The story world is `src/worlds/county.js` + `County.jsx`. Sites, obstacles and targets are in `worlds/siteData.js`, loot in `game/loot.js`, grandpa's place and build mode in `game/home.js` + `worlds/Home.jsx`, vehicles in `game/fleet.js`, plants in `worlds/flora.js` + `Flora.jsx`.
-- Rules stay pure and tested in `src/rules/*.js` (`npm test`).
-- Large source packs (`assets/truck/*.zip`, `assets/plants/`) are git-ignored. Export trimmed GLBs into `public/models` with the scripts in `assets/truck` and `assets/pipeline`. Never commit raw packs.
-- Headless checks: puppeteer scripts in `C:\Users\chris\shots` against `vite preview` on :4173. Test hooks: `window.__game`, `__walk`, `__baja`, `__fleet`.
+- Terrain and scenery:
+  - `worlds/terrainMaterial.js`: the ground texture array and macro shading.
+  - `worlds/Desert.jsx`: rocks, dead trees and shrubs as BatchedMeshes.
+  - `worlds/kit.js`: the sparse raster and `boxBlur`.
+- `county.js` loads `/terrain/height.bin` with a top-level `await`, so `vite.config.js` sets the build target to es2022. Keep that.
+- Rules stay pure and tested in `src/rules/*.js` (`npm test`, 38 tests; `rules/atomic.test.js` covers Slice A). Build check: `npx vite build`.
+- Large source packs never get committed. Export trimmed GLBs and baked textures into `public/` with the scripts in `assets/truck` and `assets/pipeline` (see its README).
+  - Git-ignored in this repo: `assets/truck/*.zip` and `assets/plants/`.
+  - Kept in sibling folders outside the repo: the Unity and texture libraries in `../supplyline-unity/Assets`, `../supplyline/public/assets/materials` and `../salvageroad/public/textures`.
+- Blender 5.2 CLI: `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`. Use it for FBX → GLB.
+- `assets/pipeline/preview_county.mjs` renders the county top-down in a few seconds. Use it to check terrain or layout changes before opening the browser.
+- Browser checks:
+  - Older: puppeteer scripts in `C:\Users\chris\shots` against `vite preview` on :4173.
+  - Newer: `playwright-core` driving the installed Chromium (`~/AppData/Local/ms-playwright/chromium-1243`) with `--use-angle=d3d11`, which renders on the real GPU.
+  - `?dev` plus the backquote key opens the dev tools on the title screen, and number keys teleport in the free drive.
+  - Test hooks: `window.__game`, `__walk`, `__baja`, `__fleet`.
+- Don't remount the R3F canvas for build changes; a new WebGL context can come up black. Only `<Vehicle key={vehKey}>` in `DriveWorld.jsx` is re-created, and only for changes the wheel rig depends on.
 - The sections below describe the earlier asset-lab stage and are kept for history.
 
 ## Asset-lab history (November 6, 2026)

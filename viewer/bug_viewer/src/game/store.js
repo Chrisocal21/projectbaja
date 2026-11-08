@@ -1,6 +1,7 @@
 // Tiny game-state store shared by the 3D scene (pickups, shop, pause) and the React UI (menus, HUD).
 import { useEffect, useState } from 'react';
 import { WEAR } from '../weather.js';
+import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
 const KEY = 'baja-save-v1';
@@ -19,9 +20,14 @@ export const game = {
 WEAR.value = game.wear;
 if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
-const persist = () => { try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats })); } catch {} };
+// Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
+const writeSave = () => { if (game.dev) return; try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats })); } catch {} };
+const tx = createTx({ snapshot: () => snapshotOf(game), restore: s => Object.assign(game, s), write: writeSave });
+const persist = () => tx.request();
+/** run one player action (fit, detach, buy...) as a single save write; if it throws, nothing changes */
+export const transact = fn => { try { return tx.run(fn); } finally { emit(); } };
 export const save = () => { persist(); emit(); };
-export const saveBuild = b => { game.build = b; if (!game.dev) persist(); };
+export const saveBuild = b => { game.build = b; persist(); };
 
 export const itemKey = (kind, id) => `${kind}:${id}`;
 export const isFree = (kind, id) => (kind === 'wheel' && id === 'stock') || (kind === 'rim' && id === 'steel');
@@ -52,7 +58,7 @@ export function newGame() {
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }
 /** Press E on something in the world. Panels (shop, dealer, workbench) are opened by the app; everything else is handled here. */
 export function interact(id) {
-  const lines = ["Al: 'You're Walt's grandkid? Sorry about the old man. He bought half his junk off me.'", "Al: 'That Bug of his has been sitting since '09. Battery'll be long dead — Dusty sells 'em.'", "Al: 'Need to haul an engine? That four-by-four out front'll do it. Cash only.'", "Al: 'The half-ton? No motor. Find one and she's a project.'"];
+  const lines = ["Al: 'You're Walt's grandkid? Sorry about the old man. He bought half his junk off me.'", "Al: 'That Bug of his has been sitting since '09. Gas'll be stale — she'll take a few cranks.'", "Al: 'Need to haul an engine? That four-by-four out front'll do it. Cash only.'", "Al: 'The half-ton? No motor. Find one and she's a project.'"];
   if (id === 'enter') { game.onFoot = false; game.walkPose = null; emit(); }
   else if (id === 'exit') {
     const p = game.pose; if (p) game.walkStart = { x: p.x + Math.cos(p.h) * 2.6, z: p.z - Math.sin(p.h) * 2.6, yaw: p.h + Math.PI };

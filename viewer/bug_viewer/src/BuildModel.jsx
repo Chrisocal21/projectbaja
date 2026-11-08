@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { holoMaterials, ghostify, HOLO } from './hologram.js';
-import { fitCandidate, carLocal } from './game/workshop.js';
+import { fitCandidate, carLocal, planDetach } from './game/workshop.js';
 import { held } from './game/items.js';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -16,7 +16,7 @@ import { BUG } from './rules/vehicles.js';
 import ProcEngine from './Engine.jsx';
 import RollingChassis from './Chassis.jsx';
 
-const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
+export const sourceNameFor = o => { for (let n = o; n; n = n.parent) if (n.userData.source_name) return n.userData.source_name; return o.name; };
 /** Meshes exported without normals render as raw flat facets (bright shards) - give them smooth normals. */
 function smoothNormals(root) {
   root.traverse(o => {
@@ -76,9 +76,10 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
     for (const op of opens) {
       const meshes = []; clone.traverse(o => { if (o.isMesh && op.match.some(m => sourceNameFor(o).startsWith(m))) meshes.push(o); });
       if (!meshes.length) continue;
-      const box = new THREE.Box3();
-      for (const m of meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld))); }
-      const p = op.axis === 'y' ? new THREE.Vector3(op.side > 0 ? box.max.x : box.min.x, 0, box.max.z) : new THREE.Vector3(0, box.max.y, op.hinge === 'front' ? box.max.z : box.min.z);
+      // hinge from the panel itself (first match = the skin), not handles/trim that stick out past it; doors hinge just inside the skin's front edge
+      const skin = meshes.filter(m => sourceNameFor(m).startsWith(op.match[0])), box = new THREE.Box3();
+      for (const m of skin.length ? skin : meshes) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(inv.clone().multiply(m.matrixWorld))); }
+      const p = op.axis === 'y' ? new THREE.Vector3(op.side > 0 ? box.max.x - 0.025 : box.min.x + 0.025, 0, box.max.z - 0.03) : new THREE.Vector3(0, box.max.y, op.hinge === 'front' ? box.max.z : box.min.z);
       const H = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z).multiply(op.axis === 'y' ? new THREE.Matrix4().makeRotationY(op.angle) : new THREE.Matrix4().makeRotationX(op.angle)).multiply(new THREE.Matrix4().makeTranslation(-p.x, -p.y, -p.z));
       for (const m of meshes) { const Mc = inv.clone().multiply(m.matrixWorld), Pc = inv.clone().multiply(m.parent.matrixWorld).invert(); m.matrix.copy(Pc.multiply(H).multiply(Mc)); m.matrixAutoUpdate = false; m.userData.lidOpen = true; }
     }
@@ -216,7 +217,7 @@ function GhostModel({ file, only, mats }) {
   }, [scene, (only || []).join('|'), mats]);
   return <primitive object={obj} />;
 }
-const WHEEL_MESH = { FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' };
+export const WHEEL_MESH = { FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' };
 /** §9 of the assembly guide: while you hold a part near the car, the spot where it goes glows - green (go), amber (open the lid first), red (not yet) */
 function FitGhost({ build, r }) {
   useGame();
@@ -235,6 +236,50 @@ function SlotGhosts({ ids, r, mats }) {
     const piece = slot.piece && (r.body.pieces || []).find(p => p.id === slot.piece);
     return piece ? <group key={id} position={[0, r.lift, 0]}><GhostModel file={r.body.file} only={piece.match} mats={mats} /></group> : null;
   })}</>;
+}
+/** which restoration slot a mesh of the car belongs to (body pieces and wheels), or null */
+function slotForMesh(o, r) {
+  for (let n = o; n; n = n.parent) { const m = /^CWheel_(FL|FR|RL|RR)/.exec(n.name || ''); if (m) return 'wheel' + m[1]; }
+  const src = sourceNameFor(o), w = Object.entries(WHEEL_MESH).find(([, mesh]) => src.startsWith(mesh)); if (w) return 'wheel' + w[0];
+  const piece = (r.body.pieces || []).find(p => p.match.some(m => src.startsWith(m)));
+  return piece ? BUG.slots.find(s => s.piece === piece.id)?.id || null : null;
+}
+const visibleChain = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };
+/** assembly guide §9.3c: empty-handed, the part you aim at glows white (it can come off) or red with what's in the way amber. Sets game.aim for the R key. */
+function DetachGlow({ build, r, carRef }) {
+  // glows the REAL part (emissive pulse on its own material copies, guide §9.3c option B), so it follows doors and lids wherever they've swung
+  const { camera } = useThree();
+  const ray = useMemo(() => { const rc = new THREE.Raycaster(); rc.far = 4; return rc; }, []), centre = useMemo(() => new THREE.Vector2(0, 0), []);
+  const st = useRef({ tick: 0, aim: null, lit: [] });
+  const unlight = () => { for (const { m } of st.current.lit) if (m.userData.e0) m.emissive.copy(m.userData.e0); st.current.lit = []; };
+  useEffect(() => () => { unlight(); game.aim = null; }, []);
+  useEffect(() => { unlight(); st.current.aim = null; }, [build]);   // a fit/detach changes what can come off: re-light next pick
+  useFrame(({ clock }) => {
+    const S = st.current, car = carRef.current;
+    if (S.tick++ % 4 === 0) try {   // aim pick every 4th frame: the body is ~120k triangles
+      let id = null;
+      if (game.onFoot && game.nearCar && !held() && !game.buildMode && car) {
+        ray.setFromCamera(centre, camera);
+        for (const h of ray.intersectObject(car, true)) {
+          const m = h.object.material; if (!h.object.isMesh || (m && m.transparent && m.depthWrite === false) || !visibleChain(h.object)) continue;
+          id = slotForMesh(h.object, r); break;   // nearest solid hit wins; if it isn't a removable slot, nothing glows
+        }
+      }
+      game.aim = id;
+      if (id !== S.aim) {
+        unlight(); S.aim = id;
+        if (id && car) {
+          const plan = planDetach(id, build, game.carZone), col = new Map([[id, plan.ok ? 0xbfe8ff : 0xff3a24]]);
+          if (!plan.ok) for (const b of plan.blockers || []) col.set(b, 0xffa020);
+          car.traverse(o => { if (!o.isMesh || !visibleChain(o)) return; const sid = slotForMesh(o, r); if (!col.has(sid)) return;
+            for (const m of Array.isArray(o.material) ? o.material : [o.material]) { if (!m?.emissive) continue; m.userData.e0 ??= m.emissive.clone(); S.lit.push({ m, c: new THREE.Color(col.get(sid)) }); } });
+        }
+      }
+    } catch (err) { if (!S.err) { S.err = true; console.error('[glow] detach glow failed (game keeps running):', err); } }
+    const k = 0.18 + 0.22 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 7));
+    for (const { m, c } of S.lit) m.emissive.copy(c).multiplyScalar(k);
+  });
+  return null;
 }
 function FitGhostMain({ build, r, mats }) {
   if (!game.onFoot || !game.pose || game.active !== 'bug' || Math.hypot(game.pos.x - game.pose.x, game.pos.z - game.pose.z) > 10) return null;
@@ -272,8 +317,9 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
   const shellOff = (build.stripped || []).includes('shell');
   const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w));
   const bareMask = bare.map(w => ({ FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' })[w]);
+  const carRef = useRef();
   const opens = drive && game.open ? [...game.open].map(id => BUG.covers[id]).filter(c => c && !build.hidden.includes(c.piece)).map(c => ({ ...c, match: [...((r.body.pieces || []).find(x => x.id === c.piece)?.match || []), ...(c.extra || [])] })) : [];
-  return <>
+  return <><group ref={carRef}>
     <group position={[0, r.lift, 0]}>
       {shellOff && <RollingChassis pedals={!build.hidden.includes('pedals')} />}
       <Model file={r.body.file} mask={[...r.masks, ...bareMask]} only={shellOff ? ['B_FLWheel', 'B_FRWheel', 'B_BLWheel', 'B_BRWheel'] : null} isBase wheelDy={-r.lift} opens={opens} {...common} />
@@ -287,11 +333,12 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false }
     </group>
     {build.fab?.hoops && <ShockHoops mounts={r.mounts} />}
     {drive && <React.Suspense fallback={null}><FitGhost build={build} r={r} /></React.Suspense>}
+    {drive && <React.Suspense fallback={null}><DetachGlow build={build} r={r} carRef={carRef} /></React.Suspense>}
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
     {bare.map(w => { const m = r.mounts.find(x => x.name === w); return m && <group key={'stand' + w} position={[m.center[0], 0, m.center[2]]}><mesh position={[0, m.center[1] * 0.45, 0]} castShadow><boxGeometry args={[0.22, m.center[1] * 0.9, 0.22]} /><meshStandardMaterial color="#b8361f" metalness={0.4} roughness={0.5} /></mesh><mesh position={[0, 0.02, 0]}><boxGeometry args={[0.4, 0.04, 0.4]} /><meshStandardMaterial color="#8a2a18" metalness={0.4} roughness={0.5} /></mesh></group>; })}
     {r.tire && r.mounts.filter(m => !bare.includes(m.name)).map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}
     {(drive || r.active.some(p => p.slot === 'suspension' || p.slot === 'shocks')) &&
       <Suspension mounts={r.mounts} lift={r.lift} wireframe={wireframe} onSelect={onSelect}
         coilovers={drive || r.active.some(p => p.slot === 'shocks')} />}
-  </>;
+  </group></>;
 }
