@@ -7,6 +7,7 @@ import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
+import { SaveTools } from './update.jsx';
 import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
 
 export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
@@ -71,6 +72,7 @@ export function PauseMenu({ onResume, onSettings, onWiki, onUpgrades, onCustomiz
       <button onClick={onSettings}>Settings{game.settings?.creative ? ' · creative mode on' : ''}</button>
       {game.dev && <button onClick={onCustomize}>Customize vehicle (testing)</button>}
       {teleports?.length > 0 && <div className="tp"><small>TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
+      <SaveTools />
       <button onClick={onFullscreen}>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
       {game.dev && <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock everything (testing)</label>}
       <div className="row"><span>Cash ${game.cash}</span>{game.dev && <><button onClick={() => addCash(1000)}>+ $1000</button><button onClick={resetProgress}>Reset progress</button></>}</div>

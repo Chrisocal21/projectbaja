@@ -114,7 +114,7 @@ export default function Walker({ world, sun }) {
       s.x += s.vx * dt; s.z += s.vz * dt;
       const car = game.pose;
       for (let pass = 0; pass < 2; pass++) {
-        for (const [cx, cz, r, top] of world.obstacles) { if (Number.isFinite(top) && top !== 99 && s.y >= top - 0.05) continue; const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
+        for (const [cx, cz, r, top] of world.trunks ? [...world.obstacles, ...world.trunks(s.x, s.z)] : world.obstacles) { if (Number.isFinite(top) && top !== 99 && s.y >= top - 0.05) continue; const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
         if (car) for (const o of (activeType().length > 4.5 ? [-1.9, -0.65, 0.65, 1.9] : [-1.3, 0, 1.3])) { const cx = car.x + Math.sin(car.h) * o, cz = car.z + Math.cos(car.h) * o, dx = s.x - cx, dz = s.z - cz, rr = 1.3 + 0.3, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
       }
       s.x = Math.max(-world.half, Math.min(world.half, s.x)); s.z = Math.max(-world.half, Math.min(world.half, s.z));

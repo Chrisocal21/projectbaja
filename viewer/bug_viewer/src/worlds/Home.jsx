@@ -28,7 +28,6 @@ const G = SITES.garage;
 const M = ({ c = '#fff', r = 0.85, m = 0, e, ei = 0, map, t, o = 1, side }) => <meshStandardMaterial color={c} roughness={r} metalness={m} emissive={e} emissiveIntensity={ei} map={map} transparent={t} opacity={o} side={side} />;
 const B = ({ p, s, c, r, m, rot, map, cast = true }) => <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={s} /><M c={c} r={r} m={m} map={map} /></mesh>;
 const Cyl = ({ p, a, c, r, m, rot, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} r={r} m={m} map={map} /></mesh>;
-const Tire = ({ p, rot = [Math.PI / 2, 0, 0], r = 0.32, w = 0.14 }) => <mesh position={p} rotation={rot} castShadow><torusGeometry args={[r, w, 10, 20]} /><M c="#151515" r={0.95} /></mesh>;
 /** a straight tube between two points */
 function Tube({ a, b, r = 0.025, c = '#2b2e31', m = 0.5 }) {
   const { pos, q, len } = useMemo(() => { const A = new THREE.Vector3(...a), Bv = new THREE.Vector3(...b), d = Bv.clone().sub(A); return { pos: A.clone().add(Bv).multiplyScalar(0.5).toArray(), q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()), len: d.length() }; }, [a.join(), b.join()]);
@@ -199,8 +198,6 @@ const Drum = ({ p, c = '#3d5a6e', tip = 0 }) => <group position={p} rotation={[t
   {[0.15, 0.44, 0.73].map(y => <mesh key={y} position={[0, y, 0]}><torusGeometry args={[0.292, 0.012, 6, 24]} /><M c="#2a2a2a" m={0.5} /></mesh>)}
   <mesh position={[0, 0.885, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.28, 20]} /><M c="#6b4a32" m={0.4} r={0.8} /></mesh>
 </group>;
-const OldTire = ({ p, flat = true, r = 0.33 }) => <mesh position={p} rotation={flat ? [Math.PI / 2, 0, 0] : [0, 0, 0]} castShadow receiveShadow><torusGeometry args={[r - 0.09, 0.1, 10, 22]} /><M c="#1b1b1b" r={0.95} /></mesh>;
-const TireStack = ({ p, n = 3 }) => <group position={p}>{Array.from({ length: n }, (_, i) => <OldTire key={i} p={[(i % 2) * 0.03, 0.1 + i * 0.2, 0]} />)}</group>;
 const JerryCan = ({ p, ry = 0 }) => <group position={p} rotation={[0, ry, 0]}><mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.17, 0.4, 0.34]} /><M c="#a9281e" m={0.3} r={0.5} /></mesh><mesh position={[0, 0.43, 0.09]}><boxGeometry args={[0.05, 0.06, 0.12]} /><M c="#222" /></mesh></group>;
 const Crate = ({ p, s = 0.6, ry = 0, T }) => <mesh position={[p[0], p[1] + s / 2, p[2]]} rotation={[0, ry, 0]} castShadow receiveShadow><boxGeometry args={[s, s * 0.8, s]} /><M map={T.oldWood} r={0.9} /></mesh>;
 const EngineBlock = ({ p, ry = 0 }) => <group position={p} rotation={[0, ry, 0]}>
@@ -209,17 +206,15 @@ const EngineBlock = ({ p, ry = 0 }) => <group position={p} rotation={[0, ry, 0]}
 </group>;
 function JunkPile({ covered, T }) {
   if (!covered) return <>
-    <Drum p={[-1.75, 0, -1.65]} c="#3d5a6e" /><Drum p={[-1.75, 0, -1.05]} c="#5a6b3a" /><TireStack p={[-1.8, 0, -0.35]} n={5} />
+    <Drum p={[-1.75, 0, -1.65]} c="#3d5a6e" /><Drum p={[-1.75, 0, -1.05]} c="#5a6b3a" />
     <Crate p={[-1.7, 0, 0.45]} T={T} ry={0.2} /><JerryCan p={[-1.6, 0.48, 0.45]} ry={0.4} /><EngineBlock p={[-1.7, 0, 1.2]} ry={0.3} />
   </>;
   return <>
-    {/* on top: two old tires on the roof, a jerry can and a crate on the hood */}
-    <OldTire p={[0.05, 1.68, -0.32]} /><OldTire p={[0.1, 1.88, -0.3]} />
+    {/* on top: a jerry can and a crate on the hood */}
     <JerryCan p={[-0.25, 0.98, 1.0]} ry={0.5} /><Crate p={[0.2, 0.9, 1.25]} s={0.42} ry={-0.3} T={T} />
-    {/* front wall: drums, a crate, a tire stack */}
-    <Drum p={[-0.62, 0, 2.2]} c="#3d5a6e" /><Drum p={[0.02, 0, 2.28]} c="#7a3a26" /><Crate p={[0.72, 0, 2.15]} T={T} ry={0.1} /><TireStack p={[-1.3, 0, 2.0]} n={4} />
-    {/* the side facing the room: tires, an old door leaning on the car, an engine block */}
-    <TireStack p={[-1.5, 0, 0.55]} n={5} />
+    {/* front wall: drums, a crate */}
+    <Drum p={[-0.62, 0, 2.2]} c="#3d5a6e" /><Drum p={[0.02, 0, 2.28]} c="#7a3a26" /><Crate p={[0.72, 0, 2.15]} T={T} ry={0.1} />
+    {/* the side facing the room: an old door leaning on the car, an engine block */}
     <mesh position={[-1.32, 0.5, -0.45]} rotation={[0, 0.05, 0.22]} castShadow><boxGeometry args={[0.05, 1.0, 1.05]} /><M c="#7d8a8c" m={0.3} r={0.7} map={T.teal} /></mesh>
     <EngineBlock p={[-1.5, 0, -1.45]} ry={0.4} /><Drum p={[1.45, 0, 1.55]} c="#5a6b3a" />
   </>;
@@ -332,7 +327,6 @@ function ScrapHeap({ seed = 1 }) {
 
 /** one pile of junk (rendered until you clear it) */
 function Junk({ kind }) {
-  if (kind === 'tires') return <>{[[0, 0], [0.7, 0.2], [-0.5, 0.6], [0.2, 0.8]].map(([x, z], i) => [0, 1, 2].slice(0, 3 - (i % 2)).map(k => <Tire key={i + '' + k} p={[x, 0.15 + k * 0.28, z]} />))}</>;
   if (kind === 'scrap') return <><B p={[0, 0.3, 0]} s={[2.4, 0.6, 1.4]} c="#6b4a32" m={0.4} r={0.9} rot={[0, 0.3, 0.08]} /><B p={[0.6, 0.75, 0.2]} s={[1.6, 0.08, 1]} c="#7a7d80" m={0.6} rot={[0.4, 0.5, 0.2]} /><Cyl p={[-0.8, 0.8, -0.2]} a={[0.06, 0.06, 2, 6]} c="#4a3a2e" m={0.4} rot={[0, 0, 1.2]} /><B p={[0.2, 0.9, -0.4]} s={[0.9, 0.5, 0.06]} c="#8e5a3a" m={0.4} rot={[0.2, -0.6, 0.5]} /></>;
   if (kind === 'fridge') return <><B p={[0, 0.85, 0]} s={[0.8, 1.7, 0.75]} c="#d9d2bc" m={0.2} r={0.6} rot={[0, 0.4, 0.05]} /><B p={[0.55, 0.75, 0.25]} s={[0.05, 1.4, 0.7]} c="#cfc8b1" rot={[0, 1.2, 0]} /></>;
   if (kind === 'brush') return <>{[[0, 0, 0.8], [1, 0.4, 0.6], [-0.7, 0.6, 0.7], [0.3, -0.8, 0.5]].map(([x, z, s], i) => <mesh key={i} position={[x, s * 0.7, z]} castShadow><icosahedronGeometry args={[s, 1]} /><M c="#9a8456" r={1} t o={0.92} /></mesh>)}</>;
@@ -421,7 +415,7 @@ export function PropModel({ id, T, mat, uid }) {
     case 'flamingo': return <><C p={[0, 0.35, 0]} a={[0.012, 0.012, 0.7, 4]} c="#222" /><mesh position={[0, 0.8, 0]} scale={[0.6, 0.45, 1]} castShadow><sphereGeometry args={[0.25, 12, 10]} /><M c="#ff6fa8" r={0.4} /></mesh><C p={[0, 1.05, 0.12]} a={[0.025, 0.03, 0.42, 6]} c="#ff6fa8" rot={[0.4, 0, 0]} /><mesh position={[0, 1.27, 0.2]} castShadow><sphereGeometry args={[0.07, 10, 8]} /><M c="#ff6fa8" /></mesh><mesh position={[0, 1.24, 0.29]} rotation={[1.9, 0, 0]}><coneGeometry args={[0.025, 0.1, 6]} /><M c="#222" /></mesh></>;
     case 'gnome': return <><C p={[0, 0.5, 0]} a={[0.3, 0.45, 1, 12]} c="#3a5fb0" /><mesh position={[0, 1.15, 0]} castShadow><sphereGeometry args={[0.3, 12, 10]} /><M c="#f1c9a0" /></mesh><mesh position={[0, 0.95, 0.2]} rotation={[Math.PI, 0, 0]} castShadow><coneGeometry args={[0.24, 0.5, 10]} /><M c="#eeeeee" /></mesh><mesh position={[0, 1.65, 0]} castShadow><coneGeometry args={[0.32, 0.8, 12]} /><M c="#c8372b" /></mesh><mesh position={[0, 1.15, 0.29]} castShadow><sphereGeometry args={[0.07, 8, 6]} /><M c="#e09a80" /></mesh></>;
     case 'dinosaur': return <><P p={[0, 3, 0]} s={[2.2, 2.4, 6]} c="#5c8a4a" /><P p={[0, 5.6, 3.4]} s={[1.2, 1.2, 2.4]} c="#5c8a4a" rot={[-0.5, 0, 0]} /><P p={[0, 6.6, 4.8]} s={[1.3, 1.1, 1.8]} c="#5c8a4a" />{[-0.35, 0.35].map(x => <P key={x} p={[x, 6.9, 5.5]} s={[0.15, 0.15, 0.1]} c="#111" />)}<P p={[0, 6.2, 5.6]} s={[1.0, 0.1, 0.4]} c="#d8d2bc" /><P p={[0, 2.5, -4.6]} s={[0.9, 0.9, 4]} c="#5c8a4a" rot={[0.25, 0, 0]} />{[[-0.8, 1.6], [0.8, 1.6], [-0.8, -1.6], [0.8, -1.6]].map(([x, z], i) => <P key={i} p={[x, 0.9, z]} s={[0.7, 1.8, 0.8]} c="#4f7a3e" />)}{Array.from({ length: 6 }, (_, i) => <mesh key={'sp' + i} position={[0, 4.4 + Math.sin(i * 0.5) * 0.5, 2 - i * 1]}><coneGeometry args={[0.3, 0.7, 4]} /><M c="#c8a43a" /></mesh>)}</>;
-    case 'tireStack': return <>{[0, 1, 2, 3].map(k => <mesh key={k} position={[0, 0.15 + k * 0.28, 0]} rotation={[Math.PI / 2, 0, k * 0.4]} castShadow><torusGeometry args={[0.32, 0.14, 10, 20]} /><M c="#151515" r={0.95} /></mesh>)}</>;
+    case 'tireStand': case 'tireStack': return <><P p={[0, 1.1, 0]} s={[0.76, 0.06, 0.76]} c="#6b5a3a" />{[[-0.33, -0.33], [0.33, -0.33], [-0.33, 0.33], [0.33, 0.33]].map(([x, z]) => <P key={x + '' + z} p={[x, 0.55, z]} s={[0.06, 1.1, 0.06]} c="#555" m={0.5} />)}</>;
     case 'drum': return <><C p={[0, 0.45, 0]} a={[0.3, 0.3, 0.9, 16]} c="#2f5d86" m={0.4} r={0.6} />{[0.2, 0.7].map(y => <C key={y} p={[0, y, 0]} a={[0.31, 0.31, 0.03, 16]} c="#24486a" m={0.4} />)}</>;
     case 'picnic': return <><P p={[0, 0.74, 0]} s={[1.8, 0.06, 0.8]} map={T.deck} />{[-0.6, 0.6].map(z => <P key={z} p={[0, 0.45, z]} s={[1.8, 0.05, 0.28]} map={T.deck} />)}{[-0.7, 0.7].map(x => <React.Fragment key={x}><P p={[x, 0.37, 0.25]} s={[0.07, 0.8, 0.07]} c="#6e5034" rot={[0.5, 0, 0]} /><P p={[x, 0.37, -0.25]} s={[0.07, 0.8, 0.07]} c="#6e5034" rot={[-0.5, 0, 0]} /></React.Fragment>)}</>;
     case 'grill': return <><mesh position={[0, 0.85, 0]} castShadow><sphereGeometry args={[0.32, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><M c="#222" m={0.4} r={0.5} side={THREE.DoubleSide} /></mesh><mesh position={[0, 0.85, 0]} rotation={[Math.PI, 0, 0]} castShadow><sphereGeometry args={[0.32, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><M c="#222" m={0.4} r={0.5} side={THREE.DoubleSide} /></mesh>{[0, 2.1, 4.2].map(a => <C key={a} p={[Math.cos(a) * 0.18, 0.35, Math.sin(a) * 0.18]} a={[0.015, 0.015, 0.75, 4]} c="#444" rot={[Math.sin(a) * 0.2, 0, -Math.cos(a) * 0.2]} />)}</>;

@@ -44,6 +44,8 @@ export function createBiomes(defs = BIOME_DEFS) {
   }
   /** soft minimum (k metres of rounding) */
   const smin = (a, b, k = 1.5) => { const m = Math.min(a, b); return m - k * Math.log(Math.exp((m - a) / k) + Math.exp((m - b) / k)); };
+  const levels = new Map();   // clearing -> its flat height (the unlevelled ground at its centre)
+  const clearingLevel = (def, c) => { let v = levels.get(c); if (v == null) levels.set(c, v = heightOf({ ...def, clearings: [] }, c.x, c.z, false)); return v; };
   /** the biome's own ground height; rivers cut a valley (banks rise BANK m per m from the water) unless carve = false */
   function heightOf(def, x, z, carve = true) {
     const h = def.height;
@@ -54,6 +56,7 @@ export function createBiomes(defs = BIOME_DEFS) {
       y = h.peak * body + h.ridge * (fbm(x / h.ridgeScale, z / h.ridgeScale, h.seed, 4) * 2 - 1) * (0.25 + 0.75 * Math.sqrt(body)) + 1.5 * (fbm(x / 30, z / 30, h.seed + 9, 2) - 0.5);
     }
     if (carve) for (const rv of byDef.get(def).rivers) y = smin(y, carveAt(rv, x, z));
+    for (const c of def.clearings || []) { const d = Math.hypot(x - c.x, z - c.z); if (d < c.r * 1.8) y += (clearingLevel(def, c) - y) * (1 - smooth(c.r, c.r * 1.8, d)); }
     return y;
   }
   /** blend the biome ground heights over `h` (the county's own terrain). keep = 0..1 to hold a biome back (e.g. over the lakebed) */
@@ -88,6 +91,6 @@ export function createBiomes(defs = BIOME_DEFS) {
       R.paint(t.path, { core: t.width / 2, shoulder: 5, centerH: p => p.hs, classify: ad => (ad <= t.width / 2 - 0.4 ? SID.looseDirt : SID.dirt) });
     }
   }
-  return { list, defs, rivers, trails, shape, surface, any, dominant, paint, riverDist, trailDist, weight: regionWeight, heightOf, clamp };
+  return { list, defs, rivers, trails, clearings: defs.flatMap(d => d.clearings || []), shape, surface, any, dominant, paint, riverDist, trailDist, weight: regionWeight, heightOf, clamp };
 }
 export { BIOME_DEFS };

@@ -22,8 +22,8 @@ export function placeHeldGarage(surface, cand) {
 /** take a tire back off the floor / rack (into the pack if it fits, else your hands); not from under another tire */
 export function takeFromGarageGrid(uid) {
   const it = game.items.find(i => i.uid === uid); if (!it || it.spot !== 'grid' || it.loc !== 'garage') return false;
-  const T = GAME_PLACEABLES.tire, pl = garagePl(it), top = stackHeight(pl, T), b = bounds(pl, T);
-  if (garageGrid().some(o => o !== it && o.surf === it.surf && Math.abs((o.y || 0) - top) < EPS && overlaps(b, bounds(garagePl(o), T)))) { say("Something's sitting on it: take that off first."); return true; }
+  const T = GAME_PLACEABLES[garagePl(it).item], pl = garagePl(it), top = stackHeight(pl, T), b = bounds(pl, T);
+  if (garageGrid().some(o => o !== it && o.surf === it.surf && Math.abs((o.y || 0) - top) < EPS && overlaps(b, bounds(garagePl(o), GAME_PLACEABLES[garagePl(o).item])))) { say("Something's sitting on it: take that off first."); return true; }
   if (!canCarry(it.kind, it.id)) { say('Your hands are full — put that down first (G).'); return true; }
   delete it.surf; delete it.pose;
   takeFromGarage(uid);   // existing path: pack or hands, clears x / z / y / ry / spot

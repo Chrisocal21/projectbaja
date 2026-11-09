@@ -12,7 +12,7 @@ import { snapPoint, restY, why, clipTo, posed } from './rules.js';
 import { placement } from './types.js';
 import { toCar, fromCar } from './vehicleSurfaces.js';
 import { GAME_PLACEABLES, isTire } from './gameItems.js';
-import { aim, keys, holdOf } from './cargoStore.js';
+import { aim, keys, holdOf, pidOf } from './cargoStore.js';
 import { garageAim, garageGrid } from './garageStore.js';
 import { garageSurfaces, garagePl } from './garageSurfaces.js';
 import { ItemBody, Ghost } from './VehicleCargo.jsx';
@@ -80,9 +80,9 @@ function Controller({ root, items }) {
       const it = grid.find(i => i.uid === best.uid); s = it && surfaces.find(x => x.id === it.surf); if (!s) return show('');
       const c = root.current.worldToLocal(best.point); local = fromCar(s, c.x, c.z);
     }
-    const hp = holdOf(h), existing = grid.map(garagePl), T = GAME_PLACEABLES.tire, free = !keys.shift, item = posed(T, null);
+    const hp = holdOf(h), existing = grid.map(garagePl), pid = pidOf(h), T = GAME_PLACEABLES[pid], free = !keys.shift, item = posed(T, null);
     const p = snapPoint(s, local.x, local.z, free ? 'free' : 0, item.footprint, hp.rot);
-    let cand = placement({ id: 'ghost', item: 'tire', surface: s.id, x: p.x, z: p.z, rot: hp.rot, free });
+    let cand = placement({ id: 'ghost', item: pid, surface: s.id, x: p.x, z: p.z, rot: hp.rot, free });
     cand.y = restY(cand, item, existing, GAME_PLACEABLES);
     const clipped = free ? clipTo(s, item, cand, existing, GAME_PLACEABLES) : cand, didClip = clipped !== cand; cand = clipped;
     const reason = why(s, item, cand, existing, GAME_PLACEABLES);

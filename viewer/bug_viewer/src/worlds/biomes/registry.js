@@ -8,6 +8,7 @@
 // scatter  rules: { kind: conifer|broadleaf|bush|rock, density (candidates per hectare), cluster:{scale,seed,above}, scale:[min,max],
 //                   maxSlope, maxHeight (treeline, fades over 30 m), minWeight, tints:[...] }
 // trails   { id, name, ctrl:[[x,z]...], width, tieStart:true (blend the start into the road it leaves) }
+// clearings { id, name, x, z, r, lookout?:{face, proposal} }  levelled flat spot (summit viewpoint)
 // rivers   { id, name, ctrl, width, depth, fords:[[x,z]...] }
 export const BIOME_DEFS = [
   {
@@ -36,8 +37,12 @@ export const BIOME_DEFS = [
     trails: [
       // climbs round the mountain in a spiral, crossing the river at the ford, ends high on the shoulder
       { id: 'forest-trail', name: 'Mountain trail', width: 3.6, tieStart: true,
-        ctrl: [[888, 1985], [1050, 1905], [1250, 1855], [1420, 1905], [1520, 2050], [1570, 2200], [1600, 2300], [1680, 2420], [1800, 2500], [1950, 2540], [2100, 2500], [2200, 2400], [2250, 2250], [2200, 2100]] },
+        ctrl: [[888, 1985], [1050, 1905], [1250, 1855], [1420, 1905], [1520, 2050], [1570, 2200], [1600, 2300], [1680, 2420], [1800, 2500], [1950, 2540], [2100, 2500], [2200, 2400], [2250, 2250], [2200, 2100],
+        // PROPOSAL: gentler switchbacks (about 6-8%) up the last stretch to the summit clearing
+        [2160, 2135], [2105, 2145], [2065, 2115], [2085, 2065], [2060, 2035], [2025, 2018]] },
     ],
+    // flat clearings: ground levelled to the height at (x, z), blending out over r..r*1.8. `lookout` = a rock/rail viewpoint at the edge facing `face` (radians). NO structures. PROPOSAL (placement and name)
+    clearings: [{ id: 'forest-summit', name: 'Summit lookout', x: 2020, z: 2010, r: 15, lookout: { face: 3.9, proposal: true } }],
     rivers: [
       { id: 'forest-river', name: 'Mountain river', width: 10, depth: 1.6, fords: [[1600, 2300]],
         ctrl: [[2050, 2200], [1900, 2260], [1760, 2300], [1600, 2300], [1470, 2350], [1340, 2450]] },

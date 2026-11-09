@@ -11,7 +11,7 @@ import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
 import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
 import { pegInteract } from './game/pegboard.js';
-import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob, jobById } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
@@ -40,6 +40,7 @@ import WikiPanel from './game/WikiPanel.jsx';
 import UpgradesPanel from './game/UpgradesPanel.jsx';
 import { canvasDpr } from './game/settings.js';
 import './style.css';
+import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
 import './hud.css';
 
 const CAMERA_POSITION = [3.4, 2, 4.3];
@@ -107,7 +108,7 @@ function App() {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
-    migrateGrid(); ensureStarterFixtures();   // Walt's wall shelving: movable props, seeded once per save
+    migrateGrid(); ensureStarterFixtures(); ensureShopTires();   // Walt's wall shelving: movable props, seeded once per save
     if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
@@ -115,6 +116,8 @@ function App() {
     Object.assign(game, { dev: false, onFoot: rs ? rs.onFoot : true, open: new Set(), start: 'garage', walkStart: rs?.onFoot ? { ...rs.walkPose } : cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, buildMode: null });   // fueled is kept from the save
     setPlay({ kind: 'drive', world: 'county' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
   };
+  // after Save and update / Import: skip the title and land back in the game; one click re-captures the mouse (browsers need a gesture)
+  useEffect(() => { startUpdateWatch(); if (takeResumeFlag()) { startStory(true); setPanel('continue'); } }, []);
   // the 3D scene is rebuilt when the car changes; keep the mouse captured through it
   const rebuild = nb => { game.rebuilding = true; update(nb); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 900); };
   // ---- restoration at the car (blueprint §3): fit from hands/pack, detach into hands/pack, open lids ----
@@ -350,7 +353,7 @@ function App() {
     </aside>;
 
   const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
-  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'wiki' && <WikiPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
+  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'wiki' && <WikiPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onNew={() => { if (confirmNewGame()) startStory(false); }} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
   if (mode === 'play') return <div className="full">
     {stageEl}
     <LoadingScreen />
@@ -358,6 +361,8 @@ function App() {
     <Crosshair />
     <KeyHints driving={!game.onFoot} pro={pro} cabLabel={body.cabLabel} />
     <HudOverlay />
+    <UpdateToast />
+    {panel === 'continue' && <div className="overlay" onClick={resume} style={{ cursor: 'pointer' }}><div className="card"><h2>Back in the game</h2><p>Click to continue</p></div></div>}
     <Compass />
     {panel !== 'build' && <BuildHud />}
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}

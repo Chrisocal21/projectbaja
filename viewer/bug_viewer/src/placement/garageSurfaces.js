@@ -63,18 +63,18 @@ export const gridOnly = items => items.filter(i => i.loc === 'garage' && i.spot 
 /** Items on racks that are going away (sold / stored) fall to the floor. Returns [{ uid, patch }]: patch = floor fields, or (when no floor spot is free within
  *  3 m) loose-in-the-world fields at the same place. PROPOSAL: the fall keeps the x / z the tire had; tires land bottom first so a stack stays a stack. */
 export function dropRackItems(items, propUid, surfaces, G, groundY = () => 0) {
-  const byId = Object.fromEntries(surfaces.map(s => [s.id, s])), floor = byId[FLOOR_ID], T = GAME_PLACEABLES.tire;
+  const byId = Object.fromEntries(surfaces.map(s => [s.id, s])), floor = byId[FLOOR_ID];
   const falling = gridOnly(items).filter(i => propOfSurf(i.surf) === propUid && byId[i.surf]).sort((a, b) => (a.y || 0) - (b.y || 0));
   if (!falling.length) return [];
   const settled = gridOnly(items).filter(i => i.surf === FLOOR_ID).map(garagePl), out = [];
   for (const it of falling) {
-    const s = byId[it.surf], c = toCar(s, it.x, it.z, it.y || 0), f = fromCar(floor, c.x, c.z), rot = (s.at.rotY - floor.at.rotY) + (it.ry || 0);
+    const s = byId[it.surf], pid = garagePl(it).item, T = GAME_PLACEABLES[pid], c = toCar(s, it.x, it.z, it.y || 0), f = fromCar(floor, c.x, c.z), rot = (s.at.rotY - floor.at.rotY) + (it.ry || 0);
     let spot = null;
     for (let r = 0; r <= 3 && !spot; r += 0.15) {
       const n = r === 0 ? 1 : Math.ceil(r * 12);
       for (let k = 0; k < n && !spot; k++) {
         const a = k / n * Math.PI * 2, x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r;
-        let cand = placement({ id: 'u' + it.uid, item: 'tire', surface: FLOOR_ID, x, z, rot, free: true });
+        let cand = placement({ id: 'u' + it.uid, item: pid, surface: FLOOR_ID, x, z, rot, free: true });
         cand.y = restY(cand, T, settled, GAME_PLACEABLES); cand = clipTo(floor, T, cand, settled, GAME_PLACEABLES);
         if (!why(floor, T, cand, settled, GAME_PLACEABLES)) spot = cand;
       }

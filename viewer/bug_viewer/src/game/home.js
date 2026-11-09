@@ -12,6 +12,7 @@ import { MORNING_HOUR } from './clock.js';
 import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
+import { wornTires } from './tires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
@@ -21,7 +22,6 @@ export const JUNK = [
   { id: 'j-boxes', lx: 1.6, lz: -4.1, kind: 'boxes', cash: 0, inside: true, label: 'rotten cardboard boxes' },
   { id: 'j-cans', lx: -4.6, lz: -2.4, kind: 'cans', cash: 6, inside: true, label: 'paint cans and old oil' },
   { id: 'j-papers', lx: -3.0, lz: 3.8, kind: 'papers', cash: 0, inside: true, label: 'decades of newspapers' },
-  { id: 'j-tires', lx: -13, lz: 17, kind: 'tires', cash: 12, inside: false, label: 'a pile of bald tires' },
   { id: 'j-scrap', lx: -11, lz: 9, kind: 'scrap', cash: 0, scrap: 5, inside: false, label: 'scrap metal' },
   { id: 'j-fridge', lx: 9, lz: 15, kind: 'fridge', cash: 5, scrap: 2, inside: false, label: 'a dead fridge' },
   { id: 'j-brush', lx: -16, lz: 18, kind: 'brush', cash: 0, inside: false, label: 'tumbleweeds and brush' },
@@ -91,7 +91,7 @@ export const BUILD_ITEMS = [
   { id: 'flamingo', name: 'Pink flamingo', price: 15, zone: 'yard', r: 0, cat: 'Decor' },
   { id: 'gnome', name: 'Giant garden gnome', price: 90, zone: 'yard', r: 0.5, cat: 'Decor' },
   { id: 'dinosaur', name: 'Roadside dinosaur', price: 2500, zone: 'yard', r: 2.2, cat: 'Decor', note: 'Visible from the highway. Probably.' },
-  { id: 'tireStack', name: 'Tire stack', price: 20, zone: 'any', r: 0.5, cat: 'Decor' },
+  { id: 'tireStack', name: 'Tire stand', price: 20, zone: 'any', r: 0.5, cat: 'Decor', note: 'A low stand: set real tires on top of it' },
   { id: 'drum', name: 'Oil drum', price: 10, zone: 'any', r: 0.4, cat: 'Decor' },
   { id: 'picnic', name: 'Picnic table', price: 60, zone: 'yard', r: 1.0, cat: 'Yard' },
   { id: 'grill', name: 'Barbecue grill', price: 80, zone: 'yard', r: 0.5, cat: 'Yard' },
@@ -201,9 +201,19 @@ const STARTER_FIXTURES_V1 = [
 ];
 // compressor, engine-on-a-stand and the loose tire stack: the workbench stays put (loose parts and a toolbox sit on it, see game/loot.js BENCH_TOP)
 const STARTER_FIXTURES_V2 = [
-  ['compressor', 0.3, -5.4, 0], ['engineOnStand', -4.3, 0.9, Math.PI / 2], ['tireStack', -5.2, 4.6, 0],
+  ['compressor', 0.3, -5.4, 0], ['engineOnStand', -4.3, 0.9, Math.PI / 2],
 ];
 export const STARTER_FIXTURES = [...STARTER_FIXTURES_V1, ...STARTER_FIXTURES_V2, ...STARTER_FIXTURES_V3];
+/** the pile of bald tires and the decorative tire stack are gone: four real worn tires lie where they were (once per save; skipped if the old pile was already hauled off) */
+export function ensureShopTires() {
+  if ((game.home.tiresV || 0) >= 1) return;
+  game.home = { ...game.home, tiresV: 1 };
+  if (!isCleared('j-tires')) for (const t of wornTires()) {
+    const { lx, lz, ry, ...item } = t, [x, z] = toWorld(G, lx, lz);
+    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...item, loc: 'world', x, z, y: 0, ry: G.rot + ry });
+  }
+  save();
+}
 /** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
 export function migrateGrid() {
   if (game.home.gridV >= 2) return;

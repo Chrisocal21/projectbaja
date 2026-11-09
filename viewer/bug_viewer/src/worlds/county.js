@@ -319,6 +319,11 @@ export const spawns = [
   { key: '7', name: 'Red Rock Canyon', x: canyonEnd[0], z: canyonEnd[1], h: 0 },
   { key: '8', name: 'Hollis farm', x: -910, z: 952, h: -Math.PI / 2 },
   { key: '9', name: 'Salvage warehouse', ...front('warehouse', 18) },
+  // biome dev teleports on the - = [ ] keys (`code` = the real key; the pause menu sends Digit + key)
+  { key: '-', code: 'Minus', name: 'Grassland', x: -2050, z: -2050, h: 0 },
+  { key: '=', code: 'Equal', name: 'Forest Mountain base', x: 900, z: 1985, h: -Math.PI / 2 + 0.3 },
+  { key: '[', code: 'BracketLeft', name: 'Mountain river ford', x: 1625, z: 2330, h: -Math.PI * 0.6 },
+  { key: ']', code: 'BracketRight', name: 'Summit lookout', x: 2040, z: 2024, h: 3.9 },
 ];
 /** road signs at the junctions: [x, z, facing, lines] */
 export const SIGNS = [

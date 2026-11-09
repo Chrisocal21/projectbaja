@@ -34,7 +34,7 @@ function vehSurfaces(veh, lift, all) {
 /** one placed thing, base at y = 0, centred: tires as tires (flat or upright), everything else as the game draws it (a labelled crate / its model) */
 export function ItemBody({ it, pose, ghost = false }) {
   const pid = pidOf(it), p = posed(GAME_PLACEABLES[pid], pose);
-  if (isTire(it)) return <TireModel dia={GAME_PLACEABLES.tire.footprint[0]} width={GAME_PLACEABLES.tire.height} upright={p.pose === 'upright'} cast={!ghost} />;
+  if (isTire(it)) return <TireModel dia={GAME_PLACEABLES[pid].footprint[0]} width={GAME_PLACEABLES[pid].height} upright={p.pose === 'upright'} cast={!ghost} />;
   return <Crate item={it} />;
 }
 
