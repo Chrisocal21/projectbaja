@@ -8,6 +8,8 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - Floor jack lives on the floor (46c11ad). Hologram wall + "Area closed for now" text (9abae17, b735e1b), not yet seen at the edge.
 - Simple phone on Esc with placeholder apps (9a083fb). Shelf text fixed (706f0cc). Pegboard wrench outline (90cb35d).
 - Map turn-around fix and barn check-off were already done (8f8ebc7). Duplicate `bench` key was a false alarm.
+- Update button + Save/Export/Import in the phone (93302cc). Real tires with tread + tree colliders merged (d3eb572). WIP branch deleted.
+- Starting stock: already has a pack wrench, random shop loot and 4 worn tires; nothing more added (anything else risks canon: Dusty's supplies, no magic stock). Needs Chris's call.
 - Skipped as too slow for now: letter as item (needs item system + wall surface).
 
 ## 0. Start-of-session checklist (5 min)
@@ -16,7 +18,7 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - [ ] Decide what to do with branch `wip-unfinished-nov8` (see step A).
 - [ ] Agents use their own vite ports (not 5299/5411/5417/5530/5611). Close them afterward.
 
-## A. Finish the half-built work (branch `wip-unfinished-nov8`, tests pass, NOT play-tested)
+## A. (DONE, merged) Half-built work. Still to PLAY-TEST by hand: fitting a tire on a car, position after Save and update, trunk colliders, summit trail, teleports
 Do one at a time: play-test in a real browser, fix, merge to main, push.
 1. **Update button** ("Update ready - Save and update"), Save now, Export/Import, New-game confirm. Returns to the exact moment, click-to-continue overlay. *Most important: this is your main goal.*
 2. **Real tires** (size, fit, tread; every shop tire usable on vehicles).
