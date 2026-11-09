@@ -12,6 +12,7 @@ import { MORNING_HOUR } from './clock.js';
 import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 import { wallSnap } from './wallhang.js';
+import { passTime } from './orders.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
@@ -390,5 +391,5 @@ export function upgradeTrailer(id) {
 }
 export function sleep() {
   if (!trailerHas('roof')) return say('The roof leaks right onto the bed. Patch it first.');
-  game.home = { ...game.home, jobClock: 1e6 }; game.clock = MORNING_HOUR; save(); say('You sleep like a rock. Morning.');
+  game.home = { ...game.home, jobClock: 1e6 }; game.clock = MORNING_HOUR; passTime(8); save(); say('You sleep like a rock. Morning.');   // (a night's sleep also delivers any ordered parts)
 }
