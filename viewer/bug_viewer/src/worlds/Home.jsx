@@ -208,16 +208,16 @@ const EngineBlock = ({ p, ry = 0 }) => <group position={p} rotation={[0, ry, 0]}
 function JunkPile({ covered, T }) {
   if (!covered) return <>
     
-    <Crate p={[-1.7, 0, 0.45]} T={T} ry={0.2} /><EngineBlock p={[-1.7, 0, 1.2]} ry={0.3} />
+    
   </>;
   return <>
     {/* on top: a jerry can and a crate on the hood */}
-    <Crate p={[0.2, 0.9, 1.25]} s={0.42} ry={-0.3} T={T} />
+    
     {/* front wall: drums, a crate */}
-    <Crate p={[0.72, 0, 2.15]} T={T} ry={0.1} />
+    
     {/* the side facing the room: an old door leaning on the car, an engine block */}
     <mesh position={[-1.32, 0.5, -0.45]} rotation={[0, 0.05, 0.22]} castShadow><boxGeometry args={[0.05, 1.0, 1.05]} /><M c="#7d8a8c" m={0.3} r={0.7} map={T.teal} /></mesh>
-    <EngineBlock p={[-1.5, 0, -1.45]} ry={0.4} />
+    
   </>;
 }
 

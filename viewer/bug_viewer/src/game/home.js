@@ -231,9 +231,10 @@ export function ensureLetterItem() {
 }
 /** the loose drums and jerry can (once per save): real items in the garage's front-left corner, not scenery */
 export function ensureJunkItems() {
-  if ((game.home.junkV || 0) >= 1) return;
-  game.home = { ...game.home, junkV: 1 };
-  for (const [id, lx, lz] of [['drum', -5.6, 3.5], ['drum', -5.0, 3.9], ['jerrycan', -5.5, 2.8]]) {
+  if ((game.home.junkV || 0) >= 2) return;
+  const had = (game.home.junkV || 0) >= 1;
+  game.home = { ...game.home, junkV: 2 };
+  for (const [id, lx, lz] of [['drum', -5.6, 3.5], ['drum', -5.0, 3.9], ['jerrycan', -5.5, 2.8], ['crate', -5.5, 1.6], ['engineblock', -5.3, 0.6]].slice(had ? 3 : 0)) {
     const [x, z] = toWorld(G, lx, lz);
     game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), kind: 'junk', id, loc: 'world', x, z, y: groundHeight(x, z) - height(x, z), ry: G.rot });
   }
