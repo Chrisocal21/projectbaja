@@ -75,3 +75,10 @@ export function resumePlan(data, carPose) {
   if (data.onFoot === false && validCarPose(carPose)) return { onFoot: false, walkPose: null };
   return null;   // caller uses the default: on foot beside the car
 }
+
+/** Old copies kept beside the main save: only the newest `keep` of each kind stay (main save + 3 backups, like most games). Returns the localStorage keys to delete. */
+export const BACKUP_PREFIXES = ['baja-save-backup-', 'baja-save-corrupt-'];
+export function keysToPrune(keys, keep = 3) {
+  const stamp = k => Number(String(k).match(/-(\d+)$/)?.[1] || 0);
+  return BACKUP_PREFIXES.flatMap(pre => keys.filter(k => String(k).startsWith(pre)).sort((a, b) => stamp(b) - stamp(a)).slice(keep));
+}

@@ -4,10 +4,14 @@ import { WEAR } from '../weather.js';
 import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
-import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan } from './saveFormat.js';
+import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan, keysToPrune } from './saveFormat.js';
 
 export const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
 const notices = [];           // load-time warnings, shown now and again when the story starts (the title may not be up yet)
+/** keep only the newest 3 backups and 3 corrupt copies (the main save is never touched) */
+export function pruneOldCopies() {
+  try { const keys = []; for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i)); keysToPrune(keys).forEach(k => localStorage.removeItem(k)); } catch {}
+}
 /** read + migrate the save. Never throws, never destroys: a bad blob is stashed, a newer one is kept untouched. */
 function loadSave() {
   let raw = null, locked = false;
@@ -22,6 +26,7 @@ function loadSave() {
     try { localStorage.setItem(`baja-save-backup-v${r.from}-${ts}`, raw); }
     catch { locked = true; notices.push('Could not back up your old save before updating it. Saving is turned off so nothing is lost.'); }
   }
+  pruneOldCopies();
   return { data: r.status === 'ok' ? r.data : {}, locked, status: r.status };
 }
 const loaded = loadSave(), saved = loaded.data;

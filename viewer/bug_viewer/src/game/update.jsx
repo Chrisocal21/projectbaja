@@ -1,6 +1,6 @@
 // Release detection, "Save and update", and the save tools (save now / export / import) for the pause menu.
 import React from 'react';
-import { game, KEY, writeSave, say, emit, useGame } from './store.js';
+import { game, KEY, writeSave, say, emit, useGame, pruneOldCopies } from './store.js';
 import { validateImport, parseVersionFile, isNewRelease, exportFilename } from './savefile.js';
 import { parseSave } from './saveFormat.js';
 
@@ -30,7 +30,7 @@ const store = () => { try { return localStorage; } catch { return null; } };
 /** copy the current save aside before anything overwrites it; returns the backup key or null */
 export function backupSave(tag = 'manual') {
   const ls = store(); if (!ls) return null;
-  try { const raw = ls.getItem(KEY); if (!raw) return null; const k = `baja-save-backup-${tag}-${Date.now()}`; ls.setItem(k, raw); return k; } catch { return null; }
+  try { const raw = ls.getItem(KEY); if (!raw) return null; const k = `baja-save-backup-${tag}-${Date.now()}`; ls.setItem(k, raw); pruneOldCopies(); return k; } catch { return null; }
 }
 /** is there a real story save to lose? */
 export const hasStorySave = () => { try { return parseSave(store()?.getItem(KEY)).status === 'ok' && !!game.owned.has('car:bug') && !!game.build; } catch { return false; } };

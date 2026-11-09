@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSave, wrap, CURRENT, FORMAT, allocUid, sanitizeJob, sanitizeCrates, resumePlan, validPose, migrations } from './saveFormat.js';
+import { parseSave, wrap, CURRENT, FORMAT, allocUid, sanitizeJob, sanitizeCrates, resumePlan, validPose, migrations, keysToPrune } from './saveFormat.js';
 import { unstoreMove } from './stash.js';
 
 const v0 = { cash: 777, owned: ['car:bug'], items: [{ uid: 4, kind: 'tool', id: 'wrench', loc: 'pack' }, { uid: 9, kind: 'part', id: 'x', loc: 'hand' }], props: [{ uid: 3, id: 'bench' }, { uid: 12, id: 'lift' }], home: { cleared: ['a'], power: true, letter: true, fixtures: true, fixturesV: 2, stored: [{ uid: 20, id: 's' }] }, mats: { scrap: 5 }, clock: 14 };
@@ -52,4 +52,9 @@ test('job, crates and resume pose are validated', () => {
   assert.deepEqual(resumePlan({ onFoot: false }, car), { onFoot: false, walkPose: null });
   assert.equal(resumePlan({ onFoot: false }, null), null);
   assert.equal(resumePlan({}, car), null);
+});
+test('pruning keeps the newest 3 backups and 3 corrupt copies, never the main save', () => {
+  const keys = ['baja-save-v1', 'other', ...[1, 5, 3, 9, 7].map(t => `baja-save-backup-v1-${t}`), ...[2, 4, 6, 8].map(t => `baja-save-corrupt-${t}`)];
+  assert.deepEqual(keysToPrune(keys).sort(), ['baja-save-backup-v1-1', 'baja-save-backup-v1-3', 'baja-save-corrupt-2']);
+  assert.deepEqual(keysToPrune(['baja-save-v1', 'baja-save-backup-v1-1']), []);
 });
