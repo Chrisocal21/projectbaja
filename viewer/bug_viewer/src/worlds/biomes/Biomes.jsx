@@ -79,6 +79,13 @@ function Plants() {
   return <group ref={root} />;
 }
 
+/** the sea (PROPOSAL, region 3): one big plane at sea level west of the old map; the terrain dips below it toward -x so the shoreline is where the ground crosses y = 0. Simple look for now: flat blue, a little see-through. */
+export const SEA = { x0: -6100, x1: -3800, z0: -3100, z1: 3100, y: 0 };
+function Ocean() {
+  const w = SEA.x1 - SEA.x0, d = SEA.z1 - SEA.z0;
+  return <mesh position={[(SEA.x0 + SEA.x1) / 2, SEA.y, (SEA.z0 + SEA.z1) / 2]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}><planeGeometry args={[w, d]} /><meshStandardMaterial color="#2f7fa0" transparent opacity={0.82} roughness={0.08} metalness={0.15} depthWrite={false} /></mesh>;
+}
+
 function Water({ river }) {
   const geo = useMemo(() => {
     const { pos, uv, idx } = ribbonStrip(river.path.pts, river.width / 2 + 5, p => p.wl - 0.02, 2, 2);
@@ -107,6 +114,7 @@ export default function BiomeScene() {
   return <>
     {BIO.trails.map(t => <Ribbon key={t.id} path={t.path} half={t.width / 2 + 0.6} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.03} segs={4} heightFn={height} />)}
     {BIO.rivers.map(r => <Water key={r.id} river={r} />)}
+    <Ocean />
     <Plants />
     {BIO.clearings.map(c => c.lookout && <Lookout key={c.id} c={c} />)}
   </>;

@@ -7,7 +7,7 @@ import { noiseTexture } from './groundDetail.js';
 // A macro map (the heightmap's own painted diffuse + AO) shades the far ground with its erosion: gullies dark, ridges catching light.
 
 /** surface -> layer: 0 sand, 1 desert ground, 2 dirt, 3 red soil, 4 gravel, 5 rock, 6 grass, 7 paving */
-export const LAYER_OF = { sand: 0, playa: 0, scrub: 1, dirt: 2, looseDirt: 2, mud: 2, redDirt: 3, gravel: 4, rock: 5, grass: 6, meadow: 6, dryGrass: 6, forestFloor: 2, asphalt: 7, concrete: 7, curb: 7 };
+export const LAYER_OF = { sand: 0, water: 0, playa: 0, scrub: 1, dirt: 2, looseDirt: 2, mud: 2, redDirt: 3, gravel: 4, rock: 5, grass: 6, meadow: 6, dryGrass: 6, forestFloor: 2, asphalt: 7, concrete: 7, curb: 7 };
 const L = 8, TEX = 1024;
 
 /** a 1x1 grey array until the real one loads (divided by its own "mean" it is neutral) */

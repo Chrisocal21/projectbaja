@@ -176,6 +176,7 @@ export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0
 export const reliefAt = (x, z) => { const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
+  if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
   if (m.lake > 0.55) return SURFACES.playa;

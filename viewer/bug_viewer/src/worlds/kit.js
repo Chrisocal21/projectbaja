@@ -20,6 +20,7 @@ export const SURFACES = {
   meadow:    { id: 'meadow', name: 'Meadow grass', mu: 0.5, rr: 1.8, color: '#6f9a3f', gk: 'dirt' },
   dryGrass:  { id: 'dryGrass', name: 'Dry grass', mu: 0.5, rr: 1.8, color: '#b3a352', gk: 'dirt' },
   forestFloor: { id: 'forestFloor', name: 'Forest floor', mu: 0.55, rr: 1.6, color: '#566230', gk: 'dirt' },
+  water:     { id: 'water', name: 'Sea water', mu: 0.2, rr: 6.0, color: '#2f6f8f', gk: 'sand' },   // PROPOSAL: the coast; heavy drag so a car cannot cruise the sea (boats later)
 };
 for (const [k, v] of Object.entries(SURFACES)) v.key = k;
 export const SURFACE_IDS = ['', ...Object.keys(SURFACES)];

@@ -56,3 +56,9 @@ Searched Desktop/assets, projectbaja/assets and supplyline-unity/Assets.
 - `src/game/regions.js`: region table and exits (drive into an exit circle, next region loads, you keep your speed). `DriveWorld` checks exits each physics step and places the car on arrival; `main.jsx` swaps the world and records `home.region` (real regions only).
 - Checked in a browser with the DEV-ONLY stand-in exit (county to test center and back): speed kept (19.1 and 18.6), no errors. Real regions will use highway exits at a mountain pass; the mountain-pass fade/hide is NOT built yet.
 - NOT done: saving and restoring the current region on Continue, on-foot travel, hiding the cut behind a pass.
+
+## STATUS: coast, step 1 DONE (Nov 9, PROPOSAL; option 1 = grow the one world, no swap)
+- Measured: world grid 9 km to 12 km costs nothing noticeable (heap 210 to 199 MB, same load time; the raster only stores painted cells).
+- West side opened to x -5940. The old west rim is now a coastal RANGE (crest about 140 m at x -2950) that falls to the sea by x about -4600. Biome `coast` (kind `shore`): sand beach, scrub, rocks. Sea plane at y 0 (`Ocean` in biomes/Biomes.jsx, simple blue), new `water` surface (heavy drag). Map is now 10.5 km wide (a bit coarser). Dev teleport key: Backslash.
+- Checked in a browser: beach at x -4200 with the sea on the horizon. Known rough edges: no road over the range yet (off-road only, steep), walking into deep water puts the camera under the plane (no swim or block or underwater look), no waves/foam/shore blend, no palms or beach props yet, ocean is flat blue.
+- NEXT: a coastal highway over a pass, shoreline blend (wet sand, foam), then art (palms, rocks, boats).
