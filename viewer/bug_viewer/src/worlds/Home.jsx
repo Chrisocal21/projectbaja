@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { SITES, groundHeight, height } from './county.js';
@@ -212,10 +212,17 @@ function Forecourt() {
 }
 
 // ---------------- grandpa's #7 desert racer: under a tarp until you pull it off ----------------
+/** the #7's body (Meshy image-to-3D from the reference photo; wheels cut off so the real tires/rims can be taken). PROPOSAL look. tarpSplat: the tarp reads its shape from the vertices, not from a ray test on 38k triangles. */
+const G7_FILE = '/models/VEH_007_Grandpa7.glb';
+function Grandpa7Body() {
+  const { scene } = useGLTF(G7_FILE);
+  const obj = useMemo(() => { const c = scene.clone(true), drop = []; c.traverse(o => { if (/^Wheel_/.test(o.name)) drop.push(o); else if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.userData.tarpSplat = true; } }); drop.forEach(o => o.removeFromParent()); return c; }, [scene]);
+  return <primitive object={obj} />;
+}
 function RaceCar({ T }) {
   useGame();
   const stage = raceCarStage(), open = stage > 0, left = boxItems('racecar'), wheels = left.some(i => i.kind === 'wheel'), rims = left.some(i => i.kind === 'rim'), shocks = left.some(i => i.kind === 'part');
-  const steel = '#4b3a2d', arm = '#3a3330', R = 0.52, L = [[0.92, 1.2], [-0.92, 1.2], [0.92, -1.15], [-0.92, -1.15]];
+  const steel = '#4b3a2d', arm = '#3a3330', R = 0.52, L = [[0.86, 1.44], [-0.86, 1.44], [0.86, -0.92], [-0.86, -0.92]];
   const frameWear = useMemo(() => metalTex('#877967', 77), []);
   const tb = (a, b, r = 0.03, c = steel) => <Tube a={a} b={b} r={r} c={c} m={0.45} map={frameWear} />;
   const hood = Math.atan2(0.25, 1.15), seven = sevenTex(), carRef = useRef();
@@ -223,55 +230,7 @@ function RaceCar({ T }) {
     {stage === 0 ? <RaceTarp carRef={carRef} R={R} L={L} ck={`${wheels}${rims}${shocks}`} /> : stage === 1 ? <HalfRaceTarp /> : null}
     <JunkPile covered={!open} T={T} />
     <group ref={carRef}><group position={[0, wheels ? 0 : -0.08, 0]}>
-      {[-1, 1].map(s => <React.Fragment key={s}>
-        {/* frame rails, belt line and the low boxy cage */}
-        {tb([s * 0.55, 0.5, 1.75], [s * 0.55, 0.5, -1.6], 0.034)}{tb([s * 0.55, 0.95, 0.55], [s * 0.55, 0.95, -1.0])}
-        {tb([s * 0.55, 0.95, 0.55], [s * 0.48, 1.45, 0.05])}{tb([s * 0.48, 1.45, 0.05], [s * 0.48, 1.45, -0.65])}
-        {tb([s * 0.55, 0.5, -0.6], [s * 0.48, 1.45, -0.65], 0.034)}{tb([s * 0.48, 1.45, -0.65], [s * 0.55, 0.95, -1.0])}
-        {tb([s * 0.55, 0.5, 0.55], [s * 0.55, 0.95, 0.55])}{tb([s * 0.55, 0.52, 0.5], [s * 0.55, 0.93, -0.55], 0.026)}
-        {/* rear: engine cradle */}
-        {tb([s * 0.55, 0.95, -1.0], [s * 0.5, 0.78, -1.65])}{tb([s * 0.5, 0.78, -1.65], [s * 0.55, 0.5, -1.6])}
-        {/* front: hood rails down to the nose */}
-        {tb([s * 0.55, 0.95, 0.55], [s * 0.45, 0.7, 1.7])}{tb([s * 0.45, 0.7, 1.7], [s * 0.55, 0.5, 1.75])}
-        {/* shock towers, front and rear */}
-        {tb([s * 0.55, 0.5, 1.25], [s * 0.56, 1.16, 1.2])}{tb([s * 0.56, 1.16, 1.2], [s * 0.55, 0.95, 0.55], 0.026)}{tb([s * 0.56, 1.16, 1.2], [s * 0.47, 0.75, 1.62], 0.026)}
-        {tb([s * 0.55, 0.5, -1.2], [s * 0.56, 1.16, -1.15])}{tb([s * 0.56, 1.16, -1.15], [s * 0.48, 1.45, -0.65], 0.026)}{tb([s * 0.56, 1.16, -1.15], [s * 0.51, 0.78, -1.6], 0.026)}
-        {/* A-arms out to the hubs */}
-        {[1.2, -1.15].map(z => <React.Fragment key={z}>
-          {tb([s * 0.55, 0.52, z + 0.25], [s * 0.76, 0.5, z], 0.026, arm)}{tb([s * 0.55, 0.52, z - 0.25], [s * 0.76, 0.5, z], 0.026, arm)}
-          {tb([s * 0.56, 0.82, z + 0.18], [s * 0.74, 0.68, z], 0.022, arm)}{tb([s * 0.56, 0.82, z - 0.18], [s * 0.74, 0.68, z], 0.022, arm)}
-          <Cyl p={[s * 0.76, 0.58, z]} a={[0.05, 0.05, 0.22, 10]} c={arm} m={0.5} />
-        </React.Fragment>)}
-        {/* the #7 side panel and a seat */}
-        <mesh position={[s * 0.565, 0.73, -0.3]} castShadow><boxGeometry args={[0.02, 0.44, 1.12]} /><meshStandardMaterial map={seven} roughness={0.9} metalness={0.08} /></mesh>
-        {[0.28, -0.84].map(z => <mesh key={z} position={[s * 0.584, 0.73, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.012, 0.012, 0.012, 8]} /><M c="#8b8170" m={0.5} /></mesh>)}
-        <RoundedBox args={[0.38, 0.12, 0.44]} radius={0.05} smoothness={3} position={[s * 0.23, 0.6, -0.1]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
-        <RoundedBox args={[0.38, 0.6, 0.12]} radius={0.05} smoothness={3} position={[s * 0.23, 0.92, -0.38]} rotation={[-0.15, 0, 0]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
-      </React.Fragment>)}
-      {[1.75, 1.25, 0.55, -0.6, -1.2, -1.6].map(z => <React.Fragment key={z}>{tb([-0.55, 0.5, z], [0.55, 0.5, z])}</React.Fragment>)}
-      {tb([-0.48, 1.45, 0.05], [0.48, 1.45, 0.05])}{tb([-0.48, 1.45, -0.65], [0.48, 1.45, -0.65])}{tb([-0.48, 1.45, 0.05], [0.48, 1.45, -0.65], 0.024)}
-      {tb([-0.55, 0.95, 0.55], [0.55, 0.95, 0.55])}{tb([-0.45, 0.7, 1.7], [0.45, 0.7, 1.7])}{tb([-0.5, 0.78, -1.65], [0.5, 0.78, -1.65])}
-      {tb([-0.56, 1.16, 1.2], [0.56, 1.16, 1.2], 0.026)}{tb([-0.56, 1.16, -1.15], [0.56, 1.16, -1.15], 0.026)}
-      {/* sloped #7 hood, skid plate */}
-      <mesh position={[0, 0.84, 1.125]} rotation={[hood, 0, 0]} castShadow><boxGeometry args={[1.0, 0.02, 1.18]} /><meshStandardMaterial map={seven} roughness={0.9} metalness={0.08} /></mesh>
-      <B p={[0, 0.5, 1.82]} s={[0.6, 0.3, 0.03]} c="#5a4636" m={0.5} r={0.8} rot={[-0.3, 0, 0]} />
-      {/* roof spotlights */}
-      {[-0.24, 0.24].map(x => <group key={x} position={[x, 1.55, 0.06]}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.085, 0.07, 0.12, 16]} /><M c="#2a2a2a" m={0.7} r={0.35} /></mesh>
-        <mesh position={[0, 0, 0.061]}><circleGeometry args={[0.075, 16]} /><meshStandardMaterial color="#efe6c8" emissive="#fff0c0" emissiveIntensity={0.15} /></mesh>
-        <Cyl p={[0, -0.07, 0]} a={[0.012, 0.012, 0.06, 6]} c="#2a2a2a" m={0.6} />
-      </group>)}
-      {/* engine in the rear cradle */}
-      <group position={[0, 0.3, 0.2]}><ProcEngine mods={{ engineBore: 'EMOD_Bore1776' }} stockExhaust={false} /></group>
-      {/* floor, dash, steering */}
-      <B p={[0, 0.52, -0.05]} s={[1.08, 0.02, 1.2]} c="#4a4440" m={0.5} r={0.8} />
-      <B p={[0, 0.98, 0.5]} s={[1.0, 0.18, 0.06]} c="#1d1d1f" r={0.8} rot={[-0.25, 0, 0]} />
-      {[-0.23, 0.23].map(x => <group key={x} position={[x, 1.0, 0.465]} rotation={[Math.PI / 2 - 0.25, 0, 0]}><mesh><cylinderGeometry args={[0.05, 0.05, 0.02, 16]} /><meshStandardMaterial color="#d8d2bf" /></mesh></group>)}
-      <group position={[-0.23, 0.92, 0.32]} rotation={[-0.9, 0, 0]}>
-        <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[0.018, 0.018, 0.35, 8]} /><M c="#2b2b2e" m={0.5} /></mesh>
-        <mesh position={[0, 0.33, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.15, 0.018, 8, 24]} /><M c="#1d1d1f" r={0.7} /></mesh>
-      </group>
-      {shocks && L.map(([x, z], i) => <RaceShock key={i} x={x} z={z} />)}
+      <Suspense fallback={null}><Grandpa7Body /></Suspense>
     </group>
     {L.map(([x, z], i) => wheels || rims ? <RaceWheel key={i} x={x} z={z} R={R} tire={wheels} rim={rims} /> : <B key={i} p={[x * 0.85, 0.22, z]} s={[0.4, 0.4, 0.22]} c="#8a8a84" r={1} />)}
     </group>
@@ -340,10 +299,11 @@ function RaceTarp({ carRef, R, L, ck }) {
     const NX = 84, NZ = 132, X0 = -1.45, X1 = 1.45, Z0 = -2.35, Z1 = 2.45, dx = (X1 - X0) / NX, dz = (Z1 - Z0) / NZ, W = NX + 1;
     const H = new Float32Array(W * (NZ + 1)).fill(-1), Y = new Float32Array(W * (NZ + 1));
     const ray = new THREE.Raycaster(), o = new THREE.Vector3(), down = new THREE.Vector3(0, -1, 0), hp = new THREE.Vector3();
+    car.traverse(m => { if (!m.userData.tarpSplat) return; m.updateWorldMatrix(true, false); const pa = m.geometry.attributes.position, v = new THREE.Vector3(); for (let n = 0; n < pa.count; n++) { v.fromBufferAttribute(pa, n).applyMatrix4(m.matrixWorld); parent.worldToLocal(v); const ci = Math.round((v.x - X0) / dx), cj = Math.round((v.z - Z0) / dz); for (let b = -2; b <= 2; b++) for (let a = -2; a <= 2; a++) { const ii = ci + a, jj = cj + b; if (ii >= 0 && ii <= NX && jj >= 0 && jj <= NZ) { const k = jj * W + ii; if (v.y > H[k]) H[k] = v.y; } } } });
     for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) {
       const x = X0 + i * dx, z = Z0 + j * dz, k = j * W + i;
       ray.set(parent.localToWorld(o.set(x, 4, z)), down);
-      const hit = ray.intersectObjects(meshes, false)[0]; if (hit) H[k] = parent.worldToLocal(hp.copy(hit.point)).y;
+      const hit = ray.intersectObjects(meshes, false)[0]; if (hit) H[k] = Math.max(H[k], parent.worldToLocal(hp.copy(hit.point)).y);
       for (const [wx, wz] of L) { const ddz = z - wz; if (Math.abs(x - wx) < 0.21 && Math.abs(ddz) < R) H[k] = Math.max(H[k], R + Math.sqrt(R * R - ddz * ddz)); }
     }
     // distance (m) from each cell to the nearest cell the car is under: the skirt must reach the floor within ~0.3 m of the car
