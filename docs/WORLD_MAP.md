@@ -80,3 +80,10 @@ Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas,
 - Pipeline despikes bad source pixels (10 cells, e.g. a 260 m needle on the San Diego shore).
 - Checked in a browser: Imperial Valley spawn with real ranges on the horizon, Pacific beach near San Diego, Gulf of California with Baja on the horizon 20 km south. Heap about 265-335 MB.
 - Rough edges: you can drive on the sea floor (no water physics), ground is plain (one PROPOSAL rule set: sand, scrub, rock, high dirt), no roads, no places, no garage, no map screen for it yet, the dev shop stand-in sits at (40, 30).
+
+### Step 4 DONE (Nov 9): the county on the real land, behind `?realmap`
+- Add `?realmap` to the address (e.g. `/?realmap`): the normal game, garage and story, but standing on the real border slice. Without the flag nothing changed.
+- Built places keep the home layout (garage, Dry Wells, Al's lot, Dusty's, Baja Parts, Hollis farm, Salvage & Surplus, Proving Grounds, shacks) and are levelled into the real ground. Natural places moved (PROPOSAL): Sidewinder Dunes = the Algodones Dunes (east), Bitter Lake = Laguna Salada (south, Mexico), Red Rock Canyon = by the Sierra Cucapah. Made-up land is off: edge rim, mesas, grassland, forest mountain, scrubland, lakebed and coast strips.
+- Terrain is streamed near the player (county tiles), the ocean and Salton Sea come from the data; the Salton Sea bed is sunk 1.5 m so it is really under water; no plants in water.
+- Checked in a browser: garage, Dry Wells highway, the dunes, Laguna Salada, the Salton Sea (about 1 km north of the garage). Heap about 330-460 MB (higher than the normal 220 MB: watch it).
+- Not done: roads only exist near home (step 5 real highways), map screen still draws the old county, the dev teleports, signs and area names still use the old names, no frame-rate check on a real machine.

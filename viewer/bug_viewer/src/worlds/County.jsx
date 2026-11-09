@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { HM_SIZE, TERRAIN } from './world.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
+import { HM_SIZE, TERRAIN, REAL } from './world.js';
+import { WaterSheet } from './Border.jsx';
+import { border, SEA_Y } from './border.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
 import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -82,6 +84,33 @@ function Terrain() {
       if (!t.hi && d < HI_IN && d < wd) { want = t; wd = d; }
     }
     if (want) { const m = new THREE.Mesh(tileGeometry(want.ix, want.iz, HI), mat); m.receiveShadow = true; want.hi = m; group.current.add(m); want.lo.visible = false; }   // one fine tile per tick: no long hitch
+  });
+  return <group ref={group} />;
+}
+
+/** ?realmap: the world is the real border slice (40 x 53 km), so tiles are built only near the player and dropped behind (same tiles as above) */
+const R_LO = 4500, R_HI = 430, R_DROP = 5600, LO_REAL = 12;
+function StreamTerrain() {
+  const group = useRef(), { camera } = useThree(), tiles = useRef(new Map());
+  const mat = useMemo(() => terrainMaterial({ size: HM_SIZE, half: HM_SIZE / 2 }), []);
+  useEffect(() => () => { tiles.current.forEach(t => { t.lo.geometry.dispose(); t.hi?.geometry.dispose(); }); tiles.current.clear(); }, []);
+  useFrame(() => {
+    const p = game.onFoot ? camera.position : game.pos, g = group.current, map = tiles.current;
+    const cx = Math.floor((p.x + HALF) / TILE), cz = Math.floor((p.z + HALF) / TILE), R = Math.ceil(R_LO / TILE), ctr = (i, j) => [-HALF + (i + 0.5) * TILE, -HALF + (j + 0.5) * TILE];
+    let built = 0, hiBuilt = false;
+    for (let ring = 0; ring <= R && built < 8; ring++) for (let iz = cz - ring; iz <= cz + ring && built < 8; iz++) for (let ix = cx - ring; ix <= cx + ring && built < 8; ix++) {
+      if (Math.max(Math.abs(ix - cx), Math.abs(iz - cz)) !== ring) continue;
+      const [tx, tz] = ctr(ix, iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7); if (d > R_LO) continue;
+      const k = ix + ',' + iz; let t = map.get(k);
+      if (!t) { const lo = new THREE.Mesh(tileGeometry(ix, iz, d < 1500 ? LO : LO_REAL), mat); lo.receiveShadow = true; g.add(lo); map.set(k, t = { ix, iz, lo, hi: null }); built++; }
+      if (!t.hi && !hiBuilt && d < R_HI) { const hi = new THREE.Mesh(tileGeometry(ix, iz, HI), mat); hi.receiveShadow = true; g.add(hi); t.hi = hi; t.lo.visible = false; hiBuilt = true; built += 4; }
+    }
+    if (built) return;
+    for (const [k, t] of map) {
+      const [tx, tz] = ctr(t.ix, t.iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7);
+      if (t.hi && d > HI_OUT) { g.remove(t.hi); t.hi.geometry.dispose(); t.hi = null; t.lo.visible = true; }
+      if (d > R_DROP) { g.remove(t.lo); t.lo.geometry.dispose(); if (t.hi) { g.remove(t.hi); t.hi.geometry.dispose(); } map.delete(k); }
+    }
   });
   return <group ref={group} />;
 }
@@ -216,7 +245,7 @@ export default function CountyScene() {
   useEffect(() => { camera.far = 5200; camera.updateProjectionMatrix(); }, [camera]);
   return <>
     {/* sky, fog, sun and the day/night cycle are DriveWorld.jsx's DayNightSky, so the drive and on-foot cameras share one clock */}
-    <Terrain />
+    {REAL ? <><StreamTerrain /><WaterSheet bit={1} y={SEA_Y} color="#2f7fa0" /><WaterSheet bit={2} y={border().lakeY} color="#4f8f9a" /></> : <Terrain />}
     {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind]; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} />)}
     <Ribbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />
@@ -226,7 +255,7 @@ export default function CountyScene() {
     <Poles />
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
-    <BiomeScene />
+    {!REAL && <BiomeScene />}
     <BoundaryWall />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     <React.Suspense fallback={null}><Desert /></React.Suspense>
@@ -234,7 +263,7 @@ export default function CountyScene() {
     <Proving />
     <Sites />
     <Home />
-    <Mesas d0={3500} dr={700} sc={4} n={30} />
+    {!REAL && <Mesas d0={3500} dr={700} sc={4} n={30} />}
   </>;
 }
 void toWorld;

@@ -9,6 +9,7 @@ const SEA_FLOOR = -30;    // outside the data box: open sea
 /** meta = border.json, H = Float32Array heights (m), M = Uint8Array mask (bit0 sea, bit1 Salton Sea) */
 export function makeBorder(meta, H, M) {
   const { nx, nz, cell, x0, z0 } = meta, lakeY = meta.lakeLevel;
+  for (let k = 0; k < M.length; k++) if (M[k] & 2) H[k] = Math.min(H[k], lakeY - 1.5);   // the data's Salton Sea is flat at its own surface: sink the bed so it is really under water
   const x1 = x0 + (nx - 1) * cell, z1 = z0 + (nz - 1) * cell;
   const at = (i, j) => H[j * nx + i];
   /** ground height, bilinear between the data cells */

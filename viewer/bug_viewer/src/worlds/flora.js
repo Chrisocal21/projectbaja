@@ -1,11 +1,12 @@
 // Where the trees and plants grow in Baja County (pure data, deterministic). Models: public/models/ENV_Trees.glb + ENV_Plants.glb
 // (assets/pipeline/export_plants.py). Trees: shade around the farm, grandpa's yard, Dry Wells, a canyon spring and the low washes.
 // Plants: dead grass + grass bushes over the scrub, ferns and nettles in the shade of the farm and the canyon spring.
-import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, ROAD_BY, TOWN_D } from './county.js';
+import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, ROAD_BY, TOWN_D, surface } from './county.js';
+import { REAL } from './world.js';
 import { HM_SIZE } from './world.js';   // scatter stays in the original 6 km square (new regions scatter via biomes/)
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
-const clearOf = (x, z, pad) => !onCore(x, z) && !onCore(x + 2, z) && !onCore(x - 2, z) && !onCore(x, z + 2) && !onCore(x, z - 2) && !Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + pad);
+const clearOf = (x, z, pad) => !(REAL && surface(x, z).key === 'water') && !onCore(x, z) && !onCore(x + 2, z) && !onCore(x - 2, z) && !onCore(x, z + 2) && !onCore(x, z - 2) && !Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + pad);
 
 // ---------------- trees: [x, z, model, scale, ry] ----------------
 export const TREES = [];

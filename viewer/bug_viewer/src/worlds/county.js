@@ -8,7 +8,9 @@
 //   Highway 9 south     ->  the Proving Grounds (the old test center: circuit, off-road track, washboard strip) + the salvage warehouse
 // Places are clusters: a town, the Proving Grounds, the farm keep their own layout and only move as a whole (`at`).
 import { createBiomes } from './biomes/index.js';
-import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric } from './world.js';
+import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ringMetric0, REAL } from './world.js';
+import { loadBorder } from './border.js';
+const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
 export { SURFACES, toWorld };
@@ -23,7 +25,9 @@ const HM = await (async () => {
   for (let i = 0; i < u.length; i++) f[i] = u[i] / 65535;
   return f;
 })();
-const HMB = boxBlur(HM, HN, 9);   // ~55 m average: washes sit below it, ridges above
+const HMB = boxBlur(HM, HN, 9);
+/** ?realmap: the real border slice (worlds/border.js), loaded before anything is built */
+const BD = REAL ? await loadBorder() : null;   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
   x = mirror(x); z = mirror(z);   // the file covers HM_SIZE; beyond it the relief is mirrored (identical inside)
   const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);
@@ -44,6 +48,12 @@ export const BIOMES = {
   canyon:  { name: 'Red Rock Canyon', x: -360, z: 2160, r: 700 },
   farm:    { name: 'Hollis farm', x: -960, z: 940, r: 220 },
 };
+if (REAL) {   // PROPOSAL: natural places move onto their real look-alikes; built places keep the home layout (they now stand on real ground)
+  Object.assign(B0().dunes, { x: 1950, z: -250, r: 650 });            // the Algodones Dunes, east of the valley
+  Object.assign(B0().lake, { x: -750, z: 2500, rx: 650, rz: 420 });   // Laguna Salada, a real dry lakebed south of the border
+  Object.assign(B0().canyon, { x: -250, z: 2150 });                   // the Sierra Cucapah, next to it
+}
+function B0() { return BIOMES; }
 /** organic noise from the heightmap itself, resampled at another scale and offset (mirror-tiled, so it never runs off the edge) */
 const mirror = v => { const p = 2 * HM_SIZE, t = (((v + HM_SIZE / 2) % p) + p) % p; return (t > HM_SIZE ? p - t : t) - HM_SIZE / 2; };
 const warp = (x, z, s = 0.55, ox = 1300, oz = -900) => hmAt(HMB, mirror(x * s + ox), mirror(z * s + oz)) - 0.4;
@@ -55,7 +65,7 @@ export const MESAS = [[-420, 1000, 90, 32], [-60, 1260, 115, 42], [70, 950, 66, 
   .map(([x, z, r, h]) => [x * 2, z * 2, r * 1.5, h * 1.3]);
 const PG_Y = 1, LAKE_Y = -3;
 /** the data-driven biomes (grassland, forest mountain, ...): src/worlds/biomes/registry.js */
-export const BIO = createBiomes();
+export const BIO = createBiomes(REAL ? [] : undefined);   // the made-up biomes (grassland, forest mountain, coast strip...) are off on the real map
 for (const b of BIO.list) { const r = b.def.region; BIOMES[b.def.id] = { name: b.def.name, x: r.cx, z: r.cz, r: r.r * 0.85 }; }
 
 const masks = (x, z) => ({
@@ -158,6 +168,7 @@ function mesaAt(x, z) {
 }
 /** base terrain before roads and pads */
 function base(x, z) {
+  if (REAL) return realBase(x, z);
   const m = masks(x, z);
   let h = relief(x, z, m);
   const u = x * 0.8 + z * 0.6, v = -x * 0.6 + z * 0.8;
@@ -170,13 +181,28 @@ function base(x, z) {
   h += ringAt(x, z) * 35 * (1 - 0.7 * corrAt(x, z));   // the range stands up off the desert floor
   return m.bio > 0 ? BIO.shape(x, z, h, 1 - m.lake) : h;   // grassland / forest mountain take over inside their regions
 }
+/** ?realmap: the real ground, with the hand-built places levelled into it and dune ripples on the Algodones */
+const flatAt = b => BD.heightAt(b.x, b.z);
+const REAL_FLAT = REAL ? { town: flatAt(BIOMES.town), pg: flatAt(BIOMES.proving), lake: flatAt(BIOMES.lake), home: BD.heightAt(0, 0) } : null;
+function realBase(x, z) {
+  const m = masks(x, z);
+  let h = BD.heightAt(x, z);
+  const u = x * 0.8 + z * 0.6, v = -x * 0.6 + z * 0.8;
+  h += m.dunes * ((1 - Math.abs(Math.sin(u * 0.012 + Math.sin(v * 0.008) * 1.5))) ** 2 * 8 + (1 - Math.abs(Math.sin(u * 0.04 + v * 0.02))) ** 2 * 1.3);
+  h += (REAL_FLAT.home - h) * m.home * 0.8;
+  h += (REAL_FLAT.town - h) * m.town;
+  h += (REAL_FLAT.pg - h) * m.pg;
+  h += (REAL_FLAT.lake - h) * m.lake;
+  return h;
+}
 /** 0..1: how far below the local average the ground is (a wash: sand collects there) */
 export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0, 1);
 /** 0..1: how much real relief shows here (drives the far ground's erosion shading) */
-export const reliefAt = (x, z) => { const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
+export const reliefAt = (x, z) => { if (REAL) return 0; const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
-  if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
+  if (REAL) { const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
+  else if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
   if (m.lake > 0.55) return SURFACES.playa;

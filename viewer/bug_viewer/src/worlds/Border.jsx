@@ -74,7 +74,7 @@ function Terrain() {
 }
 
 /** one water sheet that follows the player; the mask texture says where it is really there (bit 0 = ocean, bit 1 = Salton Sea) */
-function WaterSheet({ bit, y, color }) {
+export function WaterSheet({ bit, y, color }) {
   const B = border(), ref = useRef(), { camera } = useThree();
   const mat = useMemo(() => {
     const { nx, nz, cell, x0, z0 } = B.meta, data = new Uint8Array(nx * nz);
