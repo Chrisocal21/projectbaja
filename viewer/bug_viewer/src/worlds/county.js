@@ -327,7 +327,7 @@ export const spawns = [
   { key: '=', code: 'Equal', name: 'Forest Mountain base', x: 900, z: 1985, h: -Math.PI / 2 + 0.3 },
   { key: '[', code: 'BracketLeft', name: 'Mountain river ford', x: 1625, z: 2330, h: -Math.PI * 0.6 },
   { key: ']', code: 'BracketRight', name: 'Summit lookout', x: 2040, z: 2024, h: 3.9 },
-  { key: ';', code: 'Semicolon', name: 'Scrubland (south, on Highway 9)', x: 830, z: 3300, h: 0 },
+  { key: ';', code: 'Semicolon', name: 'Scrubland (south, on Highway 9)', x: hwX(3300), z: 3300, h: 0 },   // on the highway's centre line
 ];
 /** road signs at the junctions: [x, z, facing, lines] */
 export const SIGNS = [
