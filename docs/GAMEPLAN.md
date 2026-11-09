@@ -28,7 +28,7 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 
 ## CHRIS'S PHASE 1 ORDER (Nov 8, set this order)
 1. Letter as an item + wall surface (hang things, pegboard snaps to walls).
-2. First new region: bigger map, hologram wall moved out (Chris picks direction + biome).
+2. First new region: bigger map, hologram wall moved out. Plan + my picks (south, Scrubland, 2 km strip): [REGION_PLAN.md](./REGION_PLAN.md).
 3. Real phone apps, after a design chat.
 4. Arriving vehicles and ordering (needs the Phase 2+ answer).
 5. Clerk + Vercel cloud saves. Prep done: see [CLOUD_SAVES_PLAN.md](./CLOUD_SAVES_PLAN.md).
