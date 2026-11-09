@@ -15,7 +15,7 @@
 | Garage and furniture | 🟡 | 33% | [###-------] | Sell, store, click-place work; racks, bench, lift, pegboard, walls not yet |
 | Placement system | 🟡 | 54% | [#####-----] | The grid rules, lab, cargo, sell/store and click-place are in |
 | Vehicles | 🟡 | 55% | [#####-----] | Bug, '84 truck (drives front-first), glows work; no tire wear, no trailer |
-| Map | 🟡 | 64% | [######----] | 6 km county, terrain, roads done; map turn-around bug and barn check-off open |
+| Map | 🟡 | 64% | [######----] | 6 km county, terrain, roads done; turn-around fix and barn check-off DONE (8f8ebc7) |
 | Phone / PC | ⬜ | 0% | [----------] | Not started; will replace the Esc menu |
 | Deliveries / NPCs | 🟡 | 20% | [##--------] | Odd jobs only; no ordering, no arriving trucks, no visitors |
 | Story / Canon | 🟡 | 63% | [######----] | Canon locked, garage start, #7 and hoops quest in; letter text is a placeholder |
@@ -66,7 +66,7 @@ Placement stages total: 7 of 13 done = 54%. Garage and furniture row = 4a to 4f:
 - Garage and furniture: sub-stages 4a to 4f. 2 of 6.
 - Placement: 13 stages (0, 1, 2, 2b, 3, 4a-4f, 5, 6). 7 of 13.
 - Vehicles: 6 done (Bug restoration, doors, fleet and '84 truck, truck fixed, fit glow, detach glow) of 11 (adds restorable truck, aimable engine and battery, tire wear, trailer, engine swap). 6 of 11.
-- Map: 7 done of 11 (open: turn-around fix D5, barn check-off D4, horizon and road polish, expansion D6).
+- Map: 7 done of 11 (open: horizon and road polish, expansion D6).
 - Phone / PC: 5 items (phone, apps, PC, ordering, replacing the Esc menu). 0 of 5.
 - Deliveries / NPCs: 5 items (odd jobs done; ordering, arriving vehicles, visitors, Al's roster open). 1 of 5.
 - Story: 5 done (canon, garage start, #7, hoops quest, trailer fix-up) of 8 (adds Chris's letter, photo clues, cabin lore). 5 of 8.
