@@ -62,3 +62,9 @@ Searched Desktop/assets, projectbaja/assets and supplyline-unity/Assets.
 - West side opened to x -5940. The old west rim is now a coastal RANGE (crest about 140 m at x -2950) that falls to the sea by x about -4600. Biome `coast` (kind `shore`): sand beach, scrub, rocks. Sea plane at y 0 (`Ocean` in biomes/Biomes.jsx, simple blue), new `water` surface (heavy drag). Map is now 10.5 km wide (a bit coarser). Dev teleport key: Backslash.
 - Checked in a browser: beach at x -4200 with the sea on the horizon. Known rough edges: no road over the range yet (off-road only, steep), walking into deep water puts the camera under the plane (no swim or block or underwater look), no waves/foam/shore blend, no palms or beach props yet, ocean is flat blue.
 - NEXT: a coastal highway over a pass, shoreline blend (wet sand, foam), then art (palms, rocks, boats).
+
+## BIG MAP DECISION (Nov 9): the real border slice
+Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas, Pacific to the Arizona edge), Baja County (Walt's Garage) sits in the Imperial Valley / Salton Sea area, and the land shape comes from real public elevation data, smoothed. This replaces the hand-sketched region plan above where they disagree.
+- Data: AWS Terrain Tiles (terrarium; SRTM, ETOPO1 and other open sources, sea floor included). Attribution: "Terrain Tiles: Mapzen / AWS Open Data; sources include SRTM (NASA), ETOPO1 (NOAA), USGS NED". The reference images Chris shared are stock images and are NOT traced.
+- Pipeline: `assets/pipeline/west_dem.py` (step 1, preview only). Scales PROPOSAL: horizontal 1:50 (1 real km = 20 game m), vertical 1:12. Result: about 19.8 x 26.5 km of game world, heights -407..282 m, 60% sea. Preview: `assets/mockups/west_preview.png`.
+- Problem to solve next: at 1:50 the real coast (San Diego) is only about 3 km from the garage, inside today's hand-built 6 km county.
