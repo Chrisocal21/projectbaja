@@ -48,4 +48,16 @@ export const BIOME_DEFS = [
         ctrl: [[2050, 2200], [1900, 2260], [1760, 2300], [1600, 2300], [1470, 2350], [1340, 2450]] },
     ],
   },
+  {
+    // PROPOSAL (name and look): the first new region, south of the old map along Highway 9. Plain descriptive biome, no invented places. docs/REGION_PLAN.md
+    id: 'scrubland', name: 'Scrubland', nameIsProposal: true,
+    region: { cx: 0, cz: 4250, r: 1700, inner: 0.8, wobble: 0.2, seed: 51 },
+    height: { kind: 'rolling', base: 6, amp: 8, scale: 320, seed: 61 },
+    ground: { base: 'scrub', patches: [{ key: 'dirt', scale: 140, seed: 17, above: 0.55 }, { key: 'sand', scale: 200, seed: 18, above: 0.78 }], steep: { slope: 0.5, key: 'rock' } },
+    scatter: [
+      { kind: 'bush', density: 14, cluster: { scale: 160, seed: 19, above: 0.3 }, scale: [0.6, 1.3], maxSlope: 0.6, minWeight: 0.3, tints: ['#ffffff', '#cfc08a', '#b8a874'] },
+      { kind: 'rock', density: 1.4, cluster: { scale: 240, seed: 20, above: 0.5 }, scale: [0.5, 1.8], maxSlope: 1.0, minWeight: 0.3, tints: ['#ffffff', '#cfc4b0'] },
+    ],
+    trails: [], rivers: [],
+  },
 ];

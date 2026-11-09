@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { HM_SIZE } from './world.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
+import { HM_SIZE, TERRAIN } from './world.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
 import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -64,6 +64,7 @@ function Terrain() {
   const tiles = useMemo(() => {
     const out = [];
     for (let iz = 0; iz < NT; iz++) for (let ix = 0; ix < NT; ix++) {
+      const tcx = -HALF + (ix + 0.5) * TILE, tcz = -HALF + (iz + 0.5) * TILE; if (tcx < TERRAIN.x0 || tcx > TERRAIN.x1 || tcz < TERRAIN.z0 || tcz > TERRAIN.z1) continue;   // outside the built part of the world
       const lo = new THREE.Mesh(tileGeometry(ix, iz, LO), mat); lo.receiveShadow = true;
       out.push({ ix, iz, cx: -HALF + (ix + 0.5) * TILE, cz: -HALF + (iz + 0.5) * TILE, lo, hi: null });
     }

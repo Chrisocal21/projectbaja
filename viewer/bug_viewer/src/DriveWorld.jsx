@@ -300,7 +300,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
         if (st.v * (fx * dx + fz * dz) < 0) st.v *= 0.25;   // moving towards the obstacle
       }
     }
-    st.x = Math.max(-HALF, Math.min(HALF, st.x)); st.z = Math.max(-HALF, Math.min(HALF, st.z));
+    { const bd = world.bounds || { x0: -HALF, x1: HALF, z0: -HALF, z1: HALF }; st.x = Math.max(bd.x0, Math.min(bd.x1, st.x)); st.z = Math.max(bd.z0, Math.min(bd.z1, st.z)); }   // (county: a rectangle, the south side is open: worlds/world.js DRIVE)
 
     const wasAir = st.air;
     stepSuspension(st, dims, dt, world.height);
@@ -390,7 +390,7 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', trunks: TRUNKS.near, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', trunks: TRUNKS.near, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;

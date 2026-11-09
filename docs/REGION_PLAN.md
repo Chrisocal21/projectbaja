@@ -30,3 +30,10 @@ Chris said "whichever makes sense to the expansion". These are my picks. **PROPO
 ## Needs from Chris
 - OK on **south + Scrubland + a 2 km first strip**, or change them.
 - OK to start Stage 1 (invisible refactor, safe) when tokens allow.
+
+## STATUS (Nov 8, end of session)
+- Stage 1 DONE (650e29b): world size constants in `worlds/world.js`.
+- Stage 2 DONE (6fe6d47): world is 9 km; old square unchanged; unbuilt terrain tiles are skipped (cheaper).
+- Stages 3+4 DONE (this commit): the SOUTH side is open 1.5 km (`DRIVE.z1 = 4440`); walls are a rectangle; Highway 9 continues south to the new wall; edge mountains follow the rectangle (`ringMetric`); height relief mirrors beyond the file; Scrubland biome in the registry; teleport key `;`.
+- NOT DONE: the map screen still shows only the old 6 km square (needs a centre offset, so the south strip and your marker there are not on it); the road climbs a mountain pass at the new wall like the old edges do; no places or buildings in the strip (empty on purpose, no lore); no Scrubland trails.
+- Hand-test: press `;` (or the phone teleports) and drive south to the wall; check the pass, the bushes, the wall, and frame rate.

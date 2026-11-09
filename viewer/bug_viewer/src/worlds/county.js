@@ -8,7 +8,8 @@
 //   Highway 9 south     ->  the Proving Grounds (the old test center: circuit, off-road track, washboard strip) + the salvage warehouse
 // Places are clusters: a town, the Proving Grounds, the farm keep their own layout and only move as a whole (`at`).
 import { createBiomes } from './biomes/index.js';
-import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL } from './world.js';
+import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric } from './world.js';
+export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
 export { SURFACES, toWorld };
 
@@ -24,7 +25,8 @@ const HM = await (async () => {
 })();
 const HMB = boxBlur(HM, HN, 9);   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
-  const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);   // the file covers HM_SIZE, edge height held beyond
+  x = mirror(x); z = mirror(z);   // the file covers HM_SIZE; beyond it the relief is mirrored (identical inside)
+  const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);
   const c = fx | 0, r = fz | 0, tx = fx - c, tz = fz - r, i = r * HN + c;
   return (arr[i] * (1 - tx) + arr[i + 1] * tx) * (1 - tz) + (arr[i + HN] * (1 - tx) + arr[i + HN + 1] * tx) * tz;
 }
@@ -69,7 +71,7 @@ const masks = (x, z) => ({
 
 // ---------------- roads (paths first: the terrain is softened along them) ----------------
 const road = (ctrl, kind, closed = false) => ({ path: makePath(ctrl, closed), kind });
-const highway = road([[860, -2960], [820, -2200], [880, -1400], [840, -700], [800, 0], [840, 600], [910, 1400], [860, 2200], [820, 2960]], 'highway');   // Highway 9
+const highway = road([[860, -2960], [820, -2200], [880, -1400], [840, -700], [800, 0], [840, 600], [910, 1400], [860, 2200], [820, 2960], [800, 3600], [830, 4300], [840, 4600]], 'highway');   // Highway 9
 /** Highway 9's centre x at a given z (a 10 m lookup table) */
 const HWX = new Float32Array(SIZE / 10 + 1).fill(NaN);
 for (const p of highway.path.pts) { const i = Math.round((p.z + HALF) / 10); if (i >= 0 && i < HWX.length) HWX[i] = p.x; }
@@ -131,7 +133,7 @@ const corrAt = (x, z) => {
 // ---------------- the land ----------------
 const RING0 = 2350, RING1 = 2900;
 /** how much of the heightmap's relief shows here (metres per unit), before the flats are levelled */
-const ringAt = (x, z) => smooth(RING0, RING1, Math.max(Math.abs(x), Math.abs(z)) * (1 + 0.08 * warp(x, z, 0.3)));
+const ringAt = (x, z) => smooth(RING0, RING1, ringMetric(x, z) * (1 + 0.08 * warp(x, z, 0.3)));
 function reliefAmp(x, z, m = masks(x, z)) {
   const ring = ringAt(x, z);
   let a = 95;                                                   // low desert hills: the heightmap's ridges stand 20-40 m over the flats
@@ -304,7 +306,7 @@ export function areaAt(x, z) {
   if (m.dunes > 0.3) return 'Sidewinder Dunes'; if (m.canyon > 0.3) return 'Red Rock Canyon'; if (m.farm > 0.3) return 'Hollis farm';
   if (m.bio > 0.3) { const d = BIO.dominant(x, z); if (d) return d.def.name; }
   if (Math.abs(x - hwX(z)) < 30) return 'Highway 9';
-  if (Math.max(Math.abs(x), Math.abs(z)) > RING0) return 'The Sierra';
+  if (ringMetric(x, z) > RING0) return 'The Sierra';
   return 'Open desert';
 }
 const front = (id, d, back = false) => { const s = SITES[id], [x, z] = toWorld(s, 0, d); return { x, z, h: s.rot + (back ? 0 : Math.PI) }; };
@@ -325,6 +327,7 @@ export const spawns = [
   { key: '=', code: 'Equal', name: 'Forest Mountain base', x: 900, z: 1985, h: -Math.PI / 2 + 0.3 },
   { key: '[', code: 'BracketLeft', name: 'Mountain river ford', x: 1625, z: 2330, h: -Math.PI * 0.6 },
   { key: ']', code: 'BracketRight', name: 'Summit lookout', x: 2040, z: 2024, h: 3.9 },
+  { key: ';', code: 'Semicolon', name: 'Scrubland (south, on Highway 9)', x: 830, z: 3300, h: 0 },
 ];
 /** road signs at the junctions: [x, z, facing, lines] */
 export const SIGNS = [

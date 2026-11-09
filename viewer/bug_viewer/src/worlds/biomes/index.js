@@ -1,4 +1,5 @@
 // Biome system (pure; county.js wires it in). createBiomes(defs) -> { shape, surface, any, paint, trails, rivers, ... }
+import { ringMetric } from '../world.js';
 import { BIOME_DEFS } from './registry.js';
 import { fbm } from './noise.js';
 import { makePath, smooth, clamp } from '../kit.js';
@@ -13,7 +14,7 @@ export function regionWeight(def, x, z) {
 }
 /** edge of the map rises into mountains so nothing drives off the world */
 const BANK = 0.12, CARVE_W = 300, CARVE_CELL = 6;
-export const edgeRise = (x, z) => 130 * smooth(2550, 2950, Math.max(Math.abs(x), Math.abs(z)));
+export const edgeRise = (x, z) => 130 * smooth(2550, 2950, ringMetric(x, z));
 
 export function createBiomes(defs = BIOME_DEFS) {
   let cx = NaN, cz = NaN, cw = null;   // one-entry cache: any() / shape() / surface() ask for the same point in a row
