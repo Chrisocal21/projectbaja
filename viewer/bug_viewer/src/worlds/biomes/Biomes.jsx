@@ -7,6 +7,7 @@ import { BIO, height, isRoad } from '../county.js';
 import { Ribbon, looseTex } from '../TestCenter.jsx';
 import { scatterChunk, CHUNK } from './scatter.js';
 import { ribbonStrip } from './pathmath.js';
+import { TRUNKS, colliderOf } from './trunks.js';
 
 const NEAR = { conifer: 520, broadleaf: 460, bush: 150, rock: 260 }, SHADOW_R = 110, REFRESH = 0.15;
 
@@ -51,6 +52,7 @@ function Plants() {
       });
       m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; m.computeBoundingSphere(); m.receiveShadow = true; g.add(m);
     }
+    TRUNKS.set(ix + ',' + iz, items.map(it => colliderOf(it, height(it.x, it.z))).filter(Boolean));   // trunks and boulders block the car and the walker
     return { g, cx: (ix + 0.5) * CHUNK, cz: (iz + 0.5) * CHUNK, n: items.length };
   }
   useFrame((_, dt) => {
@@ -58,7 +60,7 @@ function Plants() {
     const px = camera.position.x, pz = camera.position.z, far = Math.max(...Object.values(NEAR)) + CHUNK, group = root.current;
     for (const [k, c] of chunks.current) {
       const d = Math.hypot(c.cx - px, c.cz - pz);
-      if (d > far + 160) { group.remove(c.g); c.g.children.forEach(m => m.dispose()); chunks.current.delete(k); continue; }
+      if (d > far + 160) { group.remove(c.g); c.g.children.forEach(m => m.dispose()); chunks.current.delete(k); TRUNKS.remove(k); continue; }
       c.g.children.forEach(m => { const lim = NEAR[m.userData.kind] + CHUNK * 0.5; m.visible = d < lim; m.castShadow = m.userData.kind === 'conifer' || m.userData.kind === 'broadleaf' ? d < SHADOW_R : false; });
     }
     const want = [], i0 = Math.floor((px - far) / CHUNK), i1 = Math.floor((px + far) / CHUNK), j0 = Math.floor((pz - far) / CHUNK), j1 = Math.floor((pz + far) / CHUNK);
@@ -73,7 +75,7 @@ function Plants() {
       chunks.current.set(ix + ',' + iz, c); group.add(c.g);
     }
   });
-  useEffect(() => () => { chunks.current.forEach(c => c.g.children.forEach(m => m.dispose())); chunks.current.clear(); }, []);
+  useEffect(() => () => { chunks.current.forEach((c, k) => { c.g.children.forEach(m => m.dispose()); TRUNKS.remove(k); }); chunks.current.clear(); }, []);
   return <group ref={root} />;
 }
 
@@ -86,10 +88,26 @@ function Water({ river }) {
   return <mesh geometry={geo} renderOrder={2}><meshStandardMaterial color="#3a7d96" transparent opacity={0.72} roughness={0.12} metalness={0.1} depthWrite={false} side={THREE.DoubleSide} /></mesh>;
 }
 
+/** summit viewpoint (PROPOSAL, no structures): a few boulders and a low plain rail along the edge facing c.lookout.face. Boulders are solid. */
+const LOOK_ROCKS = [[-6, 0.3, 1.9], [-2.5, -0.4, 1.4], [1.5, 0.2, 2.2], [5.5, -0.2, 1.6]];
+function Lookout({ c }) {
+  const { face } = c.lookout, fx = Math.sin(face), fz = Math.cos(face), rx = fz, rz = -fx, e = c.r * 0.8;
+  const at = (a, b) => [c.x + fx * e + rx * a + fx * b, c.z + fz * e + rz * a + fz * b];
+  const rocks = useMemo(() => LOOK_ROCKS.map(([a, b, s]) => { const [x, z] = at(a, b); return { x, z, s }; }), [c]);
+  useEffect(() => { TRUNKS.set('lookout-' + c.id, rocks.map(r => [r.x, r.z, 0.95 * r.s, height(r.x, r.z) + 0.8 * r.s])); return () => TRUNKS.remove('lookout-' + c.id); }, [rocks]);
+  const A = assets(), posts = [-3.8, -1.2, 1.2, 3.8].map(a => at(a, -0.6));
+  return <group>
+    {rocks.map((r, i) => <mesh key={i} geometry={A.geo.rock} material={A.mat} position={[r.x, height(r.x, r.z) - 0.1 * r.s, r.z]} rotation={[0, i * 1.7, 0]} scale={[r.s, r.s * 1.1, r.s]} castShadow receiveShadow />)}
+    {posts.map(([x, z], i) => <mesh key={i} position={[x, height(x, z) + 0.55, z]} castShadow><boxGeometry args={[0.14, 1.1, 0.14]} /><meshStandardMaterial color="#6b5236" roughness={1} /></mesh>)}
+    {[0.45, 0.85].map(y => { const [x, z] = at(0, -0.6); return <mesh key={y} position={[x, height(x, z) + y, z]} rotation={[0, face + Math.PI / 2, 0]}><boxGeometry args={[7.8, 0.1, 0.1]} /><meshStandardMaterial color="#7a5e3e" roughness={1} /></mesh>; })}
+  </group>;
+}
+
 export default function BiomeScene() {
   return <>
     {BIO.trails.map(t => <Ribbon key={t.id} path={t.path} half={t.width / 2 + 0.6} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.03} segs={4} heightFn={height} />)}
     {BIO.rivers.map(r => <Water key={r.id} river={r} />)}
     <Plants />
+    {BIO.clearings.map(c => c.lookout && <Lookout key={c.id} c={c} />)}
   </>;
 }

@@ -32,6 +32,7 @@ function baseMap() {
   for (const t of TRAILS) { g.setLineDash([4, 4]); line(t.path.pts, 2, '#6b4a2a', true); g.setLineDash([]); }
   for (const r of BIO.rivers) line(r.path.pts, 4, '#3f8fb5');   // biome rivers and trails
   for (const t of BIO.trails) { g.setLineDash([4, 4]); line(t.path.pts, 2.4, '#6b4a2a'); g.setLineDash([]); }
+  for (const c of BIO.clearings) { const [a, b] = P(c.x, c.z); g.fillStyle = '#f2f2f2'; g.strokeStyle = '#000000aa'; g.lineWidth = 2; g.beginPath(); g.moveTo(a, b - 7); g.lineTo(a + 6, b + 4); g.lineTo(a - 6, b + 4); g.closePath(); g.fill(); g.stroke(); g.font = '700 11px system-ui, sans-serif'; g.textAlign = 'center'; g.strokeText(c.name, a, b - 11); g.fillStyle = '#fff'; g.fillText(c.name, a, b - 11); }   // summit lookout marker
   line(circuit.pts, 4, '#33363a', true); line(offroad.pts, 3, '#6b4a2a', true); line(dirtStrip.pts, 3, '#9a7a4e');
   g.font = '700 13px system-ui, sans-serif'; g.textAlign = 'center';
   for (const b of Object.values(BIOMES)) { if (b.name === "Grandpa's place") continue; const [a, c2] = P(b.x, b.z + (b.rz || b.r || 100) * 0.55); g.fillStyle = '#ffffffcc'; g.strokeStyle = '#00000088'; g.lineWidth = 3; g.strokeText(b.name.toUpperCase(), a, c2); g.fillText(b.name.toUpperCase(), a, c2); }

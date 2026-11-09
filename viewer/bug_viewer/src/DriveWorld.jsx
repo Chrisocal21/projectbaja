@@ -15,6 +15,7 @@ import DayNightSky from './worlds/DayNightSky.jsx';
 import { sunDirection } from './worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './game/clock.js';
 import { propObstacles } from './game/home.js';
+import { TRUNKS } from './worlds/biomes/trunks.js';
 import { vehicleType, standingVehicles } from './game/fleet.js';
 import TruckModel from './Truck.jsx';
 import BuildModel from './BuildModel.jsx';
@@ -161,7 +162,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const s = useRef(null);
   if (!s.current) { s.current = spawnState(); if (game.keepPose && game.pose) { Object.assign(s.current, { x: game.pose.x, z: game.pose.z, h: game.pose.h, y: world.height(game.pose.x, game.pose.z) + 0.5 }); game.keepPose = false; } }
   useEffect(() => {   // number keys teleport between test-center areas
-    const tp = e => { if (!game.dev || game.paused) return; const w = world.spawns.find(p => e.code === 'Digit' + p.key); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
+    const tp = e => { if (!game.dev || game.paused) return; const w = world.spawns.find(p => e.code === 'Digit' + p.key || e.code === p.code); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
   }, [world]);
   useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
@@ -289,7 +290,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     st.x += (fx * st.v + rx * st.lateralV) * dt; st.z += (fz * st.v + rz * st.lateralV) * dt;
     st.ax = (st.ax || 0) + ((st.v - v0) / dt - (st.ax || 0)) * Math.min(1, dt * 8);
     // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
-    for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of world.obstacles) {
+    for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of [...world.obstacles, ...(world.trunks ? world.trunks(st.x, st.z) : [])]) {
       if (st.y + dims.bellyHeight > top) continue;
       const cx = st.x + fx * off, cz = st.z + fz * off, dx = cx - ox, dz = cz - oz, min = or + 0.85;
       if (Math.abs(dx) > min || Math.abs(dz) > min) continue;
@@ -367,7 +368,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -389,7 +390,7 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', trunks: TRUNKS.near, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;

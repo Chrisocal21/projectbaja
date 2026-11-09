@@ -9,17 +9,21 @@ export const CRATE_DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0
 export const TIRE_SIZE = { dia: 0.69, width: 0.27 };
 
 /** a tire lies flat (and stacks), or stands upright: thin across x, rolling along z, as tall as it is round; upright tires clip side by side */
-export const TIRE = placeable({
-  id: 'tire', footprint: [TIRE_SIZE.dia, TIRE_SIZE.dia], height: TIRE_SIZE.width, tags: ['tire'], stackable: true,
-  poses: { upright: { footprint: [TIRE_SIZE.width, TIRE_SIZE.dia], height: TIRE_SIZE.dia, stackable: false, clip: 'tireUpright' } },
+const tireOf = (id, { dia, width }) => placeable({
+  id, footprint: [dia, dia], height: width, tags: ['tire'], stackable: true,
+  poses: { upright: { footprint: [width, dia], height: dia, stackable: false, clip: 'tireUpright' } },
 });
+export const TIRE = tireOf('tire', TIRE_SIZE);
 export const CRATES = [1, 2, 3, 4].map(n => placeable({ id: `crate${n}`, footprint: [CRATE_DIM[n][0], CRATE_DIM[n][2]], height: CRATE_DIM[n][1], tags: [`size${n}`], clip: 'crate' }));
 export const GAME_PLACEABLES = byId([TIRE, ...CRATES]);
+export const isTirePid = id => typeof id === 'string' && (id === 'tire' || id.startsWith('tire:'));
+/** tires carry their own size: { <wheel set id>: { dia, width } } (from the catalog, see game/tires.js tireSizeOf) becomes the placeable 'tire:<set>'. Sets without data use 'tire'. */
+export function registerTireSizes(sizes) { for (const [set, sz] of Object.entries(sizes)) if (sz) GAME_PLACEABLES[`tire:${set}`] = tireOf(`tire:${set}`, sz); }
 
 export const isTire = it => it.kind === 'wheel' || (it.kind === 'stock' && it.id === 'wheel');
 /** which placeable a game item is, or null if it can't be set down on a cargo surface (a body shell). size = items.js itemSize(it). */
 export function placeableIdFor(it, size) {
-  if (isTire(it)) return 'tire';
+  if (isTire(it)) { const id = `tire:${it.kind === 'wheel' ? it.id : it.set || 'stock'}`; return GAME_PLACEABLES[id] ? id : 'tire'; }
   return size >= 1 && size <= 4 ? `crate${size}` : null;
 }
 /** the poses a held item can cycle through (T): tires lie flat or stand up; crates have one */
