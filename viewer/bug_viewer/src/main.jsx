@@ -51,6 +51,7 @@ const CAMERA_POSITION = [3.4, 2, 4.3];
 const CAT_TITLES = { Body: 'BODY PANELS', Protection: 'BUMPERS & CAGE', Mechanical: 'ENGINE & SUSPENSION', Lighting: 'LIGHTING' };
 const categories = [...new Set(slots.map(s => s.category))];
 /** Stage 4b: the held build item is furniture (not a building piece or a cut doorway): free placement + the new rotate / click controls */
+let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
 const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n.toLocaleString('en-US');
 
@@ -172,7 +173,7 @@ function App() {
     else if (id === 'bug') setPanel('dealer');
     else if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); if (it?.kind === 'shell') setPanel('shell:' + it.uid); else if (it?.kind === 'memento' && it.id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); } else if (it && it.kind !== 'memento') pickUp(it.uid); }   // loose items are picked up with a left click now (see `click`), never E
     else if (id.startsWith('box:')) { searchBox(id.slice(4)); setPanel(id); }
-    else if (id === 'car:fit') doFit(game.carPlan?.uid);
+    else if (id === 'car:fit') say('Hold left click to bolt it on.');
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
@@ -251,20 +252,24 @@ function App() {
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
-      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyR' && game.nearCar && game.aim && !held()) doDetach(game.aim, game.carZone);
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyQ' && game.nearCar && (game.carZone === 'driver' || game.carZone === 'passenger') && isFitted(DEF, game.build, game.carZone === 'driver' ? 'doorL' : 'doorR')) toggleCover(game.carZone === 'driver' ? 'doorL' : 'doorR');
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const shiftT = e => { furn.shift = e.type === 'blur' ? false : e.shiftKey; }; window.addEventListener('keydown', shiftT); window.addEventListener('keyup', shiftT); window.addEventListener('blur', shiftT);
     const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; if (furnishing(bm)) { game.buildMode = { ...bm, ry: turnRy(bm.ry || 0, 'wheel', e.shiftKey, e.deltaY > 0 ? 1 : -1) }; return; } if (bm.moving) return; game.buildMode = { ...bm, item: nextInCat(bm.item, e.deltaY > 0 ? 1 : -1) }; };
-    const click = e => { const bm = game.buildMode; if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = bm.direct ? null : { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
+    const click = e => { const bm = game.buildMode;
+      if (!bm && panelRef.current === null && game.onFoot && document.pointerLockElement && (e.button === 0 || e.button === 2)) {   // hold left = bolt the aimed part on, hold right = take the aimed part off (about half a second)
+        clearTimeout(holdT); const btn = e.button;
+        holdT = setTimeout(() => { if (btn === 0 && game.target === 'car:fit') doFit(game.carPlan?.uid); else if (btn === 2 && game.nearCar && game.aim && !held()) doDetach(game.aim, game.carZone); }, 450);
+      }
+      if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = bm.direct ? null : { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
       if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (furnishing(bm) && !bm.moving) { const hit = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), furn.cx, furn.cz, game.face, 7, furn.aim); if (hit) { const q = game.props.find(o => o.uid === hit.uid); game.buildMode = { ...bm, item: q.id, ry: q.ry || 0, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.toLowerCase()}: click to set it down, Esc to cancel`); return; } } if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); }
       if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); else if (t?.startsWith('furn:')) { const q = game.props.find(o => o.uid === +t.slice(5)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } } } };   // (a scrap heap is picked through with a click too)
-    document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
-    return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('contextmenu', ctx); };
+    document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => clearTimeout(holdT); window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
+    return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
   useEffect(() => {   // turning "unlock everything" off strips parts you do not own yet
     if (game.unlockAll) return;

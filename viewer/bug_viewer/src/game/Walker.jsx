@@ -58,7 +58,7 @@ function carAction(zone) {
   const a = carAction0(zone);
   if (game.aim && !held() && activeType().kind === 'build' && game.build) {
     const pd = planDetach(game.aim, game.build, zone), n = DEF.slots.find(s => s.id === game.aim)?.name.toLowerCase();
-    const t = pd.ok ? `R — Take off the ${n}` : pd.openCover ? `R — Open the ${DEF.covers[pd.openCover].name} to get at the ${n}` : pd.why;
+    const t = pd.ok ? `Hold right click — Take off the ${n}` : pd.openCover ? `Hold right click — Open the ${DEF.covers[pd.openCover].name} to get at the ${n}` : pd.why;
     return { ...a, text: t + (a.text ? '  ·  ' + a.text : '') };
   }
   return a;
@@ -68,7 +68,7 @@ function carAction0(zone) {
   const b = game.build; if (!b) return { type: 'none', text: '' };
   const fc = fitCandidate(b, zone), h = held(), fcName = fc && (fc.plan.slotName || nameOfItem(fc.it) || 'part').toLowerCase();   // bolt-on upgrades blocked by a lid carry no slotName
   const where = zone === 'driver' || zone === 'passenger' ? '' : '';
-  if (fc?.plan.ok) return { type: 'fit', uid: fc.it.uid, text: `Press E — Bolt on the ${fcName}${fc.it.loc === 'pack' ? ' (from pack)' : ''}` };
+  if (fc?.plan.ok) return { type: 'fit', uid: fc.it.uid, text: `Hold left click — Bolt on the ${fcName}${fc.it.loc === 'pack' ? ' (from pack)' : ''}` };
   if (fc?.plan.openCover) return { type: 'cover', id: fc.plan.openCover, text: `Press E — Open the ${DEF.covers[fc.plan.openCover].name} to fit the ${fcName}` };
   if (h) return { type: 'why', why: fc?.plan.why, text: `${fc?.plan.why || ''}  ·  F — put it in the car` };
   const cover = zone === 'rear' ? 'engineLid' : zone === 'front' ? 'hoodPanel' : null;
