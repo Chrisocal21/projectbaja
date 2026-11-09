@@ -10,6 +10,6 @@ export const SOUTH_RAMP = { from: 3250, at: 2350, rate: 0.35 };   // the south r
 export const ringMetric = (x, z) => Math.max(Math.abs(x), -z, z > SOUTH_RAMP.from ? SOUTH_RAMP.at + (z - SOUTH_RAMP.from) * SOUTH_RAMP.rate : 0);
 // the part of the world that gets terrain meshes today (tiles outside are never built: cheaper). Stage 3 extends it south.
 export const TERRAIN = { x0: -3000, x1: 3000, z0: -3000, z1: 4500 };
-export const MAP_SIZE = 6000;     // metres the minimap/map screen draws, centred on the garage (grows when the walls move out)
+export const MAP_SIZE = 7500, MAP_CZ = 750;   // the map screen draws a square this big, centred on x = 0, z = MAP_CZ: covers the old 6 km plus the south strip (z -3000..4500)
 // rules the rest of the code relies on (checked in world.test.js)
 export const TILE_SIZE = 300, CORR_CELL = 8, HWY_STEP = 10, SURFACE_CELL = 2;
