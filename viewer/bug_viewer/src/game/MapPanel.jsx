@@ -44,7 +44,7 @@ export const LABELS = { garage: "Walt's Garage", lot: "Honest Al's", gas: "Dusty
 
 export default function MapPanel({ onClose }) {
   useGame();
-  const ref = useRef(), [zoom, setZoom] = useState(3);
+  const ref = useRef(), [zoom, setZoom] = useState(3), [pick, setPick] = useState(null);
   useEffect(() => {
     const c = ref.current, g = c.getContext('2d'), m = baseMap();
     const pl = game.pos, s = zoom, [cx, cz] = worldToMap(pl.x, pl.z - MAP_CZ, HALF).map(v => v * PX);
@@ -69,8 +69,15 @@ export default function MapPanel({ onClose }) {
   }, [zoom, game.pos.x, game.pos.z, game.pose?.h, game.face.x, game.face.z, game.items, game.boxes, game.home]);
   return <div className="overlay"><div className="card map-card">
     <div className="shop-head"><h2>BAJA COUNTY</h2><span className="map-btns"><button onClick={() => setZoom(z => (z === 1 ? 3 : 1))}>{zoom === 1 ? 'Zoom in' : 'Whole county'}</button><button onClick={onClose}>Close (M)</button></span></div>
-    <canvas ref={ref} width={PX} height={PX} className="map-canvas" />
-    <p className="hint">Red arrow — you · blue — your parked vehicles{game.job ? ' · orange — a customer waiting' : ''}{(game.home?.photos || []).some(p => p.posted) ? ' · purple — a photo you posted' : ''}</p>
+    <canvas ref={ref} width={PX} height={PX} className="map-canvas" onClick={e => {   // PROPOSAL: tap a purple dot to see that photo
+      const r = e.currentTarget.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * PX, py = (e.clientY - r.top) / r.height * PX;
+      const [cx, cz] = worldToMap(game.pos.x, game.pos.z - MAP_CZ, HALF).map(v => v * PX), mx = zoom > 1 ? cx + (px - PX / 2) / zoom : px, mz = zoom > 1 ? cz + (py - PX / 2) / zoom : py;
+      let best = null, bd = 12 / zoom;
+      for (const ph of game.home?.photos || []) { if (!ph.posted) continue; const [a, b] = worldToMap(ph.x, ph.z - MAP_CZ, HALF).map(v => v * PX), d = Math.hypot(a - mx, b - mz); if (d < bd) { bd = d; best = ph; } }
+      setPick(best);
+    }} />
+    {pick && <div className="card" style={{ display: 'flex', gap: 10, alignItems: 'center', textAlign: 'left', marginTop: 6 }}>{pick.img && <img src={pick.img} alt="" style={{ width: 140, borderRadius: 6 }} />}<div><b>{pick.caption || 'Photo'}</b><div><small>{pick.where} · {Math.round(pick.x)}, {Math.round(pick.z)}</small></div><button onClick={() => setPick(null)}>Close photo</button></div></div>}
+    <p className="hint">Red arrow — you · blue — your parked vehicles{game.job ? ' · orange — a customer waiting' : ''}{(game.home?.photos || []).some(p => p.posted) ? ' · purple — a photo you posted (tap it)' : ''}</p>
     <details><summary>Walt's property · facing the garage</summary>
       <svg viewBox="-36 -12 72 43" style={{ width: '100%', maxHeight: 210, background: '#66543d' }} role="img" aria-label="Office, reception, bathroom and loft on left; garage center; camper right; parking in front; expansion land far left">
         <g fill="#c6ad82" stroke="#382d23" strokeWidth=".2">
