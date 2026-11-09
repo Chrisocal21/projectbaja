@@ -9,7 +9,8 @@ import { game, useGame, emit } from '../game/store.js';
 import { furn, ghostSpot } from '../game/furnish.js';
 import GarageCargo from '../placement/GarageCargo.jsx';
 import { PLACEMENT } from '../placement/flag.js';
-import { junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken } from '../game/home.js';
+import { wallSnap } from '../game/wallhang.js';
+import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken } from '../game/home.js';
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
@@ -451,10 +452,11 @@ function Ghost({ T }) {
     if (item.cut) { const sn = snapCutWorld(camera.position.x + game.face.x * 3, camera.position.z + game.face.z * 3); if (sn) { x = sn.x; z = sn.z; ry = sn.ry; } else { x = camera.position.x + game.face.x * 3; z = camera.position.z + game.face.z * 3; } }
     else if (item.struct) { const sn = snapWorld(item, camera.position.x + game.face.x * 4.5, camera.position.z + game.face.z * 4.5); x = sn.x; z = sn.z; ry = sn.ry; }   // building pieces snap to the 2 m grid and turn to the nearest edge
     else { const d = 4 + (item.len || 0) * 0.5; furn.cx = camera.position.x; furn.cz = camera.position.z; { const dv = camera.getWorldDirection(new THREE.Vector3()); furn.aim = { origin: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, dir: { x: dv.x, y: dv.y, z: dv.z } }; } ({ x, z } = ghostSpot(camera.position.x, camera.position.z, game.face, d, furn.shift)); }   // Stage 4b: free by default, Shift = 0.5 m grid
+    if (item.wallMount) { const ws = wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2 }); if (ws) { x = ws.x; z = ws.z; ry = ws.ry; } }   // the pegboard snaps flush to the nearest garage wall
     const why = placeWhy(item, x, z, !!game.buildMode.moving, ry, game.buildMode.mat);
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, item.struct || item.cut ? height(x, z) : groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);
-    if (game.buildMode.x !== x || game.buildMode.z !== z || game.buildMode.why !== why || ((item.struct || item.cut) && game.buildMode.ry !== ry)) { game.buildMode = { ...game.buildMode, x, z, why, ...(item.struct || item.cut ? { ry } : {}) }; emit(); }
+    if (game.buildMode.x !== x || game.buildMode.z !== z || game.buildMode.why !== why || ((item.struct || item.cut || item.wallMount) && game.buildMode.ry !== ry)) { game.buildMode = { ...game.buildMode, x, z, why, ...(item.struct || item.cut || item.wallMount ? { ry } : {}) }; emit(); }
   });
   if (!item) return null;
   return <group ref={ref}><group ref={inner} key={item.id + ':' + (item.struct ? game.buildMode.mat || 'sheet' : '')}><PropModel id={item.id} T={T} mat={item.struct ? game.buildMode.mat || 'sheet' : undefined} /></group><group ref={foot} /></group>;

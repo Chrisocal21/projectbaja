@@ -94,4 +94,4 @@ Do one at a time: play-test in a real browser, fix, merge to main, push.
 A1 -> A2 -> A3 -> C7 -> D (11, 12, 13) -> B5 -> D14, D15 -> C8 -> E (design chats) -> B6 last.
 
 ## CHRIS ADDS
--
+- (Nov 8) The junk pile on the covered #7 (drums, jerry can, crate; `JunkPile` in worlds/Home.jsx) is scenery only. Chris wants it movable or usable (barrels hold oil etc.) OR removed and replaced by things that get dropped off. Needs a decision: usable props vs. deliveries. Not started. Ties into arriving vehicles and ordering.

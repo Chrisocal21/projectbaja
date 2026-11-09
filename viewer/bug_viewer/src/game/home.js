@@ -11,6 +11,7 @@ import { upgradeLevel } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
 import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
+import { wallSnap } from './wallhang.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
@@ -80,7 +81,7 @@ export const BUILD_ITEMS = [
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
   { id: 'workbench', name: 'Workbench (5.2 m)', price: 400, zone: 'garage', r: 0.5, pickR: 1.5, len: 5.2, cat: 'Garage', note: "Walt's workbench: E to fabricate. Move it with V" },
   { id: 'carLift', name: 'Two-post car lift', price: 1500, zone: 'garage', r: 0, carBay: true, pickR: 1.7, posts: LIFT_POSTS, cat: 'Garage', note: "Walt's lift: the car drives in between the posts. Move it with V" },
-  { id: 'pegboard', name: 'Pegboard (5.4 m)', price: 60, zone: 'garage', r: 0, wallMount: true, pickR: 2, cat: 'Garage', note: 'Hang tools on it: E. Move it with V' },
+  { id: 'pegboard', name: 'Pegboard (5.4 m)', price: 60, zone: 'garage', r: 0, wallMount: true, wallLen: 5.4, pickR: 2, cat: 'Garage', note: 'Hang tools on it: E. Move it with V' },
   { id: 'compressor', name: 'Air compressor', price: 220, zone: 'garage', r: 0.4, cat: 'Garage', note: "Walt's compressor: to move it, open build mode (B), aim at it and press V" },
   { id: 'engineOnStand', name: 'Spare engine on a stand', price: 300, zone: 'garage', r: 0.5, cat: 'Garage', note: "An engine Walt was rebuilding. Move it with V" },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },
@@ -150,6 +151,8 @@ function cutWhy(item, x, z) {
   if (!s) return "Aim at the garage's right wall or its back wall.";
   return openWhy(s, foundationsLocal(), openingKeys()) || (!creative() && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
 }
+/** wall-mounted furniture (the pegboard) stands this far off the wall and snaps to the nearest one within `reach` of where you aim */
+export const WALL_MOUNT = { offset: 0.15, reach: 3 };
 export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (item.cut) return cutWhy(item, x, z);
   const { lx, lz } = homeLocal(x, z);
@@ -162,6 +165,7 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   const inG = insideGarage(lx, lz, item.wallMount ? 0 : 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
+  if (item.wallMount && !wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, reach: WALL_MOUNT.offset + 0.1 })) return 'That mounts on a garage wall: aim at one.';
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
   if (inG && item.zone !== 'yard' && !item.carBay && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
