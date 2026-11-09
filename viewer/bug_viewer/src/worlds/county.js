@@ -10,6 +10,7 @@
 import { createBiomes } from './biomes/index.js';
 import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ringMetric0, REAL } from './world.js';
 import { loadBorder } from './border.js';
+import { makeHighways } from './highways.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -27,7 +28,11 @@ const HM = await (async () => {
 })();
 const HMB = boxBlur(HM, HN, 9);
 /** ?realmap: the real border slice (worlds/border.js), loaded before anything is built */
-const BD = REAL ? await loadBorder() : null;   // ~55 m average: washes sit below it, ridges above
+const BD = REAL ? await loadBorder() : null;
+/** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
+const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
+let HW = null;
+export const highways = () => HW;   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
   x = mirror(x); z = mirror(z);   // the file covers HM_SIZE; beyond it the relief is mirrored (identical inside)
   const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);
@@ -193,7 +198,7 @@ function realBase(x, z) {
   h += (REAL_FLAT.town - h) * m.town;
   h += (REAL_FLAT.pg - h) * m.pg;
   h += (REAL_FLAT.lake - h) * m.lake;
-  return h;
+  return HW ? HW.blend(x, z, h) : h;
 }
 /** 0..1: how far below the local average the ground is (a wash: sand collects there) */
 export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0, 1);
@@ -201,7 +206,7 @@ export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0
 export const reliefAt = (x, z) => { if (REAL) return 0; const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
-  if (REAL) { const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
+  if (REAL) { const hk = HW && HW.surfaceKey(x, z); if (hk) return SURFACES[hk]; const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
   else if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
@@ -238,6 +243,11 @@ for (const s of Object.values(SITES)) { s.y = base(s.x, s.z); R.paintDisc(s.x, s
 R.paintDisc(PROPERTY.x, PROPERTY.z, 26, 34, SITES.garage.y, 'dirt');   // the whole yard is levelled
 // the customer lot: a wide packed-dirt apron in front of the garage that funnels down into grandpa's driveway (the road paints over its own width)
 for (let z = 12; z <= 48; z += 4) { const t = (z - 12) / 36; R.paintDisc(0, z, 17 * (1 - t * t) + 4 * t * t, 6, SITES.garage.y, 'dirt'); }
+if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass), then the hand-built roads grade onto them where they cross
+  const keep = [{ x: 0, z: 0, r: 260 }, { x: B.town.x, z: B.town.z, r: 340 }, { x: B.proving.x, z: B.proving.z, r: 560 }, { x: B.farm.x, z: B.farm.z, r: 240 },
+    ...Object.values(SITES).map(s => ({ x: s.x, z: s.z, r: s.r + 60 }))];
+  HW = makeHighways(HWJ.roads, realBase, { water: BD.waterAt, avoid: keep });
+}
 
 // ---------------- graded road profiles: heights averaged along the road, ends tied to whatever they join ----------------
 const GRADE = { highway: 90, street: 50, gravel: 55, dirt: 30 };
@@ -292,7 +302,7 @@ export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI 
 export const height = R.heightAt(base);
 export const surface = R.surfaceAt(baseSurface);
 BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
-export const isRoad = R.isRoad;
+export const isRoad = REAL ? (x, z) => R.isRoad(x, z) || HW.isNear(x, z, 3) : R.isRoad;
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------
 // [site, x0, x1, z0, z1, top above the pad] in site-local metres, or [site, 'disc', cx, cz, r, top]
 const FLOORS = [
@@ -316,7 +326,7 @@ export function floorAt(x, z) {
   }
   return top;
 }
-export const onCore = R.isCore;
+export const onCore = REAL ? (x, z) => R.isCore(x, z) || HW.isNear(x, z) : R.isCore;
 export const baseHeight = base;
 /** what you stand / drive on: the terrain, or a slab or paving on top of it */
 export const groundHeight = (x, z) => Math.max(height(x, z), floorAt(x, z));
@@ -332,6 +342,7 @@ export function areaAt(x, z) {
   if (m.town > 0.2) return 'Dry Wells'; if (m.pg > 0.3) return 'Proving Grounds'; if (m.lake > 0.3) return 'Bitter Lake';
   if (m.dunes > 0.3) return 'Sidewinder Dunes'; if (m.canyon > 0.3) return 'Red Rock Canyon'; if (m.farm > 0.3) return 'Hollis farm';
   if (m.bio > 0.3) { const d = BIO.dominant(x, z); if (d) return d.def.name; }
+  if (REAL) { const q = HW.near(x, z); if (q && q.d < 25 && q.road.name) return q.road.name; }
   if (Math.abs(x - hwX(z)) < 30) return 'Highway 9';
   if (ringMetric(x, z) > RING0) return 'The Sierra';
   return 'Open desert';

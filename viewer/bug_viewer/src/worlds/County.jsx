@@ -4,7 +4,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { HM_SIZE, TERRAIN, REAL } from './world.js';
 import { WaterSheet } from './Border.jsx';
 import { border, SEA_Y } from './border.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
-import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
+import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld, highways } from './county.js';
+import { applyGroundDetail } from './groundDetail.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
 import { Ribbon, tex, rnd, blotches, dots, crack, wrapDraw, blurred, circuitTex, pitTex, dirtTex, looseTex, labelTex, checkerTex } from './TestCenter.jsx';
@@ -144,6 +145,47 @@ const ROAD_LOOK = {
   dirt: { makeTexture: dirtTex, tile: 25, segs: 4, feather: true, detail: { grain: 0.42, bump: 0.8, macro: 0.15 } },
 };
 
+/** ?realmap: the real highways (county.js highways()), drawn in 400 m pieces only near the player; two shared materials */
+const HW_VIEW = 1800, HW_PIECE = 100;
+function hwPieceGeometry({ r, a, b }) {
+  const segs = 6, half = r.style.half + 0.8, pos = [], uv = [], idx = [];
+  for (let k = a; k <= b; k++) {
+    const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
+    for (let j = 0; j <= segs; j++) {
+      const d = (j / segs * 2 - 1) * half, x = p.x + nx * d, z = p.z + nz * d;
+      pos.push(x, height(x, z) + 0.018, z); uv.push(j / segs, p.s / 30);
+      if (row && j) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g;
+}
+function HighwayRibbons() {
+  const H = highways(), group = useRef(), { camera } = useThree(), pieces = useRef(new Map()), tick = useRef(1);
+  const mats = useMemo(() => {
+    const mk = makeTexture => applyGroundDetail(new THREE.MeshStandardMaterial({ map: makeTexture(), roughness: 0.93, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), { grain: 0.2, bump: 0.35, macro: 0.1 });
+    return { major: mk(streetTex), secondary: mk(highwayTex) };
+  }, []);
+  const list = useMemo(() => {
+    const out = [];
+    H.roads.forEach((r, ri) => { for (let a = 0; a < r.pts.length - 1; a += HW_PIECE) { const b = Math.min(r.pts.length - 1, a + HW_PIECE), m = r.pts[(a + b) >> 1]; out.push({ key: ri + ':' + a, r, a, b, cx: m.x, cz: m.z, rad: (b - a) * 2 }); } });
+    return out;
+  }, [H]);
+  useEffect(() => () => { pieces.current.forEach(m => m.geometry.dispose()); pieces.current.clear(); }, []);
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 0.2) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos, g = group.current, map = pieces.current; let built = 0;
+    for (const s of list) {
+      const d = Math.hypot(s.cx - p.x, s.cz - p.z) - s.rad, have = map.get(s.key);
+      if (d < HW_VIEW && !have && built < 6) { const m = new THREE.Mesh(hwPieceGeometry(s), mats[s.r.kind] || mats.secondary); m.receiveShadow = true; m.renderOrder = 1; g.add(m); map.set(s.key, m); built++; }
+      else if (d > HW_VIEW + 400 && have) { g.remove(have); have.geometry.dispose(); map.delete(s.key); }
+    }
+    if (built === 6) tick.current = 0.2;   // more to build: come straight back next frame
+  });
+  return <group ref={group} />;
+}
+
 // ---------------- roadside: telephone poles, signs ----------------
 function Poles() {
   const poles = useRef(), arms = useRef();
@@ -247,6 +289,7 @@ export default function CountyScene() {
     {/* sky, fog, sun and the day/night cycle are DriveWorld.jsx's DayNightSky, so the drive and on-foot cameras share one clock */}
     {REAL ? <><StreamTerrain /><WaterSheet bit={1} y={SEA_Y} color="#2f7fa0" /><WaterSheet bit={2} y={border().lakeY} color="#4f8f9a" /></> : <Terrain />}
     {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind]; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
+    {REAL && <HighwayRibbons />}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} />)}
     <Ribbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />
     <Ribbon path={pitLane} half={4.6} tile={9.2} makeTexture={pitTex} detail={{ grain: 0.2, bump: 0.3, macro: 0.08 }} step={1} lift={0.012} segs={2} heightFn={height} />

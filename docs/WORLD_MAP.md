@@ -87,3 +87,11 @@ Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas,
 - Terrain is streamed near the player (county tiles), the ocean and Salton Sea come from the data; the Salton Sea bed is sunk 1.5 m so it is really under water; no plants in water.
 - Checked in a browser: garage, Dry Wells highway, the dunes, Laguna Salada, the Salton Sea (about 1 km north of the garage). Heap about 330-460 MB (higher than the normal 220 MB: watch it).
 - Not done: roads only exist near home (step 5 real highways), map screen still draws the old county, the dev teleports, signs and area names still use the old names, no frame-rate check on a real machine.
+
+### Step 5 DONE (Nov 9): real highways on `?realmap` (PROPOSAL)
+- Source: Natural Earth 1:10m roads (public domain, naturalearthdata.com), one centre line per highway, USA and Mexico. Pipeline `assets/pipeline/west_roads.py` (needs `pip install pyshp`) writes `public/terrain/highways.json` (241 roads, ~500 game km, 34 kB) and `assets/mockups/west_roads_preview.png`.
+- In the game: `src/worlds/highways.js` (pure, tested). Each line is smoothed into bends, graded (long moving average of the ground, cuts/fills capped at 14 m, never under water: causeways), junctions meet at one height, and the ground eases onto the road with banks about 1.5 : 1. Roads that run side by side blend (no walls between them).
+- Highways bend round the built places (garage 260 m, Dry Wells, Proving Grounds, Hollis farm, every site): CA-86 and CA-111 really run right past the garage spot, so they bypass it. Hand-built roads cross them at grade.
+- Looks: majors (I-8, I-10, I-5, Mex 2D...) are wide with dashed lanes, secondaries (CA-86, Mex 2, Mex 5...) are two-lane blacktop with a double yellow line. Drawn in 400 m pieces near the player only. The HUD area name shows the highway name (I-8, CA-86, Mex 2D...).
+- Checked in a browser: I-8 east of home, the CA-86 bypass by the garage, Mex 2 / 2D climbing into the mountains, I-8 winding west into the hills.
+- Not done: road signs, poles and exits on the real highways; the Natural Earth lines are only good to about 1 real km, so some roads cut through hills (capped) where the real road follows a pass; no drive test at speed yet; map screen still the old county.
