@@ -12,7 +12,7 @@ import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, ad
 
 export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
   useGame();
-  const [dev, setDev] = React.useState(false), [secret, setSecret] = React.useState(() => /[?&]dev/.test(location.search)), has = game.owned.has('car:bug');
+  const [dev, setDev] = React.useState(false), [secret, setSecret] = React.useState(() => /[?&]dev(&|$|=)/.test(location.search) || /[?&]dev/.test(location.search)), has = game.owned.has('car:bug');
   React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
   return <div className="title-screen">
     <div className="title-panel">
