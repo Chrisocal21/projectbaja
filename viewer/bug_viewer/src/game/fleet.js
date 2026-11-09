@@ -39,7 +39,7 @@ export const standingVehicles = () => [...parked().map(v => ({ id: v.id, pose: v
 export function buyVehicle(id) {
   const t = VEHICLE_TYPES[id]; if (!t || owned(id)) return false;
   if (game.cash < t.price) { say('Not enough cash.'); return false; }
-  addCash(-t.price);
+  addCash(-t.price, 'Bought a vehicle');
   const spot = FOR_SALE.find(f => f.id === id)?.spot;
   game.fleet = { ...game.fleet, [id]: { pose: spot ? lotPose(spot) : null } };
   save(); say(`Al: 'Pleasure doing business. Keys are in it.'`); return true;

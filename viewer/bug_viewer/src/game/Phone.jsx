@@ -20,11 +20,11 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false);   // story: null | 'list' | 'letter'
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
-    { key: 'web', label: 'Internet', soon: true }, { key: 'bank', label: `$${game.cash}`, soon: true },
+    { key: 'web', label: 'Internet', soon: true }, real('bank', `$${game.cash}`, () => setBankView(true)),
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
     { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), { key: 'orders', label: 'Orders', soon: true }, { key: 'cars', label: 'Car sales', soon: true },
@@ -34,12 +34,13 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>Baja</span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {jobsView ? <JobsApp onBack={() => setJobsView(false)} />
+    {bankView ? <MoneyApp onBack={() => setBankView(false)} />
+      : jobsView ? <JobsApp onBack={() => setJobsView(false)} />
       : story ? <StoryLog view={story} setView={setStory} />
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !saveView && !story && !jobsView && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
+    {teleports?.length > 0 && !soon && !saveView && !story && !jobsView && !bankView && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button>
   </div></div>;
 }
@@ -68,5 +69,17 @@ function JobsApp({ onBack }) {
       <p>{c.ok ? 'You have it: go to the car in the lot and press E.' : c.why}</p>
     </> : <p>No customer right now. When a car pulls into the lot, the job shows up here.</p>}
     <small>Jobs done: {done}</small>
+    <button onClick={onBack}>Back</button></div>;
+}
+
+const clockText = h => { const m = Math.round((h % 24) * 60), hh = Math.floor(m / 60) % 24, mm = m % 60; return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`; };
+/** the Money app (real, PROPOSAL layout): balance plus the last 30 changes (game.home.cashLog, written by store.js addCash) */
+function MoneyApp({ onBack }) {
+  const log = [...(game.home?.cashLog || [])].reverse();
+  return <div className="phone-soon"><h3>Money</h3>
+    <p style={{ fontSize: 30, fontWeight: 700 }}>${game.cash}</p>
+    {log.length ? <div style={{ width: '100%', maxHeight: 260, overflow: 'auto', textAlign: 'left' }}>{log.map((e, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
+      <span>{e.why}<small> · {clockText(e.t)}</small></span><b style={{ color: e.d > 0 ? '#7fd88a' : '#e88a80' }}>{e.d > 0 ? '+' : '-'}${Math.abs(e.d)}</b></div>)}</div>
+      : <p>No activity yet. Sales, jobs, purchases and bills show up here.</p>}
     <button onClick={onBack}>Back</button></div>;
 }

@@ -161,9 +161,9 @@ function App() {
     if (game.cash < price) return say('Not enough cash.');
     if (what === 'wash') return interact('wash');
     const [k, id] = what.split(':'); if (!canCarry(k, id)) return say('Your hands are full.');
-    addCash(-price); giveToPlayer(k, id); say(`Bought: ${nameOfItem({ kind: k, id })}`);
+    addCash(-price, `Bought: ${nameOfItem({ kind: k, id })}`); giveToPlayer(k, id); say(`Bought: ${nameOfItem({ kind: k, id })}`);
   };
-  const buyBoxed = (kind, id) => { const c = priceOf(kind, id); if (game.cash < c) return; addCash(-c); boxAtShop(kind, id); say(`Bought: ${nameOf(kind, id, build.body)} — boxed at the pickup area outside the shop.`); };
+  const buyBoxed = (kind, id) => { const c = priceOf(kind, id); if (game.cash < c) return; addCash(-c, `Bought: ${nameOf(kind, id, build.body)}`); boxAtShop(kind, id); say(`Bought: ${nameOf(kind, id, build.body)} — boxed at the pickup area outside the shop.`); };
   const worldInteract = id => {
     if (id === 'shop') setPanel('shop');
     else if (id === 'bug') setPanel('dealer');

@@ -116,7 +116,7 @@ export function takeFromCar(uidN) {
 // ---- containers ----
 export function searchBox(id) {
   const b = game.boxes[id] || (game.boxes[id] = { cash: 0, searched: false });
-  if (!b.searched) { b.searched = true; if (b.cash) { addCash(b.cash); say(`Found $${b.cash} in the ${CONTAINER_RULES[containerById[id].type].label}.`); }
+  if (!b.searched) { b.searched = true; if (b.cash) { addCash(b.cash, 'Found cash'); say(`Found $${b.cash} in the ${CONTAINER_RULES[containerById[id].type].label}.`); }
     if (b.scrap) { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + b.scrap }; say(`${b.cash ? `Found $${b.cash} and` : 'Found'} ${b.scrap} pieces of scrap metal.`); } }
   save();
 }

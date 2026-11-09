@@ -63,7 +63,7 @@ export function doJob() {
   const j = game.job && jobById[game.job.id]; if (!j) return;
   const c = jobCheck(j); if (!c.ok) return say(c.why);
   if (c.item) game.items = game.items.filter(i => i !== c.item);
-  addCash(j.pay);
+  addCash(j.pay, `Job: ${j.who}`);
   game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id };
   game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${j.pay})`);
 }
