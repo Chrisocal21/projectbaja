@@ -90,7 +90,7 @@ function StockItem({ id }) {
 
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
-  if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
+  if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
   const crate = <CrateBox item={item} />;
   let body = null;
   if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;

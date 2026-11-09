@@ -20,7 +20,7 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
-import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
+import { held, pickUp, dropHeld, hangHeld,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
@@ -244,7 +244,7 @@ function App() {
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
       if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'pause' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
-      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') { if (!hangHeld()) dropHeld(); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyR' && game.nearCar && game.aim && !held()) doDetach(game.aim, game.carZone);

@@ -9,6 +9,7 @@ import { SUPPLIES } from './jobs.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
 import { BUG } from '../rules/vehicles.js';
 import { withTread, tireSizeOf } from './tires.js';
+import { wallSpot } from './wallhang.js';
 import { registerTireSizes } from '../placement/gameItems.js';
 import { wheelSets } from '../catalog/index.js';
 registerTireSizes(Object.fromEntries(wheelSets.map(w => [w.id, tireSizeOf(w)])));   // loose tires are as big as their wheel set
@@ -55,7 +56,7 @@ export function spotFor(it) {
 const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= CAPACITY.pack;
 const commit = () => { game.items = [...game.items]; save(); };
 const uid = () => allocUid(game.nextUid, 'items', game.items);
-const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.spot; delete it.box; delete it.veh; return it; };
+const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.wall; delete it.spot; delete it.box; delete it.veh; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
 /** can the player take this right now (pack or free hands)? */
@@ -85,6 +86,12 @@ export function dropItem(uidN) {
   const p = near(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: Math.random() * 6 }); commit();
 }
 export const dropHeld = () => dropItem();
+/** G with a keepsake in your hands, standing at a garage wall: hang it there (game/wallhang.js). Returns false if nothing was hung (then G just drops it). */
+export function hangHeld() {
+  const it = held(); if (!it || it.kind !== 'memento' || !game.onFoot) return false;
+  const s = wallSpot(SITES.garage, game.pos.x, game.pos.z); if (!s) return false;
+  at(it); Object.assign(it, { loc: 'world', x: s.x, z: s.z, y: s.y, ry: s.ry, wall: true }); commit(); say(`Hung ${nameOfItem(it)} on the ${s.wall} wall (click to take it down)`); return true;
+}
 /** move a pack item into your hands (to install it), swapping what you hold back into the pack if it fits */
 export function holdItem(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'pack') return;
