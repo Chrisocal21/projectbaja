@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { game, useGame, save } from './store.js';
 import { LETTER } from './home.js';
+import { jobById, jobCheck, SUPPLIES } from './jobs.js';
+import { TOOLS } from './items.js';
 import { SaveTools } from './update.jsx';
 
 const SOON = { web: 'Browse the internet (parts, cars, news)', bank: 'Money: bills, sales, balance history', texts: 'Messages from suppliers and clients', contacts: 'Who you know in town', jobs: 'Odd jobs and orders', story: 'Story log: letters, photos, notes', camera: 'Take photos for the wall', music: 'Radio and music', weather: 'Weather and time', orders: 'Order parts, watch the delivery on the map', cars: 'Cars for sale' };
@@ -18,25 +20,26 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null);   // story: null | 'list' | 'letter'
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
     { key: 'web', label: 'Internet', soon: true }, { key: 'bank', label: `$${game.cash}`, soon: true },
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
-    { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, { key: 'jobs', label: 'Jobs', soon: true }, { key: 'orders', label: 'Orders', soon: true }, { key: 'cars', label: 'Car sales', soon: true },
+    { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), { key: 'orders', label: 'Orders', soon: true }, { key: 'cars', label: 'Car sales', soon: true },
     real('story', 'Story log', () => setStory('list')), { key: 'camera', label: 'Camera', soon: true }, { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>Baja</span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {story ? <StoryLog view={story} setView={setStory} />
+    {jobsView ? <JobsApp onBack={() => setJobsView(false)} />
+      : story ? <StoryLog view={story} setView={setStory} />
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !saveView && !story && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
+    {teleports?.length > 0 && !soon && !saveView && !story && !jobsView && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button>
   </div></div>;
 }
@@ -51,4 +54,19 @@ function StoryLog({ view, setView }) {
     {known ? <button className="ph-entry" onClick={() => { if (!read) { game.home = { ...game.home, letter: true }; save(); } setView('letter'); }}>Walt's letter · {read ? 'read' : 'unread'}{where && <small> · {where}</small>}</button>
       : <p>Nothing yet. Letters and keepsakes you find show up here.</p>}
     <button onClick={() => setView(null)}>Back</button></div>;
+}
+
+/** the Jobs app (real, PROPOSAL layout): the customer waiting in the lot, what they need, what it pays, and whether you can do it right now */
+function JobsApp({ onBack }) {
+  const j = game.job && jobById[game.job.id], done = game.home?.jobsDone || 0;
+  const needName = !j ? '' : j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : 'A car battery';
+  const c = j ? jobCheck(j) : null;
+  return <div className="phone-soon"><h3>Jobs</h3>
+    {j ? <>
+      <p><b>{j.who}</b>: {j.title}</p><p style={{ fontStyle: 'italic' }}>"{j.ask}"</p>
+      <p>Needs: <b>{needName}</b> · Pays <b>${j.pay}</b></p>
+      <p>{c.ok ? 'You have it: go to the car in the lot and press E.' : c.why}</p>
+    </> : <p>No customer right now. When a car pulls into the lot, the job shows up here.</p>}
+    <small>Jobs done: {done}</small>
+    <button onClick={onBack}>Back</button></div>;
 }
