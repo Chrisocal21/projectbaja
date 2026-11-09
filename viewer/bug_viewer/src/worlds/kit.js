@@ -17,6 +17,9 @@ export const SURFACES = {
   playa:     { id: 'playa', name: 'Dry lakebed', mu: 0.8, rr: 0.85, color: '#d9ccb0', gk: 'dirt' },
   redDirt:   { id: 'redDirt', name: 'Red dirt', mu: 0.68, rr: 1.2, color: '#a3613d', gk: 'dirt' },
   scrub:     { id: 'scrub', name: 'Scrub', mu: 0.6, rr: 1.5, color: '#a39470', gk: 'dirt' },
+  meadow:    { id: 'meadow', name: 'Meadow grass', mu: 0.5, rr: 1.8, color: '#6f9a3f', gk: 'dirt' },
+  dryGrass:  { id: 'dryGrass', name: 'Dry grass', mu: 0.5, rr: 1.8, color: '#b3a352', gk: 'dirt' },
+  forestFloor: { id: 'forestFloor', name: 'Forest floor', mu: 0.55, rr: 1.6, color: '#566230', gk: 'dirt' },
 };
 for (const [k, v] of Object.entries(SURFACES)) v.key = k;
 export const SURFACE_IDS = ['', ...Object.keys(SURFACES)];

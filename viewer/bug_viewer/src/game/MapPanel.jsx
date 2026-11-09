@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { game, useGame } from './store.js';
-import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
+import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, BIO, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
 import { standingVehicles, vehicleType } from './fleet.js';
 import { OFFICE, CAMPER } from '../worlds/office.js';
 import { worldToMap, arrowRot, siteCleared } from './mapmath.js';
@@ -30,6 +30,8 @@ function baseMap() {
   for (const r of ROADS) { line(r.path.pts, W[r.kind][0] + 2, '#00000055'); line(r.path.pts, W[r.kind][0], W[r.kind][1]); }
   for (const r of ROADS.filter(r => r.kind === 'highway')) { g.setLineDash([6, 6]); line(r.path.pts, 1, '#e8c23a'); g.setLineDash([]); }
   for (const t of TRAILS) { g.setLineDash([4, 4]); line(t.path.pts, 2, '#6b4a2a', true); g.setLineDash([]); }
+  for (const r of BIO.rivers) line(r.path.pts, 4, '#3f8fb5');   // biome rivers and trails
+  for (const t of BIO.trails) { g.setLineDash([4, 4]); line(t.path.pts, 2.4, '#6b4a2a'); g.setLineDash([]); }
   line(circuit.pts, 4, '#33363a', true); line(offroad.pts, 3, '#6b4a2a', true); line(dirtStrip.pts, 3, '#9a7a4e');
   g.font = '700 13px system-ui, sans-serif'; g.textAlign = 'center';
   for (const b of Object.values(BIOMES)) { if (b.name === "Grandpa's place") continue; const [a, c2] = P(b.x, b.z + (b.rz || b.r || 100) * 0.55); g.fillStyle = '#ffffffcc'; g.strokeStyle = '#00000088'; g.lineWidth = 3; g.strokeText(b.name.toUpperCase(), a, c2); g.fillText(b.name.toUpperCase(), a, c2); }

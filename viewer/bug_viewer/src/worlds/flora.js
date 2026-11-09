@@ -21,7 +21,7 @@ for (let i = 0; i < 9; i++) { const a = i * 0.7, d = 14 + r() * 16; T(SITES.shac
 // lone green trees where water collects: the bottoms of the washes
 for (let t = 0, n = 0; n < 110 && t < 60000; t++) {
   const x = (r() - 0.5) * (SIZE - 800), z = (r() - 0.5) * (SIZE - 800), m = biomeMasks(x, z);
-  if (m.lake > 0.1 || m.dunes > 0.2 || m.pg > 0.3 || m.town > 0.3 || washAt(x, z) < 0.65 || !clearOf(x, z, 12)) continue;
+  if (m.bio > 0.05 || m.lake > 0.1 || m.dunes > 0.2 || m.pg > 0.3 || m.town > 0.3 || washAt(x, z) < 0.65 || !clearOf(x, z, 12)) continue;
   T(x, z, 1.4); n++;
 }
 for (let i = TREES.length - 1; i >= 0; i--) if (!clearOf(TREES[i][0], TREES[i][1], 1)) TREES.splice(i, 1);
@@ -31,7 +31,7 @@ for (let i = TREES.length - 1; i >= 0; i--) if (!clearOf(TREES[i][0], TREES[i][1
 export const DEAD_TREES = [];
 for (let t = 0; DEAD_TREES.length < 520 && t < 90000; t++) {
   const x = (r() - 0.5) * (SIZE - 400), z = (r() - 0.5) * (SIZE - 400), m = biomeMasks(x, z), keep = 0.12 + washAt(x, z) * 0.6 + m.canyon * 0.3;
-  if (r() > keep || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || !clearOf(x, z, 10)) continue;
+  if (r() > keep || m.bio > 0.05 || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || !clearOf(x, z, 10)) continue;
   DEAD_TREES.push([x, z, 1 + Math.floor(r() * 7), 0.7 + r() * 0.5, r() * 6.28]);
 }
 for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld(SITES.garage, lx, lz); DEAD_TREES.push([x, z, k, 1, r() * 6.28]); }   // two dead ones in grandpa's yard
@@ -39,7 +39,7 @@ for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld
 export const SHRUBS = [];
 for (let t = 0; SHRUBS.length < 2600 && t < 60000; t++) {
   const x = (r() - 0.5) * (SIZE - 300), z = (r() - 0.5) * (SIZE - 300), m = biomeMasks(x, z);
-  if (m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || !clearOf(x, z, 4)) continue;
+  if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || !clearOf(x, z, 4)) continue;
   SHRUBS.push([x, z, 0.5 + r() * 0.8, r() * 6.28]);
 }
 /** trunk colliders [x, z, r, top] */
@@ -66,11 +66,11 @@ export function grassAt(ix, iz, surfaceAt) {
   const x0 = (ix + hash(ix, iz, 1)) * GRASS_CELL, z0 = (iz + hash(ix, iz, 2)) * GRASS_CELL;
   if (onCore(x0, z0)) return null;
   const sf = surfaceAt(x0, z0).key, m = biomeMasks(x0, z0);
-  const chance = { scrub: 0.5, dirt: 0.28, redDirt: 0.3, grass: 0.65, sand: m.dunes > 0.4 ? 0.04 : 0.16, looseDirt: 0.12, rock: 0.06 }[sf] || 0;
-  if (hash(ix, iz, 3) > chance || baseHeight(x0, z0) > 38) return null;
+  const chance = { scrub: 0.5, dirt: 0.28, redDirt: 0.3, grass: 0.65, sand: m.dunes > 0.4 ? 0.04 : 0.16, looseDirt: 0.12, rock: 0.06, meadow: 0.5, dryGrass: 0.45, forestFloor: 0.15 }[sf] || 0;
+  if (hash(ix, iz, 3) > chance || baseHeight(x0, z0) > (m.bio > 0.3 ? 400 : 38)) return null;
   if (Object.values(SITES).some(s => Math.hypot(x0 - s.x, z0 - s.z) < s.r * (s.id === 'garage' ? 0.45 : 1))) return null;
   { const g = SITES.garage, dx = x0 - g.x, dz = z0 - g.z; if (Math.abs(dx) < 19 && dz > -8 && dz < 46) return null; }   // the customer lot stays bare (garage faces +z, rot 0)
   const r = hash(ix, iz, 4), bush = sf === 'grass' ? r < 0.6 : r < 0.62;
   const model = bush ? ['BUSH_GRASS_1', 'BUSH_GRASS_2', 'BUSH_GRASS_3'][Math.floor(hash(ix, iz, 5) * 3)] : ['GRASS_DEAD_1', 'GRASS_DEAD_2'][Math.floor(hash(ix, iz, 5) * 2)];
-  return { model, x: x0, z: z0, s: (bush ? 0.55 : 1.3) + hash(ix, iz, 6) * (bush ? 0.6 : 0.9), ry: hash(ix, iz, 7) * 6.28, dry: m.farm < 0.4 };
+  return { model, x: x0, z: z0, s: (bush ? 0.55 : 1.3) + hash(ix, iz, 6) * (bush ? 0.6 : 0.9), ry: hash(ix, iz, 7) * 6.28, dry: m.farm < 0.4 && sf !== 'meadow' && sf !== 'forestFloor' };
 }

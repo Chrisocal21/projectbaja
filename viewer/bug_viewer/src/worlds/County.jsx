@@ -10,12 +10,13 @@ import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
 import Home from './Home.jsx';
 import Flora from './Flora.jsx';
+import BiomeScene from './biomes/Biomes.jsx';
 import { game } from '../game/store.js';
 
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
 const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
-const PAVED = new Set(['asphalt', 'concrete', 'curb']);
+const PAVED = new Set(['asphalt', 'concrete', 'curb']), BIO_GROUND = new Set(['meadow', 'dryGrass', 'forestFloor']);   // biome ground keeps its own colours (no desert mountain tint)
 function tileGeometry(ix, iz, seg) {
   const x0 = -HALF + ix * TILE, z0 = -HALF + iz * TILE, step = TILE / seg, n = seg + 1, P = n + 2;
   const H = new Float32Array(P * P);   // heights on a grid padded by one ring, for normals across tile edges
@@ -37,7 +38,7 @@ function tileGeometry(ix, iz, seg) {
     w0.set([w[0], w[1], w[2], w[3]], k * 4); w1.set([w[4], w[5], w[6], w[7]], k * 4);
     misc.set([sf.key === 'playa' ? 1 : sf.key === 'mud' ? 0.6 : 0, core || paved ? 0 : reliefAt(x, z)], k * 2);
     c.set(sf.color).multiplyScalar(1 - Math.min(0.3, slope * 0.25));
-    if (h > 30 && !core) c.lerp(h > 110 ? HIGH : MOUNTAIN, Math.min(0.6, (h - 30) / 90));
+    if (h > 30 && !core && !BIO_GROUND.has(sf.key)) c.lerp(h > 110 ? HIGH : MOUNTAIN, Math.min(0.6, (h - 30) / 90));
     c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.01, Math.sin(x * 0.017 - z * 0.013) * 0.04, Math.sin(x * 0.041 + z * 0.036) * 0.03 + (r() - 0.5) * 0.03);
     col.set([c.r, c.g, c.b], k * 3);
   };
@@ -149,7 +150,7 @@ function Scrub() {
     const r = rnd(97), b = [], y = [];
     for (let t = 0; b.length < 4200 && t < 120000; t++) {
       const x = (r() - 0.5) * (SIZE - 200), z = (r() - 0.5) * (SIZE - 200); if (isRoad(x, z) || Math.hypot(x, z) < 40) continue;
-      const m = biomeMasks(x, z); if (m.lake > 0.2 || m.pg > 0.7 || m.town > 0.6 || baseHeight(x, z) > 40 || (m.dunes > 0.5 && r() < 0.9)) continue;
+      const m = biomeMasks(x, z); if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.7 || m.town > 0.6 || baseHeight(x, z) > 40 || (m.dunes > 0.5 && r() < 0.9)) continue;
       if (Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + 4)) continue;
       (r() < 0.07 && m.canyon < 0.3 ? y : b).push([x, z, 0.4 + r() * 0.9, r(), m.farm]);
     }
@@ -222,6 +223,7 @@ export default function CountyScene() {
     <Poles />
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
+    <BiomeScene />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     <React.Suspense fallback={null}><Desert /></React.Suspense>
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}

@@ -7,6 +7,7 @@
 //   Canyon Rd north     ->  Hollis farm (barn) + Red Rock Canyon (mesas, rock trail)
 //   Highway 9 south     ->  the Proving Grounds (the old test center: circuit, off-road track, washboard strip) + the salvage warehouse
 // Places are clusters: a town, the Proving Grounds, the farm keep their own layout and only move as a whole (`at`).
+import { createBiomes } from './biomes/index.js';
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
 export { SURFACES, toWorld };
 
@@ -50,6 +51,9 @@ export const MESAS = [[-420, 1000, 90, 32], [-60, 1260, 115, 42], [70, 950, 66, 
   [-900, -330, 70, 22], [300, -1170, 90, 30], [1210, 620, 100, 34], [-1250, -1100, 110, 40], [900, 1210, 90, 30], [-1180, 900, 80, 26]]
   .map(([x, z, r, h]) => [x * 2, z * 2, r * 1.5, h * 1.3]);
 const PG_Y = 1, LAKE_Y = -3;
+/** the data-driven biomes (grassland, forest mountain, ...): src/worlds/biomes/registry.js */
+export const BIO = createBiomes();
+for (const b of BIO.list) { const r = b.def.region; BIOMES[b.def.id] = { name: b.def.name, x: r.cx, z: r.cz, r: r.r * 0.85 }; }
 
 const masks = (x, z) => ({
   home: 1 - smooth(110, B.home.r, dist(B.home, x, z)),
@@ -59,6 +63,7 @@ const masks = (x, z) => ({
   lake: 1 - smooth(0.85, 1.25, lakeE(x, z)),
   canyon: 1 - smooth(B.canyon.r * 0.45, B.canyon.r, dist(B.canyon, x, z)),
   farm: 1 - smooth(B.farm.r * 0.6, B.farm.r, dist(B.farm, x, z)),
+  bio: BIO.any(x, z),
 });
 
 // ---------------- roads (paths first: the terrain is softened along them) ----------------
@@ -160,14 +165,15 @@ function base(x, z) {
   h += (PG_Y - h) * m.pg;
   h += (LAKE_Y - h) * m.lake;
   h += ringAt(x, z) * 35 * (1 - 0.7 * corrAt(x, z));   // the range stands up off the desert floor
-  return h;
+  return m.bio > 0 ? BIO.shape(x, z, h, 1 - m.lake) : h;   // grassland / forest mountain take over inside their regions
 }
 /** 0..1: how far below the local average the ground is (a wash: sand collects there) */
 export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0, 1);
 /** 0..1: how much real relief shows here (drives the far ground's erosion shading) */
-export const reliefAt = (x, z) => { const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7)); };
+export const reliefAt = (x, z) => { const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
+  if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
   if (m.lake > 0.55) return SURFACES.playa;
   if (slope > 0.6) return SURFACES.rock;
@@ -255,6 +261,7 @@ export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI 
 // ---------------- public lookups ----------------
 export const height = R.heightAt(base);
 export const surface = R.surfaceAt(baseSurface);
+BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
 export const isRoad = R.isRoad;
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------
 // [site, x0, x1, z0, z1, top above the pad] in site-local metres, or [site, 'disc', cx, cz, r, top]
@@ -294,6 +301,7 @@ export function areaAt(x, z) {
   const m = masks(x, z);
   if (m.town > 0.2) return 'Dry Wells'; if (m.pg > 0.3) return 'Proving Grounds'; if (m.lake > 0.3) return 'Bitter Lake';
   if (m.dunes > 0.3) return 'Sidewinder Dunes'; if (m.canyon > 0.3) return 'Red Rock Canyon'; if (m.farm > 0.3) return 'Hollis farm';
+  if (m.bio > 0.3) { const d = BIO.dominant(x, z); if (d) return d.def.name; }
   if (Math.abs(x - hwX(z)) < 30) return 'Highway 9';
   if (Math.max(Math.abs(x), Math.abs(z)) > RING0) return 'The Sierra';
   return 'Open desert';
