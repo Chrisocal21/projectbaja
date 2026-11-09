@@ -185,7 +185,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   useEffect(() => {
     const el = gl.domElement, l = look.current;
     const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { const r = el.requestPointerLock(); r?.catch?.(() => {}); } catch {} } };
-    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); l.yaw -= e.movementX * 0.004 * kx; l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
+    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); l.yaw -= e.movementX * 0.004 * kx; l.yaw = Math.atan2(Math.sin(l.yaw), Math.cos(l.yaw)); l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const cabKey = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; l.idle = 0; } };
     window.addEventListener('keydown', cabKey);
@@ -347,9 +347,14 @@ function Vehicle({ children, hud, dims, race, sun }) {
     } else {
     const ang = st.h + Math.PI + l.yaw;                       // direction from car to camera
     const d = l.dist + Math.min(4, Math.abs(st.v) * 0.1), cp = Math.cos(l.pitch);
-    const target = new THREE.Vector3(st.x + Math.sin(ang) * d * cp, st.y + 1.4 + Math.sin(l.pitch) * d, st.z + Math.cos(ang) * d * cp);
-    target.y = Math.max(target.y, world.height(target.x, target.z) + 1.0);
-    camPos.current.lerp(target, Math.min(1, dt * 10));
+    const dH = d * cp, rx = camPos.current.x - st.x, rz = camPos.current.z - st.z, kk = Math.min(1, dt * 10);
+    let ca = Math.atan2(rx, rz), cd = Math.hypot(rx, rz);   // where the camera is now, as an angle and distance round the car
+    if (cd < 0.5) { ca = ang; cd = dH; }
+    let da = ang - ca; da = Math.atan2(Math.sin(da), Math.cos(da));   // shortest way round (a straight blend would cut through the car and flip the view)
+    ca += da * kk; cd += (dH - cd) * kk;
+    const ty = Math.max(st.y + 1.4 + Math.sin(l.pitch) * d, world.height(st.x + Math.sin(ang) * dH, st.z + Math.cos(ang) * dH) + 1.0);
+    camPos.current.set(st.x + Math.sin(ca) * cd, camPos.current.y + (ty - camPos.current.y) * kk, st.z + Math.cos(ca) * cd);
+    camPos.current.y = Math.max(camPos.current.y, world.height(camPos.current.x, camPos.current.z) + 0.8);
     camera.position.copy(camPos.current);
     camera.lookAt(st.x, st.y + 1.2, st.z);
     }
