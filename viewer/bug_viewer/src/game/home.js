@@ -87,7 +87,7 @@ export const BUILD_ITEMS = [
   { id: 'engineOnStand', name: 'Spare engine on a stand', price: 300, zone: 'garage', r: 0.5, cat: 'Garage', note: "An engine Walt was rebuilding. To move it, open build mode (B), aim at it and press V" },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },
   { id: 'bender', name: 'Tube bender', price: 320, zone: 'garage', r: 0.5, cat: 'Fabrication', note: 'Bend tube for hoops and cages' },
-  { id: 'computer', name: 'Office desk + old PC', price: 320, zone: 'garage', r: 0.6, cat: 'Office', note: 'Order parts online (coming soon)' },
+  { id: 'computer', name: 'Office desk + old PC', price: 320, zone: 'garage', r: 0.6, cat: 'Office', note: 'E: parts cart, vehicle lookup, records and files' },
   { id: 'couch', name: 'Busted couch', price: 35, zone: 'any', r: 0.8, cat: 'Office' },
   { id: 'neon', name: '"OPEN" neon sign', price: 75, zone: 'any', r: 0, cat: 'Decor' },
   { id: 'flamingo', name: 'Pink flamingo', price: 15, zone: 'yard', r: 0, cat: 'Decor' },

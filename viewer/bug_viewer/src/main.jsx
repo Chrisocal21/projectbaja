@@ -29,6 +29,7 @@ import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
+import OfficePC from './game/OfficePC.jsx';
 import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { PhonePanel } from './game/Phone.jsx';
 import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
@@ -188,6 +189,7 @@ function App() {
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));
     else if (id === 'bench') setPanel('fab');
     else if (id === 'peg') pegInteract();
+    else if (id === 'pc') setPanel('pc');
     else interact(id);
   };
   const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
@@ -244,7 +246,7 @@ function App() {
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'pause' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'pause' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') { if (!hangHeld()) dropHeld(); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
@@ -379,6 +381,7 @@ function App() {
     {panel === 'dealer' && <DealerPanel onBuy={id => buyVehicle(id)} onClose={resume} />}
     {panel === 'letter' && <LetterPanel onClose={resume} />}
     {panel === 'map' && <MapPanel onClose={resume} />}
+    {panel === 'pc' && <OfficePC onClose={resume} />}
     {panel === 'fab' && <FabPanel onMake={id => { fabricate(id, giveToPlayer, canCarry); resume(); }} onDev={() => setPanel('garage')} onClose={resume} />}
     {panel === 'job' && <JobPanel onDo={() => { doJob(); resume(); }} onClose={resume} />}
     {panel === 'trailer' && <TrailerPanel onUpgrade={upgradeTrailer} onSleep={() => { sleep(); resume(); }} onClose={resume} />}
