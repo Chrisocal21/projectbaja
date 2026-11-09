@@ -12,6 +12,20 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - Starting stock: already has a pack wrench, random shop loot and 4 worn tires; nothing more added (anything else risks canon: Dusty's supplies, no magic stock). Needs Chris's call.
 - Skipped as too slow for now: letter as item (needs item system + wall surface).
 
+## TOKEN PLAN (big first while tokens are full, small at the tail before reset)
+**Phase 1: big jobs (use agents, one at a time, verify in browser, commit after each)**
+1. Letter as an item + wall surface (4e): hang letter/photos, pegboard snaps to walls.
+2. First new region: bigger map grid, move the hologram wall, new biome (needs Chris to pick direction + biome).
+3. Phone apps: design chat first, then build the real ones (Jobs, Texts, Orders, Index).
+4. Arriving vehicles + ordering (deliveries on the map). Needs Phase 2+ answer.
+5. Clerk login + Vercel cloud saves (last of the big ones).
+**Phase 2: medium (when about half the tokens are left)**
+6. Save slots. 7. Stage 4f (retire B menu for furniture). 8. Trailers / towing.
+**Phase 3: tiny, for the last tokens before reset (one line each, no agents)**
+- Tune hologram wall brightness/text. Tune tread label cut-offs. Phone icon names/art. Prompt wording fixes.
+- Add Chris's play-test findings as one-line fixes. Doc updates. Delete stale branches.
+- Rule: start a big job only with plenty left; if tokens run low mid-job, commit what works on a branch, never half-merge.
+
 ## 0. Start-of-session checklist (5 min)
 - [ ] `git status`, `git switch racer-items-fitglow`, `git fetch` (compare with `origin/main`, local `main` is stale).
 - [ ] Open the live Vercel site once. Confirm it loads.
