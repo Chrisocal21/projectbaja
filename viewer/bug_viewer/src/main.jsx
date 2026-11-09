@@ -242,7 +242,7 @@ function App() {
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
+      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'pause' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyG') dropHeld();
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
