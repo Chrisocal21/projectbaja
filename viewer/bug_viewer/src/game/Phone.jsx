@@ -1,12 +1,12 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
 import React, { useState } from 'react';
-import { game, useGame, save, catalogFor, priceOf, nameOf } from './store.js';
+import { game, useGame, save, say, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay } from './orders.js';
 import { ORDER_HOURS, etaText } from './orderlogic.js';
 import { LETTER } from './home.js';
 import { jobById, jobCheck, SUPPLIES } from './jobs.js';
-import { TOOLS } from './items.js';
+import { TOOLS, canCarry, giveToPlayer, dropNearPlayer } from './items.js';
 import { SaveTools } from './update.jsx';
 import { takePhoto, updatePhoto, deletePhoto, photos } from './photos.js';
 import { coordText, postedFeed } from './photologic.js';
@@ -129,7 +129,7 @@ function CameraApp({ onBack }) {
     {tab === 'feed' && <div style={{ width: '100%', maxHeight: 330, overflow: 'auto', textAlign: 'left' }}>
       {feed.length ? feed.map(p => <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid #ffffff18' }}><img src={p.img} alt="" style={{ width: '100%', borderRadius: 6 }} />
         {p.caption && <div>{p.caption}</div>}<small>{where(p)} · {clockLabel(p.clock)}</small>
-        <div><button onClick={() => deletePhoto(p.id)}>Delete</button></div></div>)
+        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}><button onClick={() => { if (game.items.some(i => i.kind === 'memento' && i.id === 'photo' && i.pid === p.id)) return say('You already printed that one.'); canCarry('memento', 'photo') ? giveToPlayer('memento', 'photo', { pid: p.id }) : dropNearPlayer('memento', 'photo'); say('Printed. Hang it on a garage wall with G.'); }}>Print</button><button onClick={() => deletePhoto(p.id)}>Delete</button></div></div>)
         : <p>No posts yet. Take a photo and post it.</p>}
 </div>}
     <button onClick={onBack}>Back</button></div>;

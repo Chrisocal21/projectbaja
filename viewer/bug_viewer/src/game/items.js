@@ -18,7 +18,7 @@ export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor
 /** keepsakes: normal items you can carry, shelve and (later) hang on the wall. The text lives in home.js LETTER. */
 /** loose yard junk: real, carryable items (PROPOSAL: drums and cans may hold oil/fuel later) */
 export const JUNK = { drum: { name: 'Oil drum', size: 3 }, jerrycan: { name: 'Jerry can', size: 1 }, crate: { name: 'Wooden crate', size: 2 }, engineblock: { name: 'Engine block', size: 3 } };
-export const MEMENTOS = { letter: { name: "Walt's letter", size: 1 } };
+export const MEMENTOS = { letter: { name: "Walt's letter", size: 1 }, photo: { name: 'Printed photo', size: 1 } };
 const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */

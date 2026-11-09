@@ -91,6 +91,7 @@ function StockItem({ id }) {
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
   if (item.kind === 'junk') return <group scale={scale}>{item.id === 'engineblock' ? <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.55, 0.4, 0.42]} /><meshStandardMaterial color="#4d4a46" metalness={0.6} roughness={0.6} /></mesh> : item.id === 'crate' ? <mesh position={[0, 0.24, 0]} castShadow><boxGeometry args={[0.6, 0.48, 0.6]} /><meshStandardMaterial color="#8a6a44" roughness={0.9} /></mesh> : item.id === 'drum' ? <mesh position={[0, 0.44, 0]} castShadow><cylinderGeometry args={[0.29, 0.29, 0.88, 20]} /><meshStandardMaterial color={item.uid % 2 ? '#3d5a6e' : '#5a6b3a'} metalness={0.4} roughness={0.6} /></mesh> : <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.17, 0.4, 0.34]} /><meshStandardMaterial color="#a9281e" metalness={0.3} roughness={0.5} /></mesh>}</group>;
+  if (item.kind === 'memento' && item.id === 'photo') return <group scale={scale}><PhotoSheet item={item} /></group>;   // a printed photo (PROPOSAL): the picture you posted, on paper
   if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
   const crate = <CrateBox item={item} />;
   let body = null;
@@ -163,5 +164,15 @@ function Container({ type, open }) {
     <mesh position={[0, 0.43, 0]} castShadow receiveShadow><boxGeometry args={[0.92, 0.86, 0.92]} /><M c="#8a6a42" r={0.95} /></mesh>
     {[0.1, 0.43, 0.76].map(y => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[0.95, 0.09, 0.95]} /><M c="#6e5233" r={0.95} /></mesh>)}
     <mesh position={open ? [0.62, 0.45, 0] : [0, 0.89, 0]} rotation={open ? [0, 0, 1.35] : [0, 0, 0]} castShadow><boxGeometry args={[0.96, 0.06, 0.96]} /><M c="#7a5c38" r={0.95} /></mesh>
+  </group>;
+}
+
+function PhotoSheet({ item }) {
+  const src = (game.home?.photos || []).find(p => p.id === item.pid)?.img;
+  const tex = useMemo(() => { if (!src) return null; const t = new THREE.TextureLoader().load(src); t.colorSpace = THREE.SRGBColorSpace; return t; }, [src]);
+  const rot = item.wall ? [0, 0, 0.02] : [-Math.PI / 2, 0, 0.3], y = item.wall ? 0 : 0.012;
+  return <group position={[0, y, 0]} rotation={rot}>
+    <mesh castShadow><planeGeometry args={[0.34, 0.26]} /><meshStandardMaterial color="#f4f0e6" roughness={0.9} side={THREE.DoubleSide} /></mesh>
+    <mesh position={[0, 0, 0.003]}><planeGeometry args={[0.3, 0.2]} />{tex ? <meshBasicMaterial map={tex} side={THREE.DoubleSide} /> : <meshStandardMaterial color="#777" />}</mesh>
   </group>;
 }
