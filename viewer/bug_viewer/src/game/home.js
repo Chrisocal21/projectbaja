@@ -229,6 +229,16 @@ export function ensureLetterItem() {
   else if (have.loc === 'world' && !have.wall && have.y === 0.98) { have.y = top; game.items = [...game.items]; }   // V1 letter still where it spawned: lift it onto the bench top
   save();
 }
+/** the loose drums and jerry can (once per save): real items in the garage's front-left corner, not scenery */
+export function ensureJunkItems() {
+  if ((game.home.junkV || 0) >= 1) return;
+  game.home = { ...game.home, junkV: 1 };
+  for (const [id, lx, lz] of [['drum', -5.6, 3.5], ['drum', -5.0, 3.9], ['jerrycan', -5.5, 2.8]]) {
+    const [x, z] = toWorld(G, lx, lz);
+    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), kind: 'junk', id, loc: 'world', x, z, y: groundHeight(x, z) - height(x, z), ry: G.rot });
+  }
+  save();
+}
 /** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
 export function migrateGrid() {
   if (game.home.gridV >= 2) return;
