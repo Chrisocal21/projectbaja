@@ -21,6 +21,7 @@ import TruckModel from './Truck.jsx';
 import BuildModel from './BuildModel.jsx';
 import Walker from './game/Walker.jsx';
 import Items, { Cargo } from './game/Items.jsx';
+import DeliveryTruck from './game/DeliveryTruck.jsx';
 import VehicleCargo from './placement/VehicleCargo.jsx';   // vehicle cargo placement (Stage 3)
 import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
@@ -433,7 +434,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle key={vehKey} hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
     {world.id === 'county' && <Walker world={world} sun={sun} />}
-    {world.id === 'county' && <Items />}
+    {world.id === 'county' && <Items />}{world.id === 'county' && <DeliveryTruck />}
     {world.id === 'county' && <Fleet />}
   </WorldCtx.Provider>;
 }
