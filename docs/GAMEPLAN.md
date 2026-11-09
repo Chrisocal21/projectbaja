@@ -4,6 +4,12 @@ Sources merged: RESUME_HERE, ROADMAP, PROGRESS_TRACKER notes, your messages. **P
 
 Goal: **everything up so progress can be saved**, then bigger map and more biomes.
 
+## DONE Nov 8 (quick wins, all on main)
+- Floor jack lives on the floor (46c11ad). Hologram wall + "Area closed for now" text (9abae17, b735e1b), not yet seen at the edge.
+- Simple phone on Esc with placeholder apps (9a083fb). Shelf text fixed (706f0cc). Pegboard wrench outline (90cb35d).
+- Map turn-around fix and barn check-off were already done (8f8ebc7). Duplicate `bench` key was a false alarm.
+- Skipped as too slow for now: letter as item (needs item system + wall surface).
+
 ## 0. Start-of-session checklist (5 min)
 - [ ] `git status`, `git switch racer-items-fitglow`, `git fetch` (compare with `origin/main`, local `main` is stale).
 - [ ] Open the live Vercel site once. Confirm it loads.
