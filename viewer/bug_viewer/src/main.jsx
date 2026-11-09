@@ -28,6 +28,7 @@ import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
 import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
+import { PhonePanel } from './game/Phone.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
@@ -365,7 +366,7 @@ function App() {
     {panel === 'settings' && <SettingsPanel onClose={() => setPanel('pause')} />}
     {panel === 'wiki' && <WikiPanel onClose={resume} />}
     {panel === 'upgrades' && <UpgradesPanel onClose={resume} />}
-    {panel === 'pause' && <PauseMenu onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
+    {panel === 'pause' && <PhonePanel canMap={play.world === 'county'} onMap={() => setPanel('map')} onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
       teleports={!game.dev ? [] : play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : play.world === 'county' ? COUNTY_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'dealer' && <DealerPanel onBuy={id => buyVehicle(id)} onClose={resume} />}

@@ -227,3 +227,19 @@
 .up-levels i { width: 22px; height: 6px; background: rgba(255, 255, 255, 0.1); display: block; }
 .up-levels i.on { background: var(--hud-acc); }
 .up-row p { margin: 0; font: 400 12.5px/1.5 var(--hud-font); color: #b9c3c1; }
+
+/* the phone (replaces the pause menu) */
+.phone{width:340px;max-width:92vw;background:linear-gradient(#1b1f26,#12151a);border:2px solid #3a414c;border-radius:34px;padding:16px 16px 14px;box-shadow:0 20px 60px #000a;color:#e8ecf1;position:relative;pointer-events:auto}
+.phone-notch{width:90px;height:8px;border-radius:6px;background:#0a0c0f;margin:0 auto 8px}
+.phone-top{display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin:0 6px 10px}
+.phone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 6px}
+.ph-app{background:none;border:0;color:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:0}
+.ph-app small{font-size:9px;opacity:.55;margin-top:-3px}
+.ph-ico{width:52px;height:52px;border-radius:15px;background:linear-gradient(#3b86d8,#2a5fa8);display:grid;place-items:center}
+.ph-app.soon .ph-ico{background:linear-gradient(#4a505a,#383d46);opacity:.8}
+.ph-app:hover .ph-ico{filter:brightness(1.2)}
+.phone-soon{text-align:center;padding:20px 8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.phone-soon .ph-ico{width:70px;height:70px;background:linear-gradient(#4a505a,#383d46)}
+.phone-soon p{margin:0;opacity:.85}.phone-soon small{opacity:.5}
+.phone-tp{margin-top:12px;display:flex;flex-wrap:wrap;gap:4px}.phone-tp small{width:100%;opacity:.5}
+.phone-home{display:block;margin:14px auto 0;background:#262b33;border:1px solid #3a414c;color:#e8ecf1;border-radius:20px;padding:6px 18px;cursor:pointer}
