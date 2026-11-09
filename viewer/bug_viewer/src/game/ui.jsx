@@ -16,9 +16,11 @@ export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
   React.useEffect(() => { const k = e => { if (e.code === 'Backquote') setSecret(s => !s); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, []);
   return <div className="title-screen">
     <div className="title-panel">
-      <span className="eyebrow">AN INHERITED-GARAGE, BUILD-IT-YOURSELF STORY</span>
-      <h1>PROJECT <b>BAJA</b></h1>
-      <p>College is done. Grandpa Walt left you his garage in the middle of Baja County — run-down, full of junk, with grandma's old Bug sitting dead inside. Clean it out, bring the Bug back to life, build the place up, then go fast.</p>
+      <div className="title-sign-lockup">
+        <img className="title-sign" src="/images/project-baja-sign.svg" alt="Project:Baja" />
+        <img className="title-sign-buggy" src="/images/baja-buggy-cutout.png" alt="" />
+      </div>
+      <span className="eyebrow">GRANDPA LEFT YOU A GARAGE. NOW MAKE IT GO FAST.</span>
       <div className="menu">
         <button className="big" onClick={onNew}>▶ {has ? 'New game' : 'Start'}</button>
         {has && game.build && <button className="big" onClick={onContinue}>Continue</button>}

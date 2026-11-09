@@ -33,12 +33,16 @@
 /* ---- game shell: title, pause, shop, HUD ---- */
 .full{position:fixed;inset:0;background:#0d1416;overflow:hidden}.full>canvas,.full>div>canvas{position:absolute!important;inset:0}
 .title-bg{background:#0d1416 url(/images/title-hero.png) center/cover no-repeat}
-.title-screen{position:absolute;inset:0;display:flex;align-items:center;padding:0 7vw;background:linear-gradient(90deg,rgba(8,13,15,.92) 0%,rgba(8,13,15,.55) 45%,rgba(8,13,15,0) 75%);pointer-events:none}
-.title-panel{pointer-events:auto;max-width:430px}.title-panel h1{font-size:64px;line-height:1;margin:10px 0 8px;letter-spacing:-2px}.title-panel h1 b{color:#e0a35a}.title-panel p{color:#9fb2b5;margin:0 0 22px}
+.title-screen{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:clamp(18px,4vh,42px) 18px 25px;background:linear-gradient(180deg,rgba(7,11,12,.52),rgba(7,11,12,.12) 39%,rgba(7,11,12,.17) 62%,rgba(7,11,12,.57));pointer-events:none}
+.title-panel{pointer-events:auto;width:min(465px,94vw);max-height:calc(100dvh - 58px);overflow:auto;text-align:center;filter:drop-shadow(0 5px 12px #000c)}
+.title-sign-lockup{position:relative;width:min(100%,455px);margin:0 auto 8px}.title-sign{display:block;width:100%;height:auto;filter:drop-shadow(0 9px 10px #0008)}.title-sign-buggy{position:absolute;left:50%;bottom:15%;transform:translateX(-50%);width:32%;height:auto;pointer-events:none;filter:drop-shadow(0 2px 3px #000b)}
+.title-panel>.eyebrow{display:block;color:#ffe1ac;line-height:1.4;font-size:11px;letter-spacing:.16em;text-shadow:0 2px 5px #000;margin:0 auto 8px}.title-panel p{color:#f4ebda;line-height:1.5;font-size:14px;margin:0 auto 17px;max-width:43ch;text-shadow:0 2px 5px #000,0 0 12px #000}
+.title-panel .menu{width:min(400px,100%);margin:0 auto;gap:8px}.title-panel .menu button{border-radius:2px;background:rgba(16,20,19,.7);border-color:#bb9a70;color:#f4ead9;font-weight:700;text-align:center;text-shadow:0 1px 3px #000;transition:background .15s,border-color .15s,transform .15s}.title-panel .menu button:hover{background:rgba(44,35,25,.86);border-color:#ffcf82;transform:translateY(-2px)}.title-panel .menu button.big{background:linear-gradient(#f3a94a,#db882b);border-color:#ffcf8b;color:#1a1712;font:900 17px Impact,'Arial Narrow',sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:12px 16px;text-shadow:none;box-shadow:0 3px 0 #723e20,0 5px 16px #0008}.title-panel .menu button.big:hover{background:linear-gradient(#ffc16d,#e99a3e);border-color:#ffe1a6}
 .menu{display:flex;flex-direction:column;gap:9px}.menu button,.card button,.drawer-close{border:1px solid #344448;background:#1b272a;border-radius:8px;padding:11px 14px;font-size:14px;text-align:left}.menu button:hover,.card button:hover{border-color:#ca9b58}
 .menu button.big{background:#4a3a28;border-color:#ca9b58;color:#f4d3a1;font-weight:700;font-size:16px;padding:14px 16px}
 .check{display:flex;gap:9px;align-items:flex-start;margin-top:16px;font-size:12px;color:#9fb2b5;cursor:pointer}.check input{accent-color:#c5a174;margin-top:2px}
-.title-foot{position:absolute;left:7vw;bottom:22px;color:#6f8588;font-size:12px}
+.title-foot{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;color:#e2cba5;font-size:10px;text-align:center;text-shadow:0 1px 4px #000,0 0 8px #000;white-space:nowrap}
+@media(max-width:560px){.title-screen{padding:10px 12px 20px;background:linear-gradient(180deg,rgba(7,11,12,.68),rgba(7,11,12,.4) 62%,rgba(7,11,12,.7))}.title-panel{width:100%;max-height:calc(100dvh - 34px)}.title-sign-lockup{width:min(100%,340px)}.title-panel>.eyebrow{font-size:9px}.title-panel .menu{gap:6px}.title-panel .menu button{padding:8px}.title-panel .menu button.big{padding:9px}.title-foot{font-size:9px;bottom:3px}}
 .overlay{position:absolute;inset:0;background:rgba(6,10,12,.62);display:grid;place-items:center;z-index:20}
 .card{background:#11191c;border:1px solid #2c3d41;border-radius:12px;padding:22px 24px;min-width:340px;max-width:92vw;max-height:88vh;overflow:auto;box-shadow:0 20px 60px #000a}.card h2{margin:0 0 14px;letter-spacing:2px;font-size:18px}
 .card .row{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;color:#d7b078}.card .row button{padding:6px 10px;font-size:12px}
@@ -85,13 +89,17 @@
 .map-btns { display: flex; gap: 8px; }
 
 /* loading screen over the game while the world loads / rebuilds */
-.loading{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:flex-start;padding:0 0 12vh 7vw;opacity:1;transition:opacity .5s ease;pointer-events:auto}
-.loading::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,12,.82),rgba(8,10,12,.25) 60%,rgba(8,10,12,.1))}
+.loading{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;opacity:1;transition:opacity .5s ease;pointer-events:auto}
+.loading::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,10,12,.67),rgba(8,10,12,.25) 42%,rgba(8,10,12,.7))}
 .loading.done{opacity:0;pointer-events:none}
-.loading-card{position:relative;width:min(440px,86vw);color:#f1e9d6}
+.loading-card{position:relative;width:min(470px,86vw);color:#f1e9d6;text-align:center;text-shadow:0 2px 6px #000}
+.loading-sign{width:min(100%,430px);margin:0 auto 16px;filter:drop-shadow(0 8px 12px #000b)}
 .loading-title{font:900 44px/1 system-ui,sans-serif;letter-spacing:.02em}
 .loading-title span{color:#e3a457}
 .loading-bar{margin:18px 0 10px;height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden}
 .loading-bar div{height:100%;background:#e3a457;border-radius:4px;transition:width .3s ease}
 .loading-sub{font:600 14px system-ui,sans-serif;opacity:.9}
 .loading-tip{margin-top:16px;font:italic 14px system-ui,sans-serif;opacity:.7}
+
+/* title menu sits a little right of centre on wide screens so the WALT'S GARAGE sign in the picture shows */
+@media(min-width:900px){.title-panel{transform:translateX(9vw)}}
