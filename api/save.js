@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const t = await readText(base + 'main.json');
       if (!t) return res.status(404).json({ error: 'no cloud save' });
+      if (/[?&]meta=1/.test(req.url)) { try { const j = JSON.parse(t); return res.status(200).json({ savedAt: j.savedAt, version: j.version, format: j.format }); } catch { return res.status(500).json({ error: 'cloud save unreadable' }); } }
       res.setHeader('content-type', 'application/json'); return res.status(200).send(t);
     }
     if (req.method === 'PUT') {

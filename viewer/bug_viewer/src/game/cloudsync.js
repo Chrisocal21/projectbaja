@@ -25,3 +25,19 @@ export function decideSync(local, cloud) {
   if (local.savedAt === cloud.savedAt) return 'same';
   return 'ask';
 }
+
+/**
+ * Automatic upload rule. `last` is the save time we last synced with the cloud (this device remembers it).
+ * The cloud is only ever overwritten when it still holds exactly what this device last synced: anything else is left for the player to choose.
+ *  'idle'     nothing new to send
+ *  'upload'   cloud empty, or cloud is still what we last synced, and this device has newer progress
+ *  'conflict' cloud holds a save this device did not sync (another device, or first time): never overwritten automatically
+ *  'skip'     no local save, or the cloud is from a newer game
+ */
+export function autoDecision(local, cloud, last) {
+  if (!local) return 'skip';
+  if (cloud && cloud.version > CURRENT) return 'skip';
+  if (!cloud) return 'upload';
+  if (last == null || cloud.savedAt !== last) return 'conflict';
+  return local.savedAt > last ? 'upload' : 'idle';
+}
