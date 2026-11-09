@@ -1,7 +1,7 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
 import React, { useState } from 'react';
-import { game, useGame, save, say, catalogFor, priceOf, nameOf } from './store.js';
+import { game, useGame, save, say, addCash, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay } from './orders.js';
 import { ORDER_HOURS, etaText } from './orderlogic.js';
 import { LETTER } from './home.js';
@@ -98,9 +98,9 @@ function InternetApp({ onBack }) {
   const body = game.build?.body || 'classic', cat = catalogFor(body), list = cat[tab] || [], waiting = ordersOnTheWay();
   return <div className="phone-soon"><h3>Parts online</h3>
     <small>Cash ${game.cash} · arrives at the pickup area about {ORDER_HOURS} game hours after you order</small>
-    <div style={{ display: 'flex', gap: 6 }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
-    <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{list.map(p => <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
-      <span>{nameOf(tab, p.id, body)}<small> · ${priceOf(tab, p.id)}</small></span><button disabled={game.cash < priceOf(tab, p.id)} onClick={() => placeOrder(tab, p.id)}>Order</button></div>)}</div>
+    <div style={{ display: 'flex', gap: 6 }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ['gear', 'Gear']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+    {tab === 'gear' ? <div style={{ width: '100%', textAlign: 'left' }}>{game.home?.printer ? <p>Photo printer: owned.</p> : <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Photo printer<small> · ${PRINTER_PRICE} · prints your posted photos</small></span><button disabled={game.dev || game.cash < PRINTER_PRICE} onClick={buyPrinter}>Buy</button></div>}</div> : <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{list.map(p => <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
+      <span>{nameOf(tab, p.id, body)}<small> · ${priceOf(tab, p.id)}</small></span><button disabled={game.cash < priceOf(tab, p.id)} onClick={() => placeOrder(tab, p.id)}>Order</button></div>)}</div>}
     {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY</small>{waiting.map((o, i) => <div key={i}>{nameOf(o.kind, o.id, body)}<small> · {etaText(o.left)}</small></div>)}</div>}
     <button onClick={onBack}>Back</button></div>;
 }
@@ -129,10 +129,13 @@ function CameraApp({ onBack }) {
     {tab === 'feed' && <div style={{ width: '100%', maxHeight: 330, overflow: 'auto', textAlign: 'left' }}>
       {feed.length ? feed.map(p => <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid #ffffff18' }}><img src={p.img} alt="" style={{ width: '100%', borderRadius: 6 }} />
         {p.caption && <div>{p.caption}</div>}<small>{where(p)} · {clockLabel(p.clock)}</small>
-        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}><button onClick={() => { if (game.items.some(i => i.kind === 'memento' && i.id === 'photo' && i.pid === p.id)) return say('You already printed that one.'); canCarry('memento', 'photo') ? giveToPlayer('memento', 'photo', { pid: p.id }) : dropNearPlayer('memento', 'photo'); say('Printed. Hang it on a garage wall with G.'); }}>Print</button><button onClick={() => deletePhoto(p.id)}>Delete</button></div></div>)
+        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}><button onClick={() => { if (game.items.some(i => i.kind === 'memento' && i.id === 'photo' && i.pid === p.id)) return say('You already printed that one.'); !game.home?.printer ? say('You need a photo printer first (Internet, Gear).') : canCarry('memento', 'photo') ? giveToPlayer('memento', 'photo', { pid: p.id }) : dropNearPlayer('memento', 'photo'); game.home?.printer && say('Printed. Hang it on a garage wall with G.'); }}>Print</button><button onClick={() => deletePhoto(p.id)}>Delete</button></div></div>)
         : <p>No posts yet. Take a photo and post it.</p>}
 </div>}
     <button onClick={onBack}>Back</button></div>;
 }
 const clockLabel = h => clockText(h);
 
+
+const PRINTER_PRICE = 120;   // PROPOSAL
+function buyPrinter() { if (game.dev) return say('Buying is off in test sessions.'); if (game.cash < PRINTER_PRICE) return say(`Not enough cash ($${PRINTER_PRICE}).`); addCash(-PRINTER_PRICE, 'Bought: photo printer'); game.home = { ...game.home, printer: true }; save(); say('Bought a photo printer. You can print photos from the Camera feed.'); }
