@@ -1,7 +1,9 @@
 // Faint blue-cyan grid wall at the map edge; invisible until you are within WALL_SHOW_DIST metres of it.
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { BOUNDARY_WALLS, WALL_HEIGHT, WALL_SHOW_DIST, WALL_COLOR } from './boundary.js';
+import { useFrame } from '@react-three/fiber';
+import { game, say } from '../game/store.js';
+import { BOUNDARY_WALLS, WALL_HEIGHT, WALL_SHOW_DIST, WALL_COLOR, WALL_TEXT } from './boundary.js';
 
 const vert = 'varying vec3 vW; varying vec2 vUv; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }';
 const frag = `varying vec3 vW; varying vec2 vUv; uniform vec3 uCol; uniform float uShow, uLen, uH;
@@ -23,6 +25,14 @@ export default function BoundaryWall() {
     });
     return { w, len, mat, ry: -Math.atan2(w.z1 - w.z0, w.x1 - w.x0) };
   }), []);
+  const last = React.useRef(0);
+  useFrame(() => {   // close to a wall: say the PROPOSAL message (at most every 6 s)
+    const t = performance.now(); if (t - last.current < 6000 || !game.pos) return;
+    for (const { x0, z0, x1, z1 } of BOUNDARY_WALLS) {
+      const dx = x1 - x0, dz = z1 - z0, u = Math.max(0, Math.min(1, ((game.pos.x - x0) * dx + (game.pos.z - z0) * dz) / (dx * dx + dz * dz)));
+      if (Math.hypot(game.pos.x - (x0 + u * dx), game.pos.z - (z0 + u * dz)) < 30) { last.current = t; say(WALL_TEXT); return; }
+    }
+  });
   return <>{walls.map(({ w, len, mat, ry }) => (
     <mesh key={w.id} material={mat} position={[(w.x0 + w.x1) / 2, WALL_HEIGHT / 2 - 5, (w.z0 + w.z1) / 2]} rotation={[0, ry, 0]} frustumCulled={false}>
       <planeGeometry args={[len, WALL_HEIGHT]} />
