@@ -70,7 +70,7 @@ function takeOnto(it) {
   if (!held()) { at(it).loc = 'hand'; return 'hand'; }
   return null;
 }
-const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — put that down first (G).');
+const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — right-click to put that down.');
 
 export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry }); commit(); }
 const near = (d = 1.4, jitter = 0.5) => ({ x: game.pos.x + game.face.x * d + (Math.random() - 0.5) * jitter, z: game.pos.z + game.face.z * d + (Math.random() - 0.5) * jitter });
@@ -81,6 +81,13 @@ export function pickUp(uidN) {
   if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
   commit(); say(`${nameOfItem(it)} → ${where === 'pack' ? 'pack' : 'hands'}`);
+}
+/** left click: grab it into your hands (hands free), else it goes to the pack like E (Stage ctl-A, PROPOSAL) */
+export function grabItem(uidN) {
+  const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
+  if (held()) return pickUp(uidN);
+  at(it).loc = 'hand'; commit(); say(`${nameOfItem(it)} → hands`);
 }
 /** put something you carry down at your feet */
 export function dropItem(uidN) {

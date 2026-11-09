@@ -23,7 +23,7 @@ const FN = { start: 'Needed to start', drive: 'Needed to drive', steer: 'Needed 
 const TOOL_NAME = { hoist: 'Engine hoist (in your garage)', jack: 'Floor jack' };
 
 export const CONTROLS = [
-  ['On foot', [['WASD', 'Walk'], ['Shift', 'Run'], ['Mouse', 'Look'], ['E', 'Interact'], ['Click', 'Pick up'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['G', 'Put down'], ['R', 'Take a part off (at the car)'], ['X', 'Workshop (at the car)'], ['Q', 'Open / close a door (at the car)'], ['B', 'Build menu'], ['U', 'Upgrades'], ['M', 'Map'], ['I', 'Game index'], ['Esc', 'Menu']]],
+  ['On foot', [['WASD', 'Walk'], ['Shift', 'Run'], ['Mouse', 'Look'], ['E', 'Interact / pick up into your pack'], ['Click', 'Hold an item'], ['Right-click', 'Put down'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['R', 'Take a part off (at the car)'], ['X', 'Workshop (at the car)'], ['Q', 'Open / close a door (at the car)'], ['B', 'Build menu'], ['U', 'Upgrades'], ['M', 'Map'], ['I', 'Game index'], ['Esc', 'Menu']]],
   ['Driving', [['W / S', 'Throttle / brake-reverse'], ['A / D', 'Steer'], ['Space', 'Handbrake'], ['R', 'Reset'], ['C', 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu']]],
   ['Building', [['Click / E', 'Build'], ['R', 'Rotate'], ['Wheel', 'Next in group'], ['[ ]', 'Previous / next piece'], [', .', 'Previous / next category'], ['1-8', 'Hotbar'], ['N', 'Material'], ['V', 'Move a placed thing'], ['X', 'Take down (50% back)'], ['B', 'Build menu'], ['Q / Right-click', 'Put the build tool away']]],
 ];

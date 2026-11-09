@@ -37,7 +37,7 @@ export function takeFromGrid(uid) {
   const pl = toPl(it), me = posed(GAME_PLACEABLES[pl.item], pl.pose), top = stackHeight(pl, me), b = bounds(pl, me);
   const onTop = gridItems(it.veh || 'bug').some(o => { if (o === it || o.surf !== it.surf) return false; const op = toPl(o); return Math.abs((op.y || 0) - top) < EPS && overlaps(b, bounds(op, posed(GAME_PLACEABLES[op.item], op.pose))); });
   if (onTop) { say("Something's sitting on it: take that off first."); return true; }
-  if (!canCarry(it.kind, it.id)) { say(itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — put that down first (G).'); return true; }
+  if (!canCarry(it.kind, it.id)) { say(itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — right-click to put that down.'); return true; }
   delete it.surf; delete it.pose;
   takeFromCar(uid);   // existing path: pack or hands, clears x / z / y / ry / spot / veh
   return true;

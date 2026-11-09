@@ -42,7 +42,7 @@ export const promptText = id => {
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
-  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : it.kind === 'memento' ? `Press E — Read ${nameOfItem(it)}  ·  Click — Pick up` :`Click — Pick up ${nameOfItem(it)}`) : ''; }   // left click picks up (main.jsx), E never does
+  if (id.startsWith('item:')) { const it = game.items.find(i => i.uid === +id.slice(5)); return it ? (it.kind === 'shell' ? `Press E — ${nameOfItem(it)}` : it.kind === 'memento' ? `Press E — Read ${nameOfItem(it)}  ·  Click — Hold it` : `Press E — Pick up ${nameOfItem(it)}  ·  Click — Hold it`) : ''; }   // left click picks up (main.jsx), E never does
   const h = held();
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
