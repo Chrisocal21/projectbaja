@@ -74,3 +74,9 @@ Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas,
 - Built as a NEW world (id `border`, dev only) next to today's county, swapped in only when it is good. Today's game keeps working.
 - Step 2 DONE: `public/terrain/border.png` (2.8 MB: height + sea/Salton Sea mask) and `border.json`.
 - Next steps: 3) the `border` world in the game (height from the file, sea + Salton Sea planes, terrain tiles built only near the player); 4) place the garage and the hand-built sites on real spots; 5) real highways (I-8, CA-86/111, Mex 1/5); 6) biomes by real area, map screen, then swap it in.
+
+### Step 3 DONE (Nov 9): the real map drives, dev only
+- Title screen with `?dev` > Show developer tools > "Real border map (dev, WIP)". `worlds/border.js` (loads border.png, height/water/surface lookups, unit-tested), `worlds/Border.jsx` (400 m terrain tiles built only near the player: coarse to 5.2 km, fine within 0.9 km, dropped behind you; ocean and Salton Sea sheets masked by the data). `DriveWorld` world `border`; the sky now travels with the camera.
+- Pipeline despikes bad source pixels (10 cells, e.g. a 260 m needle on the San Diego shore).
+- Checked in a browser: Imperial Valley spawn with real ranges on the horizon, Pacific beach near San Diego, Gulf of California with Baja on the horizon 20 km south. Heap about 265-335 MB.
+- Rough edges: you can drive on the sea floor (no water physics), ground is plain (one PROPOSAL rule set: sand, scrub, rock, high dirt), no roads, no places, no garage, no map screen for it yet, the dev shop stand-in sits at (40, 30).

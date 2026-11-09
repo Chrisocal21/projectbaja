@@ -12,6 +12,8 @@ import * as TC from './worlds/testcenter.js';
 import TestCenterScene from './worlds/TestCenter.jsx';
 import * as CO from './worlds/county.js';
 import CountyScene from './worlds/County.jsx';
+import BorderScene from './worlds/Border.jsx';
+import { border, loadBorder } from './worlds/border.js';
 import DayNightSky from './worlds/DayNightSky.jsx';
 import { sunDirection } from './worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './game/clock.js';
@@ -422,14 +424,20 @@ function Fleet() {
     {!v.forSale && <VehicleCargo veh={v.id} />}
   </group>)}</>;
 }
+/** the real border slice (docs/WORLD_MAP.md, dev only while it is built): everything comes from worlds/border.js once loaded */
+const BORDER_WORLD = {
+  id: 'border', height: (x, z) => border().heightAt(x, z), surface: (x, z) => border().surfaceAt(x, z), half: 60000, far: 6500, gates: [], spawns: [], obstacles: [],
+  get bounds() { return border().bounds; }, get spawn() { return { x: 0, z: 0, h: 0 }; }, area: () => 'Imperial Valley (real map, dev)',
+};
 const WorldCtx = createContext(OPEN_WORLD);
 
 export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId = 'test', bodyId, vehKey }) {
-  const world = worldId === 'county' ? COUNTY_WORLD : worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
+  if (worldId === 'border' && !border()) throw loadBorder();   // Suspense: wait for the real map file
+  const world = worldId === 'county' ? COUNTY_WORLD : worldId === 'border' ? BORDER_WORLD : worldId === 'test' ? TEST_WORLD : OPEN_WORLD;
   const race = useRef(newRace());
   const sun = useRef();
   return <WorldCtx.Provider value={world}>
-    {world.id === 'county' ? <DayNightSky sun={sun} /> : <>
+    {world.id === 'county' || world.id === 'border' ? <DayNightSky sun={sun} /> : <>
       {world.id === 'open' && <><color attach="background" args={['#cfd9e0']} /><fog attach="fog" args={['#cfd9e0', 80, 380]} /></>}
       <ambientLight intensity={0.9} />
       <hemisphereLight args={['#dfeaff', '#8a6e45', 1.1]} />
@@ -437,7 +445,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
         shadow-camera-left={-16} shadow-camera-right={16} shadow-camera-top={16} shadow-camera-bottom={-16}
         shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
     </>}
-    {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : world.id === 'county' ? <CountyScene /> : <TestCenterScene />}
+    {world.id === 'open' ? <><Terrain />{SHOW_SCENERY && <Scenery />}<Gates race={race} /></> : world.id === 'county' ? <CountyScene /> : world.id === 'border' ? <BorderScene /> : <TestCenterScene />}
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle key={vehKey} hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
     {world.id === 'county' && <Walker world={world} sun={sun} />}

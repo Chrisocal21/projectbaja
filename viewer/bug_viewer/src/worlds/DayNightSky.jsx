@@ -12,8 +12,9 @@ import { dayPhase, goldenPhase, sunPosition } from './clock.js';
 const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getStyle();
 
 export default function DayNightSky({ sun }) {
-  const [, force] = useState(0), acc = useRef(0);
-  useFrame((_, dt) => {
+  const [, force] = useState(0), acc = useRef(0), skyRef = useRef();
+  useFrame(({ camera }, dt) => {
+    if (skyRef.current) skyRef.current.position.set(camera.position.x, 0, camera.position.z);   // the sky box travels with you (the real map is far bigger than the box)
     tickClock(Math.min(dt, 0.25));
     acc.current += dt;
     if (acc.current > 0.15) { acc.current = 0; force(n => n + 1); }   // re-render a few times a second, not every frame
@@ -23,7 +24,7 @@ export default function DayNightSky({ sun }) {
   const skyTint = mix('#dfeaff', '#141c30', night), groundTint = mix('#8a6e45', '#0f0d14', night);
   const fogColor = mix('#d9c6a9', '#0b1322', night);
   return <>
-    <Sky distance={9000} sunPosition={pos} turbidity={7} rayleigh={1.6} mieCoefficient={0.008} mieDirectionalG={0.85} />
+    <group ref={skyRef}><Sky distance={9000} sunPosition={pos} turbidity={7} rayleigh={1.6} mieCoefficient={0.008} mieDirectionalG={0.85} /></group>
     <fog attach="fog" args={[fogColor, 420 - 380 * night, 4300 - 3700 * night]} />
     <ambientLight intensity={0.15 + 0.35 * day} />
     <hemisphereLight args={[skyTint, groundTint, 0.3 + 0.45 * day]} />

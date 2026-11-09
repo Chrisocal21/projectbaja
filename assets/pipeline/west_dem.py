@@ -79,6 +79,11 @@ def main():
     GX, GZ = np.meshgrid(gx, gz)
     lon = lon0 + GX / H_SCALE / kx; lat = lat0 - GZ / H_SCALE / kz
     h = sample(big, tx0, ty0, lat, lon)
+    # despike: the source has a few bad pixels (a 260 m needle on the San Diego shore). A cell more than 400 real m above the median of its 3x3 neighbourhood takes that median.
+    from numpy.lib.stride_tricks import sliding_window_view
+    med = np.median(sliding_window_view(np.pad(h, 1, mode='edge'), (3, 3)), axis=(-1, -2))
+    spikes = (h - med) > 400; h = np.where(spikes, med, h)
+    print(f'despiked {spikes.sum()} cells')
     print(f'world box (game m): x {gx0:.0f}..{gx1:.0f}  z {gz0:.0f}..{gz1:.0f}  = {gx1 - gx0:.0f} x {gz1 - gz0:.0f} m, grid {nx}x{nz}')
     print(f'real height range: {h.min():.0f}..{h.max():.0f} m  -> game {h.min() * V_SCALE:.0f}..{h.max() * V_SCALE:.0f} m')
 

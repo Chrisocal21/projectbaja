@@ -27,7 +27,7 @@ export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
         <button onClick={onSettings}>Settings</button>
         <button onClick={onWiki}>Game index</button>
         {secret && <button onClick={() => setDev(d => !d)}>{dev ? 'Hide' : 'Show'} developer tools</button>}
-        {secret && dev && <><button onClick={() => onDev('drive', 'county')}>Baja County (free drive)</button><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
+        {secret && dev && <><button onClick={() => onDev('drive', 'county')}>Baja County (free drive)</button><button onClick={() => onDev('drive', 'border')}>Real border map (dev, WIP)</button><button onClick={() => onDev('drive', 'test')}>Test Center (drive)</button><button onClick={() => onDev('drive', 'open')}>Open Desert race</button><button onClick={() => onDev('pro', 'test')}>Pro physics pad</button><button onClick={() => onDev('garage')}>Parts viewer / customizer</button>
           <label className="check"><input type="checkbox" checked={game.unlockAll} onChange={e => setUnlockAll(e.target.checked)} /> Unlock every part (testing)</label></>}
       </div>
     </div>
