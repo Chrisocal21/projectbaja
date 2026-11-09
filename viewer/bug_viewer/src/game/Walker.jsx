@@ -6,7 +6,7 @@ import { TARGETS } from '../worlds/siteData.js';
 import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
-import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
+import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
 import { jobById } from './jobs.js';
 import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
@@ -24,9 +24,10 @@ import { isFitted } from '../rules/restore.js';
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
   peg: 'Press E — Pegboard: hang a tool, or take one', bench: 'Press E — Workbench: fit your parts', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
-  letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Move the boxes and see what\'s under the tarp', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
+  letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Pull the tarp back', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {
+  if (id === 'racecar') return raceCarStage() === 0 ? 'Press E — Pull the tarp halfway back' : 'Press E — Pull the tarp off completely';
   if (!id) return '';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id === 'openSwitch') return game.home?.open ? 'Press E — Turn the OPEN light off (close up)' : 'Press E — Turn the OPEN light on (open for business)';
@@ -166,8 +167,8 @@ export default function Walker({ world, sun }) {
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
     if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0 });
-    if (foot) for (const c of containers) { if (c.id === 'racecar' && !game.home.raceCar) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
-    if (foot && !game.home.raceCar) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6, { r: 1.6, h: 1.5 });
+    if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
+    if (foot && raceCarStage() < 2) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6, { r: 1.6, h: 1.5 });
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
     if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
     if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8, { r: 0.9, h: 2.0 });

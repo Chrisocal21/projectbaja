@@ -29,6 +29,12 @@ export const metalTex = (base, seed = 5) => canvasTex(256, 256, (g, w, h) => {
 }, [1, 1]);
 const Box = ({ p, s, color = '#888', map, rough = 0.9, metal = 0, emissive, ei = 0, cast = true, rot }) =>
   <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={s} /><meshStandardMaterial color={color} map={map} roughness={rough} metalness={metal} emissive={emissive} emissiveIntensity={ei} /></mesh>;
+const Tube = ({ a, b, r = 0.025, c = '#2b2e31' }) => {
+  const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b), direction = end.clone().sub(start);
+  const position = start.add(end).multiplyScalar(0.5);
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+  return <mesh position={position} quaternion={quaternion} castShadow><cylinderGeometry args={[r, r, direction.length(), 8]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.6} /></mesh>;
+};
 export const Tire = ({ p, r = 0.38, w = 0.28, rim = '#9aa0a4', rot = [Math.PI / 2, 0, 0] }) => <group position={p} rotation={rot}>
   <mesh castShadow><cylinderGeometry args={[r, r, w, 20]} /><meshStandardMaterial color="#141414" roughness={0.95} /></mesh>
   <mesh position={[0, w * 0.52, 0]}><cylinderGeometry args={[r * 0.62, r * 0.62, 0.02, 18]} /><meshStandardMaterial color={rim} metalness={0.7} roughness={0.4} /></mesh></group>;
@@ -49,13 +55,37 @@ export const corrugatedTex = (base, seed = 31) => canvasTex(512, 512, (g, w, h) 
   const n = 32; for (let i = 0; i < n; i++) { const x = (i * w) / n, gr = g.createLinearGradient(x, 0, x + w / n, 0); gr.addColorStop(0, 'rgba(255,255,255,0.22)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.18)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.2)'); gr.addColorStop(1, 'rgba(255,255,255,0.22)'); g.fillStyle = gr; g.fillRect(x, 0, w / n, h); }
   for (let i = 0; i < 26; i++) { const x = r() * w, len = 60 + r() * 300, wd = 3 + r() * 10, gr = g.createLinearGradient(0, 0, 0, len); gr.addColorStop(0, 'rgba(130,60,25,0.55)'); gr.addColorStop(1, 'rgba(130,60,25,0)'); g.fillStyle = gr; g.fillRect(x, 0, wd, len); }
   for (let i = 0; i < 14; i++) { const x = r() * w, y = r() * h, rad = 8 + r() * 26, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(120,56,24,0.45)'); gr.addColorStop(1, 'rgba(120,56,24,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+  // Fastener rows and the thin rust trails that collect below them.
+  for (const y of [20, 252, 484]) for (let x = 8; x < w; x += 16) {
+    g.fillStyle = 'rgba(26,28,27,0.55)'; g.beginPath(); g.arc(x, y, 1.5, 0, Math.PI * 2); g.fill();
+    if (r() < 0.34) { g.fillStyle = 'rgba(112,54,27,0.25)'; g.fillRect(x - 1, y + 2, 2, 8 + r() * 45); }
+  }
+  for (let i = 0; i < 90; i++) { const x = r() * w, y = r() * h; g.fillStyle = `rgba(205,198,171,${0.08 + r() * 0.2})`; g.fillRect(x, y, 1 + r() * 4, 2 + r() * 12); }
   const gr = g.createLinearGradient(0, h * 0.82, 0, h); gr.addColorStop(0, 'rgba(90,70,45,0)'); gr.addColorStop(1, 'rgba(90,70,45,0.55)'); g.fillStyle = gr; g.fillRect(0, h * 0.82, w, h * 0.18);
 }, [1, 1]);
+const garageFloorWear = () => canvasTex(512, 512, (g, w, h) => {
+  const r = rnd(1968);
+  for (let i = 0; i < 26; i++) {
+    const x = w * (0.28 + r() * 0.44), y = h * (0.28 + r() * 0.44), radius = 7 + r() * 34;
+    const stain = g.createRadialGradient(x, y, 0, x, y, radius);
+    stain.addColorStop(0, `rgba(32,27,21,${0.07 + r() * 0.13})`);
+    stain.addColorStop(1, 'rgba(32,27,21,0)');
+    g.fillStyle = stain; g.beginPath(); g.ellipse(x, y, radius, radius * (0.45 + r() * 0.5), r() * Math.PI, 0, Math.PI * 2); g.fill();
+  }
+  for (let i = 0; i < 140; i++) {
+    const x = r() * w, y = r() * h;
+    g.strokeStyle = `rgba(52,45,36,${0.02 + r() * 0.05})`; g.lineWidth = 1 + r() * 3;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 24, y + (r() - 0.5) * 70); g.stroke();
+  }
+});
 /** pegboard: grey hardboard with a hole grid and painted tool outlines */
 export const pegTex = () => canvasTex(512, 160, (g, w, h) => {
-  g.fillStyle = '#8f8a7c'; g.fillRect(0, 0, w, h);
+  const r = rnd(1968);
+  g.fillStyle = '#817b6d'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 25; i++) { const x = r() * w, y = r() * h, radius = 10 + r() * 35, stain = g.createRadialGradient(x, y, 0, x, y, radius); stain.addColorStop(0, r() < 0.5 ? 'rgba(35,31,25,0.22)' : 'rgba(208,195,163,0.22)'); stain.addColorStop(1, 'rgba(35,31,25,0)'); g.fillStyle = stain; g.fillRect(x - radius, y - radius, radius * 2, radius * 2); }
   g.fillStyle = 'rgba(30,28,24,0.75)'; for (let y = 6; y < h; y += 10) for (let x = 6; x < w; x += 10) { g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.fill(); }
   g.strokeStyle = 'rgba(200,40,30,0.6)'; g.lineWidth = 2; for (let i = 0; i < 12; i++) { const x = 30 + i * 38; g.strokeRect(x, 30, 10, 70 + (i % 3) * 15); }
+  for (let i = 0; i < 240; i++) { g.fillStyle = `rgba(39,32,24,${r() * 0.14})`; g.fillRect(r() * w, r() * h, 1 + r() * 5, 1 + r() * 2); }
 }, [1, 1]);
 const Arm = ({ a, b, w = 0.1, c = '#e8b43a' }) => { const dx = b[0] - a[0], dz = b[2] - a[2], len = Math.hypot(dx, dz); return <mesh position={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} rotation={[0, Math.atan2(-dz, dx), 0]} castShadow><boxGeometry args={[len, 0.07, w]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.5} /></mesh>; };
 /** two-post car lift around the Bug's bay (local x = ±1.65, z = -0.5), arms swung in under the car at their lowest */
@@ -77,12 +107,50 @@ function CarLift() {
 }
 /** stuff on a shelf: oil quarts, jerry cans, paint, a spare rim, a battery, a coffee can of bolts */
 export function ShelfStuff({ kind, p }) {
-  if (kind === 'oil') return <group position={p}>{Array.from({ length: 6 }, (_, i) => <mesh key={i} position={[0, 0.1, i * 0.12 - 0.3]} castShadow><boxGeometry args={[0.08, 0.2, 0.1]} /><meshStandardMaterial color={['#e8b43a', '#2b6cb0', '#e8b43a'][i % 3]} roughness={0.4} /></mesh>)}</group>;
-  if (kind === 'jerry') return <group position={p}>{[0, 0.38].map(z => <group key={z} position={[0, 0, z]}><mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.34, 0.4, 0.17]} /><meshStandardMaterial color={z ? '#2f6b3a' : '#a9281e'} metalness={0.3} roughness={0.5} /></mesh><mesh position={[0.09, 0.43, 0]}><boxGeometry args={[0.12, 0.06, 0.05]} /><meshStandardMaterial color="#222" /></mesh></group>)}</group>;
-  if (kind === 'paint') return <group position={p}>{Array.from({ length: 5 }, (_, i) => <mesh key={i} position={[0, 0.1 + (i > 2 ? 0.2 : 0), (i % 3) * 0.2 - 0.2]} castShadow><cylinderGeometry args={[0.085, 0.085, 0.19, 14]} /><meshStandardMaterial color={['#c9c4b6', '#7a2f26', '#2f4a63', '#cfc8b8', '#3f6b3a'][i]} metalness={0.5} roughness={0.45} /></mesh>)}</group>;
-  if (kind === 'rim') return <group position={p} rotation={[0, 0, Math.PI / 2]}><mesh position={[0, 0, 0]} castShadow><cylinderGeometry args={[0.3, 0.3, 0.2, 22, 1, true]} /><meshStandardMaterial color="#b8bcc0" metalness={0.8} roughness={0.3} side={THREE.DoubleSide} /></mesh><mesh><cylinderGeometry args={[0.24, 0.24, 0.02, 20]} /><meshStandardMaterial color="#9aa0a4" metalness={0.8} roughness={0.35} /></mesh></group>;
-  if (kind === 'battery') return <group position={p}><mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.18, 0.22, 0.3]} /><meshStandardMaterial color="#1e1f22" roughness={0.6} /></mesh><mesh position={[0, 0.23, 0]}><boxGeometry args={[0.18, 0.01, 0.3]} /><meshStandardMaterial color="#c9a227" /></mesh></group>;
-  return <group position={p}><mesh position={[0, 0.08, 0]} castShadow><cylinderGeometry args={[0.08, 0.08, 0.16, 14]} /><meshStandardMaterial color="#8a5a2a" metalness={0.5} roughness={0.5} /></mesh></group>;
+  if (kind === 'spray') return <group position={p}>{[-0.12, 0, 0.12].map((z, i) => <group key={i} position={[0, 0, z]}>
+    <mesh position={[0, 0.115, 0]} castShadow><cylinderGeometry args={[0.039, 0.039, 0.22, 14]} /><meshStandardMaterial color={['#9f8f6c', '#6d7979', '#a85f43'][i]} metalness={0.45} roughness={0.75} /></mesh>
+    <mesh position={[0, 0.24, 0]}><cylinderGeometry args={[0.026, 0.026, 0.03, 12]} /><meshStandardMaterial color="#272925" roughness={0.8} /></mesh>
+    <Box p={[0, 0.11, -0.04]} s={[0.055, 0.085, 0.004]} color="#c8bb99" cast={false} />
+  </group>)}</group>;
+  if (kind === 'filter') return <group position={p}>
+    <mesh position={[0, 0.12, 0]} castShadow><cylinderGeometry args={[0.11, 0.11, 0.24, 18]} /><meshStandardMaterial color="#a29474" metalness={0.25} roughness={0.88} /></mesh>
+    <mesh position={[0, 0.245, 0]}><cylinderGeometry args={[0.112, 0.112, 0.014, 18]} /><meshStandardMaterial color="#554a3c" metalness={0.5} roughness={0.75} /></mesh>
+    {[0, 0.045, 0.09].map(y => <Box key={y} p={[0, 0.09 + y, -0.111]} s={[0.15, 0.008, 0.004]} color="#685e4c" cast={false} />)}
+  </group>;
+  if (kind === 'oil') return <group position={p}>{Array.from({ length: 6 }, (_, i) => <group key={i} position={[0, 0, i * 0.12 - 0.3]}>
+    <Box p={[0, 0.11, 0]} s={[0.085, 0.2, 0.095]} color={['#af8637', '#365875', '#a9893d'][i % 3]} rough={0.82} />
+    <Box p={[0, 0.215, -0.022]} s={[0.075, 0.025, 0.05]} color="#2b302b" />
+    <Box p={[0, 0.115, -0.049]} s={[0.075, 0.07, 0.004]} color="#a7a08a" cast={false} />
+    <Box p={[0, 0.11, -0.052]} s={[0.05, 0.012, 0.005]} color="#4b3428" cast={false} />
+  </group>)}</group>;
+  if (kind === 'jerry') return <group position={p}>{[0, 0.38].map(z => <group key={z} position={[0, 0, z]}>
+    <Box p={[0, 0.2, 0]} s={[0.34, 0.4, 0.17]} color={z ? '#365443' : '#843d2c'} metal={0.4} rough={0.78} />
+    <Box p={[0, 0.2, -0.087]} s={[0.23, 0.24, 0.012]} color={z ? '#49634c' : '#9a4d36'} metal={0.42} rough={0.8} />
+    <Box p={[0, 0.41, 0]} s={[0.19, 0.035, 0.08]} color="#38352d" metal={0.45} />
+    <Box p={[0.12, 0.44, 0]} s={[0.055, 0.055, 0.055]} color="#252824" metal={0.55} />
+  </group>)}</group>;
+  if (kind === 'paint') return <group position={p}>{Array.from({ length: 5 }, (_, i) => <group key={i} position={[0, i > 2 ? 0.2 : 0, (i % 3) * 0.2 - 0.2]}>
+    <mesh position={[0, 0.1, 0]} castShadow><cylinderGeometry args={[0.085, 0.085, 0.19, 18]} /><meshStandardMaterial color={['#a9a79b', '#864839', '#3d5969', '#c0b9a6', '#53634d'][i]} metalness={0.35} roughness={0.8} /></mesh>
+    {[0.015, 0.195].map(y => <mesh key={y} position={[0, y, 0]} castShadow><cylinderGeometry args={[0.089, 0.089, 0.012, 18]} /><meshStandardMaterial color="#787873" metalness={0.65} roughness={0.65} /></mesh>)}
+    <Box p={[0, 0.1, -0.086]} s={[0.115, 0.065, 0.004]} color="#b3a992" cast={false} />
+  </group>)}</group>;
+  if (kind === 'rim') return <group position={p} rotation={[0, 0, Math.PI / 2]}>
+    <mesh castShadow><cylinderGeometry args={[0.3, 0.3, 0.2, 28, 1, true]} /><meshStandardMaterial color="#777974" metalness={0.62} roughness={0.72} side={THREE.DoubleSide} /></mesh>
+    <mesh position={[0, 0.108, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.26, 0.028, 8, 28]} /><meshStandardMaterial color="#a7a49a" metalness={0.7} roughness={0.58} /></mesh>
+    <mesh position={[0, 0.11, 0]}><cylinderGeometry args={[0.08, 0.08, 0.025, 20]} /><meshStandardMaterial color="#77746a" metalness={0.7} roughness={0.6} /></mesh>
+    {Array.from({ length: 6 }, (_, i) => { const a = i * Math.PI / 3; return <Box key={i} p={[Math.cos(a) * 0.155, 0.11, Math.sin(a) * 0.155]} s={[0.16, 0.025, 0.045]} rot={[0, -a, 0]} color="#95958d" metal={0.68} rough={0.63} />; })}
+  </group>;
+  if (kind === 'battery') return <group position={p}>
+    <Box p={[0, 0.11, 0]} s={[0.18, 0.22, 0.3]} color="#222625" rough={0.85} />
+    <Box p={[0, 0.225, 0]} s={[0.19, 0.025, 0.31]} color="#514f43" rough={0.78} />
+    {[-0.1, 0.1].map((z, i) => <mesh key={z} position={[0, 0.25, z]} castShadow><cylinderGeometry args={[0.025, 0.025, 0.03, 10]} /><meshStandardMaterial color={i ? '#adabab' : '#8e493d'} metalness={0.72} roughness={0.48} /></mesh>)}
+    <Box p={[0, 0.12, -0.153]} s={[0.12, 0.08, 0.006]} color="#9a8f72" cast={false} />
+  </group>;
+  return <group position={p}>
+    <mesh position={[0, 0.09, 0]} castShadow><cylinderGeometry args={[0.09, 0.09, 0.18, 16]} /><meshStandardMaterial color="#75624b" metalness={0.55} roughness={0.8} /></mesh>
+    <mesh position={[0, 0.185, 0]}><cylinderGeometry args={[0.094, 0.094, 0.01, 16]} /><meshStandardMaterial color="#9b9889" metalness={0.7} roughness={0.6} /></mesh>
+    {[-0.04, 0.025, 0.05].map((x, i) => <mesh key={i} position={[x, 0.197, i * 0.025 - 0.03]} rotation={[0.2 * i, 0, 0.5 * i]}><cylinderGeometry args={[0.015, 0.015, 0.018, 6]} /><meshStandardMaterial color="#777970" metalness={0.8} roughness={0.55} /></mesh>)}
+  </group>;
 }
 
 /** The player's garage: concrete slab, roller door, two-post lift, workbench + pegboard, shelves, an engine on a stand. Local +z = the door. */
@@ -94,6 +162,7 @@ function Garage() {
   const wallFront = useMemo(() => { const m = corrugatedTex('#8a9893', 35); m.repeat.set(1.3, 1); return m; }, []);
   const roof = useMemo(() => metalTex('#59615f', 9), []);
   const floor = useMemo(() => propertyTexture(7, 5, 4), []);
+  const floorWear = useMemo(garageFloorWear, []);
   const apron = useMemo(() => propertyTexture(7, 3, 2), []);
   const ply = useMemo(() => { const m = wood('#a88a5c', '#5a4428', true, 41); m.repeat.set(6, 1); return m; }, []);
   const sign = useMemo(() => signTex([["WALT'S GARAGE", 66, '#803c29'], ['REPAIR · WELDING · SALVAGE', 30, '#59422e']], '#d4bd8d', '#74583b', '#a28a62'), []);
@@ -101,6 +170,7 @@ function Garage() {
   return <group>
     {/* slab + apron */}
     <Box p={[0, 0.06, 0]} s={[w * 2 + 1.2, 0.12, d * 2 + 1.2]} color="#fff" map={floor} rough={0.95} cast={false} />
+    <mesh position={[0, 0.124, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[w * 2, d * 2]} /><meshBasicMaterial map={floorWear} transparent depthWrite={false} polygonOffset polygonOffsetFactor={-1} /></mesh>
     <Box p={[0, 0.07, d + 2.6]} s={[door * 2 + 2, 0.1, 5]} color="#fff" map={apron} rough={0.95} cast={false} />
     {/* bay lines either side of the lift */}
     {[-2.05, 2.05].map(x => <mesh key={x} position={[x, 0.122, 0.6]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.1, 8]} /><meshStandardMaterial color="#d9b23a" roughness={0.8} /></mesh>)}
@@ -112,6 +182,15 @@ function Garage() {
     <Box p={[-w, (H + 2.4) / 2, (OFFICE.inner.z0 + OFFICE.inner.z1) / 2]} s={[t, H - 2.4, OFFICE.inner.z1 - OFFICE.inner.z0]} color="#fff" map={wallSide} />
     <Box p={[-(w + door) / 2, H / 2, d]} s={[w - door, H, t]} color="#fff" map={wallFront} /><Box p={[(w + door) / 2, H / 2, d]} s={[w - door, H, t]} color="#fff" map={wallFront} />
     <Box p={[0, (H + 3.7) / 2, d]} s={[door * 2, H - 3.7, t]} color="#fff" map={wallFront} />
+    {/* The raised roller door, its guides and weathered hardware remain above the clear drive opening. */}
+    {Array.from({ length: 7 }, (_, i) => <group key={`slat${i}`}>
+      <Box p={[0, 3.76 + i * 0.115, d + 0.13]} s={[door * 2 - 0.1, 0.105, 0.045]} color={i % 3 === 0 ? '#777971' : '#8d9188'} map={roof} metal={0.32} rough={0.78} />
+      <Box p={[0, 3.81 + i * 0.115, d + 0.16]} s={[door * 2 - 0.1, 0.009, 0.012]} color="#373b38" cast={false} />
+    </group>)}
+    {[-door - 0.12, door + 0.12].map(x => <group key={`guide${x}`}>
+      <Box p={[x, 1.9, d + 0.13]} s={[0.13, 3.8, 0.16]} color="#59605c" map={roof} metal={0.45} />
+      <Box p={[x, 1.9, d + 0.225]} s={[0.025, 3.8, 0.02]} color="#2d3130" cast={false} />
+    </group>)}
     <Box p={[-w + 0.12, 0.77, (-d + 0.15 + OFFICE.inner.z0) / 2]} s={[0.03, 1.3, OFFICE.inner.z0 + d - 0.15]} color="#fff" map={ply} cast={false} />
     <Box p={[-w + 0.12, 0.77, (d - 0.15 + OFFICE.inner.z1) / 2]} s={[0.03, 1.3, d - 0.15 - OFFICE.inner.z1]} color="#fff" map={ply} cast={false} />
     <Box p={[0, 3.62, d - 0.15]} s={[door * 2, 0.35, 0.3]} color="#2c3234" metal={0.4} />
@@ -124,6 +203,7 @@ function Garage() {
     <Box p={[0, H + 2.35, 0]} s={[0.2, 0.16, 13.2]} color="#79523a" metal={0.4} />
     {[-7, -3.65, 3.65, 7].map(x => <Box key={x} p={[x, 2.3, 6.15]} s={[0.18, 4.6, 0.22]} map={bench} color="#a18b68" />)}
     {[-1, 1].map(side => <Box key={side} p={[side * 3.65, H + 1.15, 6.16]} s={[7.75, 0.18, 0.2]} map={bench} color="#8c7151" rot={[0, 0, -side * Math.atan(2.3 / 7.3)]} />)}
+    {[-1, 1].map(side => <Box key={`eave${side}`} p={[side * 5.5, H + 0.72, d + 0.19]} s={[3.5, 0.08, 0.12]} color="#51483d" map={roof} rot={[0, 0, -side * Math.atan(2.3 / 7.3)]} />)}
     {[-4.8, 0, 4.8].map(x => <group key={x} position={[x, x === 0 ? 6.25 : 3.5, 6.5]}>
       <Box p={[0, 0.15, -0.15]} s={[0.07, 0.4, 0.4]} color="#423e31" metal={0.7} />
       <mesh rotation={[0, 0, Math.PI]}><coneGeometry args={[0.25, 0.15, 16, 1, true]} /><meshStandardMaterial color="#554b36" side={THREE.DoubleSide} /></mesh>
@@ -133,7 +213,11 @@ function Garage() {
     <GarageWing wall={wallSide} timber={bench} roof={roof} floor={floor} power={power} />
     {[-4.5, -1.5, 1.5, 4.5].map(z => <Box key={z} p={[0, H - 0.1, z]} s={[w * 2, 0.22, 0.1]} color="#3c4346" metal={0.6} rough={0.5} />)}
     {[-4.5, 0, 4.5].map(x => <Box key={x} p={[x, H - 0.02, 0]} s={[0.08, 0.08, d * 2]} color="#4a5255" metal={0.6} rough={0.5} cast={false} />)}
-    <mesh position={[0, H + 0.75, d + 0.2]}><boxGeometry args={[6, 1.15, 0.12]} /><meshStandardMaterial map={sign} roughness={0.7} emissive="#ffffff" emissiveMap={sign} emissiveIntensity={open ? 0.4 : 0} /></mesh>
+    <Box p={[0, H + 0.75, d + 0.19]} s={[6.18, 1.33, 0.14]} color="#403930" map={roof} rough={0.9} />
+    <mesh position={[0, H + 0.75, d + 0.28]} castShadow><boxGeometry args={[6, 1.15, 0.12]} /><meshStandardMaterial map={sign} roughness={0.85} emissive="#ffffff" emissiveMap={sign} emissiveIntensity={open ? 0.25 : 0} /></mesh>
+    <Tube a={[0, H + 1.37, d + 0.38]} b={[0, H + 1.77, d + 0.58]} r={0.035} c="#343735" />
+    <mesh position={[0, H + 1.58, d + 0.6]} rotation={[Math.PI, 0, 0]} castShadow><coneGeometry args={[0.29, 0.2, 16, 1, true]} /><meshStandardMaterial color="#3a3d39" metalness={0.55} roughness={0.6} side={THREE.DoubleSide} /></mesh>
+    <mesh position={[0, H + 1.47, d + 0.6]}><sphereGeometry args={[0.055, 10, 8]} /><meshStandardMaterial color="#ffe5ae" emissive="#ffc078" emissiveIntensity={power ? 2 : 0} /></mesh>
     {/* the OPEN switch, right of the roller door (press E): lights the lamp over the sign and the road signs */}
     <group position={[5.4, 1.45, 6.3]}>
       <Box p={[0, 0, 0]} s={[0.32, 0.5, 0.08]} color="#3a3d40" metal={0.5} rough={0.5} />

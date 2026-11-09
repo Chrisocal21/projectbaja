@@ -346,10 +346,14 @@ export function takeHeap(id) {
 // ---------------- grandpa's race car (back-right corner of the garage, under a tarp and a pile of boxes) ----------------
 export const RACECAR = { lx: 4.3, lz: -2.7, ry: 0, ly: 0.12 };   // ly: stands on the garage slab
 export const raceCarWorld = (() => { const [x, z] = toWorld(G, RACECAR.lx, RACECAR.lz); return { x, z, h: G.rot + RACECAR.ry }; })();
+export const raceCarStage = () => game.home.raceCarStage ?? (game.home.raceCar ? 1 : 0);
 export function uncoverRaceCar() {
-  if (game.home.raceCar) return;
-  game.home = { ...game.home, raceCar: true }; save();
-  say("You shift the boxes and drag the tarp off. Under it: grandpa's old #7 desert racer. Everything on her has seized from decades of sitting, but she's still wearing race shocks and four beadlock tires. Those are the Bug's now.");
+  const stage = raceCarStage(); if (stage >= 2) return;
+  const next = stage + 1;
+  game.home = { ...game.home, raceCarStage: next, raceCar: next === 2 }; save();
+  say(next === 1
+    ? "You shift the boxes and pull the tarp halfway back. Grandpa's old #7 desert racer is underneath. The rear is still covered."
+    : "You pull the rest of the tarp free. The #7 has seized from decades of sitting, but its race shocks and beadlock tires are still there.");
 }
 
 // ---------------- waking grandma's Bug: the first start takes a few cranks ----------------

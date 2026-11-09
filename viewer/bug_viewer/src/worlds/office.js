@@ -7,7 +7,7 @@ export const OFFICE = {
   entry: { x0: -11.8, x1: -10.2 },
 };
 export const inOffice = (lx, lz, m = 0) => lx > OFFICE.x0 + m && lx < OFFICE.x1 - m && lz > OFFICE.z0 + m && lz < OFFICE.z1 - m;
-export const CAMPER = { x: 22.5, z: 1, doorX: 20.4, doorZ: 2.8 };
+export const CAMPER = { x: 22.5, z: 1, doorX: 20.88, doorZ: 2.15 };
 export const STAIRS = { x0: -9.1, x1: -7.5, z0: -2, z1: 4, bottom: 0.12, top: 3.12, count: 18 };
 export const LOFT = { x0: -13, x1: -7.2, z0: -5.8, z1: -2, y: 3.12 };
 export function walkingLevel(x, z, previous = 0.12) {

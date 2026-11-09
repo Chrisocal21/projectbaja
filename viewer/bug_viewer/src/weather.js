@@ -5,25 +5,66 @@ import { noiseTexture } from './worlds/groundDetail.js';
 export const WEAR = { value: 0.85 };
 
 export const kindForMaterial = name =>
-  /paint|FadedBlue|Fiberglass|interior1/i.test(name) ? 'paint'
-  : /seat|dash|door1|interior2|peddle|steerwheel|speedometer|license/i.test(name) ? 'interior'
+  /fiberglass/i.test(name) ? 'fiberglass'
+  : /Stage2_.*Steel/i.test(name) ? 'steel'
+  : /paint|FadedBlue|interior1/i.test(name) ? 'paint'
+  : /window/i.test(name) ? 'glass'
+  : /headlight|taillight|signallight/i.test(name) ? 'lens'
+  : /seat|door1|interior2/i.test(name) ? 'leather'
+  : /dash|peddle|steerwheel|speedometer|license/i.test(name) ? 'interior'
   : /chrome|knob|vase1|headlight2/i.test(name) ? 'chrome'
   : /trim|tire/i.test(name) ? 'rubber' : null;
 
 const BODY = {
+  fiberglass: `
+    float fade = W * (0.12 + 0.22 * up) * (0.45 + wBig);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.67, 0.64, 0.57), fade);
+    diffuseColor.rgb *= 0.92 + 0.15 * wFine;
+    float scuff = smoothstep(0.67, 0.82, wCrk) * W * 0.28;
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.4, 0.38, 0.34), scuff);
+    wRough = 0.82;`,
+  steel: `
+    float oxidation = smoothstep(0.5, 0.7, wBig * 0.55 + wMid * 0.45) * W;
+    float edgeWear = smoothstep(0.68, 0.84, wCrk) * W;
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.31, 0.17, 0.09) * (0.82 + 0.35 * wFine), oxidation * 0.36);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.43, 0.42, 0.39), edgeWear * 0.2);
+    wRough = 0.7 + 0.17 * oxidation;`,
+  glass: `
+    float dust = W * (0.08 + 0.19 * wBig + 0.08 * wFine);
+    float edgeGrime = W * low * (0.04 + 0.1 * wMid);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.48, 0.43, 0.34), clamp(dust + edgeGrime, 0.0, 0.32));
+    wRough = 0.34 + 0.12 * wMid;`,
+  lens: `
+    float haze = W * (0.08 + 0.15 * wBig + 0.07 * wFine);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.54, 0.48, 0.39), haze);
+    wRough = 0.48 + 0.15 * wMid;`,
   paint: `
     float luma = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
     vec3 chalk = mix(diffuseColor.rgb, vec3(luma * 1.25 + 0.12), 0.55);
-    diffuseColor.rgb = mix(diffuseColor.rgb, chalk, W * (0.12 + 0.3 * up) * (0.2 + wBig * 0.9));
-    diffuseColor.rgb *= 0.82 + 0.34 * wMid;
-    float rustM = smoothstep(0.55, 0.8, wMid * 0.5 + low * 0.75 + wFine * 0.25 - 0.2) * smoothstep(0.3, 0.62, wFine + wMid * 0.45) * W;
-    diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.24, 0.1, 0.05), vec3(0.4, 0.2, 0.09), wFine), rustM * 0.85);
-    float chip = smoothstep(0.9, 0.97, wCrk) * W;
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.38, 0.37, 0.35), chip * 0.8);
-    float dirt = (1.0 - smoothstep(0.25, 1.0, wp.y)) * W * (0.35 + 0.5 * wFine);
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.2, 0.15, 0.1), dirt * 0.75);
-    diffuseColor.rgb *= 1.0 + (wFine - 0.5) * 0.25 * W;
-    wRough = 0.95;`,
+    diffuseColor.rgb = mix(diffuseColor.rgb, chalk, W * (0.14 + 0.28 * up) * (0.35 + wBig * 0.7));
+    diffuseColor.rgb *= 0.91 + 0.17 * wMid;
+    float sill = 1.0 - smoothstep(0.35, 0.9, wp.y);
+    float seam = smoothstep(0.57, 0.72, wCrk) * (0.3 + 0.7 * wMid);
+    float rustPatch = smoothstep(0.47, 0.64, wBig * 0.56 + wMid * 0.44 + sill * 0.25);
+    float rustM = clamp(rustPatch * (0.18 + 0.78 * sill) + seam * sill * 0.32, 0.0, 0.82) * W;
+    vec3 rust = mix(vec3(0.18, 0.075, 0.035), vec3(0.49, 0.22, 0.085), wFine);
+    rust *= 0.8 + 0.35 * wMid;
+    diffuseColor.rgb = mix(diffuseColor.rgb, rust, rustM);
+    float chip = smoothstep(0.91, 0.97, wCrk) * W * (0.35 + 0.5 * sill);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.32, 0.31, 0.29), chip * (1.0 - rustM));
+    float dirt = (1.0 - smoothstep(0.2, 0.8, wp.y)) * W * (0.18 + 0.28 * wFine);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.27, 0.19, 0.11), dirt);
+    wRough = mix(0.79, 0.97, rustM);`,
+  leather: `
+    float grain = texture2D(tDetail, wp.xy * 28.0 + wp.zz * 7.0).b;
+    float creases = 1.0 - smoothstep(0.44, 0.55, wCrk);
+    float worn = smoothstep(0.43, 0.73, wBig * 0.55 + wMid * 0.45) * W;
+    vec3 aged = mix(diffuseColor.rgb, vec3(0.34, 0.22, 0.13), 0.45 * W);
+    aged *= 0.88 + 0.24 * grain;
+    aged = mix(aged, vec3(0.52, 0.37, 0.23), worn * 0.34);
+    aged = mix(aged, vec3(0.12, 0.085, 0.055), creases * W * 0.18);
+    diffuseColor.rgb = aged;
+    wRough = clamp(0.73 + (grain - 0.5) * 0.16 + worn * 0.14, 0.65, 0.96);`,
   interior: `
     float luma = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(luma) * vec3(1.05, 0.98, 0.85), W * 0.35);

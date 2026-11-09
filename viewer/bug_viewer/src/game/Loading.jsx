@@ -33,7 +33,10 @@ export default function LoadingScreen() {
   }, []);
   return <div className={`loading title-bg${show ? '' : ' done'}`}>
     <div className="loading-card">
-      <div className="loading-title">PROJECT <span>BAJA</span></div>
+      <div className="title-sign-lockup loading-sign">
+        <img className="title-sign" src="/images/project-baja-sign.svg" alt="Project Baja — Walt's Garage" />
+        <img className="title-sign-buggy" src="/images/baja-buggy-cutout.png" alt="" />
+      </div>
       <div className="loading-bar"><div style={{ width: `${Math.max(4, Math.round(progress))}%` }} /></div>
       <div className="loading-sub">{active ? `Loading Baja County… ${loaded}/${total}` : 'Setting up the garage…'}</div>
       <div className="loading-tip">{tip}</div>

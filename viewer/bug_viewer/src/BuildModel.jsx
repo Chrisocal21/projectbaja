@@ -106,6 +106,7 @@ function TireWheel({ set, mount, rim, rimColor }) {
       if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; }
     });
     smoothNormals(c);
+    c.traverse(o => { if (o.isMesh) applyWeathering(o.material, 'rubber', o, c); });
     return c;
   }, [scene]);
   const left = mount.center[0] > 0, s = mount.radius / (set.baseRadius || 0.475);
@@ -121,6 +122,7 @@ function useTireClone(file) {
     const c = scene.clone(true);
     c.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; } });
     smoothNormals(c);
+    c.traverse(o => { if (o.isMesh) applyWeathering(o.material, 'rubber', o, c); });
     return c;
   }, [scene]);
 }

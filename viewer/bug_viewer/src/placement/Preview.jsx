@@ -54,8 +54,14 @@ export function ItemModel({ item, surf, plId, cast = true }) {
 /** a tire with its hub, base at y = 0: lying flat (axle up) or standing upright (axle along x). Also drawn by the in-game cargo. */
 export function TireModel({ dia, width, color = '#1c1c1c', ud = {}, cast = true, upright = false }) {
   const r = dia / 2, body = <>
-    <mesh castShadow={cast} receiveShadow userData={ud}><cylinderGeometry args={[r, r, width, 28]} /><meshStandardMaterial color={color} roughness={0.95} /></mesh>
-    <mesh userData={ud}><cylinderGeometry args={[r * 0.55, r * 0.55, width * 1.02, 20]} /><meshStandardMaterial color="#8d9296" roughness={0.4} metalness={0.6} /></mesh>
+    <mesh castShadow={cast} receiveShadow userData={ud}><cylinderGeometry args={[r, r, width, 40]} /><meshStandardMaterial color={color} roughness={0.96} /></mesh>
+    {[-1, 1].map(side => <group key={side} position={[0, side * (width / 2 + 0.002), 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} userData={ud} castShadow={cast}><torusGeometry args={[r * 0.72, r * 0.25, 10, 40]} /><meshStandardMaterial color="#242321" roughness={0.98} /></mesh>
+      <mesh userData={ud}><cylinderGeometry args={[r * 0.47, r * 0.47, 0.012, 28]} /><meshStandardMaterial color="#726b5e" roughness={0.83} metalness={0.48} /></mesh>
+      <mesh position={[0, side * 0.011, 0]} userData={ud}><cylinderGeometry args={[r * 0.31, r * 0.31, 0.008, 24]} /><meshStandardMaterial color="#433d34" roughness={0.8} metalness={0.45} /></mesh>
+      <mesh position={[0, side * 0.018, 0]} userData={ud}><cylinderGeometry args={[r * 0.095, r * 0.095, 0.014, 16]} /><meshStandardMaterial color="#8c806a" roughness={0.7} metalness={0.55} /></mesh>
+      {Array.from({ length: 5 }, (_, i) => { const a = i * Math.PI * 2 / 5; return <mesh key={i} position={[Math.cos(a) * r * 0.22, side * 0.022, Math.sin(a) * r * 0.22]} userData={ud}><cylinderGeometry args={[r * 0.025, r * 0.025, 0.012, 8]} /><meshStandardMaterial color="#aa9a7c" roughness={0.7} metalness={0.6} /></mesh>; })}
+    </group>)}
   </>;
   return upright ? <group position={[0, r, 0]} rotation={[0, 0, Math.PI / 2]}>{body}</group> : <group position={[0, width / 2, 0]}>{body}</group>;
 }

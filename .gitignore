@@ -22,3 +22,5 @@ assets/truck/src/
 
 # downloaded plant/tree packs (GBs) - keep local, export trimmed GLBs into public/models
 assets/plants/
+
+.vercel

@@ -42,6 +42,11 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-11.8, 0.6, 1.7]} s={[1.7, 1, 1]} map={timber} />
     <Box p={[-11.8, 1.15, 1.7]} s={[1.9, 0.12, 1.2]} map={timber} color="#76583c" />
     <Box p={[-11.5, 1.25, 1.7]} s={[0.35, 0.08, 0.25]} color="#34332b" />
+    {/* Repair tickets and a small parts ledger on Walt's counter. */}
+    <Box p={[-12.25, 1.225, 1.5]} s={[0.34, 0.008, 0.25]} color="#b9ac8d" rot={[0, 0.18, 0]} />
+    <Box p={[-12.25, 1.231, 1.5]} s={[0.27, 0.003, 0.2]} color="#d8d0b7" rot={[0, 0.18, 0]} />
+    <Box p={[-11.72, 1.22, 1.98]} s={[0.43, 0.035, 0.31]} color="#504738" rot={[0, -0.12, 0]} />
+    <Box p={[-11.72, 1.24, 1.98]} s={[0.38, 0.003, 0.27]} color="#c8bfa8" rot={[0, -0.12, 0]} />
     <Label text="WALT'S · REPAIRS" p={[-11.8, 0.8, 2.22]} w={1.5} />
     {/* Bathroom doorway faces the reception; storage shares the rear service area. */}
     <Box p={[-12.6, 1.4, -2]} s={[1.2, 2.6, 0.12]} map={timber} />
@@ -59,7 +64,11 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-13.06, 1.65, -3]} s={[0.025, 0.7, 0.65]} color="#9cafaf" />
     {[0.7, 1.5, 2.3].map(y => <Box key={y} p={[-8.1, y, -5.2]} s={[1.6, 0.08, 0.6]} map={timber} />)}
     <Label text="PARTS STORAGE" p={[-8.1, 2.65, -5]} w={1.6} />
-    {[0, 1, 2].map(i => <Box key={i} p={[-8.5 + i * 0.45, 0.98, -5.2]} s={[0.38, 0.5, 0.45]} color={['#8d5b39', '#76694f', '#594f3c'][i]} />)}
+    {[0, 1, 2].map(i => <group key={i}>
+      <Box p={[-8.5 + i * 0.45, 0.98, -5.2]} s={[0.38, 0.5, 0.45]} color={['#8d5b39', '#76694f', '#594f3c'][i]} />
+      <Box p={[-8.5 + i * 0.45, 1.235, -5.2]} s={[0.05, 0.008, 0.45]} color="#b6a587" />
+      <Box p={[-8.5 + i * 0.45, 0.98, -4.973]} s={[0.18, 0.1, 0.004]} color="#b9ad91" />
+    </group>)}
     <Box p={[-10.1, LOFT.y - 0.1, -3.9]} s={[5.8, 0.2, 3.8]} map={timber} />
     {Array.from({ length: STAIRS.count }, (_, i) => <Box key={i} p={[-8.3, 0.12 + (i + 1) / 6 - 0.06, 4 - (i + 0.5) / 3]} s={[1.6, 0.12, 1 / 3]} map={timber} />)}
     {[-9.15, -7.45].map(x => <group key={x}>

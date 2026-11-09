@@ -10,7 +10,7 @@ import { furn, ghostSpot } from '../game/furnish.js';
 import GarageCargo from '../placement/GarageCargo.jsx';
 import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
-import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken } from '../game/home.js';
+import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
@@ -23,6 +23,7 @@ import Pickup from '../Pickup.jsx';
 import { CAMPER } from './office.js';
 import { STALL, rowsAtLevel } from './lot.js';
 import { propertyTexture } from './propertyTextures.js';
+import { applyWeathering } from '../weather.js';
 
 /** Grandpa's place around the garage: his trailer, windmill and tank, his old race car, the junk you clear, customers' cars, and everything you build. */
 const G = SITES.garage;
@@ -30,9 +31,9 @@ const M = ({ c = '#fff', r = 0.85, m = 0, e, ei = 0, map, t, o = 1, side }) => <
 const B = ({ p, s, c, r, m, rot, map, cast = true }) => <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={s} /><M c={c} r={r} m={m} map={map} /></mesh>;
 const Cyl = ({ p, a, c, r, m, rot, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} r={r} m={m} map={map} /></mesh>;
 /** a straight tube between two points */
-function Tube({ a, b, r = 0.025, c = '#2b2e31', m = 0.5 }) {
+function Tube({ a, b, r = 0.025, c = '#2b2e31', m = 0.5, map }) {
   const { pos, q, len } = useMemo(() => { const A = new THREE.Vector3(...a), Bv = new THREE.Vector3(...b), d = Bv.clone().sub(A); return { pos: A.clone().add(Bv).multiplyScalar(0.5).toArray(), q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()), len: d.length() }; }, [a.join(), b.join()]);
-  return <mesh position={pos} quaternion={q} castShadow><cylinderGeometry args={[r, r, len, 8]} /><M c={c} m={m} r={0.5} /></mesh>;
+  return <mesh position={pos} quaternion={q} castShadow><cylinderGeometry args={[r, r, len, 8]} /><M c={c} m={m} r={0.68} map={map} /></mesh>;
 }
 const useTex = () => useMemo(() => ({
   oldWood: wood('#8a7458', '#3a2a18', true, 51), newWood: wood('#b38a5a', '#5b3a22', true, 53), deck: wood('#9c7a52', '#4a3018', false, 55),
@@ -43,18 +44,45 @@ const useTex = () => useMemo(() => ({
 function Trailer({ T }) {
   useGame();
   const painted = trailerHas('paint'), roof = trailerHas('roof');
-  return <group position={[CAMPER.x, 0, CAMPER.z]} rotation={[0, Math.PI, 0]}>
-    <RoundedBox position={[0, 1.75, 0]} args={[3.4, 2.5, 11]} radius={0.28} smoothness={3} castShadow receiveShadow><M c={painted ? '#f1e9d2' : '#cfc6ad'} map={T.cream} r={painted ? 0.5 : 0.8} m={0.2} /></RoundedBox>
-    <mesh position={[0, 1.45, 0]}><boxGeometry args={[3.42, 0.5, 11.02]} /><M c={painted ? '#3fa395' : '#5f8f86'} map={T.teal} r={0.6} m={0.2} /></mesh>
-    <mesh position={[0, 3.05, 0]} castShadow><boxGeometry args={[3.6, 0.15, 11.3]} /><M c={roof ? '#b8bcbf' : '#7d7a70'} map={T.steel} m={0.4} r={0.6} /></mesh>
+  return <group position={[CAMPER.x, 0, CAMPER.z]} rotation={[0, Math.PI, 0]} scale={[0.94, 0.96, 0.64]}>
+    <RoundedBox position={[0, 1.75, 0]} args={[3.4, 2.5, 11]} radius={0.72} smoothness={5} castShadow receiveShadow><M c="#fff7e6" map={T.cream} r={painted ? 0.58 : 0.86} m={0.12} /></RoundedBox>
+    <RoundedBox position={[0, 1.37, 0]} args={[3.43, 0.48, 10.92]} radius={0.22} smoothness={4} castShadow><M c={painted ? '#91c9bd' : '#9bb9af'} map={T.teal} r={0.82} m={0.12} /></RoundedBox>
+    <RoundedBox position={[0, 3.01, 0]} args={[3.5, 0.2, 11.08]} radius={0.09} smoothness={4} castShadow><M c={roof ? '#d8d2c2' : '#b8ad9a'} r={0.88} m={0.2} /></RoundedBox>
     {!roof && [[0.6, -2], [-0.8, 2.6]].map(([x, z], i) => <B key={i} p={[x, 3.14, z]} s={[1.4, 0.04, 1.8]} c="#4a5a6a" rot={[0, 0.3, 0.05]} />)}
-    {[-3.5, 0, 3.5].map(z => <B key={z} p={[1.72, 2.1, z]} s={[0.04, 0.8, 1.2]} c="#1b2629" r={0.2} cast={false} />)}
+    {[-3.5, 0, 3.5].map(z => <group key={z}>
+      <B p={[1.72, 2.1, z]} s={[0.04, 0.8, 1.2]} c="#27302e" r={0.36} cast={false} />
+      <B p={[1.76, 1.93, z]} s={[0.025, 0.015, 1.05]} c="#a39a86" m={0.5} />
+      <B p={[1.76, 2.12, z]} s={[0.025, 0.012, 1.05]} c="#a39a86" m={0.5} />
+      <B p={[1.76, 2.31, z]} s={[0.025, 0.012, 1.05]} c="#a39a86" m={0.5} />
+    </group>)}
     {[-3.5, 0, 3.5].map(z => <group key={z}>
       {[-0.65, 0, 0.65].map(dz => <B key={dz} p={[1.76, 2.1, z + dz]} s={[0.06, 0.9, 0.045]} c="#a89b81" />)}
       {[-0.44, 0.44].map(dy => <B key={dy} p={[1.76, 2.1 + dy, z]} s={[0.06, 0.05, 1.35]} c="#a89b81" />)}
     </group>)}
     {Array.from({ length: 10 }, (_, i) => <B key={i} p={[-1.705, 0.7 + i * 0.22, 0]} s={[0.025, 0.025, 10.6]} c="#aea58e" />)}
     <B p={[1.72, 1.6, -1.8]} s={[0.05, 1.9, 0.9]} c="#7a5c38" map={T.oldWood} />
+    <B p={[1.755, 2.22, -1.8]} s={[0.02, 0.45, 0.45]} c="#27302e" r={0.35} cast={false} />
+    <B p={[1.77, 2.22, -1.8]} s={[0.022, 0.5, 0.035]} c="#b2a68d" m={0.45} />
+    <Cyl p={[1.79, 1.52, -1.43]} a={[0.045, 0.045, 0.025, 12]} c="#a99d82" m={0.65} rot={[0, 0, Math.PI / 2]} />
+    {[0.73, 1.6, 2.55].map(y => <B key={y} p={[1.735, y, 0]} s={[0.026, 0.022, 10.6]} c="#a49a83" m={0.38} r={0.8} />)}
+    {[-5.05, 5.05].map(z => <B key={z} p={[1.74, 1.7, z]} s={[0.045, 2.35, 0.035]} c="#81796b" m={0.5} />)}
+    {[-1.72, 1.72].map(x => <group key={x} position={[x, 0.68, 0.7]} rotation={[0, 0, Math.PI / 2]}>
+      <Cyl p={[0, 0, 0]} a={[0.58, 0.58, 0.22, 28]} c="#38332c" r={0.98} />
+      <Cyl p={[0, x > 0 ? -0.12 : 0.12, 0]} a={[0.31, 0.31, 0.018, 24]} c="#9b8c71" m={0.48} r={0.78} />
+      <Cyl p={[0, x > 0 ? -0.135 : 0.135, 0]} a={[0.14, 0.14, 0.022, 18]} c="#6d6250" m={0.55} r={0.72} />
+    </group>)}
+    <B p={[1.79, 0.88, 0.7]} s={[0.05, 0.15, 1.43]} c="#c9beaa" r={0.85} />
+    <B p={[-1.79, 0.88, 0.7]} s={[0.05, 0.15, 1.43]} c="#c9beaa" r={0.85} />
+    <B p={[0, 0.55, -5.95]} s={[0.13, 0.15, 1.4]} c="#695744" m={0.6} />
+    <Cyl p={[0, 0.52, -6.65]} a={[0.06, 0.06, 0.16, 12]} c="#8e8674" m={0.72} />
+    {[-0.25, 0.25].map(x => <group key={x} position={[x, 0.88, -5.68]}>
+      <Cyl p={[0, 0, 0]} a={[0.15, 0.15, 0.55, 16]} c="#b8ad96" m={0.36} r={0.84} />
+      <Cyl p={[0, 0.29, 0]} a={[0.055, 0.055, 0.06, 12]} c="#777366" m={0.6} />
+    </group>)}
+    {[-5.48, 5.48].map(z => <group key={z}>
+      <B p={[1.42, 2.55, z]} s={[0.23, 0.12, 0.025]} c={z < 0 ? '#a96e37' : '#8a4037'} m={0.3} />
+      <B p={[-1.42, 2.55, z]} s={[0.23, 0.12, 0.025]} c={z < 0 ? '#a96e37' : '#8a4037'} m={0.3} />
+    </group>)}
     {trailerHas('porch') ? <group position={[2.9, 0, -1.8]}>
       <mesh position={[0, 0.55, 0]} castShadow receiveShadow><boxGeometry args={[2.4, 0.12, 3.4]} /><M map={T.deck} /></mesh>
       {[[-1.1, -1.6], [1.1, -1.6], [-1.1, 1.6], [1.1, 1.6]].map(([x, z], i) => <B key={i} p={[x, 0.27, z]} s={[0.12, 0.55, 0.12]} c="#6e5034" />)}
@@ -65,23 +93,77 @@ function Trailer({ T }) {
     {trailerHas('ac') && <group position={[1.85, 2.1, 3.5]}><B p={[0, 0, 0]} s={[0.4, 0.45, 0.65]} c="#d8d6ce" m={0.3} /><B p={[0.21, 0, 0]} s={[0.02, 0.35, 0.55]} c="#555" /></group>}
     {trailerHas('lights') && Array.from({ length: 12 }, (_, i) => <mesh key={i} position={[2.2 + Math.sin(i * 0.5) * 0.05, 2.5 - Math.sin((i / 11) * Math.PI) * 0.25, -3.6 + i * 0.33]}><sphereGeometry args={[0.05, 6, 6]} /><meshStandardMaterial color="#ffe6a0" emissive="#ffcf60" emissiveIntensity={2} /></mesh>)}
     {trailerHas('lights') && <pointLight position={[2.6, 2.2, -1.8]} intensity={6} distance={9} color="#ffd690" />}
-    <B p={[3.4, 2.2, -1.8]} s={[2.4, 0.06, 2.4]} c="#a33a2e" rot={[0, 0, -0.15]} />
+    <B p={[2.72, 2.52, -1.8]} s={[1.85, 0.035, 2.2]} c="#b6a082" r={1} rot={[0, 0, -0.12]} />
+    {[-2.85, -0.75].map(z => <Tube key={z} a={[1.8, 2.64, z]} b={[3.52, 2.42, z]} r={0.025} c="#827869" />)}
+    <B p={[0, 3.26, 1.7]} s={[0.85, 0.22, 0.65]} c="#a9a595" r={0.8} />
+    <B p={[0, 3.16, 1.7]} s={[0.66, 0.04, 0.46]} c="#514d43" r={0.85} />
+    <Tube a={[0.8, 3.2, 3.8]} b={[0.8, 4.65, 3.8]} r={0.02} c="#706d61" />
+    {[-0.35, 0.15, 0.65].map(x => <Tube key={x} a={[x, 4.5, 3.8]} b={[x + 0.8, 4.5, 3.8]} r={0.012} c="#706d61" />)}
   </group>;
 }
 function Windmill() {
   const blades = useRef();
-  useFrame((_, dt) => { if (blades.current) blades.current.rotation.z += dt * 1.6; });
+  useFrame((_, dt) => { if (blades.current) blades.current.rotation.z += dt * 0.65; });
   return <group position={[18, 0, 14]}>
-    {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z], i) => <Cyl key={i} p={[x * 0.6, 4.5, z * 0.6]} a={[0.05, 0.05, 9.1, 5]} c="#7c8083" m={0.6} rot={[z * -0.06, 0, x * 0.06]} />)}
-    <group position={[0, 9.1, 0.3]}><group ref={blades}>{Array.from({ length: 12 }, (_, i) => <B key={i} p={[Math.cos(i * 0.52) * 0.9, Math.sin(i * 0.52) * 0.9, 0]} s={[1.5, 0.22, 0.02]} c="#9aa0a3" m={0.5} rot={[0, 0.3, i * 0.52]} />)}</group></group>
-    <B p={[0, 9.1, -0.7]} s={[0.05, 0.6, 1.6]} c="#8a8d90" m={0.5} />
+    {[-1, 1].flatMap(x => [-1, 1].map(z => <group key={`${x}:${z}`}>
+      <Tube a={[x * 0.95, 0.12, z * 0.95]} b={[x * 0.27, 8.9, z * 0.27]} r={0.055} c="#765b43" />
+      <B p={[x * 0.95, 0.07, z * 0.95]} s={[0.32, 0.14, 0.32]} c="#9c8e78" r={1} />
+    </group>))}
+    {[1.25, 3, 4.75, 6.5, 8.2].map(y => { const q = 0.95 - y * 0.075; return <group key={y}>
+      {[-1, 1].map(s => <group key={s}>
+        <Tube a={[-q, y, s * q]} b={[q, y, s * q]} r={0.034} c="#775b42" />
+        <Tube a={[s * q, y, -q]} b={[s * q, y, q]} r={0.034} c="#775b42" />
+      </group>)}
+    </group>; })}
+    {[-1, 1].map(s => <group key={s}>
+      <Tube a={[-0.85, 1.25, s * 0.85]} b={[0.6, 4.75, s * 0.6]} r={0.03} c="#6c5540" />
+      <Tube a={[0.85, 1.25, s * 0.85]} b={[-0.6, 4.75, s * 0.6]} r={0.03} c="#6c5540" />
+      <Tube a={[s * 0.6, 4.75, -0.6]} b={[s * 0.42, 6.5, 0.42]} r={0.027} c="#6c5540" />
+      <Tube a={[s * 0.6, 4.75, 0.6]} b={[s * 0.42, 6.5, -0.42]} r={0.027} c="#6c5540" />
+    </group>)}
+    <Cyl p={[0, 9.0, 0]} a={[0.09, 0.09, 1.2, 12]} c="#675d4c" m={0.55} rot={[Math.PI / 2, 0, 0]} />
+    <group position={[0, 9.05, 0.68]} ref={blades}>
+      {[0.55, 1.65].map(r => <mesh key={r} rotation={[0, 0, 0]}><torusGeometry args={[r, 0.025, 6, 32]} /><M c="#796750" m={0.5} r={0.8} /></mesh>)}
+      {Array.from({ length: 16 }, (_, i) => <group key={i} rotation={[0, 0, i * Math.PI / 8]}>
+        <B p={[0.17, 1.13, 0]} s={[0.32, 1.05, 0.025]} c={i % 4 === 0 ? '#806448' : '#9a7854'} m={0.32} r={0.86} rot={[0.15, 0, -0.12]} />
+        <Tube a={[0, 0.1, 0]} b={[0, 1.7, 0]} r={0.018} c="#5b5145" />
+      </group>)}
+      <Cyl p={[0, 0, 0.05]} a={[0.19, 0.19, 0.15, 16]} c="#665745" m={0.6} rot={[Math.PI / 2, 0, 0]} />
+    </group>
+    <Tube a={[0, 9.05, -0.25]} b={[0, 9.05, -2.1]} r={0.045} c="#695d49" />
+    <mesh position={[0, 9.35, -2.05]} castShadow><bufferGeometry><bufferAttribute attach="attributes-position" args={[new Float32Array([-0.7, -0.28, 0, 0.55, -0.28, 0, 0.42, 0.52, 0]), 3]} /><bufferAttribute attach="attributes-normal" args={[new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3]} /></bufferGeometry><M c="#917153" m={0.28} r={0.88} side={THREE.DoubleSide} /></mesh>
   </group>;
 }
 function Tank({ T }) {
   return <group position={[16, 0, -6]}>
-    <Cyl p={[0, 2.6, 0]} a={[1.5, 1.5, 2.6, 18]} c="#9aa6a2" m={0.5} r={0.6} map={T.steel} />
-    <mesh position={[0, 4.1, 0]} castShadow><coneGeometry args={[1.6, 0.6, 18]} /><M c="#6b7774" m={0.5} r={0.6} /></mesh>
-    {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z], i) => <Cyl key={i} p={[x, 0.65, z]} a={[0.08, 0.08, 1.3, 6]} c="#5e4a36" />)}
+    {/* Timber tower: four posts, crossed bays, and a service platform beneath the tank. */}
+    {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z]) => <group key={`${x}:${z}`}>
+      <B p={[x * 1.12, 2.05, z * 1.12]} s={[0.18, 4.1, 0.18]} c="#69513b" map={T.oldWood} />
+      <B p={[x * 1.12, 0.08, z * 1.12]} s={[0.36, 0.16, 0.36]} c="#8d8271" r={1} />
+    </group>)}
+    {[0.9, 2.4, 3.85].map(y => <group key={y}>
+      <B p={[0, y, -1.12]} s={[2.4, 0.11, 0.12]} c="#725741" map={T.oldWood} />
+      <B p={[0, y, 1.12]} s={[2.4, 0.11, 0.12]} c="#725741" map={T.oldWood} />
+      <B p={[-1.12, y, 0]} s={[0.12, 0.11, 2.4]} c="#725741" map={T.oldWood} />
+      <B p={[1.12, y, 0]} s={[0.12, 0.11, 2.4]} c="#725741" map={T.oldWood} />
+    </group>)}
+    {[-1, 1].map(s => <group key={s}>
+      <Tube a={[-1.08, 0.9, s * 1.12]} b={[1.08, 2.4, s * 1.12]} r={0.055} c="#69513b" map={T.oldWood} />
+      <Tube a={[1.08, 0.9, s * 1.12]} b={[-1.08, 2.4, s * 1.12]} r={0.055} c="#69513b" map={T.oldWood} />
+      <Tube a={[s * 1.12, 2.4, -1.08]} b={[s * 1.12, 3.85, 1.08]} r={0.05} c="#69513b" map={T.oldWood} />
+      <Tube a={[s * 1.12, 2.4, 1.08]} b={[s * 1.12, 3.85, -1.08]} r={0.05} c="#69513b" map={T.oldWood} />
+    </group>)}
+    <B p={[0, 4.12, 0]} s={[3.25, 0.13, 3.25]} c="#68513c" map={T.oldWood} />
+    <Cyl p={[0, 5.48, 0]} a={[1.38, 1.38, 2.55, 28]} c="#a7a193" m={0.35} r={0.88} />
+    {[4.3, 5.05, 5.88, 6.68].map(y => <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[1.39, 0.035, 8, 32]} /><M c="#776f61" m={0.58} r={0.72} /></mesh>)}
+    <mesh position={[0, 6.88, 0]} castShadow><coneGeometry args={[1.4, 0.46, 28]} /><M c="#958c7a" m={0.38} r={0.85} /></mesh>
+    <Cyl p={[0, 7.15, 0]} a={[0.14, 0.14, 0.09, 14]} c="#6d685d" m={0.6} />
+    {[0, 1, 2, 3].map(i => { const a = i * Math.PI / 2; return <group key={i} rotation={[0, a, 0]}>
+      {[4.45, 4.9, 5.35].map(y => <B key={y} p={[0, y, 1.62]} s={[3.25, 0.055, 0.055]} c="#625c50" m={0.55} />)}
+      {[-1.55, 1.55].map(x => <B key={x} p={[x, 4.85, 1.62]} s={[0.055, 0.95, 0.055]} c="#625c50" m={0.55} />)}
+    </group>; })}
+    {[-0.38, 0.38].map(x => <B key={x} p={[x, 2.1, -1.65]} s={[0.055, 4.2, 0.055]} c="#60594d" m={0.55} />)}
+    {Array.from({ length: 13 }, (_, i) => <B key={i} p={[0, 0.32 + i * 0.3, -1.65]} s={[0.8, 0.045, 0.045]} c="#70695a" m={0.5} />)}
   </group>;
 }
 
@@ -132,12 +214,13 @@ function Forecourt() {
 // ---------------- grandpa's #7 desert racer: under a tarp until you pull it off ----------------
 function RaceCar({ T }) {
   useGame();
-  const open = !!game.home.raceCar, left = boxItems('racecar'), wheels = left.some(i => i.kind === 'wheel'), rims = left.some(i => i.kind === 'rim'), shocks = left.some(i => i.kind === 'part');
+  const stage = raceCarStage(), open = stage > 0, left = boxItems('racecar'), wheels = left.some(i => i.kind === 'wheel'), rims = left.some(i => i.kind === 'rim'), shocks = left.some(i => i.kind === 'part');
   const steel = '#4b3a2d', arm = '#3a3330', R = 0.52, L = [[0.92, 1.2], [-0.92, 1.2], [0.92, -1.15], [-0.92, -1.15]];
-  const tb = (a, b, r = 0.03, c = steel) => <Tube a={a} b={b} r={r} c={c} m={0.45} />;
+  const frameWear = useMemo(() => metalTex('#877967', 77), []);
+  const tb = (a, b, r = 0.03, c = steel) => <Tube a={a} b={b} r={r} c={c} m={0.45} map={frameWear} />;
   const hood = Math.atan2(0.25, 1.15), seven = sevenTex(), carRef = useRef();
   return <group position={[RACECAR.lx, RACECAR.ly || 0, RACECAR.lz]} rotation={[0, RACECAR.ry, 0]}>
-    {open ? <mesh position={[-1.7, 0.08, 1.4]} scale={[0.75, 0.16, 0.9]} castShadow><sphereGeometry args={[1, 12, 8]} /><M c="#4f6b86" r={0.95} /></mesh> : <RaceTarp carRef={carRef} R={R} L={L} ck={`${wheels}${rims}${shocks}`} />}
+    {stage === 0 ? <RaceTarp carRef={carRef} R={R} L={L} ck={`${wheels}${rims}${shocks}`} /> : stage === 1 ? <HalfRaceTarp /> : null}
     <JunkPile covered={!open} T={T} />
     <group ref={carRef}><group position={[0, wheels ? 0 : -0.08, 0]}>
       {[-1, 1].map(s => <React.Fragment key={s}>
@@ -160,7 +243,8 @@ function RaceCar({ T }) {
           <Cyl p={[s * 0.76, 0.58, z]} a={[0.05, 0.05, 0.22, 10]} c={arm} m={0.5} />
         </React.Fragment>)}
         {/* the #7 side panel and a seat */}
-        <mesh position={[s * 0.565, 0.73, -0.3]} castShadow><boxGeometry args={[0.02, 0.44, 1.12]} /><meshStandardMaterial map={seven} roughness={0.75} metalness={0.15} /></mesh>
+        <mesh position={[s * 0.565, 0.73, -0.3]} castShadow><boxGeometry args={[0.02, 0.44, 1.12]} /><meshStandardMaterial map={seven} roughness={0.9} metalness={0.08} /></mesh>
+        {[0.28, -0.84].map(z => <mesh key={z} position={[s * 0.584, 0.73, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.012, 0.012, 0.012, 8]} /><M c="#8b8170" m={0.5} /></mesh>)}
         <RoundedBox args={[0.38, 0.12, 0.44]} radius={0.05} smoothness={3} position={[s * 0.23, 0.6, -0.1]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
         <RoundedBox args={[0.38, 0.6, 0.12]} radius={0.05} smoothness={3} position={[s * 0.23, 0.92, -0.38]} rotation={[-0.15, 0, 0]} castShadow><M c="#2a2522" r={0.9} /></RoundedBox>
       </React.Fragment>)}
@@ -169,7 +253,7 @@ function RaceCar({ T }) {
       {tb([-0.55, 0.95, 0.55], [0.55, 0.95, 0.55])}{tb([-0.45, 0.7, 1.7], [0.45, 0.7, 1.7])}{tb([-0.5, 0.78, -1.65], [0.5, 0.78, -1.65])}
       {tb([-0.56, 1.16, 1.2], [0.56, 1.16, 1.2], 0.026)}{tb([-0.56, 1.16, -1.15], [0.56, 1.16, -1.15], 0.026)}
       {/* sloped #7 hood, skid plate */}
-      <mesh position={[0, 0.84, 1.125]} rotation={[hood, 0, 0]} castShadow><boxGeometry args={[1.0, 0.02, 1.18]} /><meshStandardMaterial map={seven} roughness={0.75} metalness={0.15} /></mesh>
+      <mesh position={[0, 0.84, 1.125]} rotation={[hood, 0, 0]} castShadow><boxGeometry args={[1.0, 0.02, 1.18]} /><meshStandardMaterial map={seven} roughness={0.9} metalness={0.08} /></mesh>
       <B p={[0, 0.5, 1.82]} s={[0.6, 0.3, 0.03]} c="#5a4636" m={0.5} r={0.8} rot={[-0.3, 0, 0]} />
       {/* roof spotlights */}
       {[-0.24, 0.24].map(x => <group key={x} position={[x, 1.55, 0.06]}>
@@ -227,6 +311,25 @@ function JunkPile({ covered, T }) {
  * stretched cloth under light gravity that can never pass through that surface; its outer edge lies on the ground.
  */
 let TARP_CACHE = null;   // { key, geo }: the drape is solved once per car state, not every time the world remounts
+function HalfRaceTarp() {
+  const geo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(2.3, 2.6, 24, 28);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const across = (p.getX(i) + 1.15) / 2.3, along = (p.getY(i) + 1.3) / 2.6;
+      const x = -0.18 + across * 1.9;
+      const z = -2.25 + along * 2.2;
+      const fall = THREE.MathUtils.smoothstep(across, 0.28, 0.86);
+      const y = Math.max(0.025, 1.44 - fall * 1.38 + 0.055 * Math.sin(along * 20 + across * 5) * (0.3 + fall));
+      p.setXYZ(i, x, y, z);
+    }
+    g.computeVertexNormals();
+    return g;
+  }, []);
+  const tex = useMemo(tarpTex, []);
+  useEffect(() => () => geo.dispose(), [geo]);
+  return <mesh geometry={geo} castShadow receiveShadow><meshStandardMaterial map={tex} roughness={0.96} side={THREE.DoubleSide} /></mesh>;
+}
 function RaceTarp({ carRef, R, L, ck }) {
   const [geo, setGeo] = useState(() => TARP_CACHE?.key === ck ? TARP_CACHE.geo : null);
   useEffect(() => {
@@ -293,17 +396,20 @@ let SEVEN = null;
 function sevenTex() {
   if (SEVEN) return SEVEN;
   const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
-  g.fillStyle = '#9a3626'; g.fillRect(0, 0, 512, 256);
-  for (let i = 0; i < 900; i++) { const x = Math.random() * 512, y = Math.random() * 256, r = Math.random() * 7 + 1; g.fillStyle = Math.random() < 0.55 ? 'rgba(70,35,20,' + (Math.random() * 0.35) + ')' : 'rgba(200,120,90,' + (Math.random() * 0.2) + ')'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-  for (let i = 0; i < 60; i++) { g.strokeStyle = 'rgba(215,190,160,' + (Math.random() * 0.35) + ')'; g.lineWidth = 1; g.beginPath(); const x = Math.random() * 512, y = Math.random() * 256; g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 60, y + (Math.random() - 0.5) * 12); g.stroke(); }
+  let seed = 1977; const rand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  g.fillStyle = '#9b3528'; g.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 45; i++) { const x = rand() * 512, y = rand() * 256, r = 12 + rand() * 58, fade = g.createRadialGradient(x, y, 0, x, y, r); fade.addColorStop(0, rand() < 0.5 ? 'rgba(211,143,104,0.28)' : 'rgba(67,35,24,0.28)'); fade.addColorStop(1, 'rgba(67,35,24,0)'); g.fillStyle = fade; g.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 1100; i++) { const x = rand() * 512, y = rand() * 256, r = 0.5 + rand() * 3; g.fillStyle = rand() < 0.52 ? `rgba(55,32,23,${rand() * 0.34})` : `rgba(224,175,131,${rand() * 0.18})`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+  for (let i = 0; i < 90; i++) { g.strokeStyle = `rgba(225,194,158,${rand() * 0.3})`; g.lineWidth = 0.5 + rand() * 2; g.beginPath(); const x = rand() * 512, y = rand() * 256; g.moveTo(x, y); g.lineTo(x + (rand() - 0.5) * 72, y + (rand() - 0.5) * 11); g.stroke(); }
   g.fillStyle = 'rgba(230,215,185,0.92)'; g.font = '900 210px Impact, "Arial Black", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('7', 330, 138);
+  const dust = g.createLinearGradient(0, 0, 0, 256); dust.addColorStop(0, 'rgba(200,174,133,0.08)'); dust.addColorStop(1, 'rgba(93,67,43,0.34)'); g.fillStyle = dust; g.fillRect(0, 0, 512, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return (SEVEN = t);
 }
 const TIRE_FILE = '/models/TIRE_RuggedTextured.glb', SHOCK_FILE = '/models/SHOCK_001_Coilover.glb';
 /** Grandpa's beadlock rim + rugged tire (same assets as the Bug's wheel sets), each hidden when you take it */
 function RaceWheel({ x, z, R, tire, rim }) {
   const { scene } = useGLTF(TIRE_FILE);
-  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); o.material.metalness = 0; } }); return c; }, [scene]);
+  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); o.material.metalness = 0; applyWeathering(o.material, 'rubber', o, c); } }); return c; }, [scene]);
   const geo = useMemo(() => rimGeometry('beadlock'), []);
   return <group position={[x, R, z]} rotation={[0, x > 0 ? Math.PI / 2 : -Math.PI / 2, 0]} scale={R / 0.475}>
     {tire && <primitive object={obj} />}
@@ -355,10 +461,20 @@ function CarLiftModel() {
 }
 function BenchModel({ T }) {
   return <>
-    <P p={[0, 0.92, 0]} s={[5.2, 0.12, 1.1]} map={T.oldWood} />
-    {[-2.4, 2.4].map(x => <P key={x} p={[x, 0.45, 0]} s={[0.12, 0.9, 1]} c="#3b3f42" m={0.5} />)}
-    <P p={[0, 0.35, 0]} s={[5, 0.7, 0.9]} c="#a33a2e" r={0.6} m={0.3} />
-    {[-1.6, -0.4, 0.8].map(x => <P key={x} p={[x, 0.55, 0.46]} s={[0.4, 0.03, 0.02]} c="#cfd2d4" m={0.8} r={0.3} />)}
+    <P p={[0, 0.92, 0]} s={[5.2, 0.12, 1.1]} map={T.oldWood} c="#c1a27b" r={0.9} />
+    <P p={[0, 0.84, 0.52]} s={[5.2, 0.035, 0.045]} c="#584434" r={0.9} />
+    {[-2.42, 2.42].map(x => <React.Fragment key={x}>
+      <P p={[x, 0.43, 0]} s={[0.13, 0.86, 1]} c="#353b3d" m={0.45} r={0.7} />
+      <P p={[x, 0.04, 0]} s={[0.22, 0.08, 1.08]} c="#292b2b" m={0.5} />
+    </React.Fragment>)}
+    <P p={[0, 0.32, -0.04]} s={[4.8, 0.6, 0.75]} c="#9f3229" map={T.red} r={0.72} m={0.2} />
+    {[-1.62, 0, 1.62].map(x => <group key={x}>
+      <P p={[x, 0.54, 0.39]} s={[1.53, 0.22, 0.035]} c="#aa392e" map={T.red} r={0.7} m={0.2} />
+      <P p={[x, 0.43, 0.415]} s={[1.53, 0.018, 0.012]} c="#4a1e19" r={0.9} />
+      <P p={[x, 0.54, 0.425]} s={[0.42, 0.035, 0.025]} c="#b8b6a9" m={0.55} r={0.55} />
+    </group>)}
+    <P p={[0, 0.11, -0.02]} s={[4.7, 0.055, 0.8]} c="#444341" m={0.35} r={0.85} />
+    <P p={[-1.9, 1.01, 0.22]} s={[0.42, 0.05, 0.3]} c="#55473a" map={T.oldWood} r={0.95} rot={[0, 0.2, 0]} />
   </>;
 }
 /** a tool on its hook: a wrench is a bar with a ring, the floor jack a little red block with a handle */
@@ -391,19 +507,34 @@ export function PropModel({ id, T, mat, uid }) {
     case 'floodlight': return <><C p={[0, 3, 0]} a={[0.07, 0.11, 6, 10]} c="#7c8083" m={0.6} r={0.4} /><P p={[0, 6.05, 0.15]} s={[0.9, 0.08, 0.1]} c="#555" m={0.5} />{[-0.3, 0.3].map(x => <group key={x} position={[x, 6.05, 0.3]} rotation={[0.5, 0, 0]}><P p={[0, 0, 0]} s={[0.38, 0.3, 0.16]} c="#3a3d40" m={0.5} /><mesh position={[0, 0, 0.085]}><planeGeometry args={[0.32, 0.24]} /><meshStandardMaterial color="#fff6dc" emissive="#fff2d0" emissiveIntensity={2.5} /></mesh></group>)}<pointLight position={[0, 5.6, 1.2]} intensity={70} distance={28} decay={1.5} color="#fff2d6" /></>;
     case 'yardRack': return <>{[-1, 1].flatMap(x => [-0.4, 0.4].map(z => <P key={x + '' + z} p={[x, 1.1, z]} s={[0.07, 2.2, 0.07]} c="#2f5f9e" m={0.5} r={0.5} />))}{[0.3, 1.1, 1.9].map(y => <P key={y} p={[0, y, 0]} s={[2.1, 0.05, 0.9]} c="#d9962f" m={0.4} r={0.5} />)}{[[-0.6, 0.48, 0.5], [0.4, 0.5, 0.6], [-0.3, 1.3, 0.55], [0.6, 1.26, 0.4]].map(([x, y, w], i) => <P key={'b' + i} p={[x, y, 0]} s={[w, 0.32, 0.5]} c={['#b58b55', '#a9854f', '#c29a62'][i % 3]} r={1} />)}</>;
     case 'shelfTires': case 'shelfSupplies': return <>
-      {[-1.15, 1.15].flatMap(x => [-0.35, 0.35].map(z => <P key={x + '' + z} p={[x, 1.4, z]} s={[0.07, 2.8, 0.07]} c="#d9962f" m={0.4} r={0.5} />))}
-      {[0.55, 1.45, 2.35].map(y => <P key={y} p={[0, y, 0]} s={[2.4, 0.06, 0.8]} c="#4a4f52" m={0.5} r={0.5} />)}
+      {[-1.15, 1.15].flatMap(x => [-0.35, 0.35].map(z => <group key={x + '' + z}>
+        <P p={[x, 1.4, z]} s={[0.075, 2.8, 0.075]} c="#8b672d" m={0.48} r={0.76} />
+        <P p={[x, 0.025, z]} s={[0.14, 0.05, 0.14]} c="#34312b" m={0.5} />
+        {[0.55, 1.45, 2.35].map(y => <P key={y} p={[x, y, z]} s={[0.16, 0.07, 0.16]} c="#55432c" m={0.6} />)}
+      </group>))}
+      {[0.55, 1.45, 2.35].map(y => <group key={y}>
+        <P p={[0, y, 0]} s={[2.4, 0.055, 0.8]} c="#4a4b47" m={0.52} r={0.8} />
+        {[-0.4, 0.4].map(z => <P key={z} p={[0, y + 0.025, z]} s={[2.4, 0.08, 0.035]} c="#655843" m={0.48} r={0.82} />)}
+      </group>)}
+      {[-0.35, 0.35].map(z => <P key={z} p={[0, 1.4, z]} s={[2.3, 0.045, 0.045]} c="#61513a" m={0.5} rot={[0, 0, z > 0 ? 0.78 : -0.78]} />)}
       {id === 'shelfTires'
         ? null   // Stage 4c: the shelving starts empty; real tires you set on it are drawn by placement/GarageCargo.jsx
-        : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.4], ['paint', 2.38, 0.6]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
+        : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.7], ['filter', 2.38, -0.05], ['paint', 2.38, 0.65], ['spray', 1.48, 0.95]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
     </>;
     case 'workbench': return <BenchModel T={T} />;
     case 'carLift': return <CarLiftModel />;
     case 'pegboard': return <PegboardModel uid={uid} />;
     case 'compressor': return <>
-      <C p={[0, 0.3, 0]} a={[0.22, 0.22, 0.9, 18]} c="#b8302a" m={0.4} r={0.45} rot={[0, 0, Math.PI / 2]} />
-      <P p={[0.1, 0.62, 0]} s={[0.35, 0.22, 0.25]} c="#2a2a2a" m={0.5} /><P p={[-0.3, 0.6, 0]} s={[0.1, 0.18, 0.1]} c="#cfd2d4" m={0.8} r={0.3} />
-      {[-0.35, 0.35].map(x => <C key={x} p={[x, 0.06, 0]} a={[0.06, 0.06, 0.04, 12]} c="#1a1a1a" rot={[Math.PI / 2, 0, 0]} />)}
+      <C p={[0, 0.3, 0]} a={[0.22, 0.22, 0.9, 24]} c="#873e32" m={0.42} r={0.82} rot={[0, 0, Math.PI / 2]} />
+      {[-0.34, 0.34].map(x => <C key={x} p={[x, 0.3, 0]} a={[0.226, 0.226, 0.018, 24]} c="#655448" m={0.58} r={0.7} rot={[0, 0, Math.PI / 2]} />)}
+      <P p={[0.1, 0.62, 0]} s={[0.35, 0.22, 0.25]} c="#292b29" m={0.42} r={0.78} />
+      <P p={[0.1, 0.75, 0]} s={[0.28, 0.035, 0.2]} c="#a19b87" m={0.6} r={0.7} />
+      <P p={[-0.3, 0.57, 0]} s={[0.12, 0.16, 0.1]} c="#757a77" m={0.7} r={0.55} />
+      <C p={[-0.3, 0.7, 0]} a={[0.07, 0.07, 0.025, 20]} c="#ccc9b9" m={0.45} r={0.45} />
+      <P p={[-0.3, 0.715, 0.014]} s={[0.003, 0.04, 0.003]} c="#242724" rot={[0, 0, 0.6]} cast={false} />
+      <C p={[-0.13, 0.55, 0]} a={[0.025, 0.025, 0.13, 12]} c="#6d6d62" m={0.65} r={0.55} rot={[0, 0, Math.PI / 2]} />
+      <P p={[-0.42, 0.13, 0]} s={[0.16, 0.12, 0.3]} c="#524e44" m={0.5} />
+      {[[-0.35, 0], [0.35, 0]].map(([x, z]) => <C key={x} p={[x, 0.065, z]} a={[0.085, 0.085, 0.05, 16]} c="#252625" rot={[Math.PI / 2, 0, 0]} />)}
     </>;
     case 'engineOnStand': return <>
       <P p={[0, 0.05, 0]} s={[0.9, 0.06, 0.08]} c="#2c4f7a" m={0.5} /><P p={[0, 0.05, 0.25]} s={[0.08, 0.06, 0.6]} c="#2c4f7a" m={0.5} />
