@@ -38,6 +38,7 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - 4: ordering, map marker, Orders app and a visual delivery truck are done (truck has no collision or sound, follows the first order only).
 - Camera/Feed: photos with place, coordinates and facing; purple map dots; Print needs a $120 photo printer (Internet > Gear, PROPOSAL).
 - 5: built and deployed, NOT yet tested signed-in. Clerk login (phone > Save > Account), `/api/save` (Clerk-checked, private Blob, main + 3 backups), Upload/Download buttons with a question before any overwrite. Env vars set on Vercel production (Clerk keys, Blob token). Not built: automatic upload on save; preview-deploy env vars; sign-in method choices (needs the Clerk app claimed). A spare empty Blob store `projectbaja-saves2` should be deleted in Vercel.
+- Controls (Nov 9, PROPOSAL): E picks loose items into the pack, left click holds them, right click puts down (G retired). Hold left click bolts the held part on, hold right click takes the aimed part off (E/R retired for this). At the Bug, E only acts on what the crosshair is on: door handle toggles that door, a seat sits, hood/engine lid toggle (Q retired). Box sizes in src/game/carAim.js are guesses to tune by hand.
 - Title screen: logo reads PROJECT:BAJA, logo and menu at bottom centre.
 - Grandpa's #7 in the garage now uses a Meshy body (rough, PROPOSAL look). Art and models are on hold; making it drivable is parked.
 
