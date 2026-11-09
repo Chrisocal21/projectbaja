@@ -370,13 +370,19 @@ function BenchModel({ T }) {
 const PegTool = ({ tool }) => tool === 'jack'
   ? <group><P p={[0, 0, 0]} s={[0.5, 0.18, 0.1]} c="#b8302a" m={0.4} r={0.5} /><P p={[0.3, -0.2, 0]} s={[0.04, 0.4, 0.04]} c="#c9ccd0" m={0.7} r={0.35} /></group>
   : <group><P p={[0, -0.12, 0]} s={[0.04, 0.4, 0.02]} c="#c9ccd0" m={0.7} r={0.35} /><mesh position={[0, 0.1, 0]}><torusGeometry args={[0.05, 0.016, 6, 14]} /><M c="#c9ccd0" m={0.8} r={0.3} /></mesh></group>;
+/** empty wrench slot: the wrench's own outline (shaft box + ring) drawn as thin pale lines */
+const OUT = (() => { const pts = [], box = [[-0.03, -0.34], [0.03, -0.34], [0.03, 0.1], [-0.03, 0.1], [-0.03, -0.34]], r = 0.075;
+  for (let i = 0; i < 4; i++) pts.push(new THREE.Vector3(...box[i], 0), new THREE.Vector3(...box[i + 1], 0));
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2, b = (i + 1) / 20 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, 0.18 + Math.sin(a) * r, 0), new THREE.Vector3(Math.cos(b) * r, 0.18 + Math.sin(b) * r, 0)); }
+  return new THREE.BufferGeometry().setFromPoints(pts); })();
+const PegOutline = () => <lineSegments geometry={OUT}><lineBasicMaterial color="#e8d9a0" transparent opacity={0.7} /></lineSegments>;
 function PegboardModel({ uid }) {
   const peg = useMemo(() => pegTex(), []), items = uid ? game.items : [];
   return <>
     <mesh position={[0, PEG.y, 0]}><boxGeometry args={[PEG.w, PEG.h, 0.04]} /><meshStandardMaterial map={peg} roughness={0.85} /></mesh>
     {pegState(items, uid).map(({ slot, item }) => <group key={slot.id} position={[slot.x, slot.y, 0.06]}>
       {item ? <PegTool tool={item.id} />   // present: the tool itself
-        : <mesh><planeGeometry args={[slot.tool === 'jack' ? 0.5 : 0.1, slot.tool === 'jack' ? 0.2 : 0.5]} /><meshBasicMaterial color="#e8d9a0" transparent opacity={0.45} depthWrite={false} /></mesh>}   {/* empty: an outline-ish ghost patch */}
+        : <PegOutline />}   {/* empty: an outline-ish ghost patch */}
     </group>)}
   </>;
 }
