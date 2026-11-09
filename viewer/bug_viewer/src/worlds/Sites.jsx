@@ -148,8 +148,7 @@ function Garage() {
     <mesh position={[1.4, 0.123, -1.4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.8, 20]} /><meshBasicMaterial color="#17120d" transparent opacity={0.3} depthWrite={false} /></mesh>
     {[-3.5, 3.5].map(x => <mesh key={x} position={[x, H - 0.3, 0]}><boxGeometry args={[0.18, 0.08, 6.2]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>)}
     <pointLight position={[0, H - 0.8, 0]} intensity={power ? 32 : 6} distance={20} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />
-    {/* grandpa's letter on the bench */}
-    <mesh position={[-2.6, 0.985, -5.25]} rotation={[-Math.PI / 2, 0, 0.2]}><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} /></mesh>
+    {/* grandpa's letter is a normal item now (game/home.js ensureLetterItem) */}
     {/* the main breaker panel (press E) */}
     <Box p={[w - 0.16, 1.5, -1.2]} s={[0.12, 0.7, 0.5]} color="#5b6266" metal={0.5} rough={0.5} />
     <Box p={[w - 0.23, 1.55, -1.2]} s={[0.04, 0.12, 0.05]} color={power ? '#3fbf5a' : '#c8372b'} emissive={power ? '#3fbf5a' : '#c8372b'} ei={0.8} cast={false} />

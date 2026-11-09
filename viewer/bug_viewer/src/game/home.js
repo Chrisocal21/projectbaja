@@ -214,6 +214,16 @@ export function ensureShopTires() {
   }
   save();
 }
+/** grandpa's letter is a normal item now (once per save): it lies on the workbench where the old fixed letter was. Skipped if one already exists. */
+export function ensureLetterItem() {
+  if ((game.home.letterV || 0) >= 1) return;
+  game.home = { ...game.home, letterV: 1 };
+  if (!game.items.some(i => i.kind === 'memento' && i.id === 'letter')) {
+    const [x, z] = toWorld(G, -2.6, -5.25);
+    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), kind: 'memento', id: 'letter', loc: 'world', x, z, y: 0.98, ry: G.rot + 0.2 });
+  }
+  save();
+}
 /** pieces built before the grid was aligned to the garage (grid version 1) move 1 m along x, once, so they sit on the new grid */
 export function migrateGrid() {
   if (game.home.gridV >= 2) return;

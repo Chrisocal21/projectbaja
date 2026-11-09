@@ -14,15 +14,17 @@ import { wheelSets } from '../catalog/index.js';
 registerTireSizes(Object.fromEntries(wheelSets.map(w => [w.id, tireSizeOf(w)])));   // loose tires are as big as their wheel set
 
 export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor jack', size: 3 } };
+/** keepsakes: normal items you can carry, shelve and (later) hang on the wall. The text lives in home.js LETTER. */
+export const MEMENTOS = { letter: { name: "Walt's letter", size: 1 } };
 const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'supply' ? 1 : kind === 'fab' ? 3 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'fab' ? 3 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
 export const nameOfItem = it => withTread(baseName(it), it);
-const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
