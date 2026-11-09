@@ -34,7 +34,7 @@ export const garageClean = () => JUNK.filter(j => j.inside).every(j => isCleared
 export function clearJunk(id) {
   const j = JUNK.find(x => x.id === id); if (!j || isCleared(id)) return;
   game.home = { ...game.home, cleared: [...game.home.cleared, id] };
-  if (j.cash) addCash(j.cash);
+  if (j.cash) addCash(j.cash, 'Cleared junk');
   if (j.scrap) addScrap(j.scrap, true);
   const left = JUNK.filter(x => !isCleared(x.id)).length;
   const tail = !left ? ' The place is finally clean.' : j.inside && garageClean() ? ' Garage floor is clear — press B to start fixing the place up.' : ` ${left} piles left.`;
@@ -177,12 +177,12 @@ export function placeProp(id, x, z, ry, mat) {
   const item = buildById[id], why = placeWhy(item, x, z, false, ry, mat); if (why) { say(why); return false; }
   if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
     const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
-    const free = creative(); if (!free) addCash(-item.price);
+    const free = creative(); if (!free) addCash(-item.price, `Built: ${item.name}`);
     game.home = { ...game.home, openings: [...openingKeys(), seg.key], ...(free ? { freeOpenings: [...(game.home.freeOpenings || []), seg.key] } : {}) }; game.propsV = (game.propsV || 0) + 1; save();
     say(`Cut a doorway through the garage's ${seg.wall === 'R' ? 'right' : 'back'} wall (${free ? 'creative: free' : `−$${item.price}`})`); return true;
   }
   const m = item.struct ? (mat || DEFAULT_MAT) : undefined, price = item.struct ? piecePrice(id, m) : item.price;
-  const free = creative(); if (!free) addCash(-price);
+  const free = creative(); if (!free) addCash(-price, `Built: ${item.name}`);
   game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : {}) }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (${free ? 'creative: free' : `−$${price}`})`); return true;
 }
@@ -196,7 +196,7 @@ export function nearestOpening(x, z) {
 export function closeOpening(key) {
   const wasFree = (game.home.freeOpenings || []).includes(key);
   game.home = { ...game.home, openings: openingKeys().filter(k => k !== key), freeOpenings: (game.home.freeOpenings || []).filter(k => k !== key) }; game.propsV = (game.propsV || 0) + 1;
-  const back = wasFree ? 0 : OPENING_PRICE; addCash(back); save(); say(`Closed the doorway (+$${back})`);
+  const back = wasFree ? 0 : OPENING_PRICE; addCash(back, 'Doorway refund'); save(); say(`Closed the doorway (+$${back})`);
 }
 /** Walt's own fixtures: you can move them, never scrap them (nothing of the inherited garage gets erased).
  *  Batched by when each batch was added, so old saves pick up new batches without re-seeding what's already there. */
@@ -296,7 +296,7 @@ export function removeProp(uidN) {
   }
   dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p);
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
-  game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
+  game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back, 'Took down a prop (refund)'); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
 let cache = { v: -1, list: [] };
 /** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
@@ -387,7 +387,7 @@ export const trailerHas = id => !!game.home.trailer?.includes(id);
 export function upgradeTrailer(id) {
   const u = TRAILER_UPGRADES.find(x => x.id === id); if (!u || trailerHas(id)) return;
   if (game.cash < u.price) return say('Not enough cash.');
-  addCash(-u.price); game.home = { ...game.home, trailer: [...(game.home.trailer || []), id] }; save(); say(`Trailer: ${u.name.toLowerCase()} — done.`);
+  addCash(-u.price, `Trailer: ${u.name}`); game.home = { ...game.home, trailer: [...(game.home.trailer || []), id] }; save(); say(`Trailer: ${u.name.toLowerCase()} — done.`);
 }
 export function sleep() {
   if (!trailerHas('roof')) return say('The roof leaks right onto the bed. Patch it first.');

@@ -19,7 +19,7 @@ const ANNEX_DOOR = 'OW3';   // openings.js segment for the office annex's doorwa
 export function buyUpgrade(id) {
   const u = upgradeById[id], why = upgradeWhy(id); if (why) { say(why); return false; }
   const level = upgradeLevel(id), price = nextPrice(id), free = creative();
-  if (!free) addCash(-price);
+  if (!free) addCash(-price, 'Garage upgrade');
   const openAnnex = id === 'office' ? { openings: [...new Set([...(game.home.openings || []), ANNEX_DOOR])] } : {};
   game.home = { ...game.home, upgrades: { ...(game.home.upgrades || {}), [id]: level + 1 }, ...openAnnex };
   if (id === 'office') game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)

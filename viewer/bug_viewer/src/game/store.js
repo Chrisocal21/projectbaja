@@ -131,7 +131,7 @@ export function catalogFor(bodyId) {
 export function openCrate(bodyId) {
   const c = catalogFor(bodyId), pool = [];
   for (const k of ['part', 'wheel', 'rim']) for (const it of c[k]) if (!game.owned.has(itemKey(k, it.id))) pool.push([k, it.id]);
-  if (!pool.length || Math.random() < 0.3) { const n = 100 + Math.floor(Math.random() * 4) * 50; addCash(n); say(`+$${n} cash`); return; }
+  if (!pool.length || Math.random() < 0.3) { const n = 100 + Math.floor(Math.random() * 4) * 50; addCash(n, 'Found cash'); say(`+$${n} cash`); return; }
   const [k, id] = pool[Math.floor(Math.random() * pool.length)];
   grant(k, id); say(`Found: ${nameOf(k, id, bodyId)}${game.unlockAll ? '' : ' — equip it in Customize'}`);
 }
