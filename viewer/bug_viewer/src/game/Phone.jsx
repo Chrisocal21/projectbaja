@@ -1,6 +1,6 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
-import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
+import { AccountBox } from './CloudBox.jsx';
 import React, { useState } from 'react';
 import { game, useGame, save, say, addCash, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay } from './orders.js';
@@ -140,6 +140,3 @@ const clockLabel = h => clockText(h);
 
 const PRINTER_PRICE = 120;   // PROPOSAL
 function buyPrinter() { if (game.dev) return say('Buying is off in test sessions.'); if (game.cash < PRINTER_PRICE) return say(`Not enough cash ($${PRINTER_PRICE}).`); addCash(-PRINTER_PRICE, 'Bought: photo printer'); game.home = { ...game.home, printer: true }; save(); say('Bought a photo printer. You can print photos from the Camera feed.'); }
-
-/** optional account (Clerk). Guests keep saving on this device; signing in is for cloud saves later. */
-function AccountBox() { return <div style={{ margin: '8px 0' }}><small>Account (optional)</small><div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}><Show when="signed-out"><SignInButton mode="modal"><button>Sign in</button></SignInButton><SignUpButton mode="modal"><button>Sign up</button></SignUpButton></Show><Show when="signed-in"><UserButton /></Show></div></div>; }

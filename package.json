@@ -1,0 +1,9 @@
+{
+  "name": "projectbaja-api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@clerk/backend": "^2.0.0",
+    "@vercel/blob": "^2.0.0"
+  }
+}

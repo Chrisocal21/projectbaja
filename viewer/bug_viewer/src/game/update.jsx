@@ -5,7 +5,7 @@ import { validateImport, parseVersionFile, isNewRelease, exportFilename } from '
 import { parseSave } from './saveFormat.js';
 
 export const BUILD_ID = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
-const FLAG = 'baja-resume';
+export const FLAG = 'baja-resume';
 const fake = () => { try { return /[?&]fakeupdate/.test(location.search); } catch { return false; } };
 
 /** poll /version.json (never in dev, unless ?fakeupdate); sets game.updateReady, never reloads by itself */
