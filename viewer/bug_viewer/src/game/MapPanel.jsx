@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { game, useGame } from './store.js';
-import { SIZE, HALF, surface, height, ROADS, TRAILS, SITES, BIOMES, BIO, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
+import { MAP_SIZE as SIZE } from '../worlds/world.js';
+import { surface, height, ROADS, TRAILS, SITES, BIOMES, BIO, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
 import { standingVehicles, vehicleType } from './fleet.js';
 import { OFFICE, CAMPER } from '../worlds/office.js';
 import { worldToMap, arrowRot, siteCleared } from './mapmath.js';
@@ -9,7 +10,7 @@ import { containers, spots } from './loot.js';
 import { SCRAP_HEAPS } from './home.js';
 
 /** the county drawn once (surface colours + hill shading + roads); markers are drawn on top every time the map opens */
-const PX = 640, STEP = SIZE / PX * 1.25;
+const HALF = SIZE / 2, PX = 640, STEP = SIZE / PX * 1.25;
 let base = null;
 function baseMap() {
   if (base) return base;

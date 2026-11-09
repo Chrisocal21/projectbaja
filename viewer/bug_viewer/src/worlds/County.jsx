@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+import { HM_SIZE } from './world.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
 import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld } from './county.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -59,7 +60,7 @@ function tileGeometry(ix, iz, seg) {
 
 function Terrain() {
   const group = useRef(), { camera } = useThree();
-  const mat = useMemo(() => terrainMaterial({ size: SIZE, half: HALF }), []);
+  const mat = useMemo(() => terrainMaterial({ size: HM_SIZE, half: HM_SIZE / 2 }), []);
   const tiles = useMemo(() => {
     const out = [];
     for (let iz = 0; iz < NT; iz++) for (let ix = 0; ix < NT; ix++) {
@@ -150,7 +151,7 @@ function Scrub() {
   const { bushes, yuccas } = useMemo(() => {
     const r = rnd(97), b = [], y = [];
     for (let t = 0; b.length < 4200 && t < 120000; t++) {
-      const x = (r() - 0.5) * (SIZE - 200), z = (r() - 0.5) * (SIZE - 200); if (isRoad(x, z) || Math.hypot(x, z) < 40) continue;
+      const x = (r() - 0.5) * (HM_SIZE - 200), z = (r() - 0.5) * (HM_SIZE - 200); if (isRoad(x, z) || Math.hypot(x, z) < 40) continue;
       const m = biomeMasks(x, z); if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.7 || m.town > 0.6 || baseHeight(x, z) > 40 || (m.dunes > 0.5 && r() < 0.9)) continue;
       if (Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + 4)) continue;
       (r() < 0.07 && m.canyon < 0.3 ? y : b).push([x, z, 0.4 + r() * 0.9, r(), m.farm]);

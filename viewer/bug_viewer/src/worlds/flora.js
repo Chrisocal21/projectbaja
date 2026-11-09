@@ -1,7 +1,8 @@
 // Where the trees and plants grow in Baja County (pure data, deterministic). Models: public/models/ENV_Trees.glb + ENV_Plants.glb
 // (assets/pipeline/export_plants.py). Trees: shade around the farm, grandpa's yard, Dry Wells, a canyon spring and the low washes.
 // Plants: dead grass + grass bushes over the scrub, ferns and nettles in the shade of the farm and the canyon spring.
-import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, SIZE, ROAD_BY, TOWN_D } from './county.js';
+import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, ROAD_BY, TOWN_D } from './county.js';
+import { HM_SIZE } from './world.js';   // scatter stays in the original 6 km square (new regions scatter via biomes/)
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const clearOf = (x, z, pad) => !onCore(x, z) && !onCore(x + 2, z) && !onCore(x - 2, z) && !onCore(x, z + 2) && !onCore(x, z - 2) && !Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + pad);
@@ -20,7 +21,7 @@ for (let x = 470; x <= 880; x += 34) for (const z of [289, 312]) { const wx = x 
 for (let i = 0; i < 9; i++) { const a = i * 0.7, d = 14 + r() * 16; T(SITES.shack1.x + Math.cos(a) * d, SITES.shack1.z + Math.sin(a) * d, 1.5); }
 // lone green trees where water collects: the bottoms of the washes
 for (let t = 0, n = 0; n < 110 && t < 60000; t++) {
-  const x = (r() - 0.5) * (SIZE - 800), z = (r() - 0.5) * (SIZE - 800), m = biomeMasks(x, z);
+  const x = (r() - 0.5) * (HM_SIZE - 800), z = (r() - 0.5) * (HM_SIZE - 800), m = biomeMasks(x, z);
   if (m.bio > 0.05 || m.lake > 0.1 || m.dunes > 0.2 || m.pg > 0.3 || m.town > 0.3 || washAt(x, z) < 0.65 || !clearOf(x, z, 12)) continue;
   T(x, z, 1.4); n++;
 }
@@ -30,7 +31,7 @@ for (let i = TREES.length - 1; i >= 0; i--) if (!clearOf(TREES[i][0], TREES[i][1
 /** [x, z, model 1..7, scale, ry] bare, sun-killed trees: scattered over the scrub, thicker along the washes and in the canyon */
 export const DEAD_TREES = [];
 for (let t = 0; DEAD_TREES.length < 520 && t < 90000; t++) {
-  const x = (r() - 0.5) * (SIZE - 400), z = (r() - 0.5) * (SIZE - 400), m = biomeMasks(x, z), keep = 0.12 + washAt(x, z) * 0.6 + m.canyon * 0.3;
+  const x = (r() - 0.5) * (HM_SIZE - 400), z = (r() - 0.5) * (HM_SIZE - 400), m = biomeMasks(x, z), keep = 0.12 + washAt(x, z) * 0.6 + m.canyon * 0.3;
   if (r() > keep || m.bio > 0.05 || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || !clearOf(x, z, 10)) continue;
   DEAD_TREES.push([x, z, 1 + Math.floor(r() * 7), 0.7 + r() * 0.5, r() * 6.28]);
 }
@@ -38,7 +39,7 @@ for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld
 /** [x, z, scale, ry] desert shrubs */
 export const SHRUBS = [];
 for (let t = 0; SHRUBS.length < 2600 && t < 60000; t++) {
-  const x = (r() - 0.5) * (SIZE - 300), z = (r() - 0.5) * (SIZE - 300), m = biomeMasks(x, z);
+  const x = (r() - 0.5) * (HM_SIZE - 300), z = (r() - 0.5) * (HM_SIZE - 300), m = biomeMasks(x, z);
   if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || !clearOf(x, z, 4)) continue;
   SHRUBS.push([x, z, 0.5 + r() * 0.8, r() * 6.28]);
 }
