@@ -4,7 +4,7 @@ One page that says where everything stands. Written because work had spread acro
 
 ## 0. FOCUS (Nov 8, Chris): main game only. Dev testing tools (Build Sandbox, Placement Lab) are ON HOLD; do not extend them until Chris says so.
 
-## 1. Where everything lives (all on `main` now)
+## 1. Where everything lives (all on `main` now). NOTE: see GAMEPLAN.md for the current plan; the phone (Esc), update button, saves and two biomes are now live.
 
 | What | Where to open it | State |
 |---|---|---|
@@ -42,7 +42,7 @@ Garage start, breaker, letter, Grandma's Bug and restoration, #7 under the tarp,
 | D2 | **Tow trucks drop people off**; people and tow trucks are visible driving in, on the map, like deliveries | D1 (same "arriving vehicle" system), odd jobs | NPC routines are Phase 3 |
 | D3 | **Familiar faces** (town or neighbours) stop by, check in, get repairs, sometimes bring **photos or objects to hang in the shop** (puzzle pieces about Grandpa) | Story rules (letters, photos, objects), Stage 4 (hang on walls), phone story log | Phase 2–3. Needs a wall-hanging surface in the placement system. Which NPCs say what is UNKNOWN. |
 | D4 | **Barn is checked off** when you take everything out | Small, existing barn + map | Can do now |
-| D5 | **Map is turned around**: it doesn't follow or point the player correctly | Existing map (M) | **Bug fix, do now** |
+| D5 | **Map is turned around**: it doesn't follow or point the player correctly | Existing map (M) | **DONE (8f8ebc7)** |
 | D6 | **Expand the map** beyond Baja County: Baja peninsula, coastal California, high desert Mojave, Arizona, Utah, Mexico | Canon "Living Frontier" (TARGET, Phase 5: streaming beyond the core) | Phase 5. Do D5 first, because a bigger map needs a correct one. |
 | D7 | **Grandpa's cabin** in a snowy high-desert mountain town (Julian / Flagstaff feel): a garage there full of his things, tools, parts, and family and racing history | D3, Vein-style haul (needs truck or trailer), D6 | PROPOSAL, new lore. See section 5. |
 | D8 | **Trailers you can buy**: enclosed and flat bed, towable by the Bug and by a truck | Stage 3 trailer surface, D7 | Towing is Phase 5 in the blueprint. Stage 3 has the data format ready. |
@@ -65,7 +65,7 @@ Nothing below is in [CANON](./CANON.md), so it is **PROPOSED by Chris, not locke
 - **Refund rule.** Settled: canon #024 says 100% refund and the game now refunds 100% (doorway close and furniture sale).
 
 ## 6. Suggested order (PROPOSAL)
-1. **Now, small:** map orientation fix (D5), barn check-off (D4), Build Sandbox: all parts.
+1. **Now, small:** ~~map orientation fix (D5), barn check-off (D4)~~ DONE; Build Sandbox: all parts (ON HOLD).
 2. **Finish Stage 3** (truck bed, roof rack, drive test), plus a real towable trailer (D8) so the format is proven.
 3. **Stage 4:** garage furniture on the grid, with a wall surface for hanging things.
 4. **Phone + PC** (A) with ordering, then **arriving vehicles** (D1, D2, D3).
