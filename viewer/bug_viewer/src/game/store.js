@@ -6,7 +6,7 @@ import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, ri
 
 import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan } from './saveFormat.js';
 
-const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
+export const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
 const notices = [];           // load-time warnings, shown now and again when the story starts (the title may not be up yet)
 /** read + migrate the save. Never throws, never destroys: a bad blob is stashed, a newer one is kept untouched. */
 function loadSave() {
@@ -42,7 +42,7 @@ export const emit = () => game.listeners.forEach(f => f());
 // Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
 let warnedWrite = false;
 const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, job: game.job, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
-const writeSave = () => {
+export const writeSave = () => {
   if (game.dev || game.saveLocked) return;
   try { localStorage.setItem(KEY, JSON.stringify(wrap(buildData()))); warnedWrite = false; }
   catch { if (!warnedWrite) { warnedWrite = true; say('WARNING: the game could not save (storage full or blocked). Your progress is not being kept.'); } }

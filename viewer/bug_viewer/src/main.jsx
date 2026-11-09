@@ -29,6 +29,7 @@ import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
 import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { PhonePanel } from './game/Phone.jsx';
+import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
 import { WALK_START } from './worlds/siteData.js';
 import { spawns as TEST_SPAWNS } from './worlds/testcenter.js';
 import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
@@ -101,6 +102,8 @@ function App() {
   const drive = mode === 'play', pro = drive && play.kind === 'pro', world = play.world;
   const setBuild = next => { if (mode === 'play') game.keepPose = true; setBuildRaw(next); };
   const setPanel = p => { panelRef.current = p; game.paused = p !== null; setPanelState(p); if (p && document.pointerLockElement) document.exitPointerLock(); };
+  // after Save and update / Import: skip the title and land back in the game; one click re-captures the mouse (browsers need a gesture)
+  useEffect(() => { startUpdateWatch(); if (takeResumeFlag()) { startStory(true); setPanel('continue'); } }, []);
   const resume = () => { setPanel(null); try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} };
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
   const startPlay = (kind, w) => { if (w === 'county') game.active = 'bug'; Object.assign(game, { dev: true, onFoot: false, start: w === 'county' ? 'garage' : 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
@@ -351,7 +354,7 @@ function App() {
     </aside>;
 
   const stageEl = <Stage build={build} drive={drive} pro={pro} world={world} hud={hud} wireframe={wireframe} autoRotate={spin} showGrid={grid && mode !== 'title'} resetKey={resetKey} onSelect={setSelected} />;
-  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'wiki' && <WikiPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onNew={() => startStory(false)} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
+  if (mode === 'title') return <div className="full title-bg">{panel === 'settings' && <SettingsPanel onClose={() => setPanel(null)} />}{panel === 'wiki' && <WikiPanel onClose={() => setPanel(null)} />}<TitleScreen onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onNew={() => { if (confirmNewGame()) startStory(false); }} onContinue={() => startStory(true)} onDev={(k, w) => (k === 'garage' ? setMode('garage') : startPlay(k, w))} /></div>;
   if (mode === 'play') return <div className="full">
     {stageEl}
     <LoadingScreen />
@@ -359,6 +362,8 @@ function App() {
     <Crosshair />
     <KeyHints driving={!game.onFoot} pro={pro} cabLabel={body.cabLabel} />
     <HudOverlay />
+    <UpdateToast />
+    {panel === 'continue' && <div className="overlay" onClick={resume} style={{ cursor: 'pointer' }}><div className="card"><h2>Back in the game</h2><p>Click to continue</p></div></div>}
     <Compass />
     {panel !== 'build' && <BuildHud />}
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
