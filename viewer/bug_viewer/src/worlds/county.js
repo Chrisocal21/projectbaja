@@ -71,7 +71,7 @@ const masks = (x, z) => ({
 
 // ---------------- roads (paths first: the terrain is softened along them) ----------------
 const road = (ctrl, kind, closed = false) => ({ path: makePath(ctrl, closed), kind });
-const highway = road([[860, -2960], [820, -2200], [880, -1400], [840, -700], [800, 0], [840, 600], [910, 1400], [860, 2200], [820, 2960], [800, 3600], [830, 4300], [840, 4600]], 'highway');   // Highway 9
+const highway = road([[860, -2960], [820, -2200], [880, -1400], [840, -700], [800, 0], [840, 600], [910, 1400], [860, 2200], [820, 2960], [810, 3350], [700, 3650], [930, 3900], [700, 4150], [900, 4350], [820, 4600]], 'highway');   // past z 3350 the highway winds up the south rim in S-curves (a mountain road, never straight at the slope)   // Highway 9
 /** Highway 9's centre x at a given z (a 10 m lookup table) */
 const HWX = new Float32Array(SIZE / 10 + 1).fill(NaN);
 for (const p of highway.path.pts) { const i = Math.round((p.z + HALF) / 10); if (i >= 0 && i < HWX.length) HWX[i] = p.x; }

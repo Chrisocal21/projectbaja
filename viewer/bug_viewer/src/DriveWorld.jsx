@@ -27,6 +27,7 @@ import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/si
 import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 
 // ---------- terrain ----------
+const STEER_FADE = 0.02;   // was 0.004: at 100 km/h the max wheel angle is about 0.45 rad instead of 0.63 (PROPOSAL, tune by feel)
 const HALF = WORLD / 2 - 6;  // drivable limit
 export { terrainHeight } from './terrain.js';
 
@@ -226,8 +227,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.v = Math.max(-9, Math.min(MAXV * 1.1, st.v));
 
       // --- steering ---
-      const maxSteer = 0.7 / (1 + Math.abs(st.v) * 0.004);   // wheel angle barely fades with speed (so the wheels visibly turn at any speed); the tires + yaw assist decide how much the car can actually use
-      st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * 7);
+      const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);   // wheel angle fades with speed (tighter = less wobble); the tires + yaw assist decide how much the car can actually use
+      st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (7 - Math.min(2.5, Math.abs(st.v) * 0.1)));   // slower to swing at speed
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
       const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu, tmuNow = sf.mu;
