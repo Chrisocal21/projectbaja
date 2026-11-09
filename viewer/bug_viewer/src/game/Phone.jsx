@@ -1,6 +1,7 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
 import { AccountBox } from './CloudBox.jsx';
+import { tempF, feel, skyWord, forecast } from './weatherlogic.js';
 import React, { useState } from 'react';
 import { game, useGame, save, say, addCash, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay } from './orders.js';
@@ -26,7 +27,7 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [camView, setCamView] = useState(false);   // story: null | 'list' | 'letter'
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [wxView, setWxView] = useState(false), [camView, setCamView] = useState(false);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
@@ -34,13 +35,14 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
     { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), real('orders', 'Orders', () => setOrdersView(true)), { key: 'cars', label: 'Car sales', soon: true },
-    real('story', 'Story log', () => setStory('list')), real('camera', 'Camera', () => setCamView(true)), { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
+    real('story', 'Story log', () => setStory('list')), real('camera', 'Camera', () => setCamView(true)), { key: 'music', label: 'Radio', soon: true }, real('weather', 'Weather', () => setWxView(true)),
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>{clockText(game.clock ?? 9)} <span style={{ opacity: 0.6 }}>▂▄▆</span></span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
     {camView ? <CameraApp onBack={() => setCamView(false)} />
+      : wxView ? <WeatherApp onBack={() => setWxView(false)} />
       : ordersView ? <OrdersApp onBack={() => setOrdersView(false)} />
       : netView ? <InternetApp onBack={() => setNetView(false)} />
       : bankView ? <MoneyApp onBack={() => setBankView(false)} />
@@ -49,7 +51,7 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><AccountBox /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !camView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
+    {teleports?.length > 0 && !soon && !camView && !wxView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button><div className="phone-pill" />
   </div></div>;
 }
@@ -140,3 +142,17 @@ const clockLabel = h => clockText(h);
 
 const PRINTER_PRICE = 120;   // PROPOSAL
 function buyPrinter() { if (game.dev) return say('Buying is off in test sessions.'); if (game.cash < PRINTER_PRICE) return say(`Not enough cash ($${PRINTER_PRICE}).`); addCash(-PRINTER_PRICE, 'Bought: photo printer'); game.home = { ...game.home, printer: true }; save(); say('Bought a photo printer. You can print photos from the Camera feed.'); }
+
+/** the Weather app (real, PROPOSAL layout): the game has no weather system yet, so Road and Wind are honest 'quiet' rows until it does (see weatherlogic.js) */
+function WeatherApp({ onBack }) {
+  useGame();
+  const h = game.clock ?? 9, t = tempF(h), hr = x => clockText(x).replace(':00 AM', 'a').replace(':00 PM', 'p');
+  return <div className="phone-soon"><h3>Weather</h3>
+    <p style={{ fontSize: 44, fontWeight: 700, margin: 0 }}>{t}°F</p>
+    <p style={{ margin: '0 0 6px' }}>{skyWord(h)} · {feel(t)} · {clockText(h)}</p>
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', margin: '6px 0' }}>{forecast(h, 6).map(f => <div key={f.hour} style={{ flex: 1, background: '#ffffff12', borderRadius: 10, padding: '6px 2px', textAlign: 'center' }}><small>{hr(f.hour)}</small><div style={{ fontWeight: 600 }}>{f.temp}°</div></div>)}</div>
+    <div style={{ textAlign: 'left', width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #ffffff18' }}><span>Roads</span><span>Dry</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #ffffff18' }}><span>Wind and dust</span><span>No warnings</span></div></div>
+    <button onClick={onBack}>Back</button></div>;
+}
