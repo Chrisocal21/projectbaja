@@ -43,7 +43,7 @@ test('pegboard slots use only existing tools and show present / empty', () => {
   const items = [{ uid: 9, kind: 'tool', id: 'wrench', loc: 'garage', spot: 'peg', peg: pegKey(7, 'wrenchA') }, { uid: 10, loc: 'garage', spot: 'peg', peg: pegKey(8, 'jack') }];
   const st = pegState(items, 7);
   assert.equal(st.find(s => s.slot.id === 'wrenchA').item.uid, 9); assert.equal(st.filter(s => s.item).length, 1);
-  assert.equal(freeSlotFor(items, 7, 'wrench').id, 'wrenchB'); assert.equal(freeSlotFor(items, 7, 'jack').id, 'jack');
+  assert.equal(freeSlotFor(items, 7, 'wrench').id, 'wrenchB'); assert.equal(freeSlotFor(items, 7, 'jack'), null);
   assert.equal(freeSlotFor(items, 8, 'jack'), null); assert.equal(freeSlotFor(items, 7, 'welder'), null);
 });
 test('selling the pegboard drops its tools; other boards keep theirs', () => {

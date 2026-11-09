@@ -11,11 +11,10 @@ export const BENCH = { len: 5.2, depth: 1.1, top: 0.98, front: 1.2 };   // front
 export const LIFT_POSTS = [[-1.65, 0, 0.3], [1.65, 0, 0.3]];
 /** the pegboard is 5.4 m wide, 1.5 m tall, its centre 2.0 m up */
 export const PEG = { w: 5.4, h: 1.5, y: 2.0 };
-/** Tool spots. PROPOSAL: only existing tools (game/items.js TOOLS: wrench, jack); x/y are prop-local on the board face; gameplay gating of specialty tools comes later. */
+/** Tool spots. PROPOSAL: only the hand tools (wrench); the floor jack lives on the floor, not on the board; x/y are prop-local on the board face; gameplay gating of specialty tools comes later. */
 export const PEG_SLOTS = [
   { id: 'wrenchA', tool: 'wrench', x: -2.0, y: 2.1 },
   { id: 'wrenchB', tool: 'wrench', x: -1.4, y: 2.1 },
-  { id: 'jack', tool: 'jack', x: 0.6, y: 2.0 },
 ];
 
 const rot = (p, lx, lz) => { const c = Math.cos(p.ry || 0), s = Math.sin(p.ry || 0); return [p.x + c * lx + s * lz, p.z - s * lx + c * lz]; };
