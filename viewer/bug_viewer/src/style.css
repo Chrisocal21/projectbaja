@@ -101,5 +101,5 @@
 .loading-sub{font:600 14px system-ui,sans-serif;opacity:.9}
 .loading-tip{margin-top:16px;font:italic 14px system-ui,sans-serif;opacity:.7}
 
-/* title menu sits a little right of centre on wide screens so the WALT'S GARAGE sign in the picture shows */
-@media(min-width:900px){.title-panel{transform:translateX(9vw)}}
+/* title logo and menu sit at the bottom centre so the whole picture (Walt's Garage sign, both cars) shows */
+.title-screen{align-items:flex-end;padding-bottom:30px}
