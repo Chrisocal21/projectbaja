@@ -1,7 +1,8 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
 import React, { useState } from 'react';
-import { game, useGame } from './store.js';
+import { game, useGame, save } from './store.js';
+import { LETTER } from './home.js';
 import { SaveTools } from './update.jsx';
 
 const SOON = { web: 'Browse the internet (parts, cars, news)', bank: 'Money: bills, sales, balance history', texts: 'Messages from suppliers and clients', contacts: 'Who you know in town', jobs: 'Odd jobs and orders', story: 'Story log: letters, photos, notes', camera: 'Take photos for the wall', music: 'Radio and music', weather: 'Weather and time', orders: 'Order parts, watch the delivery on the map', cars: 'Cars for sale' };
@@ -17,7 +18,7 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false);
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
@@ -25,16 +26,29 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
     { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, { key: 'jobs', label: 'Jobs', soon: true }, { key: 'orders', label: 'Orders', soon: true }, { key: 'cars', label: 'Car sales', soon: true },
-    { key: 'story', label: 'Story log', soon: true }, { key: 'camera', label: 'Camera', soon: true }, { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
+    real('story', 'Story log', () => setStory('list')), { key: 'camera', label: 'Camera', soon: true }, { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>Baja</span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
+    {story ? <StoryLog view={story} setView={setStory} />
+      : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !saveView && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
+    {teleports?.length > 0 && !soon && !saveView && !story && <div className="phone-tp"><small>TESTING TELEPORT</small>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</div>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button>
   </div></div>;
+}
+
+/** the story log (real app, PROPOSAL layout): keepsakes and letters you have found. Walt's letter can be re-read here. */
+function StoryLog({ view, setView }) {
+  const it = game.items.find(i => i.kind === 'memento' && i.id === 'letter');
+  const read = !!game.home?.letter, known = read || (it && it.loc !== 'world');
+  const where = !it ? '' : it.loc === 'world' ? (it.wall ? 'hanging on the wall' : 'lying in the garage') : it.loc === 'garage' ? 'on your shelves' : 'with you';
+  if (view === 'letter') return <div className="phone-soon"><h3>Walt's letter</h3><div className="card letter" style={{ textAlign: 'left', maxHeight: 280, overflow: 'auto' }}>{LETTER.map((l, i) => <p key={i} className={i === 0 || i === LETTER.length - 1 ? 'sig' : ''}>{l}</p>)}</div><button onClick={() => setView('list')}>Back</button></div>;
+  return <div className="phone-soon"><h3>Story log</h3>
+    {known ? <button className="ph-entry" onClick={() => { if (!read) { game.home = { ...game.home, letter: true }; save(); } setView('letter'); }}>Walt's letter · {read ? 'read' : 'unread'}{where && <small> · {where}</small>}</button>
+      : <p>Nothing yet. Letters and keepsakes you find show up here.</p>}
+    <button onClick={() => setView(null)}>Back</button></div>;
 }
