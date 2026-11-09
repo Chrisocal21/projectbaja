@@ -8,6 +8,7 @@ import { worldToMap, arrowRot, siteCleared } from './mapmath.js';
 import { discovered } from './compass.js';
 import { containers, spots } from './loot.js';
 import { SCRAP_HEAPS } from './home.js';
+import { etaText } from './orderlogic.js';
 
 /** the county drawn once (surface colours + hill shading + roads); markers are drawn on top every time the map opens */
 const HALF = SIZE / 2, PX = 640, STEP = SIZE / PX * 1.25;
@@ -56,6 +57,7 @@ export default function MapPanel({ onClose }) {
       if (siteCleared(k, { boxes: game.boxes, items: game.items, heaps: game.home.heaps }, { containers, spots, heaps: SCRAP_HEAPS })) { g.strokeStyle = '#3ddc84'; g.lineWidth = 2.5 / s; g.beginPath(); g.moveTo(a - 3 / s, b); g.lineTo(a - 0.5 / s, b + 3 / s); g.lineTo(a + 4 / s, b - 3.5 / s); g.stroke(); label += ' ✓'; }
       g.lineWidth = 3 / s; g.strokeStyle = '#000000aa'; g.strokeText(label, a + 6 / s, b + 4 / s); g.fillText(label, a + 6 / s, b + 4 / s); }
     for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = P(v.pose.x, v.pose.z); g.fillStyle = '#5bd8ff'; g.fillRect(a - 3 / s, b - 3 / s, 6 / s, 6 / s); g.fillStyle = '#fff'; g.fillText(vehicleType(v.id).name, a + 6 / s, b - 4 / s); }
+    for (const o of game.home?.orders || []) { const st = SITES.shop, [a, b] = P(st.x + 14, st.z + 10); g.fillStyle = '#ffd24a'; g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.fillRect(a - 5 / s, b - 3 / s, 10 / s, 6 / s); g.strokeRect(a - 5 / s, b - 3 / s, 10 / s, 6 / s); g.fillStyle = '#fff'; g.fillText('Delivery ' + etaText(o.left), a + 8 / s, b + 4 / s); break; }   // PROPOSAL: a truck marker at the shop pickup while an order is on the way
     if (game.job) { const [a, b] = P(game.job.x, game.job.z); g.fillStyle = '#ff9a3c'; g.beginPath(); g.arc(a, b, 5 / s, 0, 7); g.fill(); }
     // you: an arrow pointing where you face (on foot) or drive
     const [a, b] = P(pl.x, pl.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : (game.pose?.h || 0);
