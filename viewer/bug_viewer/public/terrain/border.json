@@ -1,0 +1,24 @@
+{
+ "nx": 1981,
+ "nz": 2654,
+ "cell": 20.0,
+ "x0": -15880.325776990163,
+ "z0": -7297.883999999994,
+ "file": "border.png",
+ "unit": "R*256+G-32768 = decimetres",
+ "mask": "B/100: bit0 sea, bit1 Salton Sea",
+ "lakeLevel": -8.88,
+ "hScale": 0.04,
+ "vScale": 0.125,
+ "home": [
+  32.95,
+  -115.55
+ ],
+ "box": [
+  34.6,
+  22.6,
+  -119.8,
+  -109.2
+ ],
+ "source": "AWS Terrain Tiles (terrarium z8): SRTM, ETOPO1, USGS NED"
+}

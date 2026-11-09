@@ -68,3 +68,9 @@ Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas,
 - Data: AWS Terrain Tiles (terrarium; SRTM, ETOPO1 and other open sources, sea floor included). Attribution: "Terrain Tiles: Mapzen / AWS Open Data; sources include SRTM (NASA), ETOPO1 (NOAA), USGS NED". The reference images Chris shared are stock images and are NOT traced.
 - Pipeline: `assets/pipeline/west_dem.py` (step 1, preview only). Scales PROPOSAL: horizontal 1:50 (1 real km = 20 game m), vertical 1:12. Result: about 19.8 x 26.5 km of game world, heights -407..282 m, 60% sea. Preview: `assets/mockups/west_preview.png`.
 - Problem to solve next: at 1:50 the real coast (San Diego) is only about 3 km from the garage, inside today's hand-built 6 km county.
+
+### Update (Nov 9, Chris): bigger scale and real land everywhere
+- Scale is now 1:25 horizontal (1 real km = 40 game m), vertical 1:8 (PROPOSAL). World about 39.6 x 53.1 km, heights -623..425 m (deep sea floor flattened at -30 m). The hand-built county ground is replaced by real land; its places move onto matching real spots (PROPOSAL, Chris picks).
+- Built as a NEW world (id `border`, dev only) next to today's county, swapped in only when it is good. Today's game keeps working.
+- Step 2 DONE: `public/terrain/border.png` (2.8 MB: height + sea/Salton Sea mask) and `border.json`.
+- Next steps: 3) the `border` world in the game (height from the file, sea + Salton Sea planes, terrain tiles built only near the player); 4) place the garage and the hand-built sites on real spots; 5) real highways (I-8, CA-86/111, Mex 1/5); 6) biomes by real area, map screen, then swap it in.

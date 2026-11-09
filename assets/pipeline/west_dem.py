@@ -7,7 +7,8 @@ and projects it into game metres around Walt's Garage (Imperial Valley, south of
 Scales (PROPOSAL): horizontal 1:50 (1 real km = 20 game m), vertical 1:12 (a 3,000 m peak = 250 m).
 North is -z in the game, east is +x.
 
-Step 1 output only (nothing in the game reads it yet):
+Outputs (step 2: game files, nothing in the game reads them yet):
+  viewer/bug_viewer/public/terrain/border.png (height + sea mask), border.json
   assets/generated/raw/dem_cache/   downloaded tiles (gitignored)
   assets/mockups/west_preview.png   shaded relief preview, sea in blue, garage marked
   prints the world size and height range
@@ -27,9 +28,10 @@ LAT_N, LAT_S = 34.6, 22.6      # just north of LA .. Cabo San Lucas
 LON_W, LON_E = -119.8, -109.2  # Channel Islands .. past Cabo San Lucas (and Phoenix)
 HOME = (32.95, -115.55)        # Walt's Garage (PROPOSAL): Imperial Valley, south of the Salton Sea
 ZOOM = 8
-H_SCALE = 1 / 50               # horizontal: game metres per real metre
-V_SCALE = 1 / 12               # vertical
-CELL = 40.0                    # game metres per output cell (= 2 real km)
+H_SCALE = 1 / 25               # horizontal: game metres per real metre (Chris: bigger scale, Nov 9)
+V_SCALE = 1 / 8                # vertical (PROPOSAL: mountains stay tall enough to feel real)
+CELL = 20.0                    # game metres per output cell (= 0.5 real km, about the source detail)
+GAME_DIR = os.path.join(ROOT, 'viewer', 'bug_viewer', 'public', 'terrain')
 
 def tile_xy(lat, lon, z):
     n = 2 ** z
@@ -111,9 +113,24 @@ def main():
         for (a, b) in ((cj + d, ci), (cj, ci + d)):
             if 0 <= a < nz and 0 <= b < nx: im.putpixel((b, a), (220, 30, 30))
     scale = max(1, 900 // max(nx, nz))
-    im = im.resize((nx * scale, nz * scale), Image.NEAREST)
+    if max(nx, nz) > 900: im = im.resize((nx * 900 // max(nx, nz), nz * 900 // max(nx, nz)), Image.LANCZOS); nx2 = im.size; scale = 1
+    else: nx2 = None
+    if nx2 is None: im = im.resize((nx * scale, nz * scale), Image.NEAREST)
     os.makedirs(os.path.dirname(OUT), exist_ok=True); im.save(OUT)
     print('preview:', OUT)
+    # game file: int16 decimetres of GAME height, row-major (z rows north->south, x columns west->east), plus sea/lake bits in a uint8 mask
+    os.makedirs(GAME_DIR, exist_ok=True)
+    # one PNG: R,G = game height in decimetres + 32768 (16 bit), B = 100 * mask (bit0 sea, bit1 Salton Sea). The deep sea floor is flattened at -30 m (never seen; packs smaller)
+    mask = (sea.astype(np.uint8) | (lake.astype(np.uint8) << 1))
+    gh = np.clip(np.round(h * V_SCALE * 10), -32000, 32000).astype(np.int32)
+    gh = np.where(sea, np.maximum(gh, -300), gh) + 32768
+    Image.fromarray(np.dstack([(gh >> 8).astype(np.uint8), (gh & 255).astype(np.uint8), (mask * 100).astype(np.uint8)]), 'RGB').save(os.path.join(GAME_DIR, 'border.png'), optimize=True)
+    import json
+    meta = {'nx': nx, 'nz': nz, 'cell': CELL, 'x0': float(gx0), 'z0': float(gz0), 'file': 'border.png', 'unit': 'R*256+G-32768 = decimetres', 'mask': 'B/100: bit0 sea, bit1 Salton Sea',
+            'lakeLevel': round(-71 * V_SCALE, 2), 'hScale': H_SCALE, 'vScale': V_SCALE, 'home': HOME, 'box': [LAT_N, LAT_S, LON_W, LON_E],
+            'source': 'AWS Terrain Tiles (terrarium z%d): SRTM, ETOPO1, USGS NED' % ZOOM}
+    open(os.path.join(GAME_DIR, 'border.json'), 'w').write(json.dumps(meta, indent=1))
+    print('game file:', os.path.join(GAME_DIR, 'border.png'), f'{os.path.getsize(os.path.join(GAME_DIR, "border.png")) / 1e6:.1f} MB')
     np.save(os.path.join(CACHE, 'west_h.npy'), h); np.save(os.path.join(CACHE, 'west_sea.npy'), sea); np.save(os.path.join(CACHE, 'west_lake.npy'), lake)
 
 if __name__ == '__main__':
