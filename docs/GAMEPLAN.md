@@ -33,6 +33,14 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 4. Arriving vehicles and ordering (needs the Phase 2+ answer).
 5. Clerk + Vercel cloud saves. Prep done: see [CLOUD_SAVES_PLAN.md](./CLOUD_SAVES_PLAN.md).
 
+**Status, Nov 9 2026:**
+- 1 done. 2 done (Scrubland). 3 mostly done: real apps are Map, Internet, Money, Save, Settings, Index, Upgrades, Story log, Jobs, Orders, Camera. Still placeholders: Texts, Contacts (need lore), Car sales (need stock and prices), Radio, Weather.
+- 4: ordering, map marker, Orders app and a visual delivery truck are done (truck has no collision or sound, follows the first order only).
+- Camera/Feed: photos with place, coordinates and facing; purple map dots; Print needs a $120 photo printer (Internet > Gear, PROPOSAL).
+- 5: built and deployed, NOT yet tested signed-in. Clerk login (phone > Save > Account), `/api/save` (Clerk-checked, private Blob, main + 3 backups), Upload/Download buttons with a question before any overwrite. Env vars set on Vercel production (Clerk keys, Blob token). Not built: automatic upload on save; preview-deploy env vars; sign-in method choices (needs the Clerk app claimed). A spare empty Blob store `projectbaja-saves2` should be deleted in Vercel.
+- Title screen: logo reads PROJECT:BAJA, logo and menu at bottom centre.
+- Grandpa's #7 in the garage now uses a Meshy body (rough, PROPOSAL look). Art and models are on hold; making it drivable is parked.
+
 ## 0. Start-of-session checklist (5 min)
 - [ ] `git status`, `git switch racer-items-fitglow`, `git fetch` (compare with `origin/main`, local `main` is stale).
 - [ ] Open the live Vercel site once. Confirm it loads.
