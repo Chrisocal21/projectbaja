@@ -3,6 +3,7 @@
 import { game, save, say, addCash, priceOf, nameOf } from './store.js';
 import { boxAtShop } from './items.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
+import { VEHICLE_TYPES, FOR_SALE, lotPose, owned } from './fleet.js';
 
 export const ordersOnTheWay = () => game.home?.orders || [];
 const bodyId = () => game.build?.body || 'classic';
@@ -23,6 +24,29 @@ export function passTime(hours) {
   if (!due) return;
   const r = advanceOrders(list, 0);
   game.home = { ...game.home, orders: r.orders };
-  for (const o of r.arrived) { boxAtShop(o.kind, o.id); say(`Your order arrived at the pickup area: ${nameOf(o.kind, o.id, bodyId())}`); }
+  for (const o of r.arrived) {
+    if (o.kind === 'car') { carArrives(o.id); continue; }
+    boxAtShop(o.kind, o.id); say(`Your order arrived at the pickup area: ${nameOf(o.kind, o.id, bodyId())}`);
+  }
   save();
+}
+
+/** a name for any order (parts, or a car from the Car sales app) */
+export const orderName = (o, body = bodyId()) => (o.kind === 'car' ? VEHICLE_TYPES[o.id]?.name || 'Vehicle' : nameOf(o.kind, o.id, body));
+export const carOnOrder = id => ordersOnTheWay().some(o => o.kind === 'car' && o.id === id);
+
+/** Car sales app (PROPOSAL): pay now, the car is brought to Al's lot after a few game hours and left there, keys in it */
+export function orderCar(id) {
+  const t = VEHICLE_TYPES[id]; if (!t) return;
+  if (game.dev) return say('Buying is off in test sessions.');
+  if (owned(id) || carOnOrder(id)) return;
+  if (game.cash < t.price) return say(`Not enough cash ($${t.price}).`);
+  addCash(-t.price, `Ordered: ${t.name}`);
+  game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder('car', id)] };
+  save(); say(`Ordered: ${t.name} (it will be left at Al's lot in a few hours)`);
+}
+function carArrives(id) {
+  const spot = FOR_SALE.find(f => f.id === id)?.spot;
+  if (!owned(id)) game.fleet = { ...game.fleet, [id]: { pose: spot ? lotPose(spot) : null } };
+  say(`Your ${VEHICLE_TYPES[id]?.name || 'car'} was left at Al's lot. Keys are in it.`);
 }

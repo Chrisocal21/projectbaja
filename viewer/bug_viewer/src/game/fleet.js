@@ -34,7 +34,7 @@ export const owned = id => !!game.fleet[id];
 export const parked = () => Object.entries(game.fleet).filter(([id, v]) => id !== game.active && v.pose).map(([id, v]) => ({ id, ...v }));
 
 /** every vehicle standing in the world that you are not using: your parked ones + the ones for sale on Al's lot */
-export const standingVehicles = () => [...parked().map(v => ({ id: v.id, pose: v.pose })), ...FOR_SALE.filter(f => !owned(f.id) && vehicleType(f.id).dims).map(f => ({ id: f.id, pose: lotPose(f.spot), forSale: true }))];
+export const standingVehicles = () => [...parked().map(v => ({ id: v.id, pose: v.pose })), ...FOR_SALE.filter(f => !owned(f.id) && vehicleType(f.id).dims && !game.home?.orders?.some(o => o.kind === 'car' && o.id === f.id)).map(f => ({ id: f.id, pose: lotPose(f.spot), forSale: true }))];
 
 export function buyVehicle(id) {
   const t = VEHICLE_TYPES[id]; if (!t || owned(id)) return false;
