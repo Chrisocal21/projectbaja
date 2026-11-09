@@ -70,7 +70,7 @@ Do one at a time: play-test in a real browser, fix, merge to main, push.
 13. Letter in the toolbox becomes a normal item (shelf or wall memento).
 14. Wall surface (stage 4e): hang the letter, photos. Pegboard snaps to walls.
 15. **Starting stock:** real garage items only. No new cash ($1,500 locked), no specialty tools, **no Dusty lore without your OK**.
-16. Stage 4f: retire the B menu for furniture.
+16. Stage 4f: retire the B menu for furniture. DONE (click furniture to move it; B is now only the shop for new pieces).
 17. Clean up: duplicate `bench` key in Walker.jsx, nearly-black truck material, stale :5299 server.
 
 ## E. Bigger features (design together first)

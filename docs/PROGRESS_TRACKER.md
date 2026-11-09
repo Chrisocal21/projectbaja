@@ -43,7 +43,7 @@
 | 4c | Tire racks show real tires | 🟡 | in progress, counted 0% until committed |
 | 4d | Bench, lift, pegboard as props, plus tool slots | ⬜ | 0% |
 | 4e | Wall surface (hang photos and things) | ⬜ | 0% |
-| 4f | Retire the B menu for furniture | ⬜ | 0% |
+| 4f | Retire the B menu for furniture | ✅ | 100% |
 | 5 | World placement | ⬜ | 0% |
 | 6 | Versioned save and load | ⬜ | 0% |
 

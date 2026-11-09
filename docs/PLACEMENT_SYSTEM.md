@@ -25,7 +25,7 @@ Chris's original PLACEMENT_SYSTEM brief governs the work. Its rules of engagemen
 | 4c | Tire racks show the real tires | 🟡 In progress, not committed |
 | 4d | Bench, lift, pegboard as props, plus tool slots | ⬜ |
 | 4e | Wall surface (hang photos and things) | ⬜ |
-| 4f | Retire the B menu for furniture | ⬜ |
+| 4f | Retire the B menu for furniture | ✅ Aim at furniture with empty hands and click to pick it up; click sets down, Esc cancels, Shift+X stores, X sells. B stays only as the shop for NEW pieces (PROPOSAL) |
 | 4 | (Umbrella) Garage: **everything** moves onto the new grid. Furniture, Walt's fixtures, the lift and the bench can all be stored, sold or placed anywhere | 🟡 2 of 6 sub-stages done |
 | 5 | World: coarsest grid, free placement | ⬜ |
 | 6 | Save and load: versioned placement data, and old saves still load | ⬜ |

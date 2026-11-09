@@ -6,6 +6,9 @@ import { TARGETS } from '../worlds/siteData.js';
 import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
+import { aimedProp } from './furnish.js';
+import { buildById } from './home.js';
+import { isPiece } from '../worlds/structures.js';
 import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
 import { jobById } from './jobs.js';
 import { toWorld as toW } from '../worlds/county.js';
@@ -35,6 +38,7 @@ export const promptText = id => {
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
+  if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Click — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
@@ -186,6 +190,10 @@ export default function Walker({ world, sun }) {
     }
     if (game.buildMode) best = null;
     game.onProperty = foot && onProperty(px, pz); game.canBuild = game.onProperty && garageClean();
+    if (foot && !best && !game.buildMode && game.canBuild) {   // Stage 4f: furniture is picked up by clicking it, no build menu needed
+      const fp = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), px, pz, game.face, 5, { origin: eye, dir: look });
+      if (fp) best = 'furn:' + fp.uid;
+    }
     game.target = best; setPrompt(game.buildMode ? '' : promptText(best));
     } catch (err) { if (!promptErr) { promptErr = true; console.error('[walker] prompt failed (game keeps running):', err); } game.target = null; setPrompt(''); }
   });
