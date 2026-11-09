@@ -9,6 +9,7 @@ import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { upgradeLevel } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
+import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
@@ -177,7 +178,7 @@ export function placeProp(id, x, z, ry, mat) {
   }
   const m = item.struct ? (mat || DEFAULT_MAT) : undefined, price = item.struct ? piecePrice(id, m) : item.price;
   const free = creative(); if (!free) addCash(-price);
-  game.props = [...game.props, { uid: Math.max(0, ...game.props.map(p => p.uid)) + 1, id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : {}) }];
+  game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : {}) }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (${free ? 'creative: free' : `−$${price}`})`); return true;
 }
 /** nearest cut doorway to a world point: { key, d } or null */
@@ -213,9 +214,8 @@ export function migrateGrid() {
 /** seed Walt's movable fixtures once per save, in batches: old saves (fixtures: true, from before V2 existed) only get the new batch */
 export function ensureStarterFixtures() {
   const v = seededV(game.home); if (v >= 3) return;
-  let uid = Math.max(0, ...game.props.map(p => p.uid));
   const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : []), ...STARTER_FIXTURES_V3];
-  const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: ++uid, id, x, z, ry: G.rot + ry, starter: true }; });
+  const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry: G.rot + ry, starter: true }; });
   game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
   game.home = { ...game.home, fixtures: true, fixturesV: 3 }; save();
 }
@@ -247,7 +247,7 @@ export function storeProp(uidN) {
 export function unstoreProp(uidN, x, z, ry) {
   const p = storedProps().find(q => q.uid === uidN); if (!p) return 'Not in storage.';
   const why = placeWhy(buildById[p.id], x, z, true); if (why) return why;
-  const r = unstoreMove(game.props, storedProps(), uidN, x, z, ry); game.props = r.props; game.home = { ...game.home, stored: r.stored };
+  const r = unstoreMove(game.props, storedProps(), uidN, x, z, ry, () => allocUid(game.nextUid, 'props', game.props, storedProps())); game.props = r.props; game.home = { ...game.home, stored: r.stored };
   game.propsV = (game.propsV || 0) + 1; save(); return '';
 }
 /** build menu: pick a stored item to place; reuses the move ghost (E / click sets it down) */

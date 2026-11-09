@@ -4,24 +4,59 @@ import { WEAR } from '../weather.js';
 import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
-const KEY = 'baja-save-v1';
-const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-const saved = read();
+import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan } from './saveFormat.js';
+
+const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
+const notices = [];           // load-time warnings, shown now and again when the story starts (the title may not be up yet)
+/** read + migrate the save. Never throws, never destroys: a bad blob is stashed, a newer one is kept untouched. */
+function loadSave() {
+  let raw = null, locked = false;
+  try { raw = localStorage.getItem(KEY); } catch { return { data: {}, locked: false }; }
+  const r = parseSave(raw), ts = Date.now();
+  if (r.status === 'corrupt') {
+    try { localStorage.setItem(`baja-save-corrupt-${ts}`, raw); notices.push('Your save could not be read. A copy was kept (baja-save-corrupt-' + ts + ') and a fresh game was started.'); }
+    catch { locked = true; notices.push('Your save could not be read and could not be copied aside. Saving is turned off so it is not overwritten.'); }
+  } else if (r.status === 'newer') {
+    locked = true; notices.push('This save is from a newer version of the game. Update the game to load it. Saving is off so it is not overwritten.');
+  } else if (r.status === 'ok' && r.from < CURRENT) {
+    try { localStorage.setItem(`baja-save-backup-v${r.from}-${ts}`, raw); }
+    catch { locked = true; notices.push('Could not back up your old save before updating it. Saving is turned off so nothing is lost.'); }
+  }
+  return { data: r.status === 'ok' ? r.data : {}, locked, status: r.status };
+}
+const loaded = loadSave(), saved = loaded.data;
 
 export const game = {
   paused: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
-  toast: null, crates: {}, listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
+  toast: null, crates: sanitizeCrates(saved.crates), listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,
   fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
-  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: null, clock: saved.clock ?? 9,
-  onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: false, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
+  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: sanitizeJob(saved.job), clock: saved.clock ?? 9,
+  nextUid: { props: saved.nextUid?.props || 1, items: saved.nextUid?.items || 1 }, saveLocked: loaded.locked, resume: resumePlan(saved, saved.fleet?.[saved.active ?? 'bug']?.pose), live: false,
+  onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: !!saved.fueled, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
 WEAR.value = game.wear;
 if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
 // Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
-const writeSave = () => { if (game.dev) return; try { localStorage.setItem(KEY, JSON.stringify({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock })); } catch {} };
+let warnedWrite = false;
+const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, job: game.job, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
+const writeSave = () => {
+  if (game.dev || game.saveLocked) return;
+  try { localStorage.setItem(KEY, JSON.stringify(wrap(buildData()))); warnedWrite = false; }
+  catch { if (!warnedWrite) { warnedWrite = true; say('WARNING: the game could not save (storage full or blocked). Your progress is not being kept.'); } }
+};
+/** autosave the moving parts (position, job timer) that no action saves: every few seconds and when the page is closed or hidden */
+if (typeof window !== 'undefined') {
+  const auto = () => { if (game.live && !game.dev) writeSave(); };
+  setInterval(auto, 5000);
+  window.addEventListener('pagehide', auto);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) auto(); });
+}
+/** show load-time warnings again once the story starts */
+export const flushSaveNotices = () => { if (notices.length) say(notices.join(' ')); };
+if (typeof window !== 'undefined') setTimeout(flushSaveNotices, 0);
 const tx = createTx({ snapshot: () => snapshotOf(game), restore: s => Object.assign(game, s), write: writeSave });
 const persist = () => tx.request();
 /** run one player action (fit, detach, buy...) as a single save write; if it throws, nothing changes */
@@ -52,7 +87,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }

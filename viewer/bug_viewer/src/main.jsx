@@ -12,14 +12,14 @@ import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
 import { pegInteract } from './game/pegboard.js';
 import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
-import { doJob } from './game/jobs.js';
+import { doJob, jobById } from './game/jobs.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
 import {
   slots, bodies, wheelSets, parts, presets, PALETTE, SIZE, LIFT,
   defaultBuild, normalize, setBody, setWheels, setRim, rims, setPart, applyPreset, resolve,
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
-import { game, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
+import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
 import { held, pickUp, dropHeld, loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
@@ -108,9 +108,11 @@ function App() {
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
     migrateGrid(); ensureStarterFixtures();   // Walt's wall shelving: movable props, seeded once per save
-    const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h;
+    if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
+    const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
-    Object.assign(game, { dev: false, onFoot: true, open: new Set(), start: 'garage', walkStart: cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, fueled: false, buildMode: null });
+    game.live = true; game.resume = null; flushSaveNotices();
+    Object.assign(game, { dev: false, onFoot: rs ? rs.onFoot : true, open: new Set(), start: 'garage', walkStart: rs?.onFoot ? { ...rs.walkPose } : cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, buildMode: null });   // fueled is kept from the save
     setPlay({ kind: 'drive', world: 'county' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
   };
   // the 3D scene is rebuilt when the car changes; keep the mouse captured through it

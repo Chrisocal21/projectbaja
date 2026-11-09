@@ -1,5 +1,6 @@
 // Physical parts. Every item lives somewhere: on the ground / a bench / a shelf ('world'), in a container ('box'),
 // in your hands ('hand'), in your pack ('pack') or in the car ('car', cab or roof). Nothing floats, nothing is magic.
+import { allocUid } from './saveFormat.js';
 import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld } from '../worlds/county.js';
@@ -46,7 +47,7 @@ export function spotFor(it) {
 }
 const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= CAPACITY.pack;
 const commit = () => { game.items = [...game.items]; save(); };
-const uid = () => Math.max(0, ...game.items.map(i => i.uid)) + 1;
+const uid = () => allocUid(game.nextUid, 'items', game.items);
 const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.spot; delete it.box; delete it.veh; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
@@ -145,7 +146,7 @@ export function seedWorld(bodyId) {
   }
   add({ kind: 'tool', id: 'wrench', loc: 'pack' });   // you start with a wrench in your pack
   for (const s of spots) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
-  save();
+  game.nextUid.items = n + 1; save();
 }
 /** the yard in front of the garage, where a lifted-off body shell is set down */
 export function yardSpot(k = 0) { const [x, z] = toWorld(SITES.garage, -4 + (k % 3) * 4.5, 13 + Math.floor(k / 3) * 5); return { x, z }; }

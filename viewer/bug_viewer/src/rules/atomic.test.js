@@ -80,3 +80,9 @@ test('Slice A: taking the wheel off again never duplicates it', () => {
   assert.equal(fitHeld(t, 3).ok, true, 'and it goes back on');
   assert.equal(wheelPlaces(t.reload().build, t.reload().items), 4);
 });
+
+test('snapshot covers props, owned, fleet, boxes and uid counters; a failed install puts them back', () => {
+  const t = makeGame(); Object.assign(t.g, { props: [{ uid: 1 }], owned: new Set(['a']), fleet: { bug: { pose: null } }, boxes: { b1: { cash: 5, searched: false } }, nextUid: { props: 2, items: 3 } });
+  assert.throws(() => t.tx.run(() => { t.g.props = []; t.g.owned.add('z'); t.g.fleet = {}; t.g.boxes.b1.searched = true; t.g.nextUid.props = 9; throw new Error('x'); }));
+  assert.equal(t.g.props.length, 1); assert.deepEqual([...t.g.owned], ['a']); assert.ok(t.g.fleet.bug); assert.equal(t.g.boxes.b1.searched, false); assert.equal(t.g.nextUid.props, 2);
+});

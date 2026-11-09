@@ -24,5 +24,5 @@ export function createTx({ snapshot, restore, write }) {
   };
 }
 
-/** a deep-enough copy of the parts of the game state an install or removal touches */
-export const snapshotOf = g => ({ items: g.items.map(i => ({ ...i })), build: g.build, cash: g.cash, mats: { ...g.mats }, home: g.home });
+/** a deep-enough copy (arrays/objects that actions replace rather than mutate are kept by reference) of the parts of the game state an install or removal touches */
+export const snapshotOf = g => ({ items: g.items.map(i => ({ ...i })), build: g.build, cash: g.cash, mats: { ...g.mats }, home: g.home, props: g.props, owned: g.owned && new Set(g.owned), fleet: g.fleet, boxes: g.boxes && Object.fromEntries(Object.entries(g.boxes).map(([k, v]) => [k, { ...v }])), nextUid: g.nextUid && { ...g.nextUid } });
