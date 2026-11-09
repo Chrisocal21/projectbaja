@@ -11,6 +11,7 @@ import { signTex } from '../lot/CarLot.jsx';
 import Home from './Home.jsx';
 import Flora from './Flora.jsx';
 import BiomeScene from './biomes/Biomes.jsx';
+import BoundaryWall from './BoundaryWall.jsx';
 import { game } from '../game/store.js';
 
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
@@ -224,6 +225,7 @@ export default function CountyScene() {
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
     <BiomeScene />
+    <BoundaryWall />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     <React.Suspense fallback={null}><Desert /></React.Suspense>
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}
