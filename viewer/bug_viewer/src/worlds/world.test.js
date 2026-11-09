@@ -9,8 +9,9 @@ test('the world size divides evenly into every grid built from it', () => {
 test('the drive limit (and so the hologram wall) is inside the world', () => assert.ok(DRIVE_LIMIT > 0 && DRIVE_LIMIT < WORLD_SIZE / 2));
 
 test('edge rim: old sides unchanged, south side is a long gentle ramp that climbs to the wall', () => {
-  assert.equal(ringMetric(2900, 0), 2900); assert.equal(ringMetric(0, -2900), 2900); assert.equal(ringMetric(-2000, 100), 2000);
+  assert.equal(ringMetric(0, -2900), 2900); assert.ok(ringMetric(2900, 0) < 2350, 'no rim in the old east part (region 2 opened it)'); assert.equal(ringMetric(-2000, 100), 2000);
   assert.ok(ringMetric(0, 3000) < 2350, 'no rim in the old south part');
   assert.ok(ringMetric(0, DRIVE.z1) > 2600 && ringMetric(0, DRIVE.z1) < DRIVE_LIMIT, 'the south wall stands partway up the rim, not at its crest');
+  assert.ok(ringMetric(DRIVE.x1, 0) > 2600 && ringMetric(DRIVE.x1, 0) < DRIVE_LIMIT, 'the east wall stands partway up its ramp');
   let last = -1; for (let z = 3000; z <= 4500; z += 50) { const m = ringMetric(0, z); assert.ok(m >= last); last = m; }
 });

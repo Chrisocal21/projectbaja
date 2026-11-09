@@ -37,3 +37,7 @@ Chris said "whichever makes sense to the expansion". These are my picks. **PROPO
 - Stages 3+4 DONE (this commit): the SOUTH side is open 1.5 km (`DRIVE.z1 = 4440`); walls are a rectangle; Highway 9 continues south to the new wall; edge mountains follow the rectangle (`ringMetric`); height relief mirrors beyond the file; Scrubland biome in the registry; teleport key `;`.
 - Map screen DONE: square 7500 m centred at z 750 (shows the strip). NOT DONE: the road climbs a mountain pass at the new wall like the old edges do; no places or buildings in the strip (empty on purpose, no lore); no Scrubland trails.
 - Hand-test: press `;` (or the phone teleports) and drive south to the wall; check the pass, the bushes, the wall, and frame rate.
+
+## REGION 2 (Nov 9, PROPOSAL)
+- Direction: EAST, 1.5 km (DRIVE.x1 = 4440). Biome: "Dry lakebed" (flat pale playa, sparse brush and rocks, registry id `lakebed`). Same long ramp as the south (`ringMetric`). Map now centred at x 750 (MAP_CX). Teleport key `'` (dev). No road, places or lore in the strip (empty on purpose).
+- Checked in a browser: terrain, ground, scatter, map. NOT done: a road east, the wall seen up close, frame-rate check on a weaker machine.

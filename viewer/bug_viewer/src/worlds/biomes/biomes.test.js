@@ -47,7 +47,7 @@ test('shape: base terrain untouched outside, biome height inside, mountain peaks
   assert.ok(peak > 120, 'forest mountain has a real peak: ' + peak);
   assert.ok(flat > -10 && flat < 30, 'grassland is gentle: ' + flat);
   assert.equal(bio.shape(f.cx, f.cz, 7, 0), 7);
-  assert.ok(edgeRise(2990, 0) > edgeRise(2000, 0));
+  assert.ok(edgeRise(0, -2990) > edgeRise(0, -2000));
 });
 
 test('surface: grassland is grass, forest steep ground is rock, outside is null', () => {

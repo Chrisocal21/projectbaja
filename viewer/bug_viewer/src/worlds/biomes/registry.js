@@ -60,4 +60,16 @@ export const BIOME_DEFS = [
     ],
     trails: [], rivers: [],
   },
+  {
+    // PROPOSAL (name and look): the second new region, east of the old map. A flat, pale dry lakebed with sparse brush. Plain descriptive biome, no invented places.
+    id: 'lakebed', name: 'Dry lakebed', nameIsProposal: true,
+    region: { cx: 4100, cz: 750, r: 1500, inner: 0.55, wobble: 0.2, seed: 71 },
+    height: { kind: 'rolling', base: 4, amp: 2.5, scale: 700, seed: 81 },
+    ground: { base: 'playa', patches: [{ key: 'dirt', scale: 180, seed: 27, above: 0.62 }, { key: 'sand', scale: 240, seed: 28, above: 0.8 }], steep: { slope: 0.5, key: 'rock' } },
+    scatter: [
+      { kind: 'bush', density: 2.5, cluster: { scale: 220, seed: 29, above: 0.5 }, scale: [0.5, 1.1], maxSlope: 0.5, minWeight: 0.3, tints: ['#ffffff', '#d8caa0'] },
+      { kind: 'rock', density: 0.7, cluster: { scale: 300, seed: 30, above: 0.55 }, scale: [0.4, 1.4], maxSlope: 1.0, minWeight: 0.3, tints: ['#ffffff', '#d8cfbe'] },
+    ],
+    trails: [], rivers: [],
+  },
 ];

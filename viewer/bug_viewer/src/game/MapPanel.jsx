@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { game, useGame } from './store.js';
-import { MAP_SIZE as SIZE, MAP_CZ } from '../worlds/world.js';
+import { MAP_SIZE as SIZE, MAP_CZ, MAP_CX } from '../worlds/world.js';
 import { surface, height, ROADS, TRAILS, SITES, BIOMES, BIO, circuit, offroad, dirtStrip, startLine } from '../worlds/county.js';
 import { standingVehicles, vehicleType } from './fleet.js';
 import { OFFICE, CAMPER } from '../worlds/office.js';
@@ -19,14 +19,14 @@ function baseMap() {
   const n = Math.floor(PX / 1.25), img = g.createImageData(n, n), hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const cache = new Map();
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const x = -HALF + (i + 0.5) * STEP, z = MAP_CZ - HALF + (j + 0.5) * STEP;   // north (-z) at the top, east (+x) on the right
+    const x = MAP_CX - HALF + (i + 0.5) * STEP, z = MAP_CZ - HALF + (j + 0.5) * STEP;   // north (-z) at the top, east (+x) on the right
     const sf = surface(x, z), col = cache.get(sf.key) || (cache.set(sf.key, hex(sf.color)), cache.get(sf.key));
     const h = height(x, z), shade = 1 + Math.max(-0.35, Math.min(0.35, (height(x - STEP, z - STEP) - h) * 0.09)) + Math.min(0.25, Math.max(0, h - 20) * 0.006);
     const k = (j * n + i) * 4; img.data[k] = col[0] * shade; img.data[k + 1] = col[1] * shade; img.data[k + 2] = col[2] * shade; img.data[k + 3] = 255;
   }
   const tmp = document.createElement('canvas'); tmp.width = tmp.height = n; tmp.getContext('2d').putImageData(img, 0, 0);
   g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, PX, PX);
-  const P = (x, z) => worldToMap(x, z - MAP_CZ, HALF).map(v => v * PX);
+  const P = (x, z) => worldToMap(x - MAP_CX, z - MAP_CZ, HALF).map(v => v * PX);
   const line = (pts, w, col, closed) => { g.strokeStyle = col; g.lineWidth = w; g.lineJoin = g.lineCap = 'round'; g.beginPath(); pts.forEach((p, i) => { if (i % 6) return; const [a, b] = P(p.x, p.z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); if (closed) g.closePath(); g.stroke(); };
   const W = { highway: [4, '#2b2d30'], street: [3.5, '#2b2d30'], gravel: [2.4, '#8b7f68'], dirt: [2, '#9a7a4e'] };
   for (const r of ROADS) { line(r.path.pts, W[r.kind][0] + 2, '#00000055'); line(r.path.pts, W[r.kind][0], W[r.kind][1]); }
@@ -47,11 +47,11 @@ export default function MapPanel({ onClose }) {
   const ref = useRef(), [zoom, setZoom] = useState(3), [pick, setPick] = useState(null);
   useEffect(() => {
     const c = ref.current, g = c.getContext('2d'), m = baseMap();
-    const pl = game.pos, s = zoom, [cx, cz] = worldToMap(pl.x, pl.z - MAP_CZ, HALF).map(v => v * PX);
+    const pl = game.pos, s = zoom, [cx, cz] = worldToMap(pl.x - MAP_CX, pl.z - MAP_CZ, HALF).map(v => v * PX);
     g.clearRect(0, 0, PX, PX); g.save();
     if (s > 1) { g.translate(PX / 2, PX / 2); g.scale(s, s); g.translate(-cx, -cz); }
     g.drawImage(m, 0, 0);
-    const P = (x, z) => worldToMap(x, z - MAP_CZ, HALF).map(v => v * PX);
+    const P = (x, z) => worldToMap(x - MAP_CX, z - MAP_CZ, HALF).map(v => v * PX);
     g.font = `600 ${11 / s}px system-ui, sans-serif`; g.textAlign = 'left';
     for (const [k, label0] of Object.entries(LABELS)) { if (!discovered(game.home).has(k)) continue; let label = label0; const st = SITES[k], [a, b] = P(st.x, st.z); g.fillStyle = k === 'garage' ? '#f2c14e' : '#ffffff'; g.beginPath(); g.arc(a, b, (k === 'garage' ? 5 : 3.5) / s, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1 / s; g.stroke();
       if (siteCleared(k, { boxes: game.boxes, items: game.items, heaps: game.home.heaps }, { containers, spots, heaps: SCRAP_HEAPS })) { g.strokeStyle = '#3ddc84'; g.lineWidth = 2.5 / s; g.beginPath(); g.moveTo(a - 3 / s, b); g.lineTo(a - 0.5 / s, b + 3 / s); g.lineTo(a + 4 / s, b - 3.5 / s); g.stroke(); label += ' ✓'; }
@@ -71,9 +71,9 @@ export default function MapPanel({ onClose }) {
     <div className="shop-head"><h2>BAJA COUNTY</h2><span className="map-btns"><button onClick={() => setZoom(z => (z === 1 ? 3 : 1))}>{zoom === 1 ? 'Zoom in' : 'Whole county'}</button><button onClick={onClose}>Close (M)</button></span></div>
     <canvas ref={ref} width={PX} height={PX} className="map-canvas" onClick={e => {   // PROPOSAL: tap a purple dot to see that photo
       const r = e.currentTarget.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * PX, py = (e.clientY - r.top) / r.height * PX;
-      const [cx, cz] = worldToMap(game.pos.x, game.pos.z - MAP_CZ, HALF).map(v => v * PX), mx = zoom > 1 ? cx + (px - PX / 2) / zoom : px, mz = zoom > 1 ? cz + (py - PX / 2) / zoom : py;
+      const [cx, cz] = worldToMap(game.pos.x - MAP_CX, game.pos.z - MAP_CZ, HALF).map(v => v * PX), mx = zoom > 1 ? cx + (px - PX / 2) / zoom : px, mz = zoom > 1 ? cz + (py - PX / 2) / zoom : py;
       let best = null, bd = 12 / zoom;
-      for (const ph of game.home?.photos || []) { if (!ph.posted) continue; const [a, b] = worldToMap(ph.x, ph.z - MAP_CZ, HALF).map(v => v * PX), d = Math.hypot(a - mx, b - mz); if (d < bd) { bd = d; best = ph; } }
+      for (const ph of game.home?.photos || []) { if (!ph.posted) continue; const [a, b] = worldToMap(ph.x - MAP_CX, ph.z - MAP_CZ, HALF).map(v => v * PX), d = Math.hypot(a - mx, b - mz); if (d < bd) { bd = d; best = ph; } }
       setPick(best);
     }} />
     {pick && <div className="card" style={{ display: 'flex', gap: 10, alignItems: 'center', textAlign: 'left', marginTop: 6 }}>{pick.img && <img src={pick.img} alt="" style={{ width: 140, borderRadius: 6 }} />}<div><b>{pick.caption || 'Photo'}</b><div><small>{pick.where} · {Math.round(pick.x)}, {Math.round(pick.z)}</small></div><button onClick={() => setPick(null)}>Close photo</button></div></div>}
