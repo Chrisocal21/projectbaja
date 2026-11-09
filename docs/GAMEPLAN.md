@@ -26,6 +26,13 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - Add Chris's play-test findings as one-line fixes. Doc updates. Delete stale branches.
 - Rule: start a big job only with plenty left; if tokens run low mid-job, commit what works on a branch, never half-merge.
 
+## CHRIS'S PHASE 1 ORDER (Nov 8, set this order)
+1. Letter as an item + wall surface (hang things, pegboard snaps to walls).
+2. First new region: bigger map, hologram wall moved out (Chris picks direction + biome).
+3. Real phone apps, after a design chat.
+4. Arriving vehicles and ordering (needs the Phase 2+ answer).
+5. Clerk + Vercel cloud saves. Prep done: see [CLOUD_SAVES_PLAN.md](./CLOUD_SAVES_PLAN.md).
+
 ## 0. Start-of-session checklist (5 min)
 - [ ] `git status`, `git switch racer-items-fitglow`, `git fetch` (compare with `origin/main`, local `main` is stale).
 - [ ] Open the live Vercel site once. Confirm it loads.
