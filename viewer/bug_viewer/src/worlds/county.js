@@ -8,10 +8,11 @@
 //   Highway 9 south     ->  the Proving Grounds (the old test center: circuit, off-road track, washboard strip) + the salvage warehouse
 // Places are clusters: a town, the Proving Grounds, the farm keep their own layout and only move as a whole (`at`).
 import { createBiomes } from './biomes/index.js';
+import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL } from './world.js';
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
 export { SURFACES, toWorld };
 
-export const SIZE = 6000, CELL = 2, HALF = SIZE / 2, HALF_DRIVE = 2940;
+export const SIZE = WORLD_SIZE, CELL = SURFACE_CELL, HALF = SIZE / 2, HALF_DRIVE = DRIVE_LIMIT;   // sizes live in worlds/world.js
 const R = createRaster(SIZE, CELL);
 
 // ---------------- the heightmap: 1025 x 1025, row = z, column = x, 0..1 ----------------
@@ -23,7 +24,7 @@ const HM = await (async () => {
 })();
 const HMB = boxBlur(HM, HN, 9);   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
-  const fx = clamp((x + HALF) / SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HALF) / SIZE * (HN - 1), 0, HN - 1.0001);
+  const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);   // the file covers HM_SIZE, edge height held beyond
   const c = fx | 0, r = fz | 0, tx = fx - c, tz = fz - r, i = r * HN + c;
   return (arr[i] * (1 - tx) + arr[i + 1] * tx) * (1 - tz) + (arr[i + HN] * (1 - tx) + arr[i + HN + 1] * tx) * tz;
 }
@@ -42,7 +43,7 @@ export const BIOMES = {
   farm:    { name: 'Hollis farm', x: -960, z: 940, r: 220 },
 };
 /** organic noise from the heightmap itself, resampled at another scale and offset (mirror-tiled, so it never runs off the edge) */
-const mirror = v => { const p = 2 * SIZE, t = (((v + HALF) % p) + p) % p; return (t > SIZE ? p - t : t) - HALF; };
+const mirror = v => { const p = 2 * HM_SIZE, t = (((v + HM_SIZE / 2) % p) + p) % p; return (t > HM_SIZE ? p - t : t) - HM_SIZE / 2; };
 const warp = (x, z, s = 0.55, ox = 1300, oz = -900) => hmAt(HMB, mirror(x * s + ox), mirror(z * s + oz)) - 0.4;
 const B = BIOMES, dist = (b, x, z) => Math.hypot(x - b.x, z - b.z) * (1 + 0.3 * warp(x, z) + 0.35 * warp(x, z, 2.2, 400, 1700));   // ragged edges, not circles
 const lakeE = (x, z) => Math.hypot((x - B.lake.x) / B.lake.rx, (z - B.lake.z) / B.lake.rz) * (1 + 0.25 * warp(x, z, 0.8, -700, 400) + 0.3 * warp(x, z, 2.6, 2500, -300));
