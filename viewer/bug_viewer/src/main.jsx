@@ -189,7 +189,7 @@ function App() {
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));
     else if (id === 'bench') setPanel('fab');
     else if (id === 'peg') pegInteract();
-    else if (id === 'pc') setPanel('pc');
+    else if (id === 'pc') { if (!game.home?.power && !game.dev) say('The PC is dead. The power is off: flip the main breaker first.'); else setPanel('pc'); }
     else interact(id);
   };
   const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
