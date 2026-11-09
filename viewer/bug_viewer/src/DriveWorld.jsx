@@ -27,7 +27,8 @@ import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/si
 import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 
 // ---------- terrain ----------
-const STEER_FADE = 0.02;   // was 0.004: at 100 km/h the max wheel angle is about 0.45 rad instead of 0.63 (PROPOSAL, tune by feel)
+const STEER_FADE = 0.035;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
+const YAW_DAMP = 0.3;       // was 0.12: more yaw damping = fewer wobbles when you turn and let go
 const HALF = WORLD / 2 - 6;  // drivable limit
 export { terrainHeight } from './terrain.js';
 
@@ -228,7 +229,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
       // --- steering ---
       const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);   // wheel angle fades with speed (tighter = less wobble); the tires + yaw assist decide how much the car can actually use
-      st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (7 - Math.min(2.5, Math.abs(st.v) * 0.1)));   // slower to swing at speed
+      st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)));   // slower to swing at speed, snaps back to centre when you let go (no tail wag)
 
       // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
       const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu, tmuNow = sf.mu;
@@ -251,7 +252,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       if (Math.abs(latTotal) > latMax) { const k = latMax / Math.abs(latTotal); FyF *= k; FyR *= k; }
       let aL = (FyF * cs + FyR) / MASS;   // sideways acceleration the tires really apply (drives body roll)
       st.lateralV += (aL - st.v * st.yr) * dt;
-      st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * 0.12) * dt;   // extra yaw damping: planted, no spin-outs
+      st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * YAW_DAMP) * dt;   // extra yaw damping: planted, no spin-outs
       st.v += st.lateralV * st.yr * dt;
       // go where the wheels point: pull the body's turn rate toward the wheels' geometric turn rate (capped by what the tires can give),
       // and bleed off sideways drift so the velocity follows the nose
