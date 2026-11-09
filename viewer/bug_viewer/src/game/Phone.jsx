@@ -8,6 +8,9 @@ import { LETTER } from './home.js';
 import { jobById, jobCheck, SUPPLIES } from './jobs.js';
 import { TOOLS } from './items.js';
 import { SaveTools } from './update.jsx';
+import { takePhoto, updatePhoto, deletePhoto, photos } from './photos.js';
+import { coordText, postedFeed } from './photologic.js';
+import { compassPoint } from './compass.js';
 
 const SOON = { web: 'Browse the internet (parts, cars, news)', bank: 'Money: bills, sales, balance history', texts: 'Messages from suppliers and clients', contacts: 'Who you know in town', jobs: 'Odd jobs and orders', story: 'Story log: letters, photos, notes', camera: 'Take photos for the wall', music: 'Radio and music', weather: 'Weather and time', orders: 'Order parts, watch the delivery on the map', cars: 'Cars for sale' };
 const ICONS = {
@@ -22,7 +25,7 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false);   // story: null | 'list' | 'letter'
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [camView, setCamView] = useState(false);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
@@ -30,13 +33,14 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
     { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), real('orders', 'Orders', () => setOrdersView(true)), { key: 'cars', label: 'Car sales', soon: true },
-    real('story', 'Story log', () => setStory('list')), { key: 'camera', label: 'Camera', soon: true }, { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
+    real('story', 'Story log', () => setStory('list')), real('camera', 'Camera', () => setCamView(true)), { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>{clockText(game.clock ?? 9)} <span style={{ opacity: 0.6 }}>▂▄▆</span></span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {ordersView ? <OrdersApp onBack={() => setOrdersView(false)} />
+    {camView ? <CameraApp onBack={() => setCamView(false)} />
+      : ordersView ? <OrdersApp onBack={() => setOrdersView(false)} />
       : netView ? <InternetApp onBack={() => setNetView(false)} />
       : bankView ? <MoneyApp onBack={() => setBankView(false)} />
       : jobsView ? <JobsApp onBack={() => setJobsView(false)} />
@@ -44,7 +48,7 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
+    {teleports?.length > 0 && !soon && !camView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button><div className="phone-pill" />
   </div></div>;
 }
@@ -108,3 +112,27 @@ function OrdersApp({ onBack }) {
       : <p>Nothing on the way. Order parts in Internet.</p>}
     <button onClick={onBack}>Back</button></div>;
 }
+
+/** Camera + Feed (PROPOSAL, first slice): take a photo of the view, add a caption, post it. Every photo remembers where it was taken (place + coordinates + facing). */
+function CameraApp({ onBack }) {
+  const [tab, setTab] = useState('feed'), [draft, setDraft] = useState(() => photos().find(p => !p.posted) || null), [busy, setBusy] = useState(false), [cap, setCap] = useState('');
+  const feed = postedFeed(photos());
+  const snap = () => { setBusy(true); takePhoto(p => { setBusy(false); if (p) { setDraft(p); setCap(''); setTab('new'); } }); };
+  const where = p => `${p.where} · ${coordText(p.x, p.z)} · facing ${compassPoint(p.bearing)}`;
+  return <div className="phone-soon"><h3>Camera</h3>
+    <div style={{ display: 'flex', gap: 6 }}><button className={tab === 'new' ? 'on' : ''} onClick={() => setTab('new')}>Photo</button><button className={tab === 'feed' ? 'on' : ''} onClick={() => setTab('feed')}>Feed ({feed.length})</button></div>
+    {tab === 'new' && (draft
+      ? <div style={{ width: '100%', textAlign: 'left' }}><img src={draft.img} alt="" style={{ width: '100%', borderRadius: 6 }} /><small>{where(draft)}</small>
+        <input value={cap} onChange={e => setCap(e.target.value)} placeholder="Add a caption" maxLength={120} style={{ width: '100%', boxSizing: 'border-box', margin: '6px 0' }} />
+        <div style={{ display: 'flex', gap: 6 }}><button onClick={() => { updatePhoto(draft.id, { caption: cap.trim(), posted: true }); setDraft(null); setTab('feed'); }}>Post</button><button onClick={() => { deletePhoto(draft.id); setDraft(null); }}>Delete</button></div></div>
+      : <div><p>Takes a photo of whatever is on screen right now and remembers where you were.</p><button disabled={busy} onClick={snap}>{busy ? '...' : 'Take photo'}</button></div>)}
+    {tab === 'feed' && <div style={{ width: '100%', maxHeight: 330, overflow: 'auto', textAlign: 'left' }}>
+      {feed.length ? feed.map(p => <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid #ffffff18' }}><img src={p.img} alt="" style={{ width: '100%', borderRadius: 6 }} />
+        {p.caption && <div>{p.caption}</div>}<small>{where(p)} · {clockLabel(p.clock)}</small>
+        <div><button onClick={() => deletePhoto(p.id)}>Delete</button></div></div>)
+        : <p>No posts yet. Take a photo and post it.</p>}
+</div>}
+    <button onClick={onBack}>Back</button></div>;
+}
+const clockLabel = h => clockText(h);
+
