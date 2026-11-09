@@ -51,7 +51,8 @@ export function createBiomes(defs = BIOME_DEFS) {
   function heightOf(def, x, z, carve = true) {
     const h = def.height;
     let y;
-    if (h.kind === 'rolling') y = h.base + h.amp * (fbm(x / h.scale, z / h.scale, h.seed, 3) * 2 - 1) + 1.2 * (fbm(x / 40, z / 40, h.seed + 5, 2) - 0.5);
+    if (h.kind === 'shore') y = h.base + h.amp * (fbm(x / h.scale, z / h.scale, h.seed, 3) * 2 - 1) - h.drop * smooth(h.from, h.to, -x) + 1.0 * (fbm(x / 40, z / 40, h.seed + 5, 2) - 0.5);   // dry land falling away to the sea toward -x (west)
+    else if (h.kind === 'rolling') y = h.base + h.amp * (fbm(x / h.scale, z / h.scale, h.seed, 3) * 2 - 1) + 1.2 * (fbm(x / 40, z / 40, h.seed + 5, 2) - 0.5);
     else {
       const t = Math.min(1, Math.hypot(x - def.region.cx, z - def.region.cz) / h.radius), body = Math.pow(1 - Math.pow(t, 1.7), h.power);
       y = h.peak * body + h.ridge * (fbm(x / h.ridgeScale, z / h.ridgeScale, h.seed, 4) * 2 - 1) * (0.25 + 0.75 * Math.sqrt(body)) + 1.5 * (fbm(x / 30, z / 30, h.seed + 9, 2) - 0.5);

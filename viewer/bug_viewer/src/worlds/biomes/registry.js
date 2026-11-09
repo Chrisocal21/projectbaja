@@ -72,4 +72,16 @@ export const BIOME_DEFS = [
     ],
     trails: [], rivers: [],
   },
+  {
+    // PROPOSAL (name and look): region 3, the coast, WEST of the old map: past the coastal range the land falls away to the sea. Plain descriptive biome, no invented places. docs/WORLD_MAP.md
+    id: 'coast', name: 'The coast', nameIsProposal: true,
+    region: { cx: -5600, cz: 0, r: 3400, inner: 0.75, wobble: 0.15, seed: 91 },
+    height: { kind: 'shore', base: 14, amp: 5, scale: 500, seed: 101, drop: 40, from: 4100, to: 5300 },
+    ground: { base: 'sand', patches: [{ key: 'scrub', scale: 260, seed: 37, above: 0.5 }, { key: 'dirt', scale: 200, seed: 38, above: 0.72 }], steep: { slope: 0.5, key: 'rock' } },
+    scatter: [
+      { kind: 'bush', density: 5, cluster: { scale: 200, seed: 39, above: 0.45 }, scale: [0.5, 1.2], maxSlope: 0.5, minWeight: 0.3, tints: ['#ffffff', '#c8c08a'] },
+      { kind: 'rock', density: 1.0, cluster: { scale: 260, seed: 40, above: 0.5 }, scale: [0.5, 1.6], maxSlope: 1.0, minWeight: 0.3, tints: ['#ffffff', '#cfc4b0'] },
+    ],
+    trails: [], rivers: [],
+  },
 ];

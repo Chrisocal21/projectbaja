@@ -328,6 +328,7 @@ export const spawns = [
   { key: '[', code: 'BracketLeft', name: 'Mountain river ford', x: 1625, z: 2330, h: -Math.PI * 0.6 },
   { key: ']', code: 'BracketRight', name: 'Summit lookout', x: 2040, z: 2024, h: 3.9 },
   { key: ';', code: 'Semicolon', name: 'Scrubland (south, on Highway 9)', x: hwX(3300), z: 3300, h: 0 },   // on the highway's centre line
+  { key: 'Bksl', code: 'Backslash', name: 'The coast (west strip)', x: -4300, z: 0, h: -Math.PI / 2 },   // PROPOSAL: region 3
   { key: "'", code: 'Quote', name: 'Dry lakebed (east strip)', x: 3900, z: 750, h: Math.PI / 2 },   // PROPOSAL: region 2
 ];
 /** road signs at the junctions: [x, z, facing, lines] */
