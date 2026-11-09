@@ -1,0 +1,41 @@
+{
+ "wheels": {
+  "Wheel_FL": {
+   "center": [
+    0.86,
+    0.502,
+    1.44
+   ],
+   "radius": 0.52,
+   "halfWidth": 0.3
+  },
+  "Wheel_FR": {
+   "center": [
+    -0.86,
+    0.502,
+    1.44
+   ],
+   "radius": 0.52,
+   "halfWidth": 0.3
+  },
+  "Wheel_RL": {
+   "center": [
+    0.86,
+    0.502,
+    -0.92
+   ],
+   "radius": 0.52,
+   "halfWidth": 0.3
+  },
+  "Wheel_RR": {
+   "center": [
+    -0.86,
+    0.502,
+    -0.92
+   ],
+   "radius": 0.52,
+   "halfWidth": 0.3
+  }
+ },
+ "scale": 2
+}
