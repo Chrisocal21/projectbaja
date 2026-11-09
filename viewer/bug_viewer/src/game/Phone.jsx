@@ -1,5 +1,6 @@
 // The phone (simple first version, PROPOSAL): opens with Esc and replaces the old pause menu. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
+import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/react';
 import React, { useState } from 'react';
 import { game, useGame, save, say, addCash, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay } from './orders.js';
@@ -45,7 +46,7 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
       : bankView ? <MoneyApp onBack={() => setBankView(false)} />
       : jobsView ? <JobsApp onBack={() => setJobsView(false)} />
       : story ? <StoryLog view={story} setView={setStory} />
-      : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
+      : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><AccountBox /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
     {teleports?.length > 0 && !soon && !camView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
@@ -139,3 +140,6 @@ const clockLabel = h => clockText(h);
 
 const PRINTER_PRICE = 120;   // PROPOSAL
 function buyPrinter() { if (game.dev) return say('Buying is off in test sessions.'); if (game.cash < PRINTER_PRICE) return say(`Not enough cash ($${PRINTER_PRICE}).`); addCash(-PRINTER_PRICE, 'Bought: photo printer'); game.home = { ...game.home, printer: true }; save(); say('Bought a photo printer. You can print photos from the Camera feed.'); }
+
+/** optional account (Clerk). Guests keep saving on this device; signing in is for cloud saves later. */
+function AccountBox() { return <div style={{ margin: '8px 0' }}><small>Account (optional)</small><div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}><Show when="signed-out"><SignInButton mode="modal"><button>Sign in</button></SignInButton><SignUpButton mode="modal"><button>Sign up</button></SignUpButton></Show><Show when="signed-in"><UserButton /></Show></div></div>; }

@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/react';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Canvas, useThree } from '@react-three/fiber';
@@ -421,4 +422,6 @@ function Slider({ label, value, min, max, step, unit, digits, disabled, hint, on
 }
 
 const PlacementLab = import.meta.env.DEV && new URLSearchParams(location.search).get('lab') === 'placement' && React.lazy(() => import('./placement/Lab.jsx'));   // test scene, only with ?lab=placement (not even loaded otherwise)
-createRoot(document.getElementById('root')).render(PlacementLab ? <Suspense fallback={null}><PlacementLab /></Suspense> : <App />);
+createRoot(document.getElementById('root')).render(PlacementLab ? <Suspense fallback={null}><PlacementLab /></Suspense> : <ClerkProvider afterSignOutUrl="/">
+      <App />
+    </ClerkProvider>);
