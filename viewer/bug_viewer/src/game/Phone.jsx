@@ -22,28 +22,29 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false);   // story: null | 'list' | 'letter'
+  const [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false);   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
     real('web', 'Internet', () => setNetView(true)), real('bank', `$${game.cash}`, () => setBankView(true)),
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('index', 'Index', onWiki, 'I'),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
-    { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), { key: 'orders', label: 'Orders', soon: true }, { key: 'cars', label: 'Car sales', soon: true },
+    { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), real('orders', 'Orders', () => setOrdersView(true)), { key: 'cars', label: 'Car sales', soon: true },
     real('story', 'Story log', () => setStory('list')), { key: 'camera', label: 'Camera', soon: true }, { key: 'music', label: 'Radio', soon: true }, { key: 'weather', label: 'Weather', soon: true },
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>{clockText(game.clock ?? 9)} <span style={{ opacity: 0.6 }}>▂▄▆</span></span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {netView ? <InternetApp onBack={() => setNetView(false)} />
+    {ordersView ? <OrdersApp onBack={() => setOrdersView(false)} />
+      : netView ? <InternetApp onBack={() => setNetView(false)} />
       : bankView ? <MoneyApp onBack={() => setBankView(false)} />
       : jobsView ? <JobsApp onBack={() => setJobsView(false)} />
       : story ? <StoryLog view={story} setView={setStory} />
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
       : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
+    {teleports?.length > 0 && !soon && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
     <button className="phone-home" onClick={onResume}>Close (Esc)</button><div className="phone-pill" />
   </div></div>;
 }
@@ -97,5 +98,13 @@ function InternetApp({ onBack }) {
     <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{list.map(p => <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{nameOf(tab, p.id, body)}<small> · ${priceOf(tab, p.id)}</small></span><button disabled={game.cash < priceOf(tab, p.id)} onClick={() => placeOrder(tab, p.id)}>Order</button></div>)}</div>
     {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY</small>{waiting.map((o, i) => <div key={i}>{nameOf(o.kind, o.id, body)}<small> · {etaText(o.left)}</small></div>)}</div>}
+    <button onClick={onBack}>Back</button></div>;
+}
+
+function OrdersApp({ onBack }) {
+  const body = game.build?.body || 'classic', waiting = ordersOnTheWay();
+  return <div className="phone-soon"><h3>Orders</h3>
+    {waiting.length ? <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY (arrives at the shop pickup area; see the Map)</small>{waiting.map((o, i) => <div key={i} style={{ padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>{nameOf(o.kind, o.id, body)}<small> · {etaText(o.left)}</small></div>)}</div>
+      : <p>Nothing on the way. Order parts in Internet.</p>}
     <button onClick={onBack}>Back</button></div>;
 }
