@@ -51,3 +51,8 @@ Searched Desktop/assets, projectbaja/assets and supplyline-unity/Assets.
 - Should each region have its own garage or shop later, or is everything run from Walt's Garage? (Lore question: not decided here.)
 - Do you want the vehicle shop and parts suppliers to change by region (coast = marine parts)? PROPOSAL: later.
 - The plants, rocks and water need art. Art is on hold: do you want to unpark it for the coast?
+
+## STATUS: region system, step 1 DONE (Nov 9)
+- `src/game/regions.js`: region table and exits (drive into an exit circle, next region loads, you keep your speed). `DriveWorld` checks exits each physics step and places the car on arrival; `main.jsx` swaps the world and records `home.region` (real regions only).
+- Checked in a browser with the DEV-ONLY stand-in exit (county to test center and back): speed kept (19.1 and 18.6), no errors. Real regions will use highway exits at a mountain pass; the mountain-pass fade/hide is NOT built yet.
+- NOT done: saving and restoring the current region on Continue, on-foot travel, hiding the cut behind a pass.

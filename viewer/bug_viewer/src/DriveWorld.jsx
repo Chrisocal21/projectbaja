@@ -2,6 +2,7 @@ import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef 
 import { bugAsleep } from './game/home.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from './game/store.js';
+import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
@@ -169,6 +170,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
   }, [world]);
   useEffect(() => { window.__baja = s.current; }, []);   // telemetry hook for tests
+  useEffect(() => {   // arriving in a new region: appear at its arrival spot with the speed you had
+    const a = game.arrive; if (!a || a.done) return; a.done = true;
+    Object.assign(s.current, spawnState(), { x: a.x, z: a.z, h: a.h, y: world.height(a.x, a.z) + 0.5, v: a.v || 0 }); camPos.current.set(a.x - Math.sin(a.h) * 10, 4, a.z - Math.cos(a.h) * 10);
+    game.arrive = null; game.travelling = false;
+  }, [world.id]);
   const cab = useRef(false), wasFoot = useRef(false);
   const rig = useRef(null);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
@@ -200,6 +206,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
+    { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
     const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
     if (k.reset) {

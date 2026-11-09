@@ -30,6 +30,7 @@ import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
 import OfficePC from './game/OfficePC.jsx';
+import { regionById } from './game/regions.js';
 import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { PhonePanel } from './game/Phone.jsx';
 import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
@@ -204,6 +205,10 @@ function App() {
   const togglePiece = id => setBuild({ ...build, hidden: build.hidden.includes(id) ? build.hidden.filter(h => h !== id) : [...build.hidden, id] });
   const update = next => { setBuild(next); setSelected(null); };
   useEffect(() => { const f = () => setFs(!!document.fullscreenElement); document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f); }, []);
+  useEffect(() => {   // driving into a region exit (game/regions.js): switch to that region's world; DriveWorld places the car
+    const f = e => { const r = regionById(e.detail?.to); if (!r) return; game.region = r.id; if (!game.dev && !r.dev) game.home = { ...game.home, region: r.id }; setPlay(p => ({ ...p, world: r.world })); };
+    window.addEventListener('baja-travel', f); return () => window.removeEventListener('baja-travel', f);
+  }, []);
   useEffect(() => {   // pause on Esc / lost pointer lock; E opens the shop when standing at it
     if (mode !== 'play') return;
     const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null && !game.rebuilding) setPanel('pause'); };
