@@ -32,7 +32,7 @@ function loadSave() {
 const loaded = loadSave(), saved = loaded.data;
 
 export const game = {
-  paused: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
+  paused: false, flyMode: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
   toast: null, crates: sanitizeCrates(saved.crates), listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,

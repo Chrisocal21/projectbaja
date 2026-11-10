@@ -1,10 +1,14 @@
 # Project: Baja — ROADMAP (regroup, November 8, 2026)
 
+## Current focus (Nov 9, 2026)
+
+Chris is accepting the current road joins as a working base while the remaining road work is documented in [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md). The immediate implementation focus is game lag, tracked in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md). The real-map roads and shoulders are not yet visually or physically complete across the whole map. The phone now opens with **P**; Esc closes panels or releases the mouse.
+
 One page that says where everything stands. Written because work had spread across several pages and half-finished systems. Read [CANON](./CANON.md) first. Labels: **PROPOSAL** = a design guess, not decided. **CHRIS IDEA** = Chris asked for it, not yet scoped or locked in canon. Nothing here invents lore.
 
 ## 0. FOCUS (Nov 8, Chris): main game only. Dev testing tools (Build Sandbox, Placement Lab) are ON HOLD; do not extend them until Chris says so.
 
-## 1. Where everything lives (all on `main` now). NOTE: see GAMEPLAN.md for the current plan; the phone (Esc), update button, saves and two biomes are now live.
+## 1. Where everything lives (all on `main` now). NOTE: see GAMEPLAN.md for the earlier plan; the phone (P), update button, saves and two biomes are now live.
 
 | What | Where to open it | State |
 |---|---|---|
@@ -30,7 +34,7 @@ Garage start, breaker, letter, Grandma's Bug and restoration, #7 under the tarp,
 
 ## 4. Chris's backlog, organised
 
-**A. Phone + PC ecosystem (Rockstar-style).** *Decision Nov 8 (Chris): the phone REPLACES the Esc pause menu. Opening it is how you save, exit, change settings, browse the internet, see car sales, order parts, and so on. Note: browsers always release the mouse on Esc, so Esc must open the phone as the mouse is released, and a second key (PROPOSAL: P) opens it too.* Home screen with mini apps: the Index (wiki-style, not called "wiki"), jobs, SMS with suppliers and clients, story log. Walt's PC for ordering parts and looking up vehicles. *App list to be designed together.*
+**A. Phone + PC ecosystem (Rockstar-style).** *Nov 8 decision, updated Nov 9: the phone replaces the old pause menu and opens with P. Esc releases the mouse or closes an active panel; it does not open the phone.* Opening the phone is how you save, exit, change settings, browse the internet, see car sales, order parts, and so on. Home screen with mini apps: the Index (wiki-style, not called "wiki"), jobs, SMS with suppliers and clients, story log. Walt's PC for ordering parts and looking up vehicles. *App list to be designed together.*
 **B. Garage furniture.** Everything movable. Tire racks show real tires, shelves show real items.
 **C. Tool spots.** Pegboard outlines become missing-tool slots. Grandpa had the basic, older tools; welder, bender, grinder and other specialty tools are bought or found.
 

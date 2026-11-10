@@ -2,7 +2,7 @@
 import { game, emit } from './store.js';
 
 const KEY = 'baja-settings-v1';
-export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', keyHints: true, crosshair: true };
+export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', keyHints: true, crosshair: true, showFps: true };
 /** what the settings panel shows, in order. Every row here is wired to something real. */
 export const SETTING_ROWS = [
   { sec: 'Gameplay' },
@@ -14,6 +14,7 @@ export const SETTING_ROWS = [
   { k: 'fov', type: 'range', label: 'Field of view (on foot)', min: 55, max: 100, step: 1, fmt: v => `${v}°` },
   { k: 'renderScale', type: 'choice', label: 'Render resolution', options: [['auto', 'Auto'], [1, '100%'], [0.75, '75%'], [0.5, '50%']], note: 'Lower is faster on slow machines.' },
   { sec: 'HUD' },
+  { k: 'showFps', type: 'toggle', label: 'Show FPS counter' },
   { k: 'keyHints', type: 'toggle', label: 'Show key hints' },
   { k: 'crosshair', type: 'toggle', label: 'Show crosshair' },
 ];
@@ -30,5 +31,5 @@ export function setSetting(k, v) {
 export function resetSettings() { game.settings = { ...SETTING_DEFAULTS }; try { localStorage.removeItem(KEY); } catch {} emit(); }
 /** mouse-look multipliers: [x, y] */
 export const lookScale = () => [game.settings.sens, game.settings.sens * (game.settings.invertY ? -1 : 1)];
-/** Canvas dpr */
-export const canvasDpr = () => (game.settings.renderScale === 'auto' ? [1, 2] : game.settings.renderScale);
+/** The real map's layered terrain is expensive at device-pixel-ratio 2. Explicit settings still win. */
+export const canvasDpr = (heavyWorld = false) => (game.settings.renderScale === 'auto' ? (heavyWorld ? 1 : [1, 2]) : game.settings.renderScale);

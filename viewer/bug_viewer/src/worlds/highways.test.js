@@ -41,3 +41,12 @@ test('junctions meet at one height', () => {
   const ai = a.pts.reduce((m, p, i) => (Math.abs(p.x) < Math.abs(a.pts[m].x) ? i : m), 0);
   assert.ok(Math.abs(b.pts[0].hs - a.pts[ai].hs) < 0.3, b.pts[0].hs + ' vs ' + a.pts[ai].hs);
 });
+test('a side road ending near a highway joins its centre line', () => {
+  const H = makeHighways([
+    { name: 'Main', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'Side', kind: 'secondary', pts: [[20, 12], [20, 300]] },
+  ], () => 0);
+  const side = H.roads.find(r => r.name === 'Side');
+  assert.ok(Math.hypot(side.pts[0].x - 20, side.pts[0].z) < 2);
+  assert.ok(H.crossingDistance(side.pts[0].x, side.pts[0].z, side) < 2);
+});

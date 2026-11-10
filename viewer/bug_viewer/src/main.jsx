@@ -42,9 +42,11 @@ import MapPanel from './game/MapPanel.jsx';
 import Compass from './game/Compass.jsx';
 import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
+import PerfHud from './game/PerfHud.jsx';
 import WikiPanel from './game/WikiPanel.jsx';
 import UpgradesPanel from './game/UpgradesPanel.jsx';
 import { canvasDpr } from './game/settings.js';
+import { REAL } from './worlds/world.js';
 import './style.css';
 import './hud.css';
 
@@ -70,9 +72,10 @@ function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, dri
   const r = useMemo(() => resolve(build), [build]);
   if (drive && pro) return <Canvas shadows key={`pro-${physicsKey(build, r)}`} camera={{ position: [0, 4, -12], fov: 60, near: 0.1, far: 900 }} dpr={canvasDpr()}>
     <Suspense fallback={null}><ProDrive hud={hud} dims={r.dims} bodyId={build.body}><BuildModel build={build} wireframe={wireframe} drive /></ProDrive></Suspense>
+    <PerfHud />
   </Canvas>;
   if (drive) { const t = world === 'county' ? vehicleType(game.active) : vehicleType('bug'), truck = t.kind === 'truck';
-    return <Canvas shadows key={`drive-${world}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 5200 }} dpr={canvasDpr()}>
+    return <Canvas shadows key={`drive-${world}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 5200 }} dpr={canvasDpr(world === 'border' || (world === 'county' && REAL))}>
       <Suspense fallback={null}><DriveWorld hud={hud} dims={truck ? t.dims : r.dims} worldId={world} bodyId={build.body} vehKey={truck ? t.id : `${t.id}-${physicsKey(build, r)}`}>{truck ? <TruckModel /> : <BuildModel build={build} wireframe={wireframe} drive />}</DriveWorld></Suspense>
     </Canvas>; }
   return <Canvas key="view" shadows camera={{ position: CAMERA_POSITION, fov: 43, near: 0.05, far: 100 }} dpr={[1, 2]} onPointerMissed={() => onSelect(null)}>
@@ -111,7 +114,7 @@ function App() {
   useEffect(() => { startUpdateWatch(); if (takeResumeFlag()) { startStory(true); setPanel('continue'); } }, []);
   const resume = () => { setPanel(null); try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} };
   const toggleFs = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch {} };
-  const startPlay = (kind, w) => { if (w === 'county') game.active = 'bug'; Object.assign(game, { dev: true, onFoot: false, start: w === 'county' ? 'garage' : 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
+  const startPlay = (kind, w) => { if (w === 'county') game.active = 'bug'; Object.assign(game, { dev: true, onFoot: false, flyMode: false, start: w === 'county' ? 'garage' : 'plaza', walkStart: null, walkPose: null, pose: null, target: null, fueled: false }); game.keepPose = false; game.prompt = ''; setPlay({ kind, world: w }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {} };
   const startStory = cont => {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
@@ -194,7 +197,7 @@ function App() {
     else if (id === 'pc') { if (!game.home?.power && !game.dev) say('The PC is dead. The power is off: flip the main breaker first.'); else setPanel('pc'); }
     else interact(id);
   };
-  const toTitle = () => { setPanel(null); setMode('title'); game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
+  const toTitle = () => { setPanel(null); setMode('title'); game.flyMode = false; game.prompt = ''; try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} };
   const [resetKey, setResetKey] = useState(0), [selected, setSelected] = useState(null), [filter, setFilter] = useState('All');
   const [copied, setCopied] = useState(false), [channel, setChannel] = useState('paint'), [piecesOpen, setPiecesOpen] = useState(true);
   const r = useMemo(() => resolve(build), [build]);
@@ -209,12 +212,13 @@ function App() {
     const f = e => { const r = regionById(e.detail?.to); if (!r) return; game.region = r.id; if (!game.dev && !r.dev) game.home = { ...game.home, region: r.id }; setPlay(p => ({ ...p, world: r.world })); };
     window.addEventListener('baja-travel', f); return () => window.removeEventListener('baja-travel', f);
   }, []);
-  useEffect(() => {   // pause on Esc / lost pointer lock; E opens the shop when standing at it
+  useEffect(() => {   // P opens the phone; Escape closes the active panel
     if (mode !== 'play') return;
-    const lockChange = () => { if (!document.pointerLockElement && panelRef.current === null && !game.rebuilding) setPanel('pause'); };
     const key = e => {
       const p = panelRef.current;
       const bm = game.buildMode;
+      if (e.code === 'KeyP' && !e.repeat && e.target?.tagName !== 'INPUT') { e.preventDefault(); if (p === 'pause') resume(); else setPanel('pause'); return; }
+      if (game.flyMode && p === null && e.code !== 'Escape') return;
       if (p === 'wiki') {   // the game index: typing goes to its search box; I / Esc close it
         if (e.target?.tagName === 'INPUT' && e.code !== 'Escape') return;
         if ((e.code === 'KeyI' || e.code === 'Escape') && !e.repeat) { e.preventDefault(); resume(); }
@@ -253,7 +257,7 @@ function App() {
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
-      if (e.code === 'Escape') { if (p === null || p === 'shop' || p === 'garage') setPanel('pause'); else if (p === 'pause' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
+      if (e.code === 'Escape') { if (p === 'pause' || p === 'shop' || p === 'garage' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
@@ -272,8 +276,8 @@ function App() {
       if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); else if (t?.startsWith('furn:')) { const q = game.props.find(o => o.uid === +t.slice(5)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } } } };   // (a scrap heap is picked through with a click too)
-    document.addEventListener('pointerlockchange', lockChange); window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => clearTimeout(holdT); window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
-    return () => { document.removeEventListener('pointerlockchange', lockChange); window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('contextmenu', ctx); };
+    window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => clearTimeout(holdT); window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
   useEffect(() => {   // turning "unlock everything" off strips parts you do not own yet
     if (game.unlockAll) return;
@@ -385,7 +389,7 @@ function App() {
     {panel === 'settings' && <SettingsPanel onClose={() => setPanel('pause')} />}
     {panel === 'wiki' && <WikiPanel onClose={resume} />}
     {panel === 'upgrades' && <UpgradesPanel onClose={resume} />}
-    {panel === 'pause' && <PhonePanel canMap={play.world === 'county'} onMap={() => setPanel('map')} onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} fullscreen={fs} onFullscreen={toggleFs}
+    {panel === 'pause' && <PhonePanel canMap={play.world === 'county'} onMap={() => setPanel('map')} onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} onFly={() => { game.flyMode = !game.flyMode; say(game.flyMode ? 'Fly: WASD move, mouse look, Space up, Q down, Shift faster. Phone to stop.' : 'Back in the vehicle'); resume(); }} fullscreen={fs} onFullscreen={toggleFs}
       teleports={!game.dev ? [] : play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : play.world === 'county' ? COUNTY_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'dealer' && <DealerPanel onBuy={id => buyVehicle(id)} onClose={resume} />}

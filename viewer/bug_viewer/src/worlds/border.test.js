@@ -19,3 +19,7 @@ test('water: ocean at sea level, Salton Sea at its own level, none on land', () 
   assert.equal(B.waterAt(10, 0), null);
   assert.equal(B.surfaceAt(-20, 0).key, 'water');
 });
+test('shore sand fades inland and leaves high ground unchanged', () => {
+  assert.ok(B.shoreAt(-10, -10) > B.shoreAt(0, -10));
+  assert.equal(B.shoreAt(10, -10), 0);
+});

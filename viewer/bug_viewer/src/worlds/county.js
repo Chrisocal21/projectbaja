@@ -11,6 +11,8 @@ import { createBiomes } from './biomes/index.js';
 import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ringMetric0, REAL } from './world.js';
 import { loadBorder } from './border.js';
 import { makeHighways } from './highways.js';
+import { buildJunctions } from './junctions.js';
+import { buildRoadside } from './roadside.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -31,8 +33,10 @@ const HMB = boxBlur(HM, HN, 9);
 const BD = REAL ? await loadBorder() : null;
 /** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
 const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
-let HW = null;
-export const highways = () => HW;   // ~55 m average: washes sit below it, ridges above
+let HW = null, JN = null;
+export const highways = () => HW;
+/** ?realmap: ramps and signs at the real junctions ({ ramps, furniture, junctions, deadEnds }) */
+export const junctions = () => JN;   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
   x = mirror(x); z = mirror(z);   // the file covers HM_SIZE; beyond it the relief is mirrored (identical inside)
   const fx = clamp((x + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001), fz = clamp((z + HM_SIZE / 2) / HM_SIZE * (HN - 1), 0, HN - 1.0001);
@@ -246,7 +250,22 @@ for (let z = 12; z <= 48; z += 4) { const t = (z - 12) / 36; R.paintDisc(0, z, 1
 if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass), then the hand-built roads grade onto them where they cross
   const keep = [{ x: 0, z: 0, r: 260 }, { x: B.town.x, z: B.town.z, r: 340 }, { x: B.proving.x, z: B.proving.z, r: 560 }, { x: B.farm.x, z: B.farm.z, r: 240 },
     ...Object.values(SITES).map(s => ({ x: s.x, z: s.z, r: s.r + 60 }))];
-  HW = makeHighways(HWJ.roads, realBase, { water: BD.waterAt, avoid: keep });
+  const jn = buildJunctions(HWJ.roads, BD.bounds);
+  const clear = p => !keep.some(k => Math.hypot(p.x - k.x, p.z - k.z) < k.r + 320);   // no interchanges round the built places
+  // A single-valued terrain height cannot carry the crossing road under a ramp.
+  // Keep the ramp generator available for comparison, but use clear at-grade
+  // junctions until bridges and a separate bridge collider are built.
+  const showRamps = typeof location !== 'undefined' && /[?&]ramps(?:[=&]|$)/.test(location.search);
+  const visualJunctions = showRamps ? jn : buildJunctions(HWJ.roads, BD.bounds, { atGrade: true });
+  const ramps = showRamps ? jn.ramps.filter(r => clear({ x: r.pts[0][0], z: r.pts[0][1] }) && clear({ x: r.pts[r.pts.length - 1][0], z: r.pts[r.pts.length - 1][1] })) : [];
+  JN = { ...visualJunctions, ramps, furniture: visualJunctions.furniture.filter(f => clear(f)) };
+  HW = makeHighways([...HWJ.roads, ...ramps], realBase, { water: BD.waterAt, avoid: keep });
+  JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
+  JN.ramps = ramps.filter(r => HW.kept.has(r.id));
+  // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
+  const graded = HW.roads.filter(r => r.kind !== 'ramp').map(r => ({ name: r.name, kind: r.kind, pts: r.pts.filter((_, i, a) => i % 8 === 0 || i === a.length - 1).map(q => [q.x, q.z]) }));
+  const rs = buildRoadside(graded, { ...jn, furniture: jn.furniture.filter(f => clear(f)) }, { ground: realBase, bounds: BD.bounds });
+  JN.roadside = { ...rs, sites: rs.sites.filter(q => clear(q) && (HW.near(q.x, q.z)?.d ?? 99) > 26) };   // not in a built place, and clear of every road
 }
 
 // ---------------- graded road profiles: heights averaged along the road, ends tied to whatever they join ----------------

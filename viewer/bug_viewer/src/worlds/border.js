@@ -32,18 +32,45 @@ export function makeBorder(meta, H, M) {
     if ((m & 2) && h < lakeY + 0.3) return lakeY;
     return null;
   }
+  /** Sand carried inland from a mapped shoreline, fading with distance and elevation. */
+  function shoreAt(x, z) {
+    const h = heightAt(x, z);
+    if (h > 12) return 0;
+    const around = [[0, 0], [80, 0], [-80, 0], [0, 80], [0, -80]]
+      .map(([dx, dz]) => maskAt(x + dx, z + dz));
+    const lakeNearby = around.some(mask => mask & 2);
+    const bit = lakeNearby ? 2 : 1;
+    if (!around.some(mask => mask & bit)) return 0;
+    const level = bit === 2 ? lakeY : SEA_Y;
+    if (h > level + 12 || h < level - 3) return 0;
+    let proximity = 0;
+    for (const radius of [20, 40, 80]) {
+      const near = [[radius, 0], [-radius, 0], [0, radius], [0, -radius]]
+        .some(([dx, dz]) => maskAt(x + dx, z + dz) & bit);
+      if (near) { proximity = 1 - radius / 120; break; }
+    }
+    if (maskAt(x, z) & bit) proximity = 1;
+    const rise = Math.max(0, Math.min(1, (level + 12 - h) / 10));
+    return proximity * rise;
+  }
+  /** Broad, feathered ground regions derived from the real map's geography and relief. */
+  function regionAt(x, z) {
+    const h = heightAt(x, z);
+    const south = Math.max(0, Math.min(1, (z - 4500) / 7000));
+    const basin = Math.max(0, Math.min(1, (95 - h) / 95));
+    return { south, basin: basin * (1 - south * 0.35), coast: shoreAt(x, z) };
+  }
   /** PROPOSAL ground rules until real biomes come in (step 6): water, beach sand, rock on steep ground, high-country dirt, desert scrub */
   function surfaceAt(x, z) {
     const h = heightAt(x, z), w = waterAt(x, z);
     if (w != null && h < w - 0.4) return SURFACES.water;
     const slope = (Math.abs(heightAt(x + 4, z) - heightAt(x - 4, z)) + Math.abs(heightAt(x, z + 4) - heightAt(x, z - 4))) / 8;
     if (slope > 0.55) return SURFACES.rock;
-    if (w != null || (h < 2.5 && nearSea(x, z))) return SURFACES.sand;   // beaches and shores
+    if (w != null || shoreAt(x, z) > 0.35) return SURFACES.sand;
     if (h > 180) return slope > 0.3 ? SURFACES.rock : SURFACES.dirt;
     return SURFACES.scrub;
   }
-  const nearSea = (x, z) => { for (const [dx, dz] of [[60, 0], [-60, 0], [0, 60], [0, -60]]) if (maskAt(x + dx, z + dz) & 1) return true; return false; };
-  return { meta, bounds: { x0, x1, z0, z1 }, heightAt, maskAt, waterAt, surfaceAt, lakeY };
+  return { meta, bounds: { x0, x1, z0, z1 }, heightAt, maskAt, waterAt, shoreAt, regionAt, surfaceAt, lakeY };
 }
 
 let data = null, pending = null;

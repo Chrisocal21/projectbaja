@@ -2,6 +2,8 @@
 
 *Updated November 8, 2026. Key: ✅ done, 🟡 in progress, ⬜ not started.*
 
+**Current update, Nov 9:** road completion work is itemized in [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md); the active lag investigation and first fixes are in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md). The percentages and older "Right now" section below are historical and have not been recalculated for the real map.
+
 ## Right now
 - **Building now:** Stage 4c, tire racks that show real tires (not committed yet).
 - **Next:** one shared crosshair aim rule, so E and click aim the same way.

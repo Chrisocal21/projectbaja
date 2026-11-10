@@ -99,7 +99,7 @@ export default function Walker({ world, sun }) {
   useEffect(() => {
     const s = st.current, el = gl.domElement;
     window.__walk = s;   // test hook
-    const move = e => { if (!game.onFoot || document.pointerLockElement !== el || game.paused) return; const [kx, ky] = lookScale(); s.yaw -= e.movementX * 0.0022 * kx; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - e.movementY * 0.0022 * ky)); };
+    const move = e => { if (!game.onFoot || game.flyMode || document.pointerLockElement !== el || game.paused) return; const [kx, ky] = lookScale(); s.yaw -= e.movementX * 0.0022 * kx; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - e.movementY * 0.0022 * ky)); };
     const kd = e => { s.keys[e.code] = true; }, ku = e => { s.keys[e.code] = false; }, blur = () => { s.keys = {}; };
     window.addEventListener('mousemove', move); window.addEventListener('keydown', kd); window.addEventListener('keyup', ku); window.addEventListener('blur', blur);
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); window.removeEventListener('blur', blur); camera.rotation.order = 'XYZ'; };
@@ -107,7 +107,7 @@ export default function Walker({ world, sun }) {
 
   useFrame((_, rawDt) => {
     const s = st.current, dt = Math.min(rawDt, 0.05);
-    if (game.paused) return;
+    if (game.paused || game.flyMode) return;
     if (game.onFoot) {
       if (!s.on) {   // just stepped out (or the scene was rebuilt): take the saved spot
         s.on = true; s.vx = s.vz = 0; s.pitch = 0;

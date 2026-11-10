@@ -8,6 +8,7 @@ import { Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { tickClock, clockHour } from '../game/clock.js';
 import { dayPhase, goldenPhase, sunPosition } from './clock.js';
+import { REAL } from './world.js';
 
 const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getStyle();
 
@@ -28,7 +29,7 @@ export default function DayNightSky({ sun }) {
     <fog attach="fog" args={[fogColor, 420 - 380 * night, 4300 - 3700 * night]} />
     <ambientLight intensity={0.15 + 0.35 * day} />
     <hemisphereLight args={[skyTint, groundTint, 0.3 + 0.45 * day]} />
-    <directionalLight ref={sun} position={pos} color={sunColor} intensity={0.08 + 2.6 * day} castShadow shadow-mapSize={[2048, 2048]}
+    <directionalLight ref={sun} position={pos} color={sunColor} intensity={0.08 + 2.6 * day} castShadow={day > 0.08} shadow-mapSize={REAL ? [1024, 1024] : [2048, 2048]}
       shadow-camera-left={-36} shadow-camera-right={36} shadow-camera-top={36} shadow-camera-bottom={-36} shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
   </>;
 }

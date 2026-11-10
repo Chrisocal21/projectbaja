@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from './game/store.js';
 import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
+import PerfHud from './game/PerfHud.jsx';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
@@ -130,7 +131,7 @@ function useKeys() {
   useEffect(() => {
     const dn = e => {
       keys.current[e.code] = true;
-      if (e.code === 'KeyR' && !e.repeat) keys.current.reset = true;
+      if (e.code === 'KeyR' && !e.repeat && !game.flyMode) keys.current.reset = true;
       if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
     };
     const up = e => { keys.current[e.code] = false; };
@@ -178,6 +179,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     game.arrive = null; game.travelling = false;
   }, [world.id]);
   const cab = useRef(false), wasFoot = useRef(false);
+  const fly = useRef({ active: false, yaw: 0, pitch: 0 });
   const rig = useRef(null);
   const camPos = useRef(new THREE.Vector3(0, 4, -16));
 
@@ -194,12 +196,12 @@ function Vehicle({ children, hud, dims, race, sun }) {
   useEffect(() => {
     const el = gl.domElement, l = look.current;
     const lock = () => { if (!game.paused && document.pointerLockElement !== el) { try { const r = el.requestPointerLock(); r?.catch?.(() => {}); } catch {} } };
-    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); l.yaw -= e.movementX * 0.004 * kx; l.yaw = Math.atan2(Math.sin(l.yaw), Math.cos(l.yaw)); l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
+    const move = e => { if (document.pointerLockElement !== el) return; const [kx, ky] = lookScale(); if (game.flyMode) { fly.current.yaw -= e.movementX * 0.003 * kx; fly.current.pitch = Math.max(-1.48, Math.min(1.48, fly.current.pitch - e.movementY * 0.003 * ky)); return; } l.yaw -= e.movementX * 0.004 * kx; l.yaw = Math.atan2(Math.sin(l.yaw), Math.cos(l.yaw)); l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + e.movementY * 0.004 * ky)); l.idle = 0; };
     const wheel = e => { e.preventDefault(); l.dist = Math.max(4, Math.min(22, l.dist * (1 + e.deltaY * 0.001))); };
     const cabKey = e => { if (e.code === 'KeyC' && !e.repeat) { cab.current = !cab.current; l.yaw = 0; l.pitch = 0.28; l.idle = 0; } };
     window.addEventListener('keydown', cabKey);
     lock();                                   // works right after the Drive click (recent user gesture)
-    const key = e => { if (e.code !== 'Escape') lock(); };
+    const key = e => { if (e.code !== 'Escape' && e.code !== 'KeyP') lock(); };
     window.addEventListener('keydown', key);  // any key re-captures if the browser refused / Esc was pressed
     el.addEventListener('pointerdown', lock); window.addEventListener('mousemove', move);
     el.addEventListener('wheel', wheel, { passive: false });
@@ -391,6 +393,39 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const acc = useRef(0);
   useFrame((_, rawDt) => {
     if (!rig.current || game.paused) return;
+    if (game.flyMode) {
+      const f = fly.current, dt = Math.min(rawDt, 0.05);
+      if (!f.active) {
+        const dir = new THREE.Vector3(); camera.getWorldDirection(dir);
+        f.yaw = Math.atan2(dir.x, dir.z); f.pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+        camera.position.y = Math.max(camera.position.y + 12, world.height(camera.position.x, camera.position.z) + 15);
+        f.active = true; acc.current = 0;
+      }
+      const k = keys.current, forward = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+      const side = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
+      const rise = (k.Space || k.KeyE ? 1 : 0) - (k.KeyQ ? 1 : 0);
+      const speed = (k.ShiftLeft || k.ShiftRight ? 240 : 65) * dt / Math.max(1, Math.hypot(forward, side, rise));
+      const cp = Math.cos(f.pitch);
+      camera.position.x += (Math.sin(f.yaw) * cp * forward - Math.cos(f.yaw) * side) * speed;
+      camera.position.z += (Math.cos(f.yaw) * cp * forward + Math.sin(f.yaw) * side) * speed;
+      camera.position.y += (Math.sin(f.pitch) * forward + rise) * speed;
+      const bounds = world.bounds;
+      if (bounds) { camera.position.x = THREE.MathUtils.clamp(camera.position.x, bounds.x0, bounds.x1); camera.position.z = THREE.MathUtils.clamp(camera.position.z, bounds.z0, bounds.z1); }
+      camera.position.y = THREE.MathUtils.clamp(camera.position.y, world.height(camera.position.x, camera.position.z) + 2, 1500);
+      camera.lookAt(camera.position.x + Math.sin(f.yaw) * cp, camera.position.y + Math.sin(f.pitch), camera.position.z + Math.cos(f.yaw) * cp);
+      const [sx, sy, sz] = sunDirection(clockHour());
+      sun.current.position.set(camera.position.x + sx * SUN_FOLLOW, camera.position.y + sy * SUN_FOLLOW, camera.position.z + sz * SUN_FOLLOW);
+      sun.current.target.position.copy(camera.position); sun.current.target.updateMatrixWorld();
+      game.pos.x = camera.position.x; game.pos.z = camera.position.z;
+      return;
+    }
+    if (fly.current.active) {
+      fly.current.active = false; acc.current = 0;
+      if (!game.onFoot) {
+        camPos.current.set(s.current.x - Math.sin(s.current.h) * 9, s.current.y + 4, s.current.z - Math.cos(s.current.h) * 9);
+        camera.position.copy(camPos.current); look.current.yaw = 0; look.current.pitch = 0.28;
+      }
+    }
     acc.current += Math.min(rawDt, 0.1);
     for (let n = 0; acc.current >= STEP && n < 5; n++) { sim(STEP); acc.current -= STEP; }
     if (!game.onFoot) { game.pos.x = s.current.x; game.pos.z = s.current.z; }
@@ -451,5 +486,6 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     {world.id === 'county' && <Walker world={world} sun={sun} />}
     {world.id === 'county' && <Items />}{world.id === 'county' && <DeliveryTruck />}
     {world.id === 'county' && <Fleet />}
+    <PerfHud />
   </WorldCtx.Provider>;
 }
