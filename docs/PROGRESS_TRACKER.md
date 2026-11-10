@@ -1,8 +1,10 @@
 # Project: Baja — PROGRESS_TRACKER
 
-*Updated November 8, 2026. Key: ✅ done, 🟡 in progress, ⬜ not started.*
+*Updated November 9, 2026. Key: ✅ done, 🟡 in progress, ⬜ not started.*
 
 **Current update, Nov 9:** road completion work is itemized in [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md); the active lag investigation and first fixes are in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md). The percentages and older "Right now" section below are historical and have not been recalculated for the real map.
+
+**Big map, Nov 9:** steps 1-5 of the real border slice are done and pushed (`?realmap`): real elevation, streamed tiles, real highways with grading, stop signs/lights/dead-end signs, 6 rest areas, 13 gas stations, freeway ramps behind `?realmap&ramps`. Step 6 (biomes, map screen, teleports, default on) is not started. 264 tests pass.
 
 ## Right now
 - **Building now:** Stage 4c, tire racks that show real tires (not committed yet).

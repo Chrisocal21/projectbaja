@@ -2,6 +2,8 @@
 
 ## Current focus (Nov 9, 2026)
 
+**Big map (D6) has started:** the real border slice (LA to Cabo) is playable behind `?realmap` (steps 1-5 pushed in 5d57ad6: real terrain, real highways, junction signs, rest areas, gas stations). Step 6 (biomes by area, map screen, teleports, make it the default) is next. See [WORLD_MAP](./WORLD_MAP.md).
+
 Chris is accepting the current road joins as a working base while the remaining road work is documented in [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md). The immediate implementation focus is game lag, tracked in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md). The real-map roads and shoulders are not yet visually or physically complete across the whole map. The phone now opens with **P**; Esc closes panels or releases the mouse.
 
 One page that says where everything stands. Written because work had spread across several pages and half-finished systems. Read [CANON](./CANON.md) first. Labels: **PROPOSAL** = a design guess, not decided. **CHRIS IDEA** = Chris asked for it, not yet scoped or locked in canon. Nothing here invents lore.

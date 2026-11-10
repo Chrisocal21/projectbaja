@@ -1,4 +1,4 @@
-# RESUME HERE (written Nov 8, 2026)
+# RESUME HERE (written Nov 8, 2026; big-map section added Nov 9)
 
 Read this first when picking the work back up. Labels: **PROPOSAL** = design guess. Nothing here changes [CANON](./CANON.md).
 
@@ -6,6 +6,12 @@ Read this first when picking the work back up. Labels: **PROPOSAL** = design gue
 1. **Saves that survive updates** (then Clerk + Vercel cloud saves, last).
 2. **Bigger map** with new biomes, expanded in steps behind a glowing hologram wall.
 3. **More biomes over time** (Grassland and Forest Mountain are built).
+
+## Big map: real border slice (Nov 9) - behind `?realmap`, pushed in 5d57ad6
+- One seamless world from Los Angeles to Cabo (garage in Imperial Valley) on real elevation data, streamed in tiles. Steps 1-5 done; details in [WORLD_MAP](./WORLD_MAP.md). Normal game is unchanged.
+- Step 5 roads: Natural Earth highways, graded and blended into the ground, bypassing the built places. Step 5b/5c: stop signs, lights, dead-end signs, rest areas (6) and gas stations (13); freeway ramps exist but only show with `?realmap&ramps` (normal `?realmap` uses at-grade junctions, see [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md)).
+- Drive tests (steering bot, dev car powered via `game.home.bugFired = true`): diamonds stay within 2.5 m of centre; loops fine at ~25 mph but swing 6.4 m off at ~34 mph (R_LOOP 75 is too tight, try ~100).
+- **Next on the map:** loop radius, road joins/junction polish (backlog), driveways + collision for roadside places, overpasses (needs a bridge system), then step 6: biomes by real area, map screen, teleports, make `?realmap` the default. ChatGPT is handling visuals; perf work is in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
 
 ## Done and pushed
 - 4d: bench, car lift and pegboard are movable, sellable props with tool slots (78c4812).

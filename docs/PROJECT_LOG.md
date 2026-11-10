@@ -391,3 +391,14 @@ Chris, hands-on, with a screenshot: "the walls are still off when it comes to al
 - **Verified by building a real wall, not just reading the code:** placed a foundation and a wall directly against the garage's own right wall, right at its corner, in Chromium, before and after. Before: a visible step at the seam. After: the new wall's face is exactly coplanar with the original's, no gap, no overhang.
 - **What I checked and deliberately left alone:** the office wing's west wall sits 0.2 m off the build grid by design (an existing, tested, documented tradeoff — see the office-expansion entry above). I confirmed a wall can't even be snapped directly alongside *any* original wall within its own run (by design — it'd duplicate the existing wall; the test suite spells this out: `!inBuilding('wall', 8, 6, 0)` succeeds flush past a corner, `inBuilding('wall', 7, 2, ...)` refuses alongside the wall's own span). That's correct, intentional behaviour, not what Chris's screenshot was showing, and I left it as-is rather than loosen it. I also considered moving the office wall onto the grid outright, but that wall's exact position is what keeps the "Office expansion" upgrade's doorway exclusive (openings.js can't find a foundation close enough to cut it anywhere else) — moving it would let the generic $120 doorway tool open it from any angle, undoing that gate. Left it alone; flagged as a possible follow-up only if that exclusivity stops mattering.
 - 75/75 tests (unaffected — pure visual constant), build passes.
+
+## November 9, 2026: big map steps 4-5 - real highways, ramps, signs, roadside places (`?realmap`)
+
+Chris: "freeway ramps ... real like with resting stops, gas stations among other things." Then "LETS JUST GET BACK TO THE ROADS. CHATGPT IS WORKING ON VISUALS."
+
+- **Roads:** `west_roads.py` turns Natural Earth highways into `public/terrain/highways.json`; `highways.js` grades them (6-10% cap), blends them into the ground, keeps them off water and bends them round the built places.
+- **Junctions:** `junctions.js` finds where roads meet: diamond ramps, cloverleaf loops, stop signs, lights, dead-end signs. `roadside.js` adds rest areas and gas stations. All pure and tested.
+- **Review fixes:** signs now only stand if their ramps survive grading; ramp grade checks the steepest part (9%); ramp ends snap onto the road they join (gap 0 m); the loop lead-in ran the wrong way (fixed).
+- **Drive tests:** a steering bot drove six ramps incl. a mountain one. Within 2.5 m of centre, no rolls, no airborne after settling. Loops hold at ~25 mph; at ~34 mph with loose steering they swing 6.4 m off (open: enlarge R_LOOP).
+- **Honest limits:** no overpasses (single-height ground), roadside places have no driveways or collision, sign boards are blank. Ramps are now behind `?realmap&ramps` (another agent's change).
+- Pushed as 5d57ad6 with the parallel perf HUD and road-connection work.

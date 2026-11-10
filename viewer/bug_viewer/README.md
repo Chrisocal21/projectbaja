@@ -8,6 +8,7 @@ This folder is the playable game now, not only the asset lab. Story, map and pro
 [STORY_AND_WORLD](../../docs/STORY_AND_WORLD.md) and [PROGRESS_TRACKER](../../docs/PROGRESS_TRACKER.md).
 
 - **Run:** `npm install`, then `npm run dev`. Start a new game from the title screen.
+- **Real map (dev, in progress):** add `?realmap` for the LA-to-Cabo border slice on real elevation and highways; `&ramps` also shows freeway ramps. See `docs/WORLD_MAP.md`.
 - **Dev tools:** add `?dev` to the URL or press backquote on the title screen, then pick "Baja County (free drive)". Number keys teleport.
 - **Test:** `npm test` runs 32 node tests (physics, restoration rules, assets).
 - **Build:** `npm run build`. `vite.config.js` sets the target to es2022 because `src/worlds/county.js` loads the heightmap with a top-level `await`.

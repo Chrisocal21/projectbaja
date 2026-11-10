@@ -98,14 +98,14 @@ Chris picked: the drivable world is the real border slice (LA to Cabo San Lucas,
 - Checked in a browser: I-8 east of home, the CA-86 bypass by the garage, Mex 2 / 2D climbing into the mountains, I-8 winding west into the hills.
 - Not done: road signs, poles and exits on the real highways; the Natural Earth lines are only good to about 1 real km, so some roads cut through hills (capped) where the real road follows a pass; no drive test at speed yet; map screen still the old county.
 
-### Step 5b (Nov 9, PROPOSAL, not committed yet): ramps, signs, lights
+### Step 5b (Nov 9, PROPOSAL, pushed in 5d57ad6): ramps, signs, lights
 - `src/worlds/junctions.js` (pure, tested) reads the highway lines and finds every place roads meet (178 junctions, 42 dead ends on the real map).
 - Freeway x road -> diamond (an off-ramp and an on-ramp per direction and side road). Freeway x freeway -> cloverleaf (four 270-degree loops). Road x road -> STOP signs on the minor road, street lights. A road that just stops -> dead-end sign.
-- Ramps are one-lane roads graded between the heights of the two roads they join; a ramp that would be steeper than ~9% (mountain junctions) is left out. 94 ramps survive.
+- Ramps are one-lane roads graded between the heights of the two roads they join; a ramp whose steepest part would pass 9% is left out (47 survive after the stricter check). Ramps only show with `?realmap&ramps`.
 - No overpasses yet (the ground is a height map): ramps join the crossing road at the same height. Nothing built round the garage, Dry Wells, the Proving Grounds, the farm.
 - NOT done: rest stops, gas stations, roadside businesses, exit signs, lane lines on ramps, merge tapers. Planned next as `roadside.js`: along freeways every few km, a rest area (parking pad, shelter, toilets, picnic tables) and a gas station + diner pad near towns; generic names only (no invented towns or people).
 
-### Step 5c - roadside places (not committed yet, PROPOSAL)
+### Step 5c - roadside places (pushed in 5d57ad6, PROPOSAL)
 - `worlds/roadside.js`: rest areas on freeways/major roads (straight, level, away from junctions, about every 6 km) and gas stations beside the side road at interchanges. Generic only: no names.
 - Real map: 6 rest areas, 13 gas stations after the keep-clear filter. Drawn by `RoadsidePlaces` in County.jsx (instanced boxes).
 - NOT done: driveways joining them to the road, collision, interiors, more place types, exit signs.

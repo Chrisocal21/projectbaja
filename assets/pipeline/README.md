@@ -33,3 +33,7 @@ Some bodies keep a full side panel in `B_Body*` behind each door skin, so an ope
 - `python -I export_desert.py prep <Assets> <tmp>` then `blender -b --factory-startup -P export_desert.py -- build <Assets> <tmp>`
   writes `public/models/ENV_Desert.glb`: 7 dead trees (Dry_Trees LOD2), 3 desert rocks (ZNS3D), 9 boulders (ForestVision), a shrub.
 - `node preview_county.mjs out.bmp [px]` renders the county top-down (hillshade, surfaces, sites) without starting the game.
+
+## Big map: real border slice (`?realmap`, see docs/WORLD_MAP.md)
+- `python assets/pipeline/west_dem.py` downloads AWS terrain tiles and writes `public/terrain/border.png` + `border.json` (heights, scales H 1:25 / V 1:8, water masks) and a preview in `assets/mockups/`.
+- `python assets/pipeline/west_roads.py` (needs `pip install pyshp`; run west_dem.py first) reads Natural Earth 1:10m roads (public domain, cached in `assets/generated/raw/ne_roads`, gitignored), clips and projects them, and writes `public/terrain/highways.json` + `assets/mockups/west_roads_preview.png`.
