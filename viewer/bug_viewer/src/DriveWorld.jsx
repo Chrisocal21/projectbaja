@@ -210,6 +210,16 @@ function Vehicle({ children, hud, dims, race, sun }) {
     return () => { el.removeEventListener('pointerdown', lock); window.removeEventListener('mousemove', move); window.removeEventListener('keydown', key); window.removeEventListener('keydown', cabKey); el.removeEventListener('wheel', wheel); if (document.pointerLockElement === el) document.exitPointerLock(); };
   }, [gl]);
 
+  // A car you have walked away from and that has fully settled does not need physics: the suspension samples the real-map ground about 1,500 times per frame
+  // (4 wheels x 4 passes x 39 points, each a costly height query), which was ~40% of the frame while you stood in the yard. It wakes the moment you get in
+  // or anything moves it (the test is "same place as last step", so a teleport, fly mode or a push all wake it).
+  function simGuarded(dt) {
+    const st = s.current, r = st.rest, near = r && Math.abs(r.x - st.x) < 1e-3 && Math.abs(r.z - st.z) < 1e-3 && Math.abs(r.h - st.h) < 1e-3 && Math.abs(r.y - st.y) < 0.02;   // a parked Bug still creeps a few cm: "the same place" is within 2 cm
+    if (game.onFoot && !fly.current.active && near && r.n >= 20 && !st.air && !st.rolled) return;
+    sim(dt);
+    const still = game.onFoot && Math.abs(st.v) < 0.02 && Math.abs(st.lateralV) < 0.02 && Math.abs(st.yr) < 0.01 && Math.abs(st.vy) < 0.3 && !st.air && !st.rolled;
+    st.rest = still && near ? { ...r, n: r.n + 1 } : { x: st.x, z: st.z, h: st.h, y: st.y, n: 0 };
+  }
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
@@ -431,7 +441,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       }
     }
     acc.current += Math.min(rawDt, 0.1);
-    for (let n = 0; acc.current >= STEP && n < 5; n++) { sim(STEP); acc.current -= STEP; }
+    for (let n = 0; acc.current >= STEP && n < 5; n++) { simGuarded(STEP); acc.current -= STEP; }
     if (!game.onFoot) { game.pos.x = s.current.x; game.pos.z = s.current.z; }
     game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
     if (acc.current > STEP * 5) acc.current = 0;

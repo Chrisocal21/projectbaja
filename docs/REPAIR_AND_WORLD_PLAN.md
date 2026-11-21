@@ -139,3 +139,10 @@ Built and **driven through the real game in headless Chrome** (not yet by Chris'
   - It is heavy (about 145k triangles with wheels). With the Bug and the garage in view the frame rate will drop; there is no level of detail yet.
   - Positions of the truck and its pile are guesses: check it clears the fridge at (9, 15) and the fence, and that the ground under 5.5 m of truck is level enough.
   - No sound, no part condition (all parts as new), no paint (it stays rusted), no storage in the bed yet.
+
+## Performance pass (Nov 21)
+Chris reported 7-15 FPS. Measured in headless Chrome with the in-game `?perf` HUD, the Chrome CPU profiler and "hide one thing, re-measure" experiments (scratchpad scripts, not in the repo; `window.__perfScene` is a test hook in `PerfHud.jsx`).
+- **Finding:** the El Cajon was a small part (about 5% of triangles). About **40% of every frame** was the Bug's suspension physics running while the car sat parked and you walked: 4 wheels x 4 passes x 39 ground samples per step, each a costly real-map height query (`county.js` `dist`/`warp`, `highways.js` `nearAll`/`pavedSurfaceAt`).
+- **Fix:** `DriveWorld.jsx` `simGuarded`: once the car is parked on foot and has not moved more than 2 cm for 20 physics steps, the physics step is skipped; it wakes the moment you get in or anything moves it. FPS at the garage, same spots: about 30 -> 53 looking away, 27 -> 42 at the truck.
+- **Also done:** projects hidden beyond 140 m; the El Cajon's small parts no longer cast shadows.
+- **Still open:** driving costs the same ground queries every frame (about 1,500 per frame): cache or thin the tire samples. The world is about 4.4M triangles and 1,700 draw calls, with 1,900 shadow casters (shadows off gave about +15%). Terrain tile streaming makes the first seconds after loading slow (150 ms frames).
