@@ -7,7 +7,8 @@ const detailed = typeof location !== 'undefined' && /[?&]perf(?:[=&]|$)/.test(lo
 
 /** Small in-game FPS counter; ?perf expands it with frame and renderer statistics. */
 export default function PerfHud() {
-  const { gl } = useThree(), node = useRef(null), samples = useRef([]), elapsed = useRef(0);
+  const { gl, scene } = useThree(), node = useRef(null), samples = useRef([]), elapsed = useRef(0);
+  useEffect(() => { window.__perfScene = { gl, scene }; }, [gl, scene]);   // test hook: scene breakdown
   useEffect(() => {
     const el = document.createElement('div');
     el.style.cssText = `position:fixed;right:18px;top:${detailed ? 12 : 80}px;z-index:9999;padding:${detailed ? '8px 10px' : '5px 8px'};background:#111d;color:#d8e7dc;font:700 12px/1.4 monospace;white-space:pre;pointer-events:none;border:1px solid #fff3`;

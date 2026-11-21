@@ -46,6 +46,10 @@ export function makeCajon() {
     const foot = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.04, 0.46), post); foot.position.y = 0.02;
     st.add(mast, foot); st.position.set(at[0] * 0.92, 0, at[2]); st.visible = false; root.add(st); stands[name] = st;
   });
+  // only the big outer pieces cast shadows: the shadow pass draws every caster again, and the small parts inside are not seen in it
+  const BIG = new Set(['hood', 'driver_door', 'passenger_door', 'tailgate', 'front_bumper', 'rear_bumper', 'windshield']);
+  shell.traverse(o => { if (!o.isMesh) return; let n = o, keep = n.parent === shell; for (; n && n !== shell; n = n.parent) if (n.parent === shell) keep = BIG.has(n.name) || !n.userData.slot; o.castShadow = o.castShadow && keep; });
+  for (const w of Object.values(wheels)) w.traverse(o => { if (o.isMesh) o.castShadow = false; });
   for (const id of Object.keys(CAJON.covers)) open[id] = 0;
   return { root, lift, shell, parts, wheels, stands, open, post };
 }

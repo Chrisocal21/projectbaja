@@ -454,6 +454,12 @@ const COUNTY_WORLD = {
     return obsCache.list;
   },
 };
+/** draws its children only while you are within `r` metres (projects far away cost nothing: no draw calls, no shadow pass) */
+function Near({ x, z, r = 140, children, ...props }) {
+  const g = useRef();
+  useFrame(() => { if (g.current) g.current.visible = Math.hypot(game.pos.x - x, game.pos.z - z) < r; });
+  return <group ref={g} {...props}>{children}</group>;
+}
 /** every vehicle that is not the one you are using: parked where you left it, or waiting on Al's lot */
 function Fleet() {
   useGame();
@@ -462,9 +468,9 @@ function Fleet() {
     <Cargo veh={v.id} />
     {!v.forSale && <VehicleCargo veh={v.id} />}
   </group>)}
-  {(game.projects || []).map(p => <group key={'p' + p.uid} position={[p.pose.x, CO.groundHeight(p.pose.x, p.pose.z), p.pose.z]} rotation={[0, p.pose.h, 0]}>   {/* donor wrecks and other projects: each has its own parts (game/projects.js) */}
+  {(game.projects || []).map(p => <Near key={'p' + p.uid} x={p.pose.x} z={p.pose.z} position={[p.pose.x, CO.groundHeight(p.pose.x, p.pose.z), p.pose.z]} rotation={[0, p.pose.h, 0]}>   {/* donor wrecks and other projects: each has its own parts (game/projects.js) */}
     <Suspense fallback={null}>{p.def === 'cajon' ? <CajonModel build={p.build} drive vehId={'p' + p.uid} uid={p.uid} /> : <BuildModel build={p.build} drive vehId={'p' + p.uid} />}</Suspense>
-  </group>)}</>;
+  </Near>)}</>;
 }
 /** the real border slice (docs/WORLD_MAP.md, dev only while it is built): everything comes from worlds/border.js once loaded */
 const BORDER_WORLD = {
