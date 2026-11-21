@@ -2,7 +2,7 @@
 // key hints (bottom left) and the crosshair. Pure presentation over the game store.
 import React from 'react';
 import { game, useGame } from './store.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf } from './items.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, packCap, hasRack, storageOf } from './items.js';
 import { activeType } from './fleet.js';
 import { Key } from './BuildMenu.jsx';
 import { clockHour } from './clock.js';
@@ -38,7 +38,7 @@ export function HudOverlay() {
     {game.toast && <div key={game.toast.t} className="hud-toast2"><i />{game.toast.msg}</div>}
     {game.onFoot && !game.buildMode && <div className="hud-carry2">
       <div className="hc-hands"><small>HANDS</small><b>{held() ? nameOfItem(held()) : 'Empty'}</b>{held() && <em>{SIZE_NAME[sizeOf(held().kind, held().id)]} · <Key k="G" /> put down</em>}</div>
-      <Meter label="Pack" v={used('pack')} cap={CAPACITY.pack} />
+      <Meter label="Pack" v={used('pack')} cap={packCap()} />
       {Object.entries(storageOf()).map(([k, v]) => <Meter key={k} label={`${activeType().name} · ${v.label}`} v={used(k)} cap={v.cap} />)}
       {activeType().kind === 'build' && !hasRack() && <div className="hc-note">No roof rack</div>}
     </div>}
@@ -51,7 +51,7 @@ export function KeyHints({ driving, pro, cabLabel }) {
   const bm = game.buildMode;
   if (!game.settings?.keyHints) return null;
   const list = bm ? (bm.moving ? [['Click', 'Set down'], ['Wheel/Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Esc', 'Cancel']]
-    : [['Click', 'Build / pick up'], ['Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Wheel', 'Rotate'], ['1-8', 'Hotbar'], ['N', 'Material'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Esc', 'Put away']])
+    : [['Click', 'Build / pick up'], ['Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Wheel', 'Rotate'], ['1-8', 'Hotbar'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Esc', 'Put away']])
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]
       : [['WASD', 'Walk'], ['Shift', 'Run'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['L', 'Lights'], ...(game.canBuild ? [['B', 'Build'], ['U', 'Upgrades']] : []), ['M', 'Map'], ['I', 'Index'], ['Esc', 'Menu']];
   return <div className={`hud-keys2${bm ? ' col' : ''}`}>{bm?.why && <span style={{ color: '#ff8a7a' }}>{bm.why}</span>}{list.map(([k, t]) => <span key={k + t}><Key k={k} />{t}</span>)}</div>;

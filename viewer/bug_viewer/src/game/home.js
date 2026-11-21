@@ -7,7 +7,7 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
-import { upgradeLevel } from './upgrades.js';
+import { upgradeLevel, stageWhy } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
 import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
@@ -68,7 +68,7 @@ export const LETTER = [
 // ---------------- build mode: your property ----------------
 /** place-able things. `zone`: 'yard' (outside the garage) or 'garage' (inside). r = collision radius (0 = walk-through) */
 const STRUCTURE_ITEMS = Object.values(PIECES).map(p => ({ id: p.id, name: p.name, price: p.price, zone: 'yard', r: 0, cat: 'Structure', struct: true, note: p.note }));
-export const BUILD_ITEMS = [
+const ALL_BUILD_ITEMS = [
   { id: 'fenceWood', name: 'Wooden fence (3 m)', price: 40, zone: 'yard', r: 0, cat: 'Fences', len: 3 },
   { id: 'fenceChain', name: 'Chain-link fence (3 m)', price: 60, zone: 'yard', r: 0, cat: 'Fences', len: 3 },
   { id: 'gate', name: 'Ranch gate', price: 110, zone: 'yard', r: 0, cat: 'Fences', len: 4 },
@@ -99,16 +99,20 @@ export const BUILD_ITEMS = [
   { id: 'picnic', name: 'Picnic table', price: 60, zone: 'yard', r: 1.0, cat: 'Yard' },
   { id: 'grill', name: 'Barbecue grill', price: 80, zone: 'yard', r: 0.5, cat: 'Yard' },
 ];
-export const buildById = Object.fromEntries(BUILD_ITEMS.map(b => [b.id, b]));
+/** the build menu is DECORATIONS AND FURNISHINGS ONLY (fences, yard, storage, garage equipment, office, decor). Walls, floors, roofs, foundations and wall cuts are no longer for sale:
+ *  what you already built stays standing (and can still be moved, stored or sold); the house itself grows through the staged upgrades (U, worlds/upgrades.js). */
+export const BUILD_ITEMS = ALL_BUILD_ITEMS.filter(b => !b.struct && !b.cut);
+export const isDecoration = id => BUILD_ITEMS.some(b => b.id === id);
+export const buildById = Object.fromEntries(ALL_BUILD_ITEMS.map(b => [b.id, b]));   // (everything, so old pieces still resolve)
 /** build categories in menu order, and the item to land on when you jump to one */
-export const BUILD_CATS = ['Structure', ...new Set(BUILD_ITEMS.map(b => b.cat).filter(c => c !== 'Structure'))];
-export const nextCatItem = (itemId, d) => { const c = BUILD_CATS.indexOf(buildById[itemId].cat), n = BUILD_CATS[(c + d + BUILD_CATS.length) % BUILD_CATS.length]; return BUILD_ITEMS.find(b => b.cat === n).id; };
+export const BUILD_CATS = [...new Set(BUILD_ITEMS.map(b => b.cat))];
+export const nextCatItem = (itemId, d) => { const c = Math.max(0, BUILD_CATS.indexOf(buildById[itemId]?.cat)), n = BUILD_CATS[(c + d + BUILD_CATS.length) % BUILD_CATS.length]; return BUILD_ITEMS.find(b => b.cat === n).id; };
 /** the next item within the same category (mouse wheel while placing) */
-export const nextInCat = (itemId, d) => { const list = BUILD_ITEMS.filter(b => b.cat === buildById[itemId].cat), i = list.findIndex(b => b.id === itemId); return list[(i + d + list.length) % list.length].id; };
+export const nextInCat = (itemId, d) => { const list = BUILD_ITEMS.filter(b => b.cat === buildById[itemId]?.cat), i = list.findIndex(b => b.id === itemId); if (!list.length) return BUILD_ITEMS[0].id; return list[(i + d + list.length) % list.length].id; };
 /** build hotbar (keys 1-8): [{ id, mat? } | null] x 8, saved with the home. Building pieces fill it until you rebind slots. */
 export const HOTBAR_N = 8;
-const HOTBAR_DEFAULT = ['foundation', 'wall', 'windowWall', 'door', 'garageDoor', 'floor', 'roof', 'pillar'];
-export const hotbar = () => Array.from({ length: HOTBAR_N }, (_, i) => { const h = game.home?.hotbar; if (h && h[i] !== undefined) return h[i] && buildById[h[i].id] ? h[i] : null; return buildById[HOTBAR_DEFAULT[i]] ? { id: HOTBAR_DEFAULT[i] } : null; });
+const HOTBAR_DEFAULT = ['workbench', 'shelfSupplies', 'toolChest', 'neon', 'flamingo', 'picnic', 'fenceWood', 'drum'];
+export const hotbar = () => Array.from({ length: HOTBAR_N }, (_, i) => { const h = game.home?.hotbar; if (h && h[i] !== undefined) return h[i] && isDecoration(h[i].id) ? h[i] : null; return isDecoration(HOTBAR_DEFAULT[i]) ? { id: HOTBAR_DEFAULT[i] } : null; });
 export function bindHotbar(i, id, mat) {
   const h = hotbar().map(e => (e && e.id === id && (e.mat || null) === (mat || null) ? null : e));   // one slot per piece+material: binding it again moves it
   h[i] = { id, ...(mat ? { mat } : {}) };
@@ -175,6 +179,7 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   return '';
 }
 export function placeProp(id, x, z, ry, mat) {
+  if (!isDecoration(id)) { say('Building is for decorations now. The house itself grows through Upgrades (U).'); return false; }
   const item = buildById[id], why = placeWhy(item, x, z, false, ry, mat); if (why) { say(why); return false; }
   if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
     const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
@@ -398,11 +403,14 @@ export const TRAILER_UPGRADES = [
   { id: 'paint', name: 'Fresh paint', price: 180, note: 'Cream and turquoise, like it was in 1966.' },
   { id: 'ac', name: 'Window A/C unit', price: 380, note: 'It is the desert.' },
   { id: 'lights', name: 'String lights', price: 60, note: 'For the porch. Purely morale.' },
+  { id: 'locker', name: 'Gear locker', price: 300, note: 'A steel locker by the door: two more slots in your pack.' },
 ];
 export const trailerHas = id => !!game.home.trailer?.includes(id);
+/** why a camper stage cannot be bought now ('' = it can): the same rules as the Upgrades screen (worlds/upgrades.js) */
+export const trailerWhy = id => (trailerHas(id) ? 'Already done.' : stageWhy('camper-' + id));
 export function upgradeTrailer(id) {
   const u = TRAILER_UPGRADES.find(x => x.id === id); if (!u || trailerHas(id)) return;
-  if (game.cash < u.price) return say('Not enough cash.');
+  const why = trailerWhy(id); if (why) return say(why);
   addCash(-u.price, `Trailer: ${u.name}`); game.home = { ...game.home, trailer: [...(game.home.trailer || []), id] }; save(); say(`Trailer: ${u.name.toLowerCase()} — done.`);
 }
 export function sleep() {

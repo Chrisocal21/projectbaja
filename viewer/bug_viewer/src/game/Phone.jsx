@@ -9,7 +9,8 @@ import { cajonProject } from './cajonGift.js';
 import { SUPPLY_TABS, suppliesIn } from './garageSupplies.js';
 import { placeOrder, ordersOnTheWay, orderName, orderCar, carOnOrder } from './orders.js';
 import { VEHICLE_TYPES, FOR_SALE, owned as ownsCar } from './fleet.js';
-import { ORDER_HOURS, etaText } from './orderlogic.js';
+import { etaText } from './orderlogic.js';
+import { effects } from './upgrades.js';
 import { LETTER } from './home.js';
 import { jobById, jobCheck, SUPPLIES } from './jobs.js';
 import { TOOLS, canCarry, giveToPlayer, dropNearPlayer } from './items.js';
@@ -107,7 +108,7 @@ function InternetApp({ onBack }) {
   const body = game.build?.body || 'classic', cat = { ...catalogFor(body), stock: cajonCatalog() }, list = cat[tab] || [], waiting = ordersOnTheWay(), hasCajon = !!cajonProject();   // 'stock' = the El Cajon's parts (once Dusty has delivered it)
   const rows = SUPPLY_TABS.some(([k]) => k === tab) ? suppliesIn(tab).map(r => ({ id: r.id, label: r.name, price: r.price, note: r.note, kind: 'garage' })) : list.map(p => ({ id: p.id, label: nameOf(tab, p.id, body), price: priceOf(tab, p.id), kind: tab }));   // supplies and tools are 'garage' orders
   return <div className="phone-soon"><h3>Parts online</h3>
-    <small>Cash ${game.cash} · arrives at the pickup area about {ORDER_HOURS} game hours after you order</small>
+    <small>Cash ${game.cash} · arrives at the pickup area about {effects().orderHours} game hour{effects().orderHours === 1 ? '' : 's'} after you order</small>
     <div style={{ display: 'flex', gap: 6 }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : []), ...SUPPLY_TABS, ['gear', 'Gear']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     {tab === 'gear' ? <div style={{ width: '100%', textAlign: 'left' }}>{game.home?.printer ? <p>Photo printer: owned.</p> : <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Photo printer<small> · ${PRINTER_PRICE} · prints your posted photos</small></span><button disabled={game.dev || game.cash < PRINTER_PRICE} onClick={buyPrinter}>Buy</button></div>}</div> : <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{rows.map(r => <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{r.label}<small> · ${r.price}{r.note ? ` · ${r.note}` : ''}</small></span><button disabled={game.cash < r.price} onClick={() => placeOrder(r.kind, r.id)}>Order</button></div>)}</div>}

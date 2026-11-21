@@ -1,28 +1,30 @@
-// Stateful half of the upgrade track: reads/writes game.home.upgrades. The catalog and its price/level math are pure,
-// in worlds/upgrades.js (tested there, no game-state import, same pattern as structures.js and lot.js).
+// Stateful half of the staged upgrade track (worlds/upgrades.js has the catalog and the maths, tested there).
+// Older stages keep their old save keys so saves from before the staged track still work: home.upgrades.{lift2,parking,office}, home.trailer.
 import { game, addCash, save, say } from './store.js';
 import { creative } from './settings.js';
-import { UPGRADES, upgradeById, isMaxed as isMaxedAt, nextPrice as nextPriceAt, nextNote as nextNoteAt } from '../worlds/upgrades.js';
+import { TRACKS, STAGES, stageById, stagesOf, ownedStages, whyNot, nextStage as nextStageIn, effectsOf } from '../worlds/upgrades.js';
 
-export { UPGRADES, upgradeById };
+export { TRACKS, STAGES, stageById, stagesOf };
+/** the old level for the keys the world code reads (lot size, lift, office annex): unchanged */
 export const upgradeLevel = id => game.home?.upgrades?.[id] || 0;
-export const isMaxed = id => isMaxedAt(id, upgradeLevel(id));
-export const nextPrice = id => nextPriceAt(id, upgradeLevel(id));
-export const nextNote = id => nextNoteAt(id, upgradeLevel(id));
-/** why the next level can't be bought right now ('' = it can) */
-export function upgradeWhy(id) {
-  if (isMaxed(id)) return 'Fully built.';
-  if (!creative() && game.cash < nextPrice(id)) return `Not enough cash ($${nextPrice(id)}).`;
-  return '';
-}
+export const owned = () => ownedStages(game.home);
+export const hasStage = id => owned().has(id);
+export const stageWhy = id => whyNot(id, owned(), game.cash, creative());
+export const nextStage = track => nextStageIn(track, owned());
+/** what the owned stages do right now: { orderHours, holdScale, packBonus } */
+export const effects = () => effectsOf(owned());
+
 const ANNEX_DOOR = 'OW3';   // openings.js segment for the office annex's doorway (worlds/office.js ANNEX)
-export function buyUpgrade(id) {
-  const u = upgradeById[id], why = upgradeWhy(id); if (why) { say(why); return false; }
-  const level = upgradeLevel(id), price = nextPrice(id), free = creative();
-  if (!free) addCash(-price, 'Garage upgrade');
-  const openAnnex = id === 'office' ? { openings: [...new Set([...(game.home.openings || []), ANNEX_DOOR])] } : {};
-  game.home = { ...game.home, upgrades: { ...(game.home.upgrades || {}), [id]: level + 1 }, ...openAnnex };
-  if (id === 'office') game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
-  save(); say(`Upgrade: ${u.name}${u.levels > 1 ? ` — level ${level + 1}/${u.levels}` : ''}${free ? ' (creative: free)' : ` (−$${price})`}`);
+export function buyStage(id) {
+  const s = stageById[id], why = stageWhy(id); if (!s) return false; if (why) { say(why); return false; }
+  const free = creative(); if (!free) addCash(-s.price, `Upgrade: ${s.name}`);
+  const st = s.store, home = { ...game.home };
+  if (st?.key === 'upgrades') home.upgrades = { ...(home.upgrades || {}), [st.name]: Math.max(st.level, (home.upgrades || {})[st.name] || 0) };
+  else if (st?.key === 'trailer') home.trailer = [...(home.trailer || []), st.name];
+  else home.stages = [...(home.stages || []), id];
+  if (id === 'annex') home.openings = [...new Set([...(home.openings || []), ANNEX_DOOR])];
+  game.home = home;
+  if (id === 'annex') game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
+  save(); say(`Upgrade: ${s.name}${free ? ' (creative: free)' : ` (−$${s.price})`}`);
   return true;
 }

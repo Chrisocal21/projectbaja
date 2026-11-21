@@ -5,7 +5,8 @@ import React, { useState } from 'react';
 import { game, useGame, say, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay, orderName } from './orders.js';
 import { VEHICLE_TYPES, FOR_SALE } from './fleet.js';
-import { ORDER_HOURS, etaText } from './orderlogic.js';
+import { etaText } from './orderlogic.js';
+import { effects } from './upgrades.js';
 import { DEF } from './workshop.js';
 import { missing, missingToDrive, listNames } from '../rules/restore.js';
 import { CAJON } from '../rules/vehicles.js';
@@ -42,7 +43,7 @@ function PartsTab() {
   const add = (kind, id) => setCart(c => [...c, { kind, id }]);
   const send = () => { if (game.dev) return say('Ordering is off in test sessions.'); if (game.cash < total) return say(`Not enough cash ($${total}).`); cart.forEach(c => placeOrder(c.kind, c.id)); setCart([]); };
   return <div>
-    <small>Cash ${game.cash} · each order arrives at the pickup area about {ORDER_HOURS} game hours later</small>
+    <small>Cash ${game.cash} · each order arrives at the pickup area about {effects().orderHours} game hour{effects().orderHours === 1 ? '' : 's'} later</small>
     <div style={{ display: 'flex', gap: 6, margin: '6px 0' }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : []), ...SUPPLY_TABS].map(([k, l]) => <button key={k} className={tab === k ? 'big' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
       <div style={{ maxHeight: 300, overflow: 'auto' }}>{rows.map(r => <div key={r.id} style={row}><span>{r.label}<small> · ${r.price}</small></span><button onClick={() => add(r.kind, r.id)}>Add</button></div>)}</div>

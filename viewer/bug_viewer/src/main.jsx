@@ -27,6 +27,7 @@ import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, inter
 import { applyMachinePlan, held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { toggleLights } from './game/lights.js';
+import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
 import { dustyVisit } from './game/cajonGift.js';
@@ -66,7 +67,7 @@ const categories = [...new Set(slots.map(s => s.category))];
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
 const cancelHold = () => { clearTimeout(holdT); game.holdBar = null; };
-const startHold = (label, fn, tap = false, ms = HOLD_MS) => { game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
+const startHold = (label, fn, tap = false, ms = HOLD_MS) => { ms = Math.max(200, Math.round(ms * effects().holdScale)); game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
 const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n.toLocaleString('en-US');
 

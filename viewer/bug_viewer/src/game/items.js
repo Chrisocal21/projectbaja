@@ -12,6 +12,7 @@ import { VEHICLES } from '../rules/vehicles.js';
 import { defOf } from './projects.js';
 import { withTread, tireSizeOf } from './tires.js';
 import { wallSpot } from './wallhang.js';
+import { effects } from './upgrades.js';
 import { registerTireSizes } from '../placement/gameItems.js';
 import { wheelSets } from '../catalog/index.js';
 registerTireSizes(Object.fromEntries(wheelSets.map(w => [w.id, tireSizeOf(w)])));   // loose tires are as big as their wheel set
@@ -36,6 +37,8 @@ export const itemSize = it => sizeOf(it.kind, it.id);
 // ---- storage ----
 /** pack: small parts only. car: the cab, plus a roof deck when a roof rack is fitted (anything up to "large") */
 export const CAPACITY = { pack: 4, cab: 4, roof: 6 };
+/** the pack's size: 4, plus what the camper's gear locker adds (game/upgrades.js effects) */
+export const packCap = () => CAPACITY.pack + effects().packBonus;
 export const hasRack = () => !!game.build?.parts?.roofRack;
 const vehOf = i => i.veh || 'bug';
 export const used = (spot, veh = game.active) => game.items.filter(i => (spot === 'pack' ? i.loc === 'pack' : i.loc === 'car' && vehOf(i) === veh && i.spot === spot)).reduce((n, i) => n + itemSize(i), 0);
@@ -65,14 +68,14 @@ export function spotFor(it, veh = game.active) {
   for (const [k, v] of Object.entries(storageOf(veh))) if (s <= v.max && used(k, veh) + s <= v.cap) return k;
   return null;
 }
-const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= CAPACITY.pack;
+const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= packCap();
 const commit = () => { game.items = [...game.items]; save(); };
 const uid = () => allocUid(game.nextUid, 'items', game.items);
 const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.wall; delete it.spot; delete it.box; delete it.veh; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
 /** can the player take this right now (pack or free hands)? */
-export const canCarry = (kind, id) => sizeOf(kind, id) <= 4 && ((sizeOf(kind, id) === 1 && used('pack') + 1 <= CAPACITY.pack) || !held());
+export const canCarry = (kind, id) => sizeOf(kind, id) <= 4 && ((sizeOf(kind, id) === 1 && used('pack') + 1 <= packCap()) || !held());
 /** hand a brand-new item to the player (detached part, store purchase). Check canCarry first. */
 export function giveToPlayer(kind, id, extra = {}) { const it = { uid: uid(), kind, id, loc: 'world', ...extra }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
 function takeOnto(it) {

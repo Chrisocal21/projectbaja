@@ -3,6 +3,7 @@
 import { game, save, say, addCash, priceOf, nameOf } from './store.js';
 import { boxAtShop } from './items.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
+import { effects } from './upgrades.js';
 import { VEHICLE_TYPES, FOR_SALE, lotPose, owned } from './fleet.js';
 import { giftArrives } from './cajonGift.js';
 import { itemOf } from './garageSupplies.js';
@@ -15,8 +16,8 @@ export function placeOrder(kind, id) {
   const c = priceOf(kind, id);
   if (game.cash < c) return say(`Not enough cash ($${c}).`);
   addCash(-c, `Ordered: ${nameOf(kind, id, bodyId())}`);
-  game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder(kind, id)] };
-  save(); say(`Ordered: ${nameOf(kind, id, bodyId())} (arrives at the pickup area in a few hours)`);
+  game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder(kind, id, effects().orderHours)] };
+  save(); say(`Ordered: ${nameOf(kind, id, bodyId())} (arrives at the pickup area in ${effects().orderHours === 1 ? 'about an hour' : effects().orderHours + ' hours'})`);
 }
 
 /** game time passes (in-game hours): count orders down, set down whatever is due */
@@ -46,7 +47,7 @@ export function orderCar(id) {
   if (owned(id) || carOnOrder(id)) return;
   if (game.cash < t.price) return say(`Not enough cash ($${t.price}).`);
   addCash(-t.price, `Ordered: ${t.name}`);
-  game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder('car', id)] };
+  game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder('car', id, effects().orderHours)] };
   save(); say(`Ordered: ${t.name} (it will be left at Al's lot in a few hours)`);
 }
 function carArrives(id) {

@@ -2,8 +2,8 @@ import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
 import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
-import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone, vehiclesNear } from './items.js';
+import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas, trailerWhy } from './home.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, packCap, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone, vehiclesNear } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
@@ -145,7 +145,7 @@ export function InventoryPanel({ onClose }) {
   const putIn = it => vehs.map(v => <button key={v} onClick={() => stowInCar(it.uid, v)}>{vehs.length > 1 ? `Put in ${vehicleType(v).name}` : 'Put in car'}</button>);
   return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
-    <div className="inv-sec">PACK <span>{used('pack')}/{CAPACITY.pack} · small parts only</span></div>
+    <div className="inv-sec">PACK <span>{used('pack')}/{packCap()} · small parts only</span></div>
     {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
     {shown.map(v => { const t = vehicleType(v), near = vehs.includes(v), list = carItems(v);
       return <React.Fragment key={v}>
@@ -208,6 +208,6 @@ export function TrailerPanel({ onUpgrade, onSleep, onClose }) {
   useGame();
   return <div className="overlay"><div className="card inv"><h2>GRANDPA'S TRAILER</h2>
     <p className="hint">A 1966 single-wide. Musty, leaky, yours.</p>
-    {TRAILER_UPGRADES.map(u => <div key={u.id} className="inv-row"><span>{u.name}<small>{u.note}</small></span><span className="inv-btns">{trailerHas(u.id) ? <small>done</small> : <button disabled={game.cash < u.price} onClick={() => onUpgrade(u.id)}>${u.price}</button>}</span></div>)}
+    {TRAILER_UPGRADES.map(u => <div key={u.id} className="inv-row"><span>{u.name}<small>{u.note}</small></span><span className="inv-btns">{trailerHas(u.id) ? <small>done</small> : <button disabled={!!trailerWhy(u.id)} title={trailerWhy(u.id)} onClick={() => onUpgrade(u.id)}>${u.price}</button>}</span></div>)}
     <div className="menu"><button className="big" disabled={!trailerHas('roof')} onClick={onSleep}>{trailerHas('roof') ? 'Sleep until morning' : 'Sleep (patch the roof first)'}</button><button onClick={onClose}>Leave (Esc)</button></div></div></div>;
 }
