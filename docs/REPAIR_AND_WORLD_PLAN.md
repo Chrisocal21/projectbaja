@@ -191,3 +191,10 @@ Chris's direction: building is for decorations only, and the player upgrades Wal
   All prices and effect sizes are PROPOSAL. Old saves still read right: stages map onto the old keys (`home.upgrades.lift2/parking/office`, `home.trailer`); only new stages use `home.stages`. The trailer door panel follows the same rules (`trailerWhy`).
 - **Effects are live**: `effects()` in `game/upgrades.js` feeds the hold bar length (`startHold`), order delivery time (`orders.js`, the phone and PC text) and pack size (`packCap()` in `items.js`, hud, inventory).
 - **Not built, ideas for more stages**: more yard land for decorations, a second office level, camper furniture that does something (a bunk that saves, a mini-fridge), more garage bays. Property has only the lot for now.
+
+## Perf pass 2 (Nov 21)
+Headless numbers (your GPU is faster, these are for comparison): standing in the yard 46 to 57 FPS (draw calls 1,705 to 1,335), looking away 52 to 63, driving the El Cajon 36 to 40.
+- **`consider()` in Walker.jsx** asked for the terrain height of every candidate target (now 96 containers, many kilometres away) before checking distance. That was 7% of the frame. The distance check now comes first.
+- **`MergedStatic`** (`worlds/MergedStatic.jsx`): wrap a static thing and its boxes and cylinders are baked into one mesh per material (the originals stay in the tree, hidden). A supply shelf was 160 draw calls plus 160 in the shadow pass. Used for placed props in `Home.jsx` (not the pegboard, which has tools hanging on it, and not structure pieces). It is a one-shot at mount, so only wrap things that never change after they appear.
+- **`Near`** (`DriveWorld.jsx`) now also stops three from walking the hidden far project cars' matrices every frame (about 1,300 objects).
+- **Not done, and why:** the 785-mesh road group (about 900k triangles) and the terrain tile streaming hitches live in `County.jsx`, `Border.jsx` and `RealScenery.jsx`, which are being worked on elsewhere; the garage and other site buildings re-render with game state (power, doors), so a one-shot merge would go stale. Both are the next big levers, in that order.
