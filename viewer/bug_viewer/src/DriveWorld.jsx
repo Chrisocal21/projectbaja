@@ -23,6 +23,8 @@ import { TRUNKS } from './worlds/biomes/trunks.js';
 import { vehicleType, standingVehicles } from './game/fleet.js';
 import TruckModel from './Truck.jsx';
 import BuildModel from './BuildModel.jsx';
+import CajonModel from './cajon/CajonModel.jsx';
+import { defOf } from './game/projects.js';
 import Walker from './game/Walker.jsx';
 import Items, { Cargo } from './game/Items.jsx';
 import DeliveryTruck from './game/DeliveryTruck.jsx';
@@ -413,6 +415,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       if (bounds) { camera.position.x = THREE.MathUtils.clamp(camera.position.x, bounds.x0, bounds.x1); camera.position.z = THREE.MathUtils.clamp(camera.position.z, bounds.z0, bounds.z1); }
       camera.position.y = THREE.MathUtils.clamp(camera.position.y, world.height(camera.position.x, camera.position.z) + 2, 1500);
       camera.lookAt(camera.position.x + Math.sin(f.yaw) * cp, camera.position.y + Math.sin(f.pitch), camera.position.z + Math.cos(f.yaw) * cp);
+      game.flyYaw = f.yaw;
       const [sx, sy, sz] = sunDirection(clockHour());
       sun.current.position.set(camera.position.x + sx * SUN_FOLLOW, camera.position.y + sy * SUN_FOLLOW, camera.position.z + sz * SUN_FOLLOW);
       sun.current.target.position.copy(camera.position); sun.current.target.updateMatrixWorld();
@@ -421,6 +424,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     if (fly.current.active) {
       fly.current.active = false; acc.current = 0;
+      game.flyYaw = null;
       if (!game.onFoot) {
         camPos.current.set(s.current.x - Math.sin(s.current.h) * 9, s.current.y + 4, s.current.z - Math.cos(s.current.h) * 9);
         camera.position.copy(camPos.current); look.current.yaw = 0; look.current.pitch = 0.28;
@@ -445,8 +449,8 @@ const COUNTY_WORLD = {
   id: 'county', trunks: TRUNKS.near, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
-    const key = `${game.propsV || 0}|${game.props.length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
-    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.job ? vehicleCircles(game.job, 5.1) : [])] };
+    const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
+    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.projects || []).flatMap(p => vehicleCircles(p.pose, defOf(p).length)), ...(game.job ? vehicleCircles(game.job, 5.1) : [])] };
     return obsCache.list;
   },
 };
@@ -457,6 +461,9 @@ function Fleet() {
     <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : <TruckModel />}</Suspense>
     <Cargo veh={v.id} />
     {!v.forSale && <VehicleCargo veh={v.id} />}
+  </group>)}
+  {(game.projects || []).map(p => <group key={'p' + p.uid} position={[p.pose.x, CO.groundHeight(p.pose.x, p.pose.z), p.pose.z]} rotation={[0, p.pose.h, 0]}>   {/* donor wrecks and other projects: each has its own parts (game/projects.js) */}
+    <Suspense fallback={null}>{p.def === 'cajon' ? <CajonModel build={p.build} drive vehId={'p' + p.uid} uid={p.uid} /> : <BuildModel build={p.build} drive vehId={'p' + p.uid} />}</Suspense>
   </group>)}</>;
 }
 /** the real border slice (docs/WORLD_MAP.md, dev only while it is built): everything comes from worlds/border.js once loaded */

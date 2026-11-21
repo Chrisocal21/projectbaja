@@ -7,7 +7,8 @@ import { SITES } from '../worlds/county.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { aimedProp } from './furnish.js';
-import { carPartAim } from './carAim.js';
+// what the crosshair is on comes from the real mesh under it (BuildModel's DetachGlow sets game.look), not from guessed boxes
+const AIM_AP = { hoodPanel: 'hood', engineLid: 'lid', doorL: 'doorL', doorR: 'doorR', seatDriver: 'seatL', seatPassenger: 'seatR' };
 import { buildById } from './home.js';
 import { isPiece } from '../worlds/structures.js';
 import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
@@ -17,12 +18,18 @@ import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.j
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
 import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
+import { FEEL } from './restPose.js';
+import { carFitReady } from './carSnap.js';
+import { pickWork } from './workTarget.js';
+import { workVehicles } from './projects.js';
+import { zoneAt } from '../rules/restore.js';
+import { machineNear, planAtMachine } from './tireMachine.js';
 import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift snaps (not runs) while a held item is aimed at a vehicle surface
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
-import { carLocal, fitCandidate, driveable, whyNotDrive, DEF, openCovers, planDetach } from './workshop.js';
+import { carLocal, fitCandidate, driveable, whyNotDrive, DEF, openCovers, planRemove } from './workshop.js';
 import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
@@ -40,6 +47,7 @@ export const promptText = id => {
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
   if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Click — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
+  if (id === 'tirem') { const p = planAtMachine(); return p ? (p.ok ? `Hold left click — ${p.verb}` : p.why) : ''; }
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
   if (id.startsWith('veh:')) { const t = vehicleType(id.slice(4)); return t.kind === 'build' ? `Press E — Work on the ${t.name}` : `Press E — Get in the ${t.name}`; }
@@ -48,43 +56,44 @@ export const promptText = id => {
   if (id === 'install') return `Press E — Install ${h ? nameOfItem(h) : ''}`;
   if (id === 'load') return `Press E — Load ${h ? nameOfItem(h) : 'it'} into the car${game.build?.parts?.roofRack ? ' (or roof rack)' : ''}`;
   if (id.startsWith('car:')) { const c = game.carPlan || {}; return c.text || ''; }
-  if (id === 'enter' && game.inGarage) return 'Press E — Get in  ·  X — Take a part off';
+  if (id === 'enter' && game.inGarage) return 'Press E — Get in';
   if (id === 'enter' && carItems().length) return 'Press E — Get in  ·  F — Take from the car  ·  Tab — Inventory';
   return PROMPTS[id] || '';
 };
 const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (!body) return false; return it.kind === 'part' ? partState(partById[it.id], body) === 'ok' : it.kind === 'wheel' ? wheelSetFits(wheelById[it.id], b.body) : true; };
 /** what E does at the car from this side (blueprint §2.2 + §3.4) */
 /** what the car offers right now, plus "R — Take off …" for the part you're aiming at (empty hands) */
-function carAction(zone, ap) {
-  const a = carAction0(zone, ap);
-  if (game.aim && !held() && activeType().kind === 'build' && game.build) {
-    const pd = planDetach(game.aim, game.build, zone), n = DEF.slots.find(s => s.id === game.aim)?.name.toLowerCase();
-    const t = pd.ok ? `Hold right click — Take off the ${n}` : pd.openCover ? `Hold right click — Open the ${DEF.covers[pd.openCover].name} to get at the ${n}` : pd.why;
+function carAction(zone, ap, W) {   // W = the restorable vehicle you stand at (game/projects.js workVehicles via game.work); none = the active vehicle as before
+  const a = carAction0(zone, ap, W);
+  if (game.aim && !held() && (W || activeType().kind === 'build') && (W ? W.build : game.build)) {
+    const pd = planRemove(game.aim, W ? W.build : game.build, zone), n = pd.name;
+    const D = W?.def || DEF, t = pd.ok ? `Hold left click — Take off the ${n}` : pd.openCover ? `Hold left click — Open the ${D.covers[pd.openCover].name} to get at the ${n}` : pd.why;
     return { ...a, text: t + (a.text ? '  ·  ' + a.text : '') };
   }
   return a;
 }
-function carAction0(zone, ap) {   // ap = the part of the car the crosshair is on (game/carAim.js): doors, hood and lid only react to a precise look
-  if (activeType().kind !== 'build') return held() ? { type: 'why', why: '', text: `F — Load ${nameOfItem(held())} into the ${activeType().name}` } : { type: 'enter', text: `Press E — Get in  ·  F — Unload  ·  Tab — Inventory` };
-  const b = game.build; if (!b) return { type: 'none', text: '' };
+function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair is on (game/carAim.js): doors, hood and lid only react to a precise look
+  if (!W && activeType().kind !== 'build') return held() ? { type: 'why', why: '', text: `F — Load ${nameOfItem(held())} into the ${activeType().name}` } : { type: 'enter', text: `Press E — Get in  ·  F — Unload  ·  Tab — Inventory` };
+  const b = W ? W.build : game.build; if (!b) return { type: 'none', text: '' };
+  const D = W?.def || DEF, canEnter = !W || W.active;   // D: this vehicle's own definition (the Bug or the El Cajon); you can only sit in the car you drive
   const fc = fitCandidate(b, zone), h = held(), fcName = fc && (fc.plan.slotName || nameOfItem(fc.it) || 'part').toLowerCase();   // bolt-on upgrades blocked by a lid carry no slotName
   const where = zone === 'driver' || zone === 'passenger' ? '' : '';
   if (fc?.plan.ok) return { type: 'fit', uid: fc.it.uid, text: `Hold left click — Bolt on the ${fcName}${fc.it.loc === 'pack' ? ' (from pack)' : ''}` };
-  if (fc?.plan.openCover) return { type: 'cover', id: fc.plan.openCover, text: `Press E — Open the ${DEF.covers[fc.plan.openCover].name} to fit the ${fcName}` };
-  if (h) return { type: 'why', why: fc?.plan.why, text: `${fc?.plan.why || ''}  ·  F — put it in the car` };
-  const cover = ap === 'lid' ? 'engineLid' : ap === 'hood' ? 'hoodPanel' : null;
-  if (cover && isFitted(DEF, b, cover)) { const o = openCovers().has(cover); return { type: 'cover', id: cover, text: `Press E — ${o ? 'Close' : 'Open'} the ${DEF.covers[cover].name}  ·  X — Workshop` }; }
+  if (fc?.plan.openCover) return { type: 'cover', id: fc.plan.openCover, text: `Press E — Open the ${D.covers[fc.plan.openCover].name} to fit the ${fcName}` };
+  if (h) return { type: 'why', why: fc?.plan.why, text: `${fc?.plan.why || ''}${canEnter ? '  ·  F — put it in the car' : ''}` };
+  const cover = D.covers[game.look] ? game.look : ap === 'lid' ? 'engineLid' : ap === 'hood' ? 'hoodPanel' : null;   // anything the crosshair is on that opens: lid, hood, doors, tailgate
+  if (cover && isFitted(D, b, cover)) { const o = openCovers().has(cover); return { type: 'cover', id: cover, text: `Press E — ${o ? 'Close' : 'Open'} the ${D.covers[cover].name}` }; }
   if (ap === 'doorL' || ap === 'doorR') {   // look at the handle: E opens or closes that door
-    const hasDoor = isFitted(DEF, b, ap), o = openCovers().has(ap);
-    if (hasDoor) return { type: 'cover', id: ap, text: `Press E — ${o ? 'Close' : 'Open'} the ${DEF.covers[ap].name}` };
+    const hasDoor = isFitted(D, b, ap), o = openCovers().has(ap);
+    if (hasDoor) return { type: 'cover', id: ap, text: `Press E — ${o ? 'Close' : 'Open'} the ${D.covers[ap].name}` };
     return { type: 'none', text: 'No door on this side' };
   }
-  if (ap === 'seatL' || ap === 'seatR') {   // look at a seat: E sits
-    const door = ap === 'seatL' ? 'doorL' : 'doorR', hasDoor = isFitted(DEF, b, door);
-    if (driveable(b)) return { type: 'enter', door: hasDoor ? door : null, text: `Press E — Sit in the ${ap === 'seatL' ? "driver's" : 'passenger'} seat  ·  X — Workshop` };
-    return { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}  ·  X — Workshop` };
+  if ((ap === 'seatL' || ap === 'seatR') && canEnter) {   // look at a seat: E sits
+    const door = ap === 'seatL' ? 'doorL' : 'doorR', hasDoor = isFitted(D, b, door);
+    if (driveable(b)) return { type: 'enter', door: hasDoor ? door : null, text: `Press E — Sit in the ${ap === 'seatL' ? "driver's" : 'passenger'} seat` };
+    return { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}` };
   }
-  return { type: 'none', text: 'X — Workshop' };
+  return { type: 'none', text: '' };
 }
 // PROPOSAL (design guesses): aim volumes for fixed targets. r = how far the crosshair may be from the centre line, h = height, dy = height of the base above the floor.
 const AIM_DEFAULT = { r: 1.0, h: 1.8 };
@@ -171,9 +180,12 @@ export default function Walker({ world, sun }) {
     }
     if (!nearPump) game.fueled = false;
     if (foot) { const pc = nearestProp(game.props, 'computer', px, pz); if (pc) consider('pc', pc.x, pc.z, 2.2, false, 0.9, { r: 1.1, h: 1.2 }); }
+    if (foot && held()) { const tm = machineNear(); if (tm && planAtMachine()) consider('tirem', tm.x, tm.z, 2.8, false, 0.8, { r: 1.0, h: 1.6 }); }   // a wheel, rim or tire in hand, at the tire machine
     if (foot) { const pb = nearestProp(game.props, 'pegboard', px, pz); if (pb) consider('peg', pb.x, pb.z, 4.5, false, 0.9, { box: { hx: PEG.w / 2, hz: 0.6, y: s.y + PEG.y - PEG.h / 2, h: PEG.h, yaw: pb.ry || 0 } }); }
     const cl = foot && pose ? carLocal() : null;
     game.nearCar = !!cl?.near; game.carZone = cl?.zone || null;
+    const wv = foot && !game.buildMode ? pickWork({ x: px, z: pz }, workVehicles()) : null;   // the restorable vehicle you stand at: the Bug, or a donor / project
+    game.work = wv ? { id: wv.id, active: wv.v.active, uid: wv.v.uid, name: wv.v.name, build: wv.v.build, pose: wv.v.pose, width: wv.v.width, length: wv.v.length, def: wv.v.def, lx: wv.lx, lz: wv.lz, zone: zoneAt(wv.v.def, wv.lx, wv.lz) } : null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
     if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0 });
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
@@ -183,11 +195,14 @@ export default function Walker({ world, sun }) {
     if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8, { r: 0.9, h: 2.0 });
     if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6, { r: 0.8, h: 0.9 });
     if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7, { box: { hx: t.width / 2, hz: t.length / 2, h: 1.7, yaw: v.pose.h } }); }
-    if (pose) {
+    const W = game.work, wAimed = !!W && aimsAtBox(eye, look, { x: W.pose.x, z: W.pose.z, y: s.y, hx: W.width / 2 + 0.1, hz: W.length / 2, h: 1.7, yaw: W.pose.h }, 4.5);
+    if (W && (wAimed || carFitReady()) && (!best || bd > 0.9) && (W.id !== 'bug' || game.owned.has('car:bug') || game.dev)) {
+      game.carPlan = carAction(W.zone, AIM_AP[game.look] || null, W); best = 'car:' + game.carPlan.type;   // work in place on this vehicle (its own parts)
+    } else if (pose) {
       const bt = activeType(), carAimed = foot && cl?.near && aimsAtBox(eye, look, { x: pose.x, z: pose.z, y: s.y, hx: bt.width / 2 + 0.1, hz: bt.length / 2, h: 1.7, yaw: pose.h }, 4.5);   // the car itself (door/hood/boot zone still comes from where you stand)
-      if (carAimed && (!best || bd > 0.9)) {
+      if ((carAimed || carFitReady()) && (!best || bd > 0.9)) {   // holding a part that fits: the car is the target even when the crosshair is on the empty hub
         if (!(game.owned.has('car:bug') || game.dev)) best = 'bug';
-        else { game.carPlan = carAction(cl.zone, activeType().kind === 'build' ? carPartAim(eye, look, pose, s.y) : null); best = 'car:' + game.carPlan.type; }
+        else { game.carPlan = carAction(cl.zone, activeType().kind === 'build' ? AIM_AP[game.look] || null : null); best = 'car:' + game.carPlan.type; }
       }
       else if (!foot && bugAsleep()) best = 'crank';
       else if (!foot && !best && Math.abs(game.speed) < 4) best = 'exit';

@@ -22,16 +22,21 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
-import { held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
+import { applyMachinePlan, held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
-import { planFit, planDetach, planDetachUpgrade, toggleCover, DEF } from './game/workshop.js';
+import { carFitReady } from './game/carSnap.js';
+import { ensureProjects, setProjectBuild, projectOpen } from './game/projects.js';
+import { dustyVisit } from './game/cajonGift.js';
+import { defOfBuild, BUG } from './rules/vehicles.js';
+import { planAtMachine } from './game/tireMachine.js';
+import { planFit, planDetach, planDetachUpgrade, planRemove, toggleCover, DEF } from './game/workshop.js';
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
 import OfficePC from './game/OfficePC.jsx';
 import { regionById } from './game/regions.js';
-import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, WorkshopPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
+import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { PhonePanel } from './game/Phone.jsx';
 import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
 import { WALK_START } from './worlds/siteData.js';
@@ -40,6 +45,7 @@ import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
 import Compass from './game/Compass.jsx';
+import HoldBar from './game/HoldBar.jsx';
 import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
 import PerfHud from './game/PerfHud.jsx';
@@ -55,6 +61,9 @@ const CAT_TITLES = { Body: 'BODY PANELS', Protection: 'BUMPERS & CAGE', Mechanic
 const categories = [...new Set(slots.map(s => s.category))];
 /** Stage 4b: the held build item is furniture (not a building piece or a cut doorway): free placement + the new rotate / click controls */
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
+export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
+const cancelHold = () => { clearTimeout(holdT); game.holdBar = null; };
+const startHold = (label, fn, tap = false, ms = HOLD_MS) => { game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
 const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n.toLocaleString('en-US');
 
@@ -119,7 +128,7 @@ function App() {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
-    migrateGrid(); ensureStarterFixtures(); ensureShopTires(); ensureLetterItem(); ensureJunkItems();   // Walt's wall shelving: movable props, seeded once per save
+    migrateGrid(); ensureStarterFixtures(); ensureShopTires(); ensureLetterItem(); ensureJunkItems(); ensureProjects();   // Walt's wall shelving: movable props, seeded once per save
     if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
@@ -130,40 +139,45 @@ function App() {
   // the 3D scene is rebuilt when the car changes; keep the mouse captured through it
   const rebuild = nb => { game.rebuilding = true; update(nb); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 900); };
   // ---- restoration at the car (blueprint §3): fit from hands/pack, detach into hands/pack, open lids ----
+  // the vehicle being worked on: the Bug (game.build, scene rebuilt as before) or a project such as a donor wreck (its own build in game.projects)
+  const putBuild = (isBug, W, nb) => { if (isBug) game.build = nb; else setProjectBuild(W.uid, nb); };
+  const tidy = (b, nb) => (defOfBuild(b) === BUG ? normalize(nb) : nb);   // normalize() is the Bug's: it would drop an El Cajon build's parts
   const doFit = uidN => {
     const it = game.items.find(i => i.uid === uidN); if (!it) return;
-    const b = buildRef.current, plan = planFit(it, b, panelRef.current === 'workshop' ? undefined : game.carZone);
+    const W = game.work, isBug = !W || W.id === 'bug', b = isBug ? buildRef.current : W.build, plan = planFit(it, b, W ? W.zone : game.carZone);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
-    const before = isDriveable(DEF, b), res = plan.apply(b), nb = normalize(res.build);
+    const d = defOfBuild(b), before = isDriveable(d, b), res = plan.apply(b), nb = tidy(b, res.build);
     transact(() => {   // canon: the item leaves your hands and goes on the car in ONE save write
       game.items = game.items.filter(x => x !== it); res.drops.forEach(([k, id]) => dropNearPlayer(k, id)); dropRemoved({ ...b, parts: Object.fromEntries(Object.entries(b.parts).filter(([, id]) => !res.drops.some(d => d[1] === id))) }, nb);
-      game.build = nb;
+      putBuild(isBug, W, nb);
     });
-    say(!before && isDriveable(DEF, nb) ? `Fitted the ${plan.slotName.toLowerCase()} — she's all there. Get in and try the key.` : `Fitted: ${plan.slotName}`); rebuild(nb);
+    say(!before && isDriveable(d, nb) ? (isBug ? `Fitted the ${plan.slotName.toLowerCase()} — she's all there. Get in and try the key.` : `Fitted the ${plan.slotName.toLowerCase()} — she has everything she needs to run.`) : `Fitted: ${plan.slotName}`); if (isBug) rebuild(nb);
   };
   const doDetach = (slotId, zone) => {
-    const b = buildRef.current, plan = planDetach(slotId, b, zone);
+    const W = game.work, isBug = !W || W.id === 'bug', b = isBug ? buildRef.current : W.build, plan = planDetach(slotId, b, W ? W.zone : zone);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
-    if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n), nb = normalize(plan.apply(b)); transact(() => { spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); game.build = nb; }); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return rebuild(nb); }
+    if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n), nb = tidy(b, plan.apply(b)); transact(() => { spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); putBuild(isBug, W, nb); }); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return isBug && rebuild(nb); }
     const [k, id, extra] = plan.item, name = nameOfItem({ kind: k, id, ...(extra || {}) });
-    const where = canCarry(k, id) ? 'hands' : inGarageZone(game.pos.x, game.pos.z) ? 'shelves' : null;
-    if (!where) return say(sizeOf(k, id) === 1 ? 'Pack is full and your hands are busy.' : 'Hands full — put that down first.');
-    const nb = normalize(plan.apply(b));
-    transact(() => { if (where === 'hands') giveToPlayer(k, id, extra); else giveToGarage(k, id, extra); game.build = nb; });   // off the car and into your hands in one write
-    say(where === 'hands' ? `Took off: ${name}` : `Took off: ${name} — hands full, so it went on the garage shelves.`);
-    rebuild(nb);
+    const nb = tidy(b, plan.apply(b)), inHands = canCarry(k, id);
+    transact(() => { if (inHands) giveToPlayer(k, id, extra); else dropNearPlayer(k, id, extra); putBuild(isBug, W, nb); });   // off the car and into your hands (or onto clear ground if they are full) in one write
+    say(inHands ? `Took off: ${name} — it's in your hands: carry it, or click to put it down anywhere` : `Took off: ${name} — hands full, so it's on the ground beside you`);
+    if (isBug) rebuild(nb);
+  };
+  const doMachine = () => {
+    const plan = planAtMachine(); if (!plan?.ok) return say(plan?.why || '');
+    transact(() => applyMachinePlan(plan));   // the wheel/rim/tire swap, the kit and the floor drop are ONE save write
+    say(`Done: ${plan.verb.charAt(0).toLowerCase()}${plan.verb.slice(1)}.${plan.apply.spawn.length ? ' The tire is on the floor beside you.' : ''}`);
   };
   const doDetachUpgrade = catSlot => {
-    const b = buildRef.current, plan = planDetachUpgrade(catSlot, b);
+    const W = game.work, isBug = !W || W.id === 'bug', b = isBug ? buildRef.current : W.build, plan = planDetachUpgrade(catSlot, b);
     if (!plan.ok) return say(plan.why);
-    if (!canCarry(...plan.item)) return say('Hands full — put that down first.');
-    const nb = normalize(plan.apply(b));
+    const nb = tidy(b, plan.apply(b)), inHands = canCarry(...plan.item);
     transact(() => {
-      giveToPlayer(...plan.item);
+      if (inHands) giveToPlayer(...plan.item); else dropNearPlayer(...plan.item);
       for (const id of Object.values(b.parts)) if (id !== plan.item[1] && !Object.values(nb.parts).includes(id)) dropNearPlayer('part', id);   // things bolted to it come off too
-      game.build = nb;
+      putBuild(isBug, W, nb);
     });
-    say(`Took off: ${nameOf('part', plan.item[1], b.body)}`); rebuild(nb);
+    say(`Took off: ${nameOf('part', plan.item[1], b.body)}`); if (isBug) rebuild(nb);
   };
   const storeBuy = (what, price) => {
     if (game.cash < price) return say('Not enough cash.');
@@ -181,7 +195,7 @@ function App() {
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
-    else if (id === 'store') setPanel('store');
+    else if (id === 'store') { dustyVisit(); setPanel('store'); }   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)
     else if (id.startsWith('veh:')) { const v = id.slice(4), drive = vehicleType(v).kind === 'truck'; game.rebuilding = true; switchTo(v, drive); if (drive) interact('enter'); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 1200); }
     else if (id === 'dealer') setPanel('dealer');
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
@@ -260,7 +274,6 @@ function App() {
       if (e.code === 'Escape') { if (p === 'pause' || p === 'shop' || p === 'garage' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
-      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyX' && game.nearCar) setPanel('workshop');
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
@@ -268,15 +281,17 @@ function App() {
     const wheel = e => { const bm = game.buildMode; if (!bm || panelRef.current !== null) return; if (furnishing(bm)) { game.buildMode = { ...bm, ry: turnRy(bm.ry || 0, 'wheel', e.shiftKey, e.deltaY > 0 ? 1 : -1) }; return; } if (bm.moving) return; game.buildMode = { ...bm, item: nextInCat(bm.item, e.deltaY > 0 ? 1 : -1) }; };
     const click = e => { const bm = game.buildMode;
       if (!bm && panelRef.current === null && game.onFoot && document.pointerLockElement && (e.button === 0 || e.button === 2)) {   // hold left = bolt the aimed part on, hold right = take the aimed part off (about half a second)
-        clearTimeout(holdT); const btn = e.button;
-        holdT = setTimeout(() => { if (btn === 0 && game.target === 'car:fit') doFit(game.carPlan?.uid); else if (btn === 2 && game.nearCar && game.aim && !held()) doDetach(game.aim, game.carZone); }, 450);
+        cancelHold(); const btn = e.button;
+        if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
+        else if (btn === 0 && game.target === 'tirem') { const pl = planAtMachine(); if (pl?.ok) startHold(`${pl.verb}…`, doMachine, false, pl.seconds * 1000); else if (pl) say(pl.why); }   // the tire machine: the bar takes as long as the job
+        else if (btn === 0 && (game.nearCar || game.work) && game.aim && !held() && game.target?.startsWith('car:')) { const id = game.aim; startHold('Taking off…', () => (id.startsWith('up:') ? doDetachUpgrade(id.slice(3)) : doDetach(id, game.carZone))); }   // hold left on a part: the bar fills, it comes off onto the ground. game.work = any restorable vehicle you stand at (donors, the El Cajon); game.nearCar is only the one you drive
       }
       if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = bm.direct ? null : { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
       if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (furnishing(bm) && !bm.moving) { const hit = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), furn.cx, furn.cz, game.face, 7, furn.aim); if (hit) { const q = game.props.find(o => o.uid === hit.uid); game.buildMode = { ...bm, item: q.id, ry: q.ry || 0, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.toLowerCase()}: click to set it down, Esc to cancel`); return; } } if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); }
       if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); else if (t?.startsWith('furn:')) { const q = game.props.find(o => o.uid === +t.slice(5)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } } } };   // (a scrap heap is picked through with a click too)
-    window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => clearTimeout(holdT); window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
+    window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => { const was = game.holdBar; cancelHold(); if (was?.tap && held() && game.onFoot) dropHeld(); }; window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
   useEffect(() => {   // turning "unlock everything" off strips parts you do not own yet
@@ -383,6 +398,7 @@ function App() {
     <UpdateToast />
     {panel === 'continue' && <div className="overlay" onClick={resume} style={{ cursor: 'pointer' }}><div className="card"><h2>Back in the game</h2><p>Click to continue</p></div></div>}
     <Compass />
+    <HoldBar />
     {panel !== 'build' && <BuildHud />}
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
     {pro && <ProDebug />}
@@ -402,7 +418,6 @@ function App() {
     {panel?.startsWith('box:') && <ContainerPanel id={panel.slice(4)} onClose={resume} />}
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
-    {panel === 'workshop' && <WorkshopPanel build={build} onFit={doFit} onDetach={doDetach} onDetachUpgrade={doDetachUpgrade} onCover={toggleCover} onClose={resume} />}
     {panel === 'store' && <StorePanel onBuy={storeBuy} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;

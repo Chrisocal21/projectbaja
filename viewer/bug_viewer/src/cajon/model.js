@@ -1,0 +1,670 @@
+// The El Cajon: a 1960s coupe utility, drawn from boxes and surfaces (ported from Salvage Road, src/render/elCajon.ts: types stripped, the
+// numbers and the geometry untouched). Facing +Z, x + is the driver's side. Model origin = the chassis centre: the wheel hubs are 0.38 m
+// above the ground, so the model is lifted by GROUND_Y (0.666 m: arch centre -0.286 minus the wheel radius) to stand on y = 0.
+// Each removable part is its own group in `parts` (named like the slot's `piece` in rules/vehicles.js); the wheels are separate meshes.
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { createRustedMaterial } from './rust.js';
+
+const EL_CAJON_BED_EXTENSION = 0.4;   // the longer cargo bed adds rear overhang; chassis and axles are recentred together
+export const CAR = { wheelRadius: 0.38, wheelX: 0.9, wheelFrontZ: 1.6 + EL_CAJON_BED_EXTENSION / 2, wheelRearZ: -1.5 + EL_CAJON_BED_EXTENSION / 2 };
+export const HUB_Y = -0.286;     // wheel centre in model space (the wheel arches are cut around it)
+export const GROUND_Y = 0.666;   // lift that puts the tyres on the ground
+
+// A 1960s coupe utility, facing +Z. All dimensions remain aligned with the driving chassis.
+/** The parts that come off the body (the wheels are separate meshes). */
+
+/**
+ * wrecked: the paint is gone in patches and the metal is rusting, as the truck is first found. restored: the
+ * original clean paint and chrome, for after the player has ground it back, painted it and buffed it (not in the
+ * game yet).
+ */
+
+export function createElCajon(condition = 'wrecked') {
+  const wrecked = condition === 'wrecked';
+  const bedExtension = EL_CAJON_BED_EXTENSION;
+  const bodyOffsetZ = bedExtension / 2;
+  const rearEnd = -2.44 - bedExtension;
+  const axles = [CAR.wheelRearZ - bodyOffsetZ, CAR.wheelFrontZ - bodyOffsetZ];
+  const paint = wrecked
+    ? createRustedMaterial('paint')
+    : new THREE.MeshPhysicalMaterial({ color: 0x243e55, metalness: 0.58, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.16 });
+  const chrome = wrecked
+    ? createRustedMaterial('chrome', 0xe1e5e9)
+    : new THREE.MeshStandardMaterial({ color: 0xe1e5e9, metalness: 0.95, roughness: 0.17 });
+  const brushed = wrecked
+    ? createRustedMaterial('chrome', 0x9da5ae)
+    : new THREE.MeshStandardMaterial({ color: 0x9da5ae, metalness: 0.85, roughness: 0.36 });
+  const windowMetal = new THREE.MeshStandardMaterial({ color: 0x68737e, metalness: 0.7, roughness: 0.43 });
+  const brakeSteel = new THREE.MeshStandardMaterial({ color: 0x4d535a, metalness: 0.75, roughness: 0.5 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x11161b, roughness: 0.78 });
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x202124, roughness: 0.9 });
+  const tan = new THREE.MeshStandardMaterial({ color: 0xa98454, roughness: 0.83 });
+  const piping = new THREE.MeshStandardMaterial({ color: 0x735335, roughness: 0.9 });
+  const carpet = new THREE.MeshStandardMaterial({ color: 0x3e372b, roughness: 1 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0xb1ced6, metalness: 0.05, roughness: 0.07, transparent: true, opacity: 0.26, side: THREE.DoubleSide, depthWrite: false, clearcoat: 1 });
+  const red = new THREE.MeshPhysicalMaterial({ color: 0xa9080b, roughness: 0.24, metalness: 0.12, clearcoat: 1 });
+  const amber = new THREE.MeshPhysicalMaterial({ color: 0xdc7416, roughness: 0.25, clearcoat: 1 });
+  const body = new THREE.Group();
+  body.name = 'El Cajon';
+
+  // Everything made goes into the current part's group, or the body when no part is being made.
+  let current = body;
+  const parts = {} ;
+  const beginPart = (name) => {
+    if (!parts[name]) {
+      const group = new THREE.Group();
+      group.name = name;
+      body.add(group);
+      parts[name] = group;
+    }
+    current = parts[name];
+  };
+  const endPart = () => {
+    current = body;
+  };
+  // The doors are parts: found in the yard, bolted on, and they swing. Pieces for one door can be added at different places.
+  const doorName = (side) => (side > 0 ? 'driver_door' : 'passenger_door');
+  const beginDoor = (side) => beginPart(doorName(side));
+  const add = (g, m, p = [0, 0, 0], parent = current) => {
+    const mesh = new THREE.Mesh(g, m);
+    mesh.position.set(...p);
+    parent.add(mesh);
+    return mesh;
+  };
+  const box = (m, size, p, radius = 0.008, parent = current) =>
+    add(Math.min(...size) < 0.01 ? new THREE.BoxGeometry(...size) :
+      new RoundedBoxGeometry(...size, 2, Math.min(radius, ...size.map(x => x * 0.45))), m, p, parent);
+  // Orient each patch toward the outside explicitly; connected surfaces share their edges.
+  const patch = (m, points, outward, parent = current) => {
+    const normal = new THREE.Vector3().crossVectors(
+      new THREE.Vector3(...points[1]).sub(new THREE.Vector3(...points[0])),
+      new THREE.Vector3(...points[2]).sub(new THREE.Vector3(...points[0])),
+    );
+    const front = normal.dot(new THREE.Vector3(...outward)) >= 0;
+    const indices = points.length === 3 ? (front ? [0, 1, 2] : [0, 2, 1]) :
+      (front ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(points.length === 3 ? [0, 0, 1, 0, 0.5, 1] : [0, 0, 1, 0, 1, 1, 0, 1], 2));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    return add(g, m, [0, 0, 0], parent);
+  };
+  const surface = (m, nu, nv, sample, outward) => {
+    const p = [], uv = [], indices = [];
+    for (let i = 0; i <= nu; i++) for (let j = 0; j <= nv; j++) {
+      p.push(...sample(i / nu, j / nv));
+      uv.push(i / nu, j / nv);
+      if (i < nu && j < nv) {
+        const a = i * (nv + 1) + j, b = a + nv + 1;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(indices); g.computeVertexNormals();
+    // The surface's dominant normal establishes winding for the entire patch.
+    const normals = g.attributes.normal;
+    const sum = new THREE.Vector3();
+    for (let i = 0; i < normals.count; i++) sum.add(new THREE.Vector3().fromBufferAttribute(normals, i));
+    if (sum.dot(new THREE.Vector3(...outward)) < 0) {
+      for (let i = 0; i < indices.length; i += 3) [indices[i + 1], indices[i + 2]] = [indices[i + 2], indices[i + 1]];
+      g.setIndex(indices); g.computeVertexNormals();
+    }
+    return add(g, m);
+  };
+  const rod = (m, a, b, radius, parent = current) => {
+    const from = new THREE.Vector3(...a), to = new THREE.Vector3(...b);
+    const delta = to.clone().sub(from);
+    const mesh = add(new THREE.CylinderGeometry(radius, radius, delta.length(), 8), m, [0, 0, 0], parent);
+    mesh.position.copy(from.add(to).multiplyScalar(0.5));
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
+    return mesh;
+  };
+  const line = (m, points, radius, parent = current) => {
+    const curve = new THREE.CurvePath ();
+    for (let i = 0; i < points.length - 1; i++) {
+      curve.add(new THREE.LineCurve3(new THREE.Vector3(...points[i]), new THREE.Vector3(...points[i + 1])));
+    }
+    return add(new THREE.TubeGeometry(curve, Math.max(8, points.length * 3), radius, 6, false), m, [0, 0, 0], parent);
+  };
+  // The door runs between these two Z values. Trim along the top of the door has to be cut at them,
+  // so the stretch over the door can swing with it and the rest stays on the body.
+  const DOOR_Z0 = -0.58, DOOR_Z1 = 0.73;
+  const at = (a, b, z) => {
+    const t = (z - a[2]) / (b[2] - a[2]);
+    return [THREE.MathUtils.lerp(a[0], b[0], t), THREE.MathUtils.lerp(a[1], b[1], t), z];
+  };
+  // doorSide: for a side window, whose bottom edge (corner 3 to corner 0) lies along the top of the door.
+  const ring = (m, outer, inner, outward, doorSide) => {
+    for (let i = 0; i < outer.length; i++) {
+      const j = (i + 1) % outer.length;
+      if (doorSide !== undefined && i === 3) {
+        const [a3, a0, b3, b0] = [outer[3], outer[0], inner[3], inner[0]];
+        patch(m, [a3, at(a3, a0, DOOR_Z0), at(b3, b0, DOOR_Z0), b3], outward);
+        beginDoor(doorSide);
+        patch(m, [at(a3, a0, DOOR_Z0), at(a3, a0, DOOR_Z1), at(b3, b0, DOOR_Z1), at(b3, b0, DOOR_Z0)], outward);
+        endPart();
+        patch(m, [at(a3, a0, DOOR_Z1), a0, b0, at(b3, b0, DOOR_Z1)], outward);
+      } else patch(m, [outer[i], outer[j], inner[j], inner[i]], outward);
+    }
+  };
+  // Flat, mitered window molding follows the painted surround exactly. A narrow rubber
+  // seal meets the glass; the satin strip stays on the frame rather than floating over it.
+  const windowMolding = (outer, inner, outward, doorSide) => {
+    const offset = new THREE.Vector3(...outward).normalize().multiplyScalar(0.0015);
+    const contour = (t) => inner.map((p, i) => [
+      THREE.MathUtils.lerp(p[0], outer[i][0], t) + offset.x,
+      THREE.MathUtils.lerp(p[1], outer[i][1], t) + offset.y,
+      THREE.MathUtils.lerp(p[2], outer[i][2], t) + offset.z,
+    ]);
+    ring(black, contour(0.36), contour(0.34), outward, doorSide);
+    ring(black, contour(0.14), contour(0), outward, doorSide);
+    ring(windowMetal, contour(0.34), contour(0.14), outward, doorSide);
+  };
+  const disc = (m, radius, depth, p, axis = 'z', parent = current) => {
+    const mesh = add(new THREE.CylinderGeometry(radius, radius, depth, radius < 0.02 ? 10 : radius < 0.07 ? 20 : 40), m, p, parent);
+    mesh.rotation[axis === 'x' ? 'z' : 'x'] = Math.PI / 2;
+    return mesh;
+  };
+  const torus = (m, radius, thickness, p, axis = 'z', parent = current) => {
+    const mesh = add(new THREE.TorusGeometry(radius, thickness, 8, 48), m, p, parent);
+    if (axis === 'x') mesh.rotation.y = Math.PI / 2;
+    return mesh;
+  };
+
+  // Body section: rounded shoulder and a concave lower sill, narrowing at the nose and tail.
+  const taper = (z) => Math.abs(z) / (z < 0 ? -rearEnd : 2.44);
+  const top = (z) => 0.414 - 0.055 * taper(z) ** 5;
+  const width = (y, z) => {
+    const h = THREE.MathUtils.clamp((y + 0.28) / 0.7, 0, 1);
+    return 0.9 + 0.09 * Math.sin(h * Math.PI * 0.9) - 0.015 * h - 0.045 * taper(z) ** 6;
+  };
+  const sidePoint = (s, y, z, offset = 0) => [s * (width(y, z) + offset), y, z];
+  for (const s of [-1, 1]) {
+    // The side skin is cut into the body behind and ahead of the door, the sill under it, and the door itself.
+    const DOOR_REAR = DOOR_Z0, DOOR_FRONT = DOOR_Z1, DOOR_SILL = -0.21;
+    const bottomAt = (z) => {
+      let bottom = -0.28;
+      for (const axle of axles) {
+        const d = z - axle;
+        if (Math.abs(d) < 0.43) bottom = Math.max(bottom, -0.286 + Math.sqrt(0.43 ** 2 - d * d));
+      }
+      return bottom;
+    };
+    const skin = (z0, z1, nu, yLow, yHigh) =>
+      surface(paint, nu, 18, (u, v) => {
+        const z = THREE.MathUtils.lerp(z0, z1, u);
+        return sidePoint(s, THREE.MathUtils.lerp(yLow(z), yHigh(z), v), z);
+      }, [s, 0, 0]);
+    skin(rearEnd, DOOR_REAR, 92, bottomAt, top);
+    skin(DOOR_FRONT, 2.44, 68, bottomAt, top);
+    skin(DOOR_REAR, DOOR_FRONT, 8, bottomAt, () => DOOR_SILL);
+    beginDoor(s);
+    skin(DOOR_REAR, DOOR_FRONT, 52, () => DOOR_SILL, top);
+    endPart();
+    // Fender tops and bed shoulders close all the way to the hood/cargo opening. The stretch over the door is
+    // cut out and goes with the door, or it would stay behind as a strip across the doorway.
+    const shoulder = (z0, z1, nu) =>
+      surface(paint, nu, 8, (u, v) => {
+        const z = THREE.MathUtils.lerp(z0, z1, u);
+        const y = top(z) + 0.015 * Math.sin(v * Math.PI);
+        return [s * THREE.MathUtils.lerp(0.79, width(top(z), z), v), y, z];
+      }, [0, 1, 0]);
+    shoulder(rearEnd, DOOR_Z0, 42);
+    beginDoor(s);
+    shoulder(DOOR_Z0, DOOR_Z1, 24);
+    endPart();
+    shoulder(DOOR_Z1, 2.44, 31);
+    for (const axle of axles) {
+      const edge = [], inside = [];
+      for (let i = 0; i <= 48; i++) {
+        const a = i / 48 * Math.PI;
+        const y = -0.286 + Math.sin(a) * 0.431, z = axle + Math.cos(a) * 0.431;
+        edge.push(sidePoint(s, y, z, 0.006));
+        inside.push([s * (width(y, z) - 0.04), y - 0.012, z]);
+      }
+      line(chrome, edge, 0.009);
+      for (let i = 0; i < edge.length - 1; i++) patch(black, [edge[i], edge[i + 1], inside[i + 1], inside[i]], [s, -1, 0]);
+    }
+    // Thin belt crease, rocker molding, shaped door shut line, lock and recessed handle.
+    // The belt crease runs along the whole side; the stretch over the door is part of the door, so it swings with it.
+    line(chrome, [-2.3 - bedExtension, -1.8, DOOR_REAR].map(z => sidePoint(s, 0.265, z, 0.004)), 0.005);
+    line(chrome, [DOOR_FRONT, 1.8, 2.3].map(z => sidePoint(s, 0.265, z, 0.004)), 0.005);
+    beginDoor(s);
+    line(chrome, [DOOR_REAR, -0.3, 0.1, 0.45, DOOR_FRONT].map(z => sidePoint(s, 0.265, z, 0.004)), 0.005);
+    endPart();
+    line(chrome, [-0.99, -0.7, 0, 0.7, 1.08].map(z => sidePoint(s, -0.235, z, 0.008)), 0.018);
+    const doorSeam = [];
+    for (let i = 0; i <= 24; i++) {
+      const y = THREE.MathUtils.lerp(0.412, -0.16, i / 24);
+      doorSeam.push(sidePoint(s, y, 0.75 - 0.02 * i / 24, 0.005));
+    }
+    doorSeam.push(sidePoint(s, -0.21, 0.61, 0.005), sidePoint(s, -0.21, -0.46, 0.005), sidePoint(s, -0.14, -0.58, 0.005));
+    for (let i = 0; i <= 24; i++) doorSeam.push(sidePoint(s, THREE.MathUtils.lerp(-0.14, 0.405, i / 24), -0.58, 0.005));
+    line(black, doorSeam, 0.0035);
+    beginDoor(s);
+    box(black, [0.014, 0.032, 0.17], sidePoint(s, 0.31, -0.34, 0.007), 0.008);
+    box(chrome, [0.029, 0.019, 0.14], sidePoint(s, 0.317, -0.34, 0.02), 0.007);
+    const lock = disc(chrome, 0.012, 0.007, sidePoint(s, 0.264, -0.34, 0.01), 'x');
+    lock.name = 'Door lock';
+    endPart();
+    box(amber, [0.012, 0.036, 0.105], sidePoint(s, -0.055, 2.21, 0.008), 0.004);
+    box(red, [0.012, 0.036, 0.105], sidePoint(s, -0.055, -2.2 - bedExtension, 0.008), 0.004);
+  }
+  box(black, [1.46, 0.09, 4.56 + bedExtension], [0, -0.27, -bodyOffsetZ], 0.02);
+  box(carpet, [1.64, 0.05, 1.48], [0, -0.02, -0.02], 0.01);
+
+  // One continuous, subtly crowned hood. Its perimeter follows the closed fender shoulders.
+  beginPart('hood');
+  const hoodY = (x, z) => top(z) + 0.009 + 0.024 * (1 - (Math.abs(x) / 0.79) ** 1.5) + 0.018 * ((2.4 - z) / 1.55);
+  surface(paint, 32, 52, (u, v) => {
+    const x = (u * 2 - 1) * 0.79, z = 0.85 + v * 1.56;
+    return [x, hoodY(x, z), z];
+  }, [0, 1, 0]);
+  // Folded hood edges close the small height change down to the fender shoulder.
+  for (const s of [-1, 1]) {
+    surface(paint, 48, 2, (u, v) => {
+      const z = 0.85 + u * 1.56;
+      return [s * 0.79, THREE.MathUtils.lerp(top(z), hoodY(s * 0.79, z), v), z];
+    }, [s, 0, 0]);
+  }
+  for (const s of [-1, 1]) {
+    line(black, [0.87, 1.2, 1.8, 2.39].map(z => [s * 0.787, hoodY(s * 0.787, z) + 0.001, z]), 0.0025);
+    line(paint, [0.88, 1.1, 1.8, 2.32].map(z => [s * 0.38, hoodY(s * 0.38, z) + 0.005, z]), 0.004);
+  }
+  endPart();
+  surface(paint, 40, 8, (u, v) => {
+    const x = (u * 2 - 1) * 0.79;
+    return [x, THREE.MathUtils.lerp(hoodY(x, 2.41), 0.295, v), 2.41 + 0.041 * Math.sin(v * Math.PI / 2)];
+  }, [0, 1, 1]);
+  for (const s of [-1, 1]) {
+    surface(paint, 8, 8, (u, v) => {
+      const x = s * THREE.MathUtils.lerp(0.79, width(top(2.41), 2.41), u);
+      return [x, THREE.MathUtils.lerp(top(2.41), 0.295, v), 2.41 + 0.041 * Math.sin(v * Math.PI / 2)];
+    }, [0, 1, 1]);
+  }
+  box(paint, [1.6, 0.055, 0.17], [0, 0.425, 0.785], 0.015);
+
+  // The engine bay: inner fender walls, the firewall and the radiator, so the bay is closed with the hood off.
+  for (const s of [-1, 1]) box(black, [0.03, 0.62, 1.56], [s * 0.765, 0.1, 1.63], 0.005);
+  box(black, [1.52, 0.6, 0.03], [0, 0.12, 0.86], 0.005);
+  box(black, [1.2, 0.42, 0.06], [0, 0.08, 2.3], 0.01);
+  for (let i = -9; i <= 9; i++) box(brakeSteel, [0.012, 0.36, 0.01], [i * 0.06, 0.08, 2.265], 0.002);
+
+  // The engine: a V8 block with rocker covers, intake and air cleaner, sitting low enough to clear the hood.
+  beginPart('engine');
+  const engineBlue = new THREE.MeshStandardMaterial({ color: 0x2d4656, metalness: 0.45, roughness: 0.62 });
+  box(engineBlue, [0.5, 0.32, 0.72], [0, 0.02, 1.55], 0.03);
+  box(engineBlue, [0.3, 0.12, 0.62], [0, -0.17, 1.55], 0.02);
+  for (const s of [-1, 1]) {
+    const cover = box(chrome, [0.13, 0.07, 0.66], [s * 0.2, 0.21, 1.55], 0.02);
+    cover.rotation.z = s * 0.4;
+    rod(brakeSteel, [s * 0.27, 0.07, 1.3], [s * 0.36, -0.05, 1.3], 0.025);
+    rod(brakeSteel, [s * 0.27, 0.07, 1.8], [s * 0.36, -0.05, 1.8], 0.025);
+  }
+  box(black, [0.22, 0.08, 0.5], [0, 0.22, 1.55], 0.02);
+  const cleaner = add(new THREE.CylinderGeometry(0.17, 0.17, 0.07, 32), chrome, [0, 0.31, 1.5]);
+  cleaner.name = 'Air cleaner';
+  add(new THREE.CylinderGeometry(0.03, 0.03, 0.04, 12), chrome, [0, 0.36, 1.5]);
+  disc(brakeSteel, 0.07, 0.08, [0.27, 0.04, 1.97]); // alternator
+  disc(black, 0.17, 0.02, [0, 0.03, 2.2]); // fan
+  endPart();
+
+  // The battery, on the left of the bay in front of the wheel arch.
+  beginPart('battery');
+  box(black, [0.26, 0.2, 0.17], [-0.55, 0.06, 2.06], 0.01);
+  box(new THREE.MeshStandardMaterial({ color: 0xb0372e, roughness: 0.6 }), [0.03, 0.03, 0.03], [-0.47, 0.175, 2.06], 0.005);
+  box(chrome, [0.03, 0.03, 0.03], [-0.63, 0.175, 2.06], 0.005);
+  endPart();
+  // Cowl vents sit beneath the wipers, rather than an open black gap.
+  for (let i = -15; i <= 15; i++) box(black, [0.008, 0.003, 0.055], [i * 0.037, 0.456, 0.78], 0.001);
+
+  // A stamped roof skin and sheet-metal window surrounds; no tubular frame.
+  const roofY = (u, v) => 1.025 + 0.046 * Math.sin(u * Math.PI) + 0.01 * Math.sin(v * Math.PI);
+  surface(paint, 32, 28, (u, v) => {
+    const x = (u * 2 - 1) * 0.765, z = -0.55 + v * 0.91;
+    return [x, roofY(u, v), z];
+  }, [0, 1, 0]);
+  // Fold the roof skin down to the straight window headers, closing the crown at both ends.
+  for (const end of [0, 1]) surface(paint, 32, 2, (u, v) => [
+    (u * 2 - 1) * 0.765, THREE.MathUtils.lerp(end === 0 ? 1.025 : 1.03, roofY(u, end), v),
+    end === 0 ? -0.55 : 0.36,
+  ], [0, 0, end === 0 ? -1 : 1]);
+  for (const s of [-1, 1]) surface(paint, 28, 2, (u, v) => [
+    s * 0.765, THREE.MathUtils.lerp(1.025 + u * 0.005, roofY(0, u), v), -0.55 + u * 0.91,
+  ], [s, 0, 0]);
+  box(tan, [1.41, 0.02, 0.77], [0, 0.998, -0.09], 0.015);
+  const windshieldOuter = [[-0.87, 0.435, 0.85], [0.87, 0.435, 0.85], [0.765, 1.03, 0.36], [-0.765, 1.03, 0.36]];
+  const windshieldInner = [[-0.813, 0.476, 0.821], [0.813, 0.476, 0.821], [0.719, 0.986, 0.394], [-0.719, 0.986, 0.394]];
+  beginPart('windshield');
+  ring(paint, windshieldOuter, windshieldInner, [0, 0.6, 1]);
+  surface(glass, 30, 18, (u, v) => {
+    const half = THREE.MathUtils.lerp(0.813, 0.719, v);
+    return [(u * 2 - 1) * half, THREE.MathUtils.lerp(0.476, 0.986, v), THREE.MathUtils.lerp(0.821, 0.394, v) + 0.018 * Math.sin(u * Math.PI) * Math.sin(v * Math.PI)];
+  }, [0, 0.6, 1]);
+  windowMolding(windshieldOuter, windshieldInner, [0, 0.6, 1]);
+  endPart();
+  const rearOuter = [[0.85, 0.43, -0.835], [-0.85, 0.43, -0.835], [-0.765, 1.025, -0.55], [0.765, 1.025, -0.55]];
+  const rearInner = [[0.747, 0.508, -0.798], [-0.747, 0.508, -0.798], [-0.69, 0.965, -0.578], [0.69, 0.965, -0.578]];
+  ring(paint, rearOuter, rearInner, [0, 0.3, -1]);
+  patch(glass, rearInner, [0, 0.3, -1]);
+  windowMolding(rearOuter, rearInner, [0, 0.3, -1]);
+  box(paint, [1.64, 0.08, 0.12], [0, 0.435, -0.813], 0.015);
+  for (const s of [-1, 1]) {
+    const outer = [[s * 0.87, 0.435, 0.85], [s * 0.765, 1.03, 0.36], [s * 0.765, 1.025, -0.55], [s * 0.915, 0.413, -0.94]];
+    const inner = [[s * 0.85, 0.478, 0.744], [s * 0.768, 0.978, 0.303], [s * 0.768, 0.973, -0.393], [s * 0.855, 0.478, -0.586]];
+    ring(paint, outer, inner, [s, 0, 0], s);
+    beginDoor(s);
+    patch(glass, inner, [s, 0, 0]);
+    endPart();
+    windowMolding(outer, inner, [s, 0, 0], s);
+    // Flat vent-window divider, seated in the window plane.
+    beginDoor(s);
+    patch(windowMetal, [[s * 0.847, 0.478, 0.504], [s * 0.847, 0.478, 0.516],
+      [s * 0.792, 0.846, 0.429], [s * 0.792, 0.846, 0.417]], [s, 0, 0]);
+    endPart();
+    // Close the sail-panel return to the rear window, so the pillar has a solid edge.
+    patch(paint, [outer[2], outer[3], [s * 0.85, 0.43, -0.835]], [s, 0, -1]);
+    // Close the thin return below the side windows to the door skin: in three pieces, the middle one on the door.
+    const returnZs = [-0.94, DOOR_Z0, DOOR_Z1, 0.85];
+    for (let k = 0; k < 3; k++) {
+      const z0 = returnZs[k], z1 = returnZs[k + 1];
+      if (k === 1) beginDoor(s);
+      patch(paint, [at(outer[3], outer[0], z0), at(outer[3], outer[0], z1), sidePoint(s, top(z1), z1), sidePoint(s, top(z0), z0)], [s, 1, 0]);
+      if (k === 1) endPart();
+    }
+    beginDoor(s); // the mirror is on the door
+    rod(chrome, [s * 0.89, 0.442, 0.54], [s * 1.035, 0.493, 0.55], 0.012);
+    const mirror = add(new THREE.SphereGeometry(1, 24, 16), chrome, [s * 1.045, 0.515, 0.55]);
+    mirror.scale.set(0.085, 0.053, 0.035);
+    const mirrorFace = add(new THREE.CircleGeometry(0.064, 32), chrome, [s * 1.045, 0.515, 0.516]);
+    mirrorFace.rotation.y = Math.PI;
+    endPart();
+  }
+  beginPart('windshield'); // the wipers and the mirror ride with the glass
+  for (const s of [-1, 1]) {
+    rod(black, [s * 0.34, 0.466, 0.855], [s * 0.55, 0.506, 0.792], 0.005);
+    rod(black, [s * 0.55, 0.506, 0.792], [s * 0.15, 0.509, 0.79], 0.006);
+  }
+  rod(chrome, [0, 0.958, 0.382], [0, 0.897, 0.395], 0.006);
+  box(black, [0.185, 0.055, 0.025], [0, 0.875, 0.394], 0.009);
+  endPart();
+
+  // Tan upholstered bench: separate bolsters, pleats, piping, and a proper cabin floor.
+  beginPart('seat');
+  box(piping, [1.48, 0.15, 0.49], [0, 0.12, -0.27], 0.045);
+  box(tan, [1.47, 0.14, 0.48], [0, 0.235, -0.27], 0.055);
+  const back = box(tan, [1.47, 0.43, 0.13], [0, 0.49, -0.51], 0.045);
+  back.rotation.x = -0.13;
+  for (let i = -6; i <= 6; i++) {
+    const x = i * 0.104;
+    box(tan, [0.093, 0.018, 0.32], [x, 0.308, -0.25], 0.008);
+    const pleat = box(tan, [0.093, 0.31, 0.019], [x, 0.496, -0.433], 0.008);
+    pleat.rotation.x = -0.13;
+  }
+  line(piping, [[-0.7, 0.3, -0.47], [-0.73, 0.3, -0.05], [0, 0.3, -0.025], [0.73, 0.3, -0.05], [0.7, 0.3, -0.47]], 0.004);
+  box(black, [0.17, 0.027, 0.075], [0.17, 0.32, -0.19], 0.006);
+  box(chrome, [0.033, 0.008, 0.045], [0.17, 0.337, -0.19], 0.003);
+  endPart();
+  for (const s of [-1, 1]) {
+    beginDoor(s);
+    box(tan, [0.025, 0.34, 1.21], [s * 0.838, 0.21, 0.075], 0.015);
+    box(piping, [0.075, 0.055, 0.31], [s * 0.795, 0.255, 0.02], 0.02);
+    rod(chrome, [s * 0.785, 0.31, 0.24], [s * 0.785, 0.31, 0.37], 0.008);
+    endPart();
+    box(black, [0.56, 0.012, 0.43], [s * 0.4, 0.014, 0.28], 0.016);
+  }
+  beginPart('dash');
+  box(tan, [1.56, 0.19, 0.14], [0, 0.392, 0.594], 0.027);
+  box(black, [1.61, 0.065, 0.27], [0, 0.515, 0.603], 0.025);
+  box(brushed, [0.73, 0.13, 0.015], [0.37, 0.42, 0.512], 0.008);
+  // Gauge faces and radio sit on the driver-facing (-Z) dashboard.
+  for (const x of [0.2, 0.4, 0.6]) {
+    disc(black, 0.052, 0.006, [x, 0.423, 0.498]);
+    torus(chrome, 0.054, 0.004, [x, 0.423, 0.49]);
+    for (let i = 0; i < 9; i++) {
+      const a = -0.65 + i * 0.48;
+      rod(chrome, [x + Math.cos(a) * 0.038, 0.423 + Math.sin(a) * 0.038, 0.492], [x + Math.cos(a) * 0.044, 0.423 + Math.sin(a) * 0.044, 0.492], 0.0015);
+    }
+    rod(amber, [x, 0.423, 0.486], [x - 0.025, 0.449, 0.486], 0.0015);
+  }
+  box(black, [0.2, 0.065, 0.012], [-0.12, 0.405, 0.515], 0.004);
+  for (const x of [-0.255, 0.015]) disc(chrome, 0.014, 0.012, [x, 0.403, 0.504]);
+  box(piping, [0.42, 0.095, 0.012], [-0.52, 0.412, 0.515], 0.006);
+  box(chrome, [0.07, 0.008, 0.01], [-0.52, 0.445, 0.505], 0.002);
+  endPart();
+  beginPart('steering_wheel');
+  rod(black, [0.415, 0.28, 0.53], [0.415, 0.594, 0.259], 0.025);
+  const steeringGroup = new THREE.Group();
+  steeringGroup.position.set(0.415, 0.594, 0.259);
+  steeringGroup.rotation.x = -0.42;
+  current.add(steeringGroup);
+  torus(black, 0.153, 0.011, [0, 0, 0], 'z', steeringGroup);
+  for (let i = 0; i < 3; i++) {
+    const a = i * Math.PI * 2 / 3 + Math.PI / 2;
+    rod(chrome, [0, 0, 0], [Math.cos(a) * 0.142, Math.sin(a) * 0.142, 0], 0.009, steeringGroup);
+  }
+  disc(chrome, 0.036, 0.019, [0, 0, 0], 'z', steeringGroup);
+  rod(chrome, [0.455, 0.495, 0.37], [0.565, 0.46, 0.34], 0.006);
+  endPart();
+
+  // Deep stamped cargo bed with ribbed floor, rounded wheel houses and tiedown loops.
+  box(paint, [1.6, 0.075, 1.52 + bedExtension], [0, -0.115, -1.64 - bodyOffsetZ], 0.009);
+  box(paint, [1.63, 0.5, 0.065], [0, 0.15, -0.866], 0.012);
+  for (let i = -6; i <= 6; i++) box(paint, [0.032, 0.013, 1.43 + bedExtension], [i * 0.116, -0.07, -1.64 - bodyOffsetZ], 0.006);
+  for (const s of [-1, 1]) {
+    box(paint, [0.075, 0.46, 1.5 + bedExtension], [s * 0.805, 0.16, -1.635 - bodyOffsetZ], 0.014);
+    box(paint, [0.3, 0.29, 0.84], [s * 0.707, 0.048, -1.5], 0.13);
+    line(chrome, [-2.35 - bedExtension, -2, -1.5, -0.98].map(z => [s * 0.836, top(z) + 0.004, z]), 0.008);
+    for (const z of [-1.01, -2.2 - bedExtension]) torus(brushed, 0.026, 0.004, [s * 0.753, 0.27, z], 'x');
+  }
+
+  // Tailgate has a pressed inset, proper edge seams, hardware, and separate lamp housings.
+  beginPart('tailgate');
+  box(paint, [1.43, 0.605, 0.08], [0, 0.05, -2.411 - bedExtension], 0.025);
+  box(paint, [1.33, 0.267, 0.015], [0, 0.058, -2.458 - bedExtension], 0.024);
+  for (const s of [-1, 1]) rod(black, [s * 0.705, -0.205, -2.46 - bedExtension], [s * 0.705, 0.348, -2.46 - bedExtension], 0.0035);
+  box(chrome, [0.173, 0.038, 0.022], [0, 0.268, -2.466 - bedExtension], 0.005);
+  for (const s of [-1, 1]) box(chrome, [0.15, 0.025, 0.015], [s * 0.59, -0.214, -2.468 - bedExtension], 0.004);
+  textBadge('El Cajon', 0.46, 0.115, [-0.43, 0.105, -2.47 - bedExtension], Math.PI);
+  endPart();
+  for (const s of [-1, 1]) {
+    box(paint, [0.175, 0.605, 0.08], [s * 0.803, 0.05, -2.411 - bedExtension], 0.025); // the corners either side of the gate
+    box(chrome, [0.16, 0.277, 0.036], [s * 0.84, 0.065, -2.463 - bedExtension], 0.016);
+    box(black, [0.133, 0.25, 0.015], [s * 0.84, 0.065, -2.487 - bedExtension], 0.009);
+    box(red, [0.112, 0.229, 0.018], [s * 0.84, 0.074, -2.5 - bedExtension], 0.013);
+    for (let i = 0; i < 9; i++) box(red, [0.106, 0.003, 0.004], [s * 0.84, -0.02 + i * 0.023, -2.512 - bedExtension], 0.001);
+  }
+
+  // Sculpted nose: inset grille and recessed quad lamps below the hood's folded leading edge.
+  box(paint, [1.79, 0.43, 0.09], [0, 0.092, 2.405], 0.028);
+  beginPart('grille');
+  box(black, [1.79, 0.267, 0.025], [0, 0.12, 2.461], 0.02);
+  box(chrome, [1.8, 0.022, 0.025], [0, 0.268, 2.475], 0.007);
+  box(chrome, [1.8, 0.014, 0.025], [0, -0.024, 2.475], 0.006);
+  for (let i = 0; i < 8; i++) box(brushed, [1.02, 0.007, 0.018], [0, 0.006 + i * 0.032, 2.481], 0.002);
+  for (let i = -12; i <= 12; i++) box(brushed, [0.003, 0.225, 0.015], [i * 0.04, 0.116, 2.48], 0.001);
+  endPart();
+  const lensCanvas = document.createElement('canvas');
+  lensCanvas.width = lensCanvas.height = 128;
+  const lensCtx = lensCanvas.getContext('2d') ;
+  const lensGradient = lensCtx.createRadialGradient(46, 38, 4, 64, 64, 63);
+  lensGradient.addColorStop(0, '#ffffff'); lensGradient.addColorStop(0.55, '#c9d5dc'); lensGradient.addColorStop(1, '#6c7b89');
+  lensCtx.fillStyle = lensGradient; lensCtx.fillRect(0, 0, 128, 128);
+  lensCtx.strokeStyle = 'rgba(255,255,255,0.38)'; lensCtx.lineWidth = 1;
+  for (let i = 8; i < 128; i += 7) { lensCtx.beginPath(); lensCtx.moveTo(i, 0); lensCtx.lineTo(i, 128); lensCtx.stroke(); }
+  for (let i = 12; i < 128; i += 15) { lensCtx.beginPath(); lensCtx.moveTo(0, i); lensCtx.lineTo(128, i); lensCtx.stroke(); }
+  const lensTexture = new THREE.CanvasTexture(lensCanvas); lensTexture.colorSpace = THREE.SRGBColorSpace;
+  const lens = new THREE.MeshPhysicalMaterial({ map: lensTexture, roughness: 0.16, metalness: 0.25, clearcoat: 1 });
+  beginPart('headlights');
+  for (const x of [-0.788, -0.586, 0.586, 0.788]) {
+    disc(brushed, 0.099, 0.024, [x, 0.125, 2.479]);
+    torus(chrome, 0.09, 0.009, [x, 0.125, 2.498]);
+    const light = add(new THREE.SphereGeometry(0.082, 32, 16), lens, [x, 0.125, 2.498]);
+    light.scale.z = 0.19;
+  }
+  for (const s of [-1, 1]) {
+    box(chrome, [0.191, 0.063, 0.026], [s * 0.748, -0.073, 2.463], 0.009);
+    box(amber, [0.162, 0.039, 0.013], [s * 0.748, -0.072, 2.481], 0.005);
+  }
+  endPart();
+  // Rounded chrome bumpers sweep back at the ends, with narrow upright overriders.
+  for (const sign of [-1, 1]) {
+    beginPart(sign > 0 ? 'front_bumper' : 'rear_bumper');
+    const endOffset = sign < 0 ? -bedExtension : 0;
+    surface(chrome, 72, 20, (u, v) => {
+      const x = (u * 2 - 1) * 0.993, a = v * Math.PI * 2;
+      const z = sign * (2.486 - 0.1 * (Math.abs(x) / 0.993) ** 8) + endOffset;
+      return [x, -0.184 + Math.cos(a) * 0.068, z + Math.sin(a) * 0.068];
+    }, [0, 0, sign]);
+    for (const x of [-0.545, 0.545]) {
+      box(chrome, [0.05, 0.226, 0.065], [x, -0.145, sign * 2.535 + endOffset], 0.018);
+    }
+    if (sign < 0) {
+      // The number plate rides on the rear bumper.
+      box(chrome, [0.29, 0.114, 0.014], [0, -0.182, -2.56 - bedExtension], 0.005);
+      textBadge('CAJON', 0.266, 0.09, [0, -0.18, -2.57 - bedExtension], Math.PI, true);
+    }
+    endPart();
+  }
+  for (const s of [-1, 1]) {
+    const exhaust = add(new THREE.CylinderGeometry(0.032, 0.036, 0.3, 24, 1, true), chrome, [s * 0.65, -0.293, -2.39 - bedExtension]);
+    exhaust.rotation.x = Math.PI / 2;
+    disc(black, 0.026, 0.006, [s * 0.65, -0.293, -2.543 - bedExtension]);
+  }
+
+  // Transparent script badges sit directly on the paint, without a rectangular label.
+  function textBadge(text, width, height, p, rotation, plate = false) {
+    const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 256;
+    const ctx = canvas.getContext('2d') ;
+    if (plate) { ctx.fillStyle = '#15202c'; ctx.fillRect(0, 0, 1024, 256); }
+    ctx.fillStyle = plate ? '#dec47d' : '#dce2e9';
+    ctx.font = plate ? 'bold 140px monospace' : 'italic 155px Georgia';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 512, 135);
+    const map = new THREE.CanvasTexture(canvas); map.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshStandardMaterial({ map, transparent: !plate, alphaTest: 0.15, metalness: plate ? 0.1 : 0.6, roughness: 0.32 });
+    const mesh = add(new THREE.PlaneGeometry(width, height), mat, p); mesh.rotation.y = rotation;
+  }
+  textBadge('EC', 0.11, 0.055, [0, 0.13, 2.496], 0);
+  for (const s of [-1, 1]) textBadge('El Cajon', 0.27, 0.067, sidePoint(s, 0.18, -2.08 - bedExtension, 0.008), s * Math.PI / 2);
+
+  // Rounded tyre carcass, machined alloy rims, separate brake rotors, lug nuts and tread.
+  const tyreProfile = [
+    [0.245, -0.135], [0.28, -0.148], [0.321, -0.149], [0.354, -0.13],
+    [0.374, -0.102], [CAR.wheelRadius, -0.065], [CAR.wheelRadius, 0.065],
+    [0.374, 0.102], [0.354, 0.13], [0.321, 0.149], [0.28, 0.148], [0.245, 0.135],
+  ].map(([r, x]) => new THREE.Vector2(r, x));
+  const tyreGeometry = new THREE.LatheGeometry(tyreProfile, 64); tyreGeometry.rotateZ(Math.PI / 2);
+  const wheels = Array.from({ length: 4 }, () => {
+    const wheel = new THREE.Mesh(tyreGeometry, rubber);
+    // Fine grooves across the running surface give the tyre its own silhouette.
+    for (let i = 0; i < 64; i++) {
+      const a = i / 64 * Math.PI * 2;
+      const tread = box(black, [0.142, 0.006, 0.008], [0, Math.cos(a) * 0.379, Math.sin(a) * 0.379], 0.001, wheel);
+      tread.rotation.x = a;
+    }
+    for (const s of [-1, 1]) {
+      disc(black, 0.249, 0.018, [s * 0.12, 0, 0], 'x', wheel);
+      disc(brakeSteel, 0.184, 0.008, [s * 0.131, 0, 0], 'x', wheel);
+      for (let i = 0; i < 16; i++) {
+        const a = i / 16 * Math.PI * 2;
+        disc(black, 0.005, 0.002, [s * 0.137, Math.cos(a) * 0.163, Math.sin(a) * 0.163], 'x', wheel);
+      }
+      torus(chrome, 0.249, 0.013, [s * 0.151, 0, 0], 'x', wheel);
+      torus(brushed, 0.224, 0.005, [s * 0.146, 0, 0], 'x', wheel);
+      torus(black, 0.313, 0.0025, [s * 0.15, 0, 0], 'x', wheel);
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * Math.PI * 2;
+        const point = (r, angle, depth) => [s * depth, Math.cos(angle) * r, Math.sin(angle) * r];
+        const face = [point(0.052, a - 0.26, 0.167), point(0.229, a - 0.09, 0.149), point(0.229, a + 0.09, 0.149), point(0.052, a + 0.26, 0.167)];
+        patch(chrome, face, [s, 0, 0], wheel);
+        rod(brushed, point(0.064, a, 0.153), point(0.223, a, 0.14), 0.014, wheel);
+        disc(chrome, 0.009, 0.012, point(0.064, a + 0.4, 0.174), 'x', wheel);
+      }
+      disc(chrome, 0.049, 0.022, [s * 0.17, 0, 0], 'x', wheel);
+      disc(black, 0.025, 0.003, [s * 0.184, 0, 0], 'x', wheel);
+    }
+    return wheel;
+  });
+
+  // Flatten the nested interior and batch static detail by material. Each material is one draw.
+  const batch = (parent) => {
+    parent.updateMatrixWorld(true);
+    const inverse = parent.matrixWorld.clone().invert();
+    const groups = new Map();
+    const originals = new Set();
+    parent.traverse(child => {
+      if (child === parent || !(child instanceof THREE.Mesh) || Array.isArray(child.material)) return;
+      const matrix = new THREE.Matrix4().multiplyMatrices(inverse, child.matrixWorld);
+      const g = child.geometry.clone().applyMatrix4(matrix);
+      const list = groups.get(child.material) ?? [];
+      list.push(g); groups.set(child.material, list); originals.add(child.geometry);
+    });
+    parent.clear();
+    originals.forEach(g => g.dispose());
+    for (const [m, geometries] of groups) {
+      const normalized = geometries.map(g => g.index ? g.toNonIndexed() : g);
+      const merged = mergeGeometries(normalized);
+      if (!merged) throw new Error('Unable to batch El Cajon geometry');
+      const mesh = add(merged, m, [0, 0, 0], parent);
+      mesh.castShadow = !m.transparent;
+      mesh.receiveShadow = !m.transparent;
+      new Set([...geometries, ...normalized]).forEach(g => g.dispose());
+    }
+  };
+  // Each part is batched on its own, so it can be shown or hidden as one piece.
+  const partGroups = Object.values(parts);
+  partGroups.forEach(g => body.remove(g));
+  batch(body);
+  partGroups.forEach(g => batch(g));
+  // Shift the completed shell to the center of its longer physics footprint.
+  for (const holder of [body, ...partGroups]) {
+    holder.children.forEach(child => {
+      if (child instanceof THREE.Mesh) child.geometry.translate(0, 0, bodyOffsetZ);
+    });
+  }
+  partGroups.forEach(g => body.add(g));
+  wheels.forEach(batch);
+  wheels.forEach(w => { w.castShadow = true; w.receiveShadow = true; });
+  // Open, you look at the hood and doors from the back, so their skins have to show from both sides.
+  const bothSides = new Map();
+  const showBothSides = (group) => group.traverse(child => {
+    if (child instanceof THREE.Mesh && !Array.isArray(child.material) && child.material.side === THREE.FrontSide) {
+      const original = child.material;
+      if (!bothSides.has(original)) {
+        const copy = original.clone();
+        copy.onBeforeCompile = original.onBeforeCompile; // clone() drops the rust shader
+        copy.customProgramCacheKey = () => original.customProgramCacheKey() + '-both-sides';
+        copy.side = THREE.DoubleSide;
+        bothSides.set(original, copy);
+      }
+      child.material = bothSides.get(original);
+    }
+  });
+  showBothSides(parts.hood);
+  showBothSides(parts.driver_door);
+  showBothSides(parts.passenger_door);
+  // Each moving piece turns about a hinge point: rotate the group, then move it so the hinge stays put.
+  const hinge = (group, point, rx, ry) => {
+    group.rotation.set(rx, ry, 0);
+    group.position.copy(point).sub(point.clone().applyEuler(group.rotation));
+  };
+  const hoodHinge = new THREE.Vector3(0, 0.43, 0.85 + bodyOffsetZ);
+  const setHoodOpen = (amount) => hinge(parts.hood, hoodHinge, -1.15 * amount, 0);
+  const doorHinges = { 1: new THREE.Vector3(0.93, 0, 0.73 + bodyOffsetZ), [-1]: new THREE.Vector3(-0.93, 0, 0.73 + bodyOffsetZ) };
+  const setDoorOpen = (side, amount) => hinge(parts[doorName(side)], doorHinges[side], 0, -side * 1.15 * amount);
+  const tailgateHinge = new THREE.Vector3(0, -0.2525, -2.411 - bedExtension + bodyOffsetZ - 0.04);
+  const setTailgateOpen = (amount) => hinge(parts.tailgate, tailgateHinge, -Math.PI / 2 * amount, 0);
+  // the hinges as data (a point to turn about, the axis and the angle at fully open), so each in-world copy can swing its own parts (CajonModel.jsx)
+  const hinges = {
+    hood: { at: hoodHinge, axis: 'x', angle: -1.15 },
+    driver_door: { at: doorHinges[1], axis: 'y', angle: -1.15 },
+    passenger_door: { at: doorHinges[-1], axis: 'y', angle: 1.15 },
+    tailgate: { at: tailgateHinge, axis: 'x', angle: -Math.PI / 2 },
+  };
+  return { body, wheels, parts, hinges, setHoodOpen, setDoorOpen, setTailgateOpen };
+}

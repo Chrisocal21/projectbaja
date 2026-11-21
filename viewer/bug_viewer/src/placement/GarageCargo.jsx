@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from '../game/store.js';
 import { held, nameOfItem } from '../game/items.js';
+import { carFitReady } from '../game/carSnap.js';
 import { SITES, groundHeight } from '../worlds/county.js';
 import { buildById } from '../game/home.js';
 import { snapPoint, restY, why, clipTo, posed } from './rules.js';
@@ -53,7 +54,7 @@ function Controller({ root, items }) {
 
   useFrame(() => {
     garageAim.cur = null;
-    if (!game.onFoot || game.buildMode || game.paused || !root.current || aim.cur) return show('');   // (aim.cur = the vehicle cargo has the crosshair)
+    if (!game.onFoot || game.buildMode || game.paused || !root.current || aim.cur || carFitReady()) return show('');   // (aim.cur = the vehicle cargo has the crosshair)
     const h = held(); if (h && !isTire(h)) return show('');
     raycaster.setFromCamera(CENTER, camera);
     root.current.updateWorldMatrix(true, false); INV.copy(root.current.matrixWorld).invert(); RAY.copy(raycaster.ray).applyMatrix4(INV);

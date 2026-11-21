@@ -402,3 +402,13 @@ Chris: "freeway ramps ... real like with resting stops, gas stations among other
 - **Drive tests:** a steering bot drove six ramps incl. a mountain one. Within 2.5 m of centre, no rolls, no airborne after settling. Loops hold at ~25 mph; at ~34 mph with loose steering they swing 6.4 m off (open: enlarge R_LOOP).
 - **Honest limits:** no overpasses (single-height ground), roadside places have no driveways or collision, sign boards are blank. Ramps are now behind `?realmap&ramps` (another agent's change).
 - Pushed as 5d57ad6 with the parallel perf HUD and road-connection work.
+
+## November 21, 2026: Salvage Road merge - vehicle building only; El Cajon, tire machine, donors
+
+Chris: "combine Salvage Road into Project Baja ... I want the build mechanics from Salvage Road to be the new build way." Scope he chose: **only the vehicle building mechanic** (containers, build hammer, wood crafting, hotbar, survival, traders are backburnered). Salvage Road stays a separate, read-only repo. Plans: [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md), [CONTROLS_AND_STORAGE_PLAN](./CONTROLS_AND_STORAGE_PLAN.md), [MECHANIC_SIM_DESIGN](./MECHANIC_SIM_DESIGN.md), [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md).
+
+- **Finding:** Baja already had most of Salvage Road's assembly rules; the gap was feel. **Hold-click** (bar fills) now removes and fits parts; the X workshop panel is gone; a removed part goes into your hands; a held part clips into its hologram spot (`restPose.js`, `carSnap.js`, `HoldBar.jsx`). Aim comes from the real mesh under the crosshair, not guessed boxes.
+- **Tire machine and wheel assemblies:** tires on rims, patch, inflate, size classes (`wheelAssembly.js`, `machineRules.js`, `tireMachine.js`).
+- **Many restorable vehicles:** `game.work` work target, `game.projects`, two donor Bugs (`workTarget.js`, `projects.js`). Bug fix: hold-to-remove only worked on the car you drive; now uses the work target.
+- **El Cajon** (Chris's story, **CANON? not locked**): Dusty offers it once your Bug runs; delivered to Walt's yard as a shell with a part pile; rebuilt from the pile, the phone/PC Parts online and finds. Salvage Road's model ported (`src/cajon/`), second `VehicleDef` (`CAJON`), driven through the real game in headless Chrome. **Not drivable yet.**
+- 318 tests pass. Nothing committed. Open: promote a finished project to a driveable vehicle; loot buildings; `?realmap` coast; dressing; cities.

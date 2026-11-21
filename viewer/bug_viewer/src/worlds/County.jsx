@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { HM_SIZE, TERRAIN, REAL } from './world.js';
 import { WaterSheet } from './Border.jsx';
 import { border, SEA_Y } from './border.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
-import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld, highways, junctions } from './county.js';
+import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld, highways, junctions, pavedRoadAt } from './county.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -18,7 +18,6 @@ import BiomeScene from './biomes/Biomes.jsx';
 import BoundaryWall from './BoundaryWall.jsx';
 import { game } from '../game/store.js';
 import RealScenery from './RealScenery.jsx';
-import { buildRoadConnections } from './roadConnections.js';
 import { perfStart, perfEnd } from '../game/perfMetrics.js';
 import { clockHour } from '../game/clock.js';
 import { dayPhase } from './clock.js';
@@ -202,24 +201,27 @@ function hwPieceGeometry({ r, a, b }, H, clearCrossings = true) {
   const crossings = [];
   for (let k = a; k <= b; k++) {
     const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
+    const dirtHidden = r.kind === 'dirt' && row && H.pavedAt(p.x, p.z, 1) && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 1);
+    const pavedHidden = r.kind !== 'dirt' && row && H.higherRoadAt(p.x, p.z, r) && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r);
     const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
     for (let j = 0; j <= segs; j++) {
       const d = (j / segs * 2 - 1) * half * merge, x = p.x + nx * d, z = p.z + nz * d;
-      pos.push(x, height(x, z) + 0.018, z); uv.push(j / segs, p.s / 30);
-      if (row && j) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
+      pos.push(x, height(x, z) + (r.kind === 'major' ? 0.034 : r.kind === 'secondary' ? 0.028 : 0.020) + (1 - r.index / H.roads.length) * 0.004, z); uv.push(j / segs, p.s / 30);
+      if (row && j && !dirtHidden && !pavedHidden) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
     }
     if (row) crossings.push(clearCrossings && (H.crossingDistance(p.x, p.z, r) < 13 || H.crossingDistance(r.pts[k - 1].x, r.pts[k - 1].z, r) < 13));
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
-  for (let i = 0; i < crossings.length;) {
+  if (r.kind === 'dirt') g.addGroup(0, idx.length, 0);
+  for (let i = 0; r.kind !== 'dirt' && i < crossings.length;) {
     let j = i + 1; while (j < crossings.length && crossings[j] === crossings[i]) j++;
     g.addGroup(i * segs * 6, (j - i) * segs * 6, crossings[i] ? 1 : 0); i = j;
   }
   g.computeVertexNormals(); g.computeBoundingSphere(); return g;
 }
-function hwShoulderGeometry({ r, a, b }) {
+function hwShoulderGeometry({ r, a, b }, H) {
   const bands = 4, pos = [], uv = [], idx = [];
   const edge = r.style.half + (r.kind === 'ramp' ? 0.4 : 0.8);
   const width = r.kind === 'major' ? 3.6 : r.kind === 'ramp' ? 1.8 : 2.8;
@@ -227,12 +229,14 @@ function hwShoulderGeometry({ r, a, b }) {
     const base = pos.length / 3;
     for (let k = a; k <= b; k++) {
       const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
+      const dirtHidden = r.kind === 'dirt' && (H.pavedAt(p.x, p.z, 7) || (row && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 7)));
+      const pavedHidden = r.kind !== 'dirt' && (H.higherRoadAt(p.x, p.z, r, 3) || (row && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r, 3)));
       const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
       for (let j = 0; j <= bands; j++) {
         const t = j / bands, d = side * (edge - 0.45 + width * t) * merge;
         const x = p.x + nx * d, z = p.z + nz * d;
         pos.push(x, height(x, z) + 0.025, z); uv.push(t, p.s / 18);
-        if (row && j) { const a0 = base + (row - 1) * (bands + 1) + j - 1, b0 = a0 + 1, c0 = base + row * (bands + 1) + j - 1, d0 = c0 + 1;
+        if (row && j && !dirtHidden && !pavedHidden) { const a0 = base + (row - 1) * (bands + 1) + j - 1, b0 = a0 + 1, c0 = base + row * (bands + 1) + j - 1, d0 = c0 + 1;
           if (side > 0) idx.push(a0, c0, b0, b0, c0, d0); else idx.push(a0, b0, c0, b0, d0, c0); }
       }
     }
@@ -244,7 +248,7 @@ function HighwayRibbons({ connections }) {
   const H = highways(), group = useRef(), { camera } = useThree(), pieces = useRef(new Map()), tick = useRef(1);
   const mats = useMemo(() => {
     const mk = makeTexture => applyGroundDetail(new THREE.MeshStandardMaterial({ map: makeTexture(), roughness: 0.93, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), { grain: 0.2, bump: 0.35, macro: 0.1 });
-    return { major: mk(streetTex), secondary: mk(highwayTex), ramp: mk(rampTex), junction: mk(junctionTex), shoulder: applyGroundDetail(new THREE.MeshStandardMaterial({ map: shoulderTex(), roughness: 1, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), { grain: 0.45, bump: 0.7, macro: 0.15 }) };
+    return { major: mk(streetTex), secondary: mk(highwayTex), ramp: mk(rampTex), dirt: mk(dirtTex), shoulder: applyGroundDetail(new THREE.MeshStandardMaterial({ map: shoulderTex(), roughness: 1, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), { grain: 0.45, bump: 0.7, macro: 0.15 }) };
   }, []);
   const list = useMemo(() => {
     const out = [];
@@ -270,10 +274,10 @@ function HighwayRibbons({ connections }) {
     for (const s of list) {
       const d = Math.hypot(s.cx - p.x, s.cz - p.z) - s.rad, have = map.get(s.key);
       if (d < view && !have && built < 6) {
-        const piece = new THREE.Group(), shoulder = new THREE.Mesh(hwShoulderGeometry(s), mats.shoulder);
+        const piece = new THREE.Group(), shoulder = new THREE.Mesh(hwShoulderGeometry(s, H), mats.shoulder);
         shoulder.receiveShadow = true; shoulder.renderOrder = -1; piece.add(shoulder);
-        const road = new THREE.Mesh(hwPieceGeometry(s, H, !connections), [mats[s.r.kind] || mats.secondary, mats.junction]);
-        road.receiveShadow = true; road.renderOrder = 1; piece.add(road);
+        const road = new THREE.Mesh(hwPieceGeometry(s, H, false), mats[s.r.kind] || mats.secondary);
+        road.receiveShadow = true; road.renderOrder = (s.r.kind === 'major' ? 4 : s.r.kind === 'secondary' ? 3 : s.r.kind === 'ramp' ? 2 : 1) + (1 - s.r.index / H.roads.length); piece.add(road);
         g.add(piece); map.set(s.key, piece); built++;
       }
       else if (d > view + 400 && have) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); }
@@ -531,22 +535,24 @@ function Proving() {
 
 export default function CountyScene() {
   const { camera } = useThree();
-  const roadConnections = useMemo(() => REAL && !/[?&]ramps(?:[=&]|$)/.test(location.search) ? buildRoadConnections(highways().roads, junctions().nodes) : null, []);
+  // Continuous paved ribbons own crossings. Trimming them for inferred junctions
+  // exposed the dirt layer wherever a junction patch did not cover the exact cut.
+  const roadConnections = null;
   useEffect(() => { camera.far = 5200; camera.updateProjectionMatrix(); }, [camera]);
   return <>
     {/* sky, fog, sun and the day/night cycle are DriveWorld.jsx's DayNightSky, so the drive and on-foot cameras share one clock */}
     {REAL ? <><StreamTerrain /><WaterSheet bit={1} y={SEA_Y} color="#2f7fa0" /><WaterSheet bit={2} y={border().lakeY} color="#4f8f9a" /></> : <Terrain />}
-    {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind]; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
+    {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind], dirt = r.kind === 'dirt' || r.kind === 'gravel'; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} hide={dirt ? p => pavedRoadAt(p.x, p.z, ROAD_HALF[r.kind] + 1) : null} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
     {REAL && <HighwayRibbons connections={roadConnections} />}
     {roadConnections && <HighwayJunctionSurfaces connections={roadConnections} />}
     {REAL && <HighwayFurniture />}
     {REAL && <RoadsidePlaces />}
     {REAL && <RoadsideDriveways />}
-    {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} />)}
+    {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}
     <Ribbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />
     <Ribbon path={pitLane} half={4.6} tile={9.2} makeTexture={pitTex} detail={{ grain: 0.2, bump: 0.3, macro: 0.08 }} step={1} lift={0.012} segs={2} heightFn={height} />
-    <Ribbon path={dirtStrip} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} />
-    <Ribbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965); }} />
+    <Ribbon path={dirtStrip} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 6)} />
+    <Ribbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965) || pavedRoadAt(p.x, p.z, 6); }} />
     <Poles />
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />

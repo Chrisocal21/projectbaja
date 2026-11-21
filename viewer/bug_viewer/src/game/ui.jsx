@@ -153,31 +153,6 @@ export function InventoryPanel({ onClose }) {
     <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
 }
 
-/** blueprint §3.8: every slot, what's fitted, what's blocking, and fit/detach buttons that follow the same rules as doing it by hand */
-export function WorkshopPanel({ build, onFit, onDetach, onDetachUpgrade, onCover, onClose }) {
-  useGame();
-  const fitted = id => isFitted(DEF, build, id), open = openCovers();
-  const reach = [held(), ...packItems(), ...(game.nearCar ? carItems() : [])].filter(Boolean);
-  const upgrades = Object.entries(build.parts).filter(([slot]) => slot !== 'engine');
-  const need = missingToDrive(DEF, build);
-  return <div className="overlay"><div className="card inv workshop"><h2>WORKSHOP — {DEF.name.toUpperCase()}</h2>
-    <p className={need.length ? 'ws-bad' : 'ws-good'}>{need.length ? `Won't start. Missing: ${need.map(s => s.name.toLowerCase()).join(', ')}.` : 'Runs and drives.'} <small>Tools here: {[...toolsHere()].join(', ') || 'none'}</small></p>
-    <div className="inv-sec">LIDS</div>
-    {Object.entries(DEF.covers).map(([id, c]) => fitted(id) && <div key={id} className="inv-row"><span>{c.name[0].toUpperCase() + c.name.slice(1)}<small>{open.has(id) ? 'open' : 'shut'}</small></span><span className="inv-btns"><button onClick={() => onCover(id)}>{open.has(id) ? 'Close' : 'Open'}</button></span></div>)}
-    <div className="inv-sec">PARTS</div>
-    {DEF.slots.map(s => {
-      const on = fitted(s.id), pd = on ? planDetach(s.id, build) : null, cand = !on && reach.map(it => ({ it, plan: planFit(it, build) })).find(x => x.plan.slotName && ((x.it.kind === 'stock' && (x.it.id === s.id || (s.wheel && x.it.id === 'wheel'))) || (s.id === 'engine' && x.it.kind === 'part' && partById[x.it.id]?.slot === 'engine')));
-      const label = s.id === 'engine' && build.parts.engine ? partById[build.parts.engine].label : s.name;
-      return <div key={s.id} className={`inv-row${on ? '' : ' ws-missing'}`}><span>{label}<small>{on ? 'fitted' : 'missing'}{['start', 'drive', 'steer', 'grip'].includes(s.fn) ? ' · needed to drive' : ''}{!on && !cand ? ' · find one' : ''}{pd && !pd.ok ? ` · ${pd.why}` : ''}{cand && !cand.plan.ok ? ` · ${cand.plan.why}` : ''}</small></span>
-        <span className="inv-btns">{on ? <button disabled={!pd.ok && !pd.openCover} onClick={() => onDetach(s.id)}>Detach</button> : cand && <button disabled={!cand.plan.ok && !cand.plan.openCover} onClick={() => onFit(cand.it.uid)}>Fit{cand.it.loc === 'car' ? ' (from car)' : ''}</button>}</span></div>;
-    })}
-    {upgrades.length > 0 && <div className="inv-sec">BOLT-ONS</div>}
-    {upgrades.map(([slot, id]) => <div key={slot} className="inv-row"><span>{nameOf('part', id, build.body)}<small>{slots.find(x => x.id === slot)?.label || slot}</small></span><span className="inv-btns"><button onClick={() => onDetachUpgrade(slot)}>Detach</button></span></div>)}
-    {reach.filter(it => it.kind === 'part' && partById[it.id]?.slot !== 'engine' || it.kind === 'wheel' || it.kind === 'rim').map(it => { const plan = planFit(it, build); return <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{it.loc === 'car' ? 'in the car' : it.loc === 'pack' ? 'in your pack' : 'in your hands'}{plan.ok ? '' : ` · ${plan.why}`}</small></span><span className="inv-btns"><button disabled={!plan.ok} onClick={() => onFit(it.uid)}>Fit</button></span></div>; })}
-    <div className="menu"><button className="big" onClick={onClose}>Close (Esc)</button></div>
-    <p className="hint">Parts come off into your hands or pack. Engines need the hoist and tires the jack, both in your garage. Covers can be opened here or at the car.</p></div></div>;
-}
-
 /** a lifted-off body shell sitting in the yard */
 export function ShellPanel({ uid, onFit, onScrap, onClose }) {
   useGame();

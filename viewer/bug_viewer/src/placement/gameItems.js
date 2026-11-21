@@ -20,10 +20,10 @@ export const isTirePid = id => typeof id === 'string' && (id === 'tire' || id.st
 /** tires carry their own size: { <wheel set id>: { dia, width } } (from the catalog, see game/tires.js tireSizeOf) becomes the placeable 'tire:<set>'. Sets without data use 'tire'. */
 export function registerTireSizes(sizes) { for (const [set, sz] of Object.entries(sizes)) if (sz) GAME_PLACEABLES[`tire:${set}`] = tireOf(`tire:${set}`, sz); }
 
-export const isTire = it => it.kind === 'wheel' || (it.kind === 'stock' && it.id === 'wheel');
+export const isTire = it => it.kind === 'wheel' || it.kind === 'tire' || (it.kind === 'stock' && it.id === 'wheel');
 /** which placeable a game item is, or null if it can't be set down on a cargo surface (a body shell). size = items.js itemSize(it). */
 export function placeableIdFor(it, size) {
-  if (isTire(it)) { const id = `tire:${it.kind === 'wheel' ? it.id : it.set || 'stock'}`; return GAME_PLACEABLES[id] ? id : 'tire'; }
+  if (isTire(it)) { const id = `tire:${it.kind === 'wheel' || it.kind === 'tire' ? it.id : it.set || 'stock'}`; return GAME_PLACEABLES[id] ? id : 'tire'; }
   return size >= 1 && size <= 4 ? `crate${size}` : null;
 }
 /** the poses a held item can cycle through (T): tires lie flat or stand up; crates have one */

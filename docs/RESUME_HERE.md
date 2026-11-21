@@ -13,6 +13,11 @@ Read this first when picking the work back up. Labels: **PROPOSAL** = design gue
 - Drive tests (steering bot, dev car powered via `game.home.bugFired = true`): diamonds stay within 2.5 m of centre; loops fine at ~25 mph but swing 6.4 m off at ~34 mph (R_LOOP 75 is too tight, try ~100).
 - **Next on the map:** loop radius, road joins/junction polish (backlog), driveways + collision for roadside places, overpasses (needs a bridge system), then step 6: biomes by real area, map screen, teleports, make `?realmap` the default. ChatGPT is handling visuals; perf work is in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
 
+## Salvage Road merge and the El Cajon (Nov 21) - uncommitted on branch racer-items-fitglow
+- Only Salvage Road's **vehicle building** came over. Hold-click part mechanic, tire machine, many restorable vehicles (donor Bugs), and the **El Cajon** as a second restorable project (Dusty's gift, **CANON? not locked**). Details: [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md), [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md).
+- **Next:** make a finished El Cajon driveable (fleet entry, physics dims, truck cargo, fleet-side build), then loot data, `?realmap` coast look, dressing from unused assets, cities.
+- Test hooks: `window.__game`, `__walk`, `__cajon.deliver()`. Controls still unbuilt: L lights, Tab vehicle storage, back seat, crates and tire racks.
+
 ## Done and pushed
 - 4d: bench, car lift and pegboard are movable, sellable props with tool slots (78c4812).
 - Save steps 1-3: versioned save envelope, old saves upgrade, corrupt/newer saves protected, job, held item and on-foot position saved (471611f).

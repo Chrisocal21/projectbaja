@@ -5,6 +5,7 @@ export const norm = d => ((d % 360) + 360) % 360;
 export const bearingOf = (fx, fz) => norm(Math.atan2(fx, -fz) * D);
 /** bearing (deg) from a vehicle yaw */
 export const bearingFromYaw = yaw => norm((Math.PI - yaw) * D);
+export const headingForMode = state => state.flyMode ? bearingFromYaw(state.flyYaw ?? 0) : state.onFoot ? bearingOf(state.face.x, state.face.z) : bearingFromYaw(state.pose?.h || 0);
 const PTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 export const compassPoint = deg => PTS[Math.round(norm(deg) / 45) % 8];
 /** bearing (deg) from (x,z) to (tx,tz) */

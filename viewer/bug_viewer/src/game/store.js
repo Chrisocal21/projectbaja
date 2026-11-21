@@ -4,6 +4,7 @@ import { WEAR } from '../weather.js';
 import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
+import { cajonCatalog, cajonPriceOf } from './cajonParts.js';
 import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan, keysToPrune } from './saveFormat.js';
 
 export const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
@@ -32,10 +33,10 @@ function loadSave() {
 const loaded = loadSave(), saved = loaded.data;
 
 export const game = {
-  paused: false, flyMode: false, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
+  paused: false, flyMode: false, flyYaw: null, prompt: '', pos: { x: 0, z: 0, h: 0 }, pose: null, keepPose: false,
   cash: saved.cash ?? 500, owned: new Set(saved.owned || []), unlockAll: saved.unlockAll ?? true,
   toast: null, crates: sanitizeCrates(saved.crates), listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
-  items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null,
+  items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null, projects: Array.isArray(saved.projects) ? saved.projects : [], work: null,
   fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
   home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: sanitizeJob(saved.job), clock: saved.clock ?? 9,
   nextUid: { props: saved.nextUid?.props || 1, items: saved.nextUid?.items || 1 }, saveLocked: loaded.locked, resume: resumePlan(saved, saved.fleet?.[saved.active ?? 'bug']?.pose), live: false,
@@ -46,7 +47,7 @@ if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
 // Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
 let warnedWrite = false;
-const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, job: game.job, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
+const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, projects: game.projects, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, job: game.job, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
 export const writeSave = () => {
   if (game.dev || game.saveLocked) return;
   try { localStorage.setItem(KEY, JSON.stringify(wrap(buildData()))); warnedWrite = false; }
@@ -72,9 +73,10 @@ export const saveBuild = b => { game.build = b; persist(); };
 export const itemKey = (kind, id) => `${kind}:${id}`;
 export const isFree = (kind, id) => (kind === 'wheel' && id === 'stock') || (kind === 'rim' && id === 'steel');
 export const owns = (kind, id) => game.unlockAll || isFree(kind, id) || game.owned.has(itemKey(kind, id));
-export const nameOf = (kind, id, bodyId) => labelFor(kind === 'part' ? partById[id] : kind === 'wheel' ? wheelById[id] : rimById[id], bodyId);
+export const nameOf = (kind, id, bodyId) => (kind === 'stock' ? cajonCatalog().find(c => c.id === id)?.name || id : labelFor(kind === 'part' ? partById[id] : kind === 'wheel' ? wheelById[id] : rimById[id], bodyId));   // 'stock' = the El Cajon's parts online
 
 export function priceOf(kind, id) {
+  if (kind === 'stock') return cajonPriceOf(id);
   if (kind === 'part') { const p = partById[id]; return p.price ?? Math.round((120 + (p.perf?.topMph || 0) * 12 + ((p.perf?.power || 1) - 1) * 600) / 10) * 10; }
   if (kind === 'wheel') return wheelById[id].price ?? 300;
   return rimById[id].price ?? 120;
@@ -93,7 +95,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.projects = []; game.projectOpen = {}; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }

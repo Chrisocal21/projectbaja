@@ -84,8 +84,12 @@
 .card.letter p.sig { font-style: italic; }
 .card.letter .menu button { color: #2a2016; }
 /* county map (M) */
-.card.map-card { max-width: 700px; width: min(700px, calc(100vw - 32px)); }
+.card.map-card { box-sizing: border-box; width: min(98vw, 1500px); max-width: none; height: 96vh; max-height: none; padding: 12px 16px; overflow: hidden; display: flex; flex-direction: column; }
 .map-canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; border: 1px solid #ffffff22; background: #b9a57a; display: block; }
+.map-stage { min-height: 0; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.map-stage .hint { margin: 5px 0 0; }
+.map-canvas.west-coast-map { width: auto; height: min(calc(96vh - 90px), calc((98vw - 32px) * 1.25)); max-width: 100%; max-height: 100%; aspect-ratio: 4 / 5; background: #102d3b; cursor: grab; touch-action: none; }
+.map-canvas.west-coast-map:active { cursor: grabbing; }
 .map-btns { display: flex; gap: 8px; }
 
 /* loading screen over the game while the world loads / rebuilds */

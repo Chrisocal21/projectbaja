@@ -1,11 +1,17 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
-import { bearingOf, bearingFromYaw, compassPoint, bearingTo, relative, discovered, newlyDiscovered } from './compass.js';
+import { bearingOf, bearingFromYaw, headingForMode, compassPoint, bearingTo, relative, discovered, newlyDiscovered } from './compass.js';
 const r = x => Math.round(x * 1e6) / 1e6;
 test('bearing: north is -z, east is +x', () => {
   assert.equal(r(bearingOf(0, -1)), 0); assert.equal(r(bearingOf(1, 0)), 90); assert.equal(r(bearingOf(0, 1)), 180); assert.equal(r(bearingOf(-1, 0)), 270);
 });
 test('yaw -> bearing matches the facing vector (forward = (sin yaw, cos yaw))', () => {
   for (const y of [0, 0.7, 2, 4]) assert.equal(r(bearingFromYaw(y)), r(bearingOf(Math.sin(y), Math.cos(y))));
+});
+test('fly mode compass follows camera yaw rather than parked vehicle yaw', () => {
+  const state = { flyMode: true, flyYaw: Math.PI / 2, pose: { h: 0 }, onFoot: false };
+  assert.equal(headingForMode(state), 90);
+  state.flyYaw = Math.PI;
+  assert.equal(headingForMode(state), 0);
 });
 test('8-way points', () => {
   assert.deepEqual([0, 44, 46, 90, 135, 180, 225, 270, 315, 359].map(compassPoint), ['N', 'NE', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N']);

@@ -4,6 +4,7 @@ import { game, save, say, addCash, priceOf, nameOf } from './store.js';
 import { boxAtShop } from './items.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
 import { VEHICLE_TYPES, FOR_SALE, lotPose, owned } from './fleet.js';
+import { giftArrives } from './cajonGift.js';
 
 export const ordersOnTheWay = () => game.home?.orders || [];
 const bodyId = () => game.build?.body || 'classic';
@@ -26,13 +27,14 @@ export function passTime(hours) {
   game.home = { ...game.home, orders: r.orders };
   for (const o of r.arrived) {
     if (o.kind === 'car') { carArrives(o.id); continue; }
+    if (o.kind === 'gift') { giftArrives(); continue; }   // Dusty's El Cajon: set down in Walt's yard, not boxed at the shop
     boxAtShop(o.kind, o.id); say(`Your order arrived at the pickup area: ${nameOf(o.kind, o.id, bodyId())}`);
   }
   save();
 }
 
 /** a name for any order (parts, or a car from the Car sales app) */
-export const orderName = (o, body = bodyId()) => (o.kind === 'car' ? VEHICLE_TYPES[o.id]?.name || 'Vehicle' : nameOf(o.kind, o.id, body));
+export const orderName = (o, body = bodyId()) => (o.kind === 'car' ? VEHICLE_TYPES[o.id]?.name || 'Vehicle' : o.kind === 'gift' ? "El Cajon, from Dusty (to Walt's yard)" : nameOf(o.kind, o.id, body));
 export const carOnOrder = id => ordersOnTheWay().some(o => o.kind === 'car' && o.id === id);
 
 /** Car sales app (PROPOSAL): pay now, the car is brought to Al's lot after a few game hours and left there, keys in it */

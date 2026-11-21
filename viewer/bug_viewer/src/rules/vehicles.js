@@ -80,5 +80,51 @@ export const WHEEL_FIT = { tool: 'jack', zone: 'any' };
 
 BUG.slots.push(S('shell', 'Body shell', { tool: 'hoist', size: 9, zone: 'any' }));
 for (const s of BUG.slots) if (s.piece) s.after = [...s.after, 'shell'];
-export const VEHICLES = { bug: BUG };
+
+/**
+ * The El Cajon: a 1960s coupe utility (PROPOSAL: its parts list is Salvage Road's, src/rules/carParts.ts, with Baja's access rules on top).
+ * Slot ids all start with "ec" so a loose part can never be mistaken for a Bug part (an El Cajon hood is not the Bug's hoodPanel).
+ * `piece` is the name of the part's group in cajon/model.js. Its builds carry `def: 'cajon'` (see defOfBuild).
+ * The body shell is not a slot: the field shell cannot be lifted off (Bug-only for now).
+ */
+export const CAJON = {
+  id: 'cajon', name: "'66 El Cajon",
+  length: 5.5, width: 2.0,   // the model is 5.54 m bumper to bumper and 1.98 m across the bumpers (cajon/model.js)
+  zones: { front: 0.3, rear: -0.4 },   // the cab is short and the bed is long: the front zone starts at the windshield, the rear zone at the bed
+  covers: {
+    ecHood: { piece: 'hood', name: 'hood', zone: 'front' },
+    ecDoorL: { piece: 'driver_door', name: "driver's door", zone: 'driver', side: 1 },
+    ecDoorR: { piece: 'passenger_door', name: 'passenger door', zone: 'passenger', side: -1 },
+    ecTailgate: { piece: 'tailgate', name: 'tailgate', zone: 'rear' },
+  },
+  // hub centres in the car's frame (x + = left, z + = forward, y up): the model's axles are at +1.8 and -1.3, the track is 1.8 m
+  mounts: { FL: { center: [0.9, 0.38, 1.8], radius: 0.38 }, FR: { center: [-0.9, 0.38, 1.8], radius: 0.38 }, RL: { center: [0.9, 0.38, -1.3], radius: 0.38 }, RR: { center: [-0.9, 0.38, -1.3], radius: 0.38 } },
+  slots: [
+    S('ecEngine', 'Engine', { part: 'engine', cover: 'ecHood', tool: 'hoist', size: 4, fn: 'start', zone: 'front' }),   // part = the model's group for a slot that has no body `piece` (it is stripped, not hidden)
+    S('ecBattery', 'Battery', { part: 'battery', after: ['ecEngine'], cover: 'ecHood', size: 1, fn: 'start', zone: 'front' }),
+    S('ecHood', 'Hood', { piece: 'hood', size: 3, zone: 'front' }),
+    S('ecGrille', 'Grille', { piece: 'grille', after: ['ecEngine'], size: 2, zone: 'front' }),
+    S('ecHeadlights', 'Headlights', { piece: 'headlights', after: ['ecGrille'], size: 1, zone: 'front' }),
+    S('ecFrontBumper', 'Front bumper', { piece: 'front_bumper', size: 3, zone: 'front' }),
+    S('ecRearBumper', 'Rear bumper', { piece: 'rear_bumper', size: 3, zone: 'rear' }),
+    S('ecTailgate', 'Tailgate', { piece: 'tailgate', size: 3, zone: 'rear' }),
+    S('ecSeat', 'Bench seat', { piece: 'seat', cover: 'ecDoorL', size: 3, fn: 'drive', zone: 'cabin' }),
+    S('ecDash', 'Dashboard', { piece: 'dash', cover: 'ecDoorL', size: 2, zone: 'cabin' }),
+    S('ecSteering', 'Steering wheel', { piece: 'steering_wheel', after: ['ecDash'], cover: 'ecDoorL', size: 1, fn: 'steer', zone: 'driver' }),
+    S('ecWindshield', 'Windshield', { piece: 'windshield', after: ['ecDash'], size: 3, zone: 'front' }),
+    S('ecDoorL', "Driver's door", { piece: 'driver_door', after: ['ecDash', 'ecSeat'], size: 3, zone: 'driver' }),
+    S('ecDoorR', 'Passenger door', { piece: 'passenger_door', after: ['ecDash', 'ecSeat'], size: 3, zone: 'passenger' }),
+    S('ecWheelFL', 'Front-left wheel', { wheel: 'FL', tool: 'jack', size: 3, fn: 'grip', zone: 'front' }),
+    S('ecWheelFR', 'Front-right wheel', { wheel: 'FR', tool: 'jack', size: 3, fn: 'grip', zone: 'front' }),
+    S('ecWheelRL', 'Rear-left wheel', { wheel: 'RL', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
+    S('ecWheelRR', 'Rear-right wheel', { wheel: 'RR', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
+  ],
+  storage: { cab: 3, bed: 16 },
+};
+
+export const VEHICLES = { bug: BUG, cajon: CAJON };
+/** the name of a slot's group in an El Cajon model: its body piece, or `part` for the engine and battery (which are stripped, not hidden) */
+export const groupOf = slot => slot.piece || slot.part || null;
+/** a build knows which vehicle it belongs to: Cajon builds say def: 'cajon'; everything else is the Bug (old saves have no def) */
+export const defOfBuild = b => VEHICLES[b?.def] || BUG;
 export const slotById = (def, id) => def.slots.find(s => s.id === id);

@@ -20,11 +20,11 @@ export function tireSizeOf(def) {
 }
 
 /** The worn tires lying around Walt's garage (where the decorative tire stacks and the pile of bald tires used to be). Garage-local floor spots around
- *  (cx, cz). PROPOSAL: four loose stock wheels, 8-32% tread. rng() -> [0,1). */
+ *  (cx, cz). PROPOSAL: four loose stock wheels, 8-32% tread; the bald one has a hole and no air (a job for the tire machine). rng() -> [0,1). */
 export function wornTires(rng = Math.random, cx = -5.2, cz = 4.6) {
   const base = [0.08, 0.12, 0.22, 0.3];
   return base.map((t, i) => {
     const a = i * Math.PI / 2 + 0.5;
-    return { kind: 'stock', id: 'wheel', set: 'stock', tread: +Math.min(1, t + (rng() - 0.5) * 0.04).toFixed(2), lx: cx + Math.cos(a) * 0.9, lz: cz + Math.sin(a) * 0.9, ry: rng() * 6 };
+    return { kind: 'stock', id: 'wheel', set: 'stock', tread: +Math.min(1, t + (rng() - 0.5) * 0.04).toFixed(2), ...(i === 0 ? { hole: true, air: 0 } : {}), lx: cx + Math.cos(a) * 0.9, lz: cz + Math.sin(a) * 0.9, ry: rng() * 6 };
   });
 }

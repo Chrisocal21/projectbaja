@@ -1,14 +1,19 @@
 // Glue between the restoration rules (rules/restore.js) and the game: what E does at the car, fitting and detaching real items.
 import { game, save, say } from './store.js';
 import { held, packItems, itemSize, nameOfItem, inGarageZone } from './items.js';
-import { BUG, UPGRADE_FIT, WHEEL_FIT, slotById } from '../rules/vehicles.js';
+import { BUG, VEHICLES, defOfBuild, UPGRADE_FIT, WHEEL_FIT, slotById } from '../rules/vehicles.js';
 import { isFitted, checkFit, checkDetach, withSlot, zoneAt, isDriveable, missingToDrive, listNames, TOOL_WHY } from '../rules/restore.js';
 import { partById, setPart, setWheels, setRim, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
 import { activeType } from './fleet.js';
 import { hasInGarage } from './home.js';
+import { projectOpen } from './projects.js';
+import { checkRoll } from './wheelAssembly.js';
+import { wheelOfItem } from './machineRules.js';
+import { sizes as machineSizes } from './tireMachine.js';
 
 export const DEF = BUG;
-export const STOCK_NAMES = Object.fromEntries(BUG.slots.map(s => [s.id, s.name]));
+export const STOCK_NAMES = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots).map(s => [s.id, s.name]));
+export { defOfBuild };
 
 /** tools you have right now: carried ones (wrench, jack in the pack/hands) + the garage's floor jack and engine hoist */
 export function toolsHere() {
@@ -16,9 +21,9 @@ export function toolsHere() {
   if (inGarageZone(game.pos.x, game.pos.z)) { t.add('jack'); t.add('hoist'); }
   return t;
 }
-export const openCovers = () => game.open || (game.open = new Set());
-export const driveable = b => game.dev || isDriveable(DEF, b);
-export const whyNotDrive = b => `Won't start — missing: ${listNames(missingToDrive(DEF, b))}.`;
+export const openCovers = () => (game.work?.uid != null ? projectOpen(game.work.uid) : game.open || (game.open = new Set()));   // each vehicle has its own open lids
+export const driveable = b => game.dev || isDriveable(defOfBuild(b), b);
+export const whyNotDrive = b => `Won't start — missing: ${listNames(missingToDrive(defOfBuild(b), b))}.`;
 
 /** the player's position in the car's own frame, and which zone that is */
 export function carLocal() {
@@ -34,10 +39,12 @@ export function carLocal() {
  * zone: where the player stands (undefined = workshop panel, any side)
  */
 export function planFit(it, b, zone) {
-  const ctx = { zone, tools: toolsHere(), open: openCovers() };
+  const DEF = defOfBuild(b), ctx = { zone, tools: toolsHere(), open: openCovers() };   // the vehicle's own definition: the Bug, or the El Cajon (a build carries `def`)
   const body = bodyById[b.body];
+  if (DEF !== BUG && !['stock', 'shell'].includes(it.kind)) return { ok: false, why: it.kind === 'fab' ? "That doesn't go on this truck." : "That doesn't fit this truck." };   // catalogue upgrades are Bug parts for now
   if (it.kind === 'shell') {
-    const slot = slotById(DEF, 'shell'), r = checkFit(DEF, b, slot, { ...ctx, zone: undefined });
+    const slot = slotById(DEF, 'shell'); if (!slot) return { ok: false, why: "That shell doesn't fit this truck." };
+    const r = checkFit(DEF, b, slot, { ...ctx, zone: undefined });
     const pose = game.pose, far = pose && Math.hypot(it.x - pose.x, it.z - pose.z) > 16;
     if (r.ok && far) return { ok: false, why: 'The shell has to be next to the chassis (within 16 m) to lower it back on.' };
     return { ...r, slotName: 'body shell', apply: bb => ({ build: withSlot(DEF, bb, 'shell', true), drops: [] }) };
@@ -45,7 +52,8 @@ export function planFit(it, b, zone) {
   if (it.kind === 'stock' && it.id === 'wheel') {   // a loose wheel goes on the nearest bare hub (blueprint §3.4)
     const bare = DEF.slots.filter(s => s.wheel && !isFitted(DEF, b, s.id)); if (!bare.length) return { ok: false, why: 'All four wheels are on.' };
     if ((it.set || 'stock') !== b.wheels) return { ok: false, why: `That wheel doesn't match the other tires on the car.` };
-    const cl = carLocal(), mounts = bodyById[b.body].wheels;
+    const rl = checkRoll(wheelOfItem(it, machineSizes)); if (!rl.ok) return { ok: false, why: rl.why, slotName: 'wheel' };   // flat or punctured: fix it at the tire machine first
+    const cl = game.work ? { lx: game.work.lx, lz: game.work.lz } : carLocal(), mounts = DEF.mounts || bodyById[b.body].wheels;
     const slot = bare.slice().sort((a, c) => { const d = s => { const m = mounts[s.wheel].center; return cl ? Math.hypot(m[0] - cl.lx, m[2] - cl.lz) : 0; }; return d(a) - d(c); })[0];
     const r = checkFit(DEF, b, slot, { ...ctx, zone: undefined });
     return { ...r, slotName: slot.name, apply: bb => ({ build: withSlot(DEF, bb, slot.id, true), drops: [] }) };
@@ -87,23 +95,35 @@ export function planFit(it, b, zone) {
 
 /** detaching a restoration slot (stock part or fitted upgrade) */
 export function planDetach(slotId, b, zone) {
-  const slot = slotById(DEF, slotId), ctx = { zone, tools: toolsHere(), open: openCovers() };
+  const DEF = defOfBuild(b), slot = slotById(DEF, slotId), ctx = { zone, tools: toolsHere(), open: openCovers() };
+  if (!slot) return { ok: false, why: "There's nothing like that on this vehicle.", item: ['stock', slotId] };
   let r = checkDetach(DEF, b, slot, ctx);
   const mods = slotId === 'engine' ? Object.entries(b.parts).filter(([s]) => UPGRADE_FIT[s]?.needsEngine) : [];
   if (r.ok && mods.length) r = { ok: false, why: `Take the ${mods.map(([, id]) => partById[id].label.toLowerCase()).join(', ')} off the engine first.` };
   if (slotId === 'shell') return { ...r, item: ['shell', b.body], toYard: true, apply: bb => withSlot(DEF, bb, 'shell', false) };
-  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels }] : ['stock', slotId];
+  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels, ...(DEF === BUG ? {} : { from: DEF.id }) }] : ['stock', slotId];   // `from`: a wheel off the El Cajon is drawn with its own wheel model
   return { ...r, item, apply: bb => { let n = withSlot(DEF, bb, slotId, false); if (slotId === 'engine') { const p = { ...n.parts }; delete p.engine; n = { ...n, parts: p }; } return n; } };
 }
 /** detaching a bolt-on upgrade (lights, racks, bumpers...) that has no restoration slot */
 export function planDetachUpgrade(catSlot, b) {
+  if (defOfBuild(b) !== BUG) return { ok: false, why: 'Nothing like that on this truck.', item: ['part', catSlot] };
   const p = partById[b.parts[catSlot]], fit = UPGRADE_FIT[catSlot] || {}, tool = fit.tool || 'wrench', tools = toolsHere();
   if (!tools.has(tool)) return { ok: false, why: TOOL_WHY[tool]('detach', p.label.toLowerCase()), item: ['part', p.id] };
   return { ok: true, item: ['part', p.id], apply: bb => setPart(bb, catSlot, null) };
 }
 
+/** removing what the crosshair is on (game.aim): a restoration slot, or 'up:<catalog slot>' for a bolt-on upgrade. -> { ok, why, openCover, blockers, name } */
+export function planRemove(id, b, zone) {
+  if (id.startsWith('up:')) {
+    const cs = id.slice(3), p = partById[b.parts[cs]]; if (!p) return { ok: false, why: 'Nothing there to take off.', name: '' };
+    return { ...planDetachUpgrade(cs, b), name: p.label.toLowerCase() };
+  }
+  return { ...planDetach(id, b, zone), name: (slotById(defOfBuild(b), id)?.name || id).toLowerCase() };
+}
 export function toggleCover(id) {
-  const o = openCovers(); if (o.has(id)) o.delete(id); else o.add(id); game.open = new Set(o); save();
+  const o = openCovers(); if (o.has(id)) o.delete(id); else o.add(id);
+  if (game.work?.uid != null) game.projectOpen = { ...game.projectOpen, [game.work.uid]: new Set(o) }; else game.open = new Set(o);
+  save();
 }
 
 /** which item would E use right now: what's in your hands, else the first pack item that belongs on the car */

@@ -9,11 +9,14 @@ import { height, groundHeight } from '../worlds/county.js';
 const itemY = it => ((it.y || 0) > 0.3 ? height(it.x, it.z) + it.y : groundHeight(it.x, it.z) + (it.y || 0));
 import { ShellProp, sourceNameFor, WHEEL_MESH } from '../BuildModel.jsx';
 import { bodyById } from '../build.js';
-import { BUG } from '../rules/vehicles.js';
+import { BUG, CAJON } from '../rules/vehicles.js';
+import CajonItem from '../cajon/CajonItem.jsx';
 import ProcEngine from '../Engine.jsx';
 import { useGLTF } from '@react-three/drei';
 import { partById, wheelById, rimById } from '../build.js';
 import { rimGeometry } from '../Rims.jsx';
+import { carFitReady } from './carSnap.js';
+import { FEEL, restOf, carryScale, HOLD } from './restPose.js';   // fit feel pass (?feel=0 turns it off)
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
 const labels = new Map();
@@ -57,19 +60,24 @@ function TireItem({ file, rim }) {
   const obj = useMemo(() => clone(scene, o => { o.material.metalness = 0; }), [scene]);
   return <group position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}><primitive object={obj} />{rim && <mesh geometry={rimGeometry(rim.style)}><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.6} side={THREE.DoubleSide} /></mesh>}</group>;
 }
+/** a bare stock tire (no model of its own: the Bug's tire is part of its body model): a dark ring lying flat, about the Bug's size */
+function PlainTire() {
+  return <mesh position={[0, 0.13, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 12, 24]} /><meshStandardMaterial color="#151515" roughness={0.9} /></mesh>;
+}
 function RimItem({ rim }) {
   return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.55} side={THREE.DoubleSide} /></mesh>;
 }
 /** a stock body piece (hood, door, seat, wheel...) cut out of the car's own model, lying on y = 0 */
-function StockPiece({ match }) {
+function StockPiece({ match, rest = [0, 0] }) {
   const file = (bodyById[game.build?.body] || bodyById.classic).file, { scene } = useGLTF(`/models/${file}.glb`);
   const { obj, off } = useMemo(() => {
     const c = clone(scene), drop = [];
     c.traverse(o => { if (o.isMesh && !match.some(m => sourceNameFor(o).startsWith(m))) drop.push(o); });
     drop.forEach(o => o.parent.remove(o));
-    const box = new THREE.Box3().setFromObject(c), ctr = box.getCenter(new THREE.Vector3());
-    return { obj: c, off: [-ctr.x, -box.min.y, -ctr.z] };
-  }, [scene, file, match.join('|')]);
+    const tilt = new THREE.Group(); tilt.rotation.set(rest[0], 0, rest[1]); tilt.add(c); tilt.updateMatrixWorld(true);   // lie the way it would be left on the floor
+    const box = new THREE.Box3().setFromObject(tilt), ctr = box.getCenter(new THREE.Vector3());
+    return { obj: tilt, off: [-ctr.x, -box.min.y, -ctr.z] };
+  }, [scene, file, match.join('|'), rest.join(',')]);
   return <group position={off}><primitive object={obj} /></group>;
 }
 function Battery() {
@@ -85,7 +93,7 @@ function StockItem({ id }) {
   const slot = BUG.slots.find(s => s.id === id), body = bodyById[game.build?.body] || bodyById.classic;
   const match = id === 'wheel' ? [WHEEL_MESH.FL] : slot?.wheel ? [WHEEL_MESH[slot.wheel]] : (body.pieces || []).find(p => p.id === slot?.piece)?.match;
   if (!match) return null;
-  return id === 'wheel' || slot?.wheel ? <group rotation={[0, 0, Math.PI / 2]} position={[0.31, 0.11, 0]}><StockPiece match={match} /></group> : <StockPiece match={match} />;
+  return id === 'wheel' || slot?.wheel ? <group rotation={[0, 0, Math.PI / 2]} position={[0.31, 0.11, 0]}><StockPiece match={match} /></group> : <StockPiece match={match} rest={FEEL ? restOf(slot?.piece) : undefined} />;
 }
 
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
@@ -98,6 +106,8 @@ export function Crate({ item, scale = 1 }) {
   if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;
   else if (item.kind === 'wheel' && wheelById[item.id]?.file) body = <TireItem file={wheelById[item.id].file} />;
   else if (item.kind === 'rim' && rimById[item.id]) body = <RimItem rim={rimById[item.id]} />;
+  else if (item.kind === 'tire') body = wheelById[item.id]?.file ? <TireItem file={wheelById[item.id].file} /> : <PlainTire />;
+  else if (item.kind === 'stock' && (item.from === 'cajon' ? item.id === 'wheel' : CAJON.slots.some(s => s.id === item.id && !s.wheel))) body = <CajonItem id={item.id} />;   // an El Cajon part (or a wheel taken off one) shows its own model
   else if (item.kind === 'stock' && (item.id === 'engine' || item.id === 'battery' || item.id === 'wheel' || BUG.slots.some(s => s.id === item.id && (s.piece || s.wheel)))) body = <StockItem id={item.id} />;
   return <group scale={scale}>{body ? <React.Suspense fallback={crate}>{body}</React.Suspense> : crate}</group>;
 }
@@ -109,17 +119,22 @@ export default function Items() {
   const loose = game.items.filter(i => i.loc === 'world'), hand = held();
   useFrame(() => {
     const g = heldRef.current; if (!g) return;
-    g.visible = game.onFoot && !!held();
+    g.visible = game.onFoot && !!held() && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
     if (!g.visible) return;
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    g.position.copy(camera.position).addScaledVector(fwd, 0.85).addScaledVector(right, 0.22); g.position.y -= 0.5;
-    g.rotation.set(0, camera.rotation.y, 0);
+    if (!FEEL) { g.position.copy(camera.position).addScaledVector(fwd, 0.85).addScaledVector(right, 0.22); g.position.y -= 0.5; g.rotation.set(0, camera.rotation.y, 0); return; }
+    // carry pose: shrunk to fit your arms, low and to the right, tipped toward you (sized once the model has loaded)
+    g.scale.setScalar(1); g.updateMatrixWorld(true);   // measure at natural size every frame: the part may still be loading (crate stand-in), and one box is cheap
+    const sz = new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3()); g.scale.setScalar(carryScale(Math.max(sz.x, sz.y, sz.z)));
+    const flat = new THREE.Vector3(fwd.x, 0, fwd.z).normalize(), side = new THREE.Vector3(flat.z * -1, 0, flat.x);   // forward and right on the ground
+    g.position.copy(camera.position).addScaledVector(flat, HOLD.forward).addScaledVector(side, HOLD.right); g.position.y -= HOLD.down;
+    g.rotation.order = 'YXZ'; g.rotation.set(HOLD.tilt, camera.rotation.y + HOLD.turn, 0);
   });
   return <>
     {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     {containers.map(c => <group key={c.id} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>)}
-    <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={0.75} />}</group>
+    <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
   </>;
 }
 

@@ -4,11 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { game, save } from './store.js';
 import { SITES } from '../worlds/county.js';
 import { LABELS } from './MapPanel.jsx';
-import { bearingOf, bearingFromYaw, compassPoint, bearingTo, relative, discovered, newlyDiscovered, norm } from './compass.js';
+import { headingForMode, compassPoint, bearingTo, relative, discovered, newlyDiscovered, norm } from './compass.js';
 
 const W = 560, SPAN = 120, PX = W / SPAN;   // band width, degrees visible, pixels per degree
 const PLACES = Object.keys(LABELS).map(id => ({ id, x: SITES[id].x, z: SITES[id].z, r: SITES[id].r }));
-const headingNow = () => game.onFoot ? bearingOf(game.face.x, game.face.z) : bearingFromYaw(game.pose?.h || 0);
+const headingNow = () => headingForMode(game);
 const txt = { position: 'absolute', transform: 'translateX(-50%)', font: '700 12px/1 var(--hud-cond)', letterSpacing: '0.12em', textShadow: '0 2px 6px #000' };
 
 export default function Compass() {

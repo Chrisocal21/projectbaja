@@ -5,9 +5,11 @@ import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { activeType } from './fleet.js';
+import { dropSpot } from './dropSpot.js';
 import { SUPPLIES } from './jobs.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
-import { BUG } from '../rules/vehicles.js';
+import { VEHICLES } from '../rules/vehicles.js';
+import { defOf } from './projects.js';
 import { withTread, tireSizeOf } from './tires.js';
 import { wallSpot } from './wallhang.js';
 import { registerTireSizes } from '../placement/gameItems.js';
@@ -19,15 +21,16 @@ export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor
 /** loose yard junk: real, carryable items (PROPOSAL: drums and cans may hold oil/fuel later) */
 export const JUNK = { drum: { name: 'Oil drum', size: 3 }, jerrycan: { name: 'Jerry can', size: 1 }, crate: { name: 'Wooden crate', size: 2 }, engineblock: { name: 'Engine block', size: 3 } };
 export const MEMENTOS = { letter: { name: "Walt's letter", size: 1 }, photo: { name: 'Printed photo', size: 1 } };
-const STOCK = Object.fromEntries(BUG.slots.map(s => [s.id, s]));
+const STOCK = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots.map(s => [s.id, { ...s, veh: d.id, vehName: d.name }])));   // every vehicle's own parts (slot ids never collide: rules/vehicles.js)
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
-export const nameOfItem = it => withTread(baseName(it), it);
-const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '');   // tire machine: wheels and tires can be punctured or flat
+export const nameOfItem = it => withTread(baseName(it), it) + wheelState(it);
+const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -74,7 +77,10 @@ const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are bus
 
 export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry }); commit(); }
 const near = (d = 1.4, jitter = 0.5) => ({ x: game.pos.x + game.face.x * d + (Math.random() - 0.5) * jitter, z: game.pos.z + game.face.z * d + (Math.random() - 0.5) * jitter });
-export function dropNearPlayer(kind, id) { const p = near(1.8, 1.4); spawnItem(kind, id, p.x, p.z); }
+export function dropNearPlayer(kind, id, extra = {}) {
+  const t = activeType(), car = [...(game.pose && t ? [{ x: game.pose.x, z: game.pose.z, h: game.pose.h, width: t.width, length: t.length }] : []), ...(game.projects || []).map(p => { const d = defOf(p); return { x: p.pose.x, z: p.pose.z, h: p.pose.h, width: d.width, length: d.length }; })];   // not under the car you drive, nor under any project
+  const p = dropSpot(game.pos, game.face, car, game.items.filter(i => i.loc === 'world' && i.x !== undefined));   // clear ground, not under the car, not on another part
+  game.items.push({ uid: uid(), kind, id, loc: 'world', x: p.x, z: p.z, y: 0, ry: Math.random() * 6, ...extra }); commit(); }
 
 export function pickUp(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
@@ -132,6 +138,16 @@ export function searchBox(id) {
 export function takeFromBox(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'box') return;
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
+  commit();
+}
+
+/** the tire machine did its job (game/machineRules.js planMachine): swap what is in your hands, put new things on the floor, use up what was mounted, use a plug kit */
+export function applyMachinePlan(plan) {
+  const h = held(), a = plan.apply; if (!h || !a) return;
+  const keep = { uid: h.uid, loc: 'hand' }; for (const k of Object.keys(h)) delete h[k]; Object.assign(h, keep, a.held);   // same item (same uid), new shape
+  for (const u of a.consume) game.items = game.items.filter(i => i.uid !== u);
+  if (a.useKit) { const kit = game.items.find(i => i.kind === 'supply' && i.id === 'plug' && (i.loc === 'pack' || i.loc === 'hand')); if (kit) game.items = game.items.filter(i => i !== kit); }
+  for (const s of a.spawn) { const { kind, id, ...extra } = s; dropNearPlayer(kind, id, extra); }
   commit();
 }
 

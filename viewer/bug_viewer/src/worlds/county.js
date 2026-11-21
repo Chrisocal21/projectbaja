@@ -11,6 +11,8 @@ import { createBiomes } from './biomes/index.js';
 import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ringMetric0, REAL } from './world.js';
 import { loadBorder } from './border.js';
 import { makeHighways } from './highways.js';
+import { regionalDirtRoads } from './regionalRoads.js';
+import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
@@ -259,11 +261,11 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const visualJunctions = showRamps ? jn : buildJunctions(HWJ.roads, BD.bounds, { atGrade: true });
   const ramps = showRamps ? jn.ramps.filter(r => clear({ x: r.pts[0][0], z: r.pts[0][1] }) && clear({ x: r.pts[r.pts.length - 1][0], z: r.pts[r.pts.length - 1][1] })) : [];
   JN = { ...visualJunctions, ramps, furniture: visualJunctions.furniture.filter(f => clear(f)) };
-  HW = makeHighways([...HWJ.roads, ...ramps], realBase, { water: BD.waterAt, avoid: keep });
+  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep)], realBase, { water: BD.waterAt, avoid: keep });
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
-  const graded = HW.roads.filter(r => r.kind !== 'ramp').map(r => ({ name: r.name, kind: r.kind, pts: r.pts.filter((_, i, a) => i % 8 === 0 || i === a.length - 1).map(q => [q.x, q.z]) }));
+  const graded = HW.roads.filter(r => r.kind !== 'ramp' && r.kind !== 'dirt').map(r => ({ name: r.name, kind: r.kind, pts: r.pts.filter((_, i, a) => i % 8 === 0 || i === a.length - 1).map(q => [q.x, q.z]) }));
   const rs = buildRoadside(graded, { ...jn, furniture: jn.furniture.filter(f => clear(f)) }, { ground: realBase, bounds: BD.bounds });
   JN.roadside = { ...rs, sites: rs.sites.filter(q => clear(q) && (HW.near(q.x, q.z)?.d ?? 99) > 26) };   // not in a built place, and clear of every road
 }
@@ -294,7 +296,10 @@ const ROAD_STYLE = {
   dirt: { core: 3.2, shoulder: 7, classify: ad => (ad <= 2.2 ? SID.dirt : SID.looseDirt) },
 };
 export const ROAD_HALF = { highway: 4.4, street: 4.6, gravel: 3.6, dirt: 3.2 };
-for (const r of ROADS) { grade(r); R.paint(r.path, { ...ROAD_STYLE[r.kind], centerH: p => p.hs }); }
+for (const r of ROADS) grade(r);
+for (const r of ROADS.filter(r => r.kind === 'dirt' || r.kind === 'gravel')) R.paint(r.path, { ...ROAD_STYLE[r.kind], centerH: p => p.hs });
+const localPavedAt = makePavedCover(ROADS);
+export const pavedRoadAt = (x, z, pad = 0) => localPavedAt(x, z, pad) || (REAL && HW.pavedAt(x, z, pad));
 
 TRAILS.forEach(t => R.paint(t.path, { core: 2.6, shoulder: 6,
   centerH: p => base(p.x, p.z) + (t.kind === 'rock' ? 0.3 * Math.sin(p.s * 0.5) * Math.sin(p.s * 0.045) : 0),
@@ -315,11 +320,14 @@ R.paint(offroad, { core: 5, shoulder: 8,
   tilt: p => clampK(-p.k * 20, 0.3),
   extra: (p, d) => 0.2 * Math.sin(p.s * 1.7) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
   classify: (ad, p) => { const f = p.s / T; return win(f, 0.72, 0.82, 0.004) > 0.5 ? SID.rock : win(f, 0.88, 0.96, 0.004) > 0.5 ? SID.mud : SID.looseDirt; } });
+// Paint paved lanes last so tracks and test trails cannot replace their height or surface.
+for (const r of ROADS.filter(r => r.kind === 'street' || r.kind === 'highway')) R.paint(r.path, { ...ROAD_STYLE[r.kind], centerH: p => p.hs });
 export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI / 2 };
 
 // ---------------- public lookups ----------------
-export const height = R.heightAt(base);
-export const surface = R.surfaceAt(baseSurface);
+const localHeight = R.heightAt(base), localSurface = R.surfaceAt(baseSurface);
+export const height = REAL ? (x, z) => HW.pavedAt(x, z, 3) ? HW.blend(x, z, localHeight(x, z)) : localHeight(x, z) : localHeight;
+export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };
 BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
 export const isRoad = REAL ? (x, z) => R.isRoad(x, z) || HW.isNear(x, z, 3) : R.isRoad;
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------

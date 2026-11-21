@@ -265,3 +265,8 @@ These were the next steps before the canon arrived. They wait now unless a slice
 - Marketplace and classifieds, NPC buyers.
 - Racing events, bikes.
 - Weather.
+
+## Nov 21 addendum: Salvage Road vehicle building
+- [x] Hold-click remove/fit with fill bar; X workshop removed; part clips into hologram.
+- [x] Tire machine and wheel assemblies; many restorable vehicles (donor Bugs).
+- [x] El Cajon as a second restorable vehicle via Dusty (CANON? not locked). [ ] Drivable El Cajon. [ ] L lights, Tab vehicle storage, crates and tire racks. See [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md).

@@ -484,6 +484,14 @@ export function PropModel({ id, T, mat, uid }) {
     case 'workbench': return <BenchModel T={T} />;
     case 'carLift': return <CarLiftModel />;
     case 'pegboard': return <PegboardModel uid={uid} />;
+    case 'tireChanger': return <>
+      <P p={[0, 0.4, 0]} s={[0.95, 0.8, 0.85]} c="#2d6a9f" m={0.3} r={0.5} />
+      <C p={[0, 0.83, 0.05]} a={[0.4, 0.4, 0.06, 24]} c="#9aa0a6" m={0.6} r={0.4} />
+      {[0, 1, 2, 3].map(i => <P key={i} p={[Math.cos(i * Math.PI / 2 + 0.7) * 0.33, 0.9, 0.05 + Math.sin(i * Math.PI / 2 + 0.7) * 0.33]} s={[0.08, 0.08, 0.08]} c="#555" m={0.5} />)}
+      <P p={[0, 1.3, -0.36]} s={[0.14, 1.0, 0.14]} c="#3a3d40" m={0.5} />
+      <P p={[0, 1.78, -0.1]} s={[0.1, 0.1, 0.6]} c="#3a3d40" m={0.5} />
+      <C p={[0, 1.5, 0.18]} a={[0.02, 0.02, 0.5, 8]} c="#c9ced2" m={0.7} />
+    </>;
     case 'compressor': return <>
       <C p={[0, 0.3, 0]} a={[0.22, 0.22, 0.9, 24]} c="#873e32" m={0.42} r={0.82} rot={[0, 0, Math.PI / 2]} />
       {[-0.34, 0.34].map(x => <C key={x} p={[x, 0.3, 0]} a={[0.226, 0.226, 0.018, 24]} c="#655448" m={0.58} r={0.7} rot={[0, 0, Math.PI / 2]} />)}

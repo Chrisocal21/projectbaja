@@ -101,6 +101,9 @@ These are places where something built before the canon arrived doesn't match it
     and in what order (driving, scrapyards, world generators)? No Salvage Road code
     has been copied; Baja has its own driving, loot and world code now, so this may be moot.
 15. Does the El Cajon from Salvage Road appear in Baja, or is the Bug the only starter?
+    **Answered by Chris in chat, Nov 21: yes.** Dusty (the gas station owner) has it as a scrap shell, sees the Bug can't carry much, and gives it
+    to you; it is set down in Walt's yard in pieces and rebuilt from the pile, the phone's Parts online and what you find. It is built that way
+    (docs/REPAIR_AND_WORLD_PLAN.md) but is still **CANON?**: Chris has not locked it into docs/CANON.md, and the lines Dusty says are placeholders.
 16. Platform and distribution plan (browser only, or beyond).
 
 ## Assets and the next Baja stage

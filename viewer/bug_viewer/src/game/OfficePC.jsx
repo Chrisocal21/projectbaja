@@ -8,6 +8,9 @@ import { VEHICLE_TYPES, FOR_SALE } from './fleet.js';
 import { ORDER_HOURS, etaText } from './orderlogic.js';
 import { DEF } from './workshop.js';
 import { missing, missingToDrive, listNames } from '../rules/restore.js';
+import { CAJON } from '../rules/vehicles.js';
+import { cajonCatalog } from './cajonParts.js';
+import { cajonProject } from './cajonGift.js';
 import { LETTER } from './home.js';
 
 const clock = h => { const m = Math.round((h % 24) * 60), hh = Math.floor(m / 60) % 24, mm = m % 60; return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`; };
@@ -22,6 +25,9 @@ function VehiclesTab() {
       return <div key={id} style={{ ...row, alignItems: 'flex-start', flexDirection: 'column' }}><b>{t.name}</b>
         {isBug ? <small>{drive.length ? `Won't start. Missing: ${listNames(drive)}.` : 'Has everything it needs to drive.'}{out.length ? ` Not fitted: ${out.length} of ${DEF.slots.length} slots.` : ' Everything fitted.'}</small>
           : <small>{t.pitch ? `"${t.pitch}"` : 'Parked.'}</small>}</div>; })}
+    {cajonProject() && (() => { const b = cajonProject().build, out = missing(CAJON, b), drive = missingToDrive(CAJON, b);   // Dusty's El Cajon, in Walt's yard
+      return <div style={{ ...row, alignItems: 'flex-start', flexDirection: 'column' }}><b>{CAJON.name} (from Dusty, in the yard)</b>
+        <small>{drive.length ? `Won't run. Missing: ${listNames(drive)}.` : 'Has everything it needs to run.'}{out.length ? ` Not fitted: ${out.length} of ${CAJON.slots.length} parts.` : ' Everything fitted.'}</small></div>; })()}
     <h3>On Al's lot</h3>
     {FOR_SALE.map(({ id }) => { const t = VEHICLE_TYPES[id]; return <div key={id} style={row}><span><b>{t.name}</b><br /><small>"{t.pitch}"</small></span><span>${t.price.toLocaleString()}</span></div>; })}
     <small>To buy a car, use Car sales on your phone.</small>
@@ -29,13 +35,13 @@ function VehiclesTab() {
 }
 
 function PartsTab() {
-  const [tab, setTab] = useState('part'), [cart, setCart] = useState([]), body = game.build?.body || 'classic', list = catalogFor(body)[tab] || [];
+  const [tab, setTab] = useState('part'), [cart, setCart] = useState([]), body = game.build?.body || 'classic', list = { ...catalogFor(body), stock: cajonCatalog() }[tab] || [], hasCajon = !!cajonProject();   // 'stock' = the El Cajon's parts, once it is in the yard
   const total = cart.reduce((s, c) => s + priceOf(c.kind, c.id), 0), waiting = ordersOnTheWay();
   const add = (kind, id) => setCart(c => [...c, { kind, id }]);
   const send = () => { if (game.dev) return say('Ordering is off in test sessions.'); if (game.cash < total) return say(`Not enough cash ($${total}).`); cart.forEach(c => placeOrder(c.kind, c.id)); setCart([]); };
   return <div>
     <small>Cash ${game.cash} · each order arrives at the pickup area about {ORDER_HOURS} game hours later</small>
-    <div style={{ display: 'flex', gap: 6, margin: '6px 0' }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims']].map(([k, l]) => <button key={k} className={tab === k ? 'big' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+    <div style={{ display: 'flex', gap: 6, margin: '6px 0' }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : [])].map(([k, l]) => <button key={k} className={tab === k ? 'big' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
       <div style={{ maxHeight: 300, overflow: 'auto' }}>{list.map(p => <div key={p.id} style={row}><span>{nameOf(tab, p.id, body)}<small> · ${priceOf(tab, p.id)}</small></span><button onClick={() => add(tab, p.id)}>Add</button></div>)}</div>
       <div><b>Cart</b>

@@ -9,8 +9,33 @@ export const HW_STYLE = {
   major:     { half: 6.0, lanes: 5.2, shoulder: 16, grade: 320 },
   secondary: { half: 4.4, lanes: 3.6, shoulder: 12, grade: 220 },
   ramp:      { half: 3.6, lanes: 2.9, shoulder: 9, grade: 120 },   // one-lane freeway ramps (worlds/junctions.js)
+  dirt:      { half: 2.8, lanes: 2.1, shoulder: 7, grade: 90 },
 };
-const STEP = 4, CELL = 100, CUT = 1.5, REACH = 60, DEEP = 30, MAXG = 0.10;   // DEEP: the deepest cut / tallest fill (the source lines can run a little off the real pass)   // cuts and fills ease back at about 1.5 : 1, up to REACH m from the centre
+const STEP = 4, CELL = 100, CUT = 7, REACH = 130, DEEP = 30, MAXG = 0.10;
+const MAX_EARTHWORK = { major: 12, secondary: 12, ramp: 18, dirt: 5 };
+function terrainGrade(profile, ground, floor, points, minBudget, maxBudget, maxSlope) {
+  const n = profile.length, low = new Float64Array(n), high = new Float64Array(n);
+  const ranges = budget => {
+    low[0] = Math.max(floor[0], ground[0] - budget); high[0] = Math.max(floor[0], ground[0] + budget);
+    for (let i = 1; i < n; i++) {
+      const d = Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z), rise = maxSlope * d;
+      low[i] = Math.max(floor[i], ground[i] - budget, low[i - 1] - rise);
+      high[i] = Math.min(Math.max(floor[i], ground[i] + budget), high[i - 1] + rise);
+      if (low[i] > high[i] + 1e-6) return false;
+    }
+    return true;
+  };
+  if (!ranges(maxBudget)) return null;
+  let lo = minBudget, hi = maxBudget;
+  for (let pass = 0; pass < 12; pass++) { const mid = (lo + hi) / 2; if (ranges(mid)) hi = mid; else lo = mid; }
+  ranges(hi + 0.001);
+  const out = new Array(n); out[n - 1] = Math.max(low[n - 1], Math.min(high[n - 1], profile[n - 1]));
+  for (let i = n - 2; i >= 0; i--) {
+    const rise = maxSlope * Math.hypot(points[i + 1].x - points[i].x, points[i + 1].z - points[i].z);
+    out[i] = Math.max(low[i], out[i + 1] - rise, Math.min(high[i], out[i + 1] + rise, profile[i]));
+  }
+  return out;
+}
 
 /** straight-line densify (<= max m apart), then a few [1 2 1] passes so corners become bends */
 function soften(pts, max = 40, passes = 4) {
@@ -97,10 +122,12 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     }
     if (r.kind !== 'ramp') {   // the source lines sometimes stop just short of an existing road
       for (const [end, dir] of [[0, 1], [n - 1, -1]]) {
-        let nearest = null, best = 28;
+        let nearest = null, best = 65;
+        const tip = p[end], inner = p[end + dir], ox = tip.x - inner.x, oz = tip.z - inner.z, olen = Math.hypot(ox, oz) || 1;
         for (const other of list) for (let i = 0; i < other.pts.length; i += 2) {
           const q = other.pts[i], d = Math.hypot(q.x - p[end].x, q.z - p[end].z);
-          if (d < best) { best = d; nearest = q; }
+          const ahead = ((q.x - tip.x) * ox + (q.z - tip.z) * oz) / (d * olen || 1);
+          if (d < best && (d < 12 || ahead > 0.35)) { best = d; nearest = q; }
         }
         if (!nearest || best < 0.5) continue;
         const dx = nearest.x - p[end].x, dz = nearest.z - p[end].z;
@@ -117,9 +144,49 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const off = target - h[end], len = Math.min(path.total * 0.45, Math.max(160, Math.abs(off) / 0.07));   // a big height gap gets a long, gentle ramp
       for (let i = 0, s = 0; i < n && s < len; i++, s += STEP) h[end + dir * i] += off * (1 - smooth(0, len, s));
     }
+    // Coarse mapped lines sometimes miss the real pass by a ridge. A long grade
+    // may otherwise produce an 80 m artificial wall beside the road. Keep the
+    // road close to the actual ground and spread the remaining cut/fill broadly.
+    const earthwork = MAX_EARTHWORK[r.kind] ?? 12;
+    h = terrainGrade(h, g0, floor, p, earthwork, r.kind === 'dirt' ? 12 : 35, r.kind === 'dirt' ? 0.18 : 0.14)
+      || h.map((v, i) => Math.max(floor[i], Math.min(g0[i] + earthwork, Math.max(g0[i] - earthwork, v))));
     p.forEach((q, i) => (q.hs = h[i]));
-    list.push({ name: r.name, kind: r.kind, style: st, pts: p, total: path.total });
+    list.push({ name: r.name, kind: r.kind, style: st, pts: p, total: path.total, index: list.length });
     if (r.id != null) kept.add(r.id);
+  }
+
+  // Mapped lines are separate features. Their ends can miss a crossing, and
+  // construction order must not decide whether the last few metres exist.
+  // Join an approaching paved end to the nearest point ON a through segment.
+  for (const road of list) {
+    if (road.kind === 'dirt' || road.kind === 'ramp') continue;
+    for (const [end, dir] of [[0, 1], [road.pts.length - 1, -1]]) {
+      const tip = road.pts[end], inner = road.pts[end + dir];
+      const ox = tip.x - inner.x, oz = tip.z - inner.z, olen = Math.hypot(ox, oz) || 1;
+      let best = null, distance = 125;
+      for (const other of list) {
+        if (other === road || other.kind === 'dirt' || other.kind === 'ramp') continue;
+        for (let i = 0; i < other.pts.length - 1; i++) {
+          const a = other.pts[i], b = other.pts[i + 1], dx = b.x - a.x, dz = b.z - a.z;
+          const t = Math.max(0, Math.min(1, ((tip.x - a.x) * dx + (tip.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+          const x = a.x + dx * t, z = a.z + dz * t, d = Math.hypot(x - tip.x, z - tip.z);
+          const ahead = ((x - tip.x) * ox + (z - tip.z) * oz) / (d * olen || 1);
+          if (d < distance && (d < 10 || ahead > 0.65)) { distance = d; best = { x, z, h: a.hs + (b.hs - a.hs) * t }; }
+        }
+      }
+      if (!best || distance < 0.5) continue;
+      const dx = best.x - tip.x, dz = best.z - tip.z, dh = best.h - tip.hs;
+      const taper = Math.max(90, distance * 2.5, Math.abs(dh) / 0.08);
+      for (let i = 0; i < road.pts.length && i * STEP < taper; i++) {
+        const p = road.pts[end + dir * i], w = 1 - smooth(0, taper, i * STEP);
+        p.x += dx * w; p.z += dz * w; p.hs += dh * w;
+      }
+    }
+    for (let i = 0; i < road.pts.length; i++) {
+      const p = road.pts[i], a = road.pts[Math.max(0, i - 2)], b = road.pts[Math.min(road.pts.length - 1, i + 2)];
+      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+      p.tx = dx / len; p.tz = dz / len;
+    }
   }
 
   // grid of segments (CSR): every segment is listed in each cell its reach touches
@@ -156,13 +223,43 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     }
     return best < Infinity ? hit : null;
   }
+  /** Paved roads own crossings: dirt grading, texture, and map strokes stop at their edge. */
+  function pavedSurfaceAt(x, z, pad = 0) {
+    const c = Math.floor((x - x0) / CELL), rr = Math.floor((z - z0) / CELL);
+    if (c < 0 || rr < 0 || c >= NX || rr >= NZ) return null;
+    let edge = null;
+    for (let k = start[rr * NX + c], e = start[rr * NX + c + 1]; k < e; k++) {
+      const r = list[segR[items[k]]]; if (r.kind === 'dirt') continue;
+      const i = segI[items[k]], a = r.pts[i], b = r.pts[i + 1], dx = b.x - a.x, dz = b.z - a.z;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+      const d = Math.hypot(x - a.x - dx * t, z - a.z - dz * t);
+      if (d <= r.style.lanes + pad) return 'asphalt';
+      if (d <= r.style.half + pad) edge = 'gravel';
+    }
+    return edge;
+  }
+  const pavedAt = (x, z, pad = 0) => pavedSurfaceAt(x, z, pad) != null;
+  /** True where this road meets a paved road that should carry through. */
+  function higherRoadAt(x, z, road, pad = 0) {
+    const c = Math.floor((x - x0) / CELL), rr = Math.floor((z - z0) / CELL);
+    if (c < 0 || rr < 0 || c >= NX || rr >= NZ) return false;
+    const priority = r => r.kind === 'major' ? 3 : r.kind === 'secondary' ? 2 : r.kind === 'ramp' ? 1 : 0;
+    for (let k = start[rr * NX + c], e = start[rr * NX + c + 1]; k < e; k++) {
+      const other = list[segR[items[k]]];
+      if (other === road || other.kind === 'dirt' || priority(other) < priority(road) || (priority(other) === priority(road) && other.index > road.index)) continue;
+      const i = segI[items[k]], a = other.pts[i], b = other.pts[i + 1], dx = b.x - a.x, dz = b.z - a.z;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+      if (Math.hypot(x - a.x - dx * t, z - a.z - dz * t) < other.style.half + pad - 0.3) return true;
+    }
+    return false;
+  }
   /** Distance to another road, used to clear painted lane markings at crossings. */
   function crossingDistance(x, z, road) {
     const c = Math.floor((x - x0) / CELL), rr = Math.floor((z - z0) / CELL);
     if (c < 0 || rr < 0 || c >= NX || rr >= NZ) return Infinity;
     let best = Infinity;
     for (let k = start[rr * NX + c], e = start[rr * NX + c + 1]; k < e; k++) {
-      const r = list[segR[items[k]]]; if (r === road) continue;
+      const r = list[segR[items[k]]]; if (r === road || r.kind === 'dirt') continue;
       const i = segI[items[k]], a = r.pts[i], b = r.pts[i + 1], dx = b.x - a.x, dz = b.z - a.z;
       const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
       best = Math.min(best, Math.hypot(x - a.x - dx * t, z - a.z - dz * t));
@@ -189,9 +286,11 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   /** the ground height h at (x, z) eased onto the highways' grade */
   function blend(x, z, h) {
     const n = nearAll(x, z); if (!n) return h;
+    const paved = pavedAt(x, z, 4);
     let wmax = 0, sw = 0, sh = 0;
     for (let j = 0; j < n; j++) {
-      const st = list[nR[j]].style, ease = Math.min(REACH - st.half, Math.max(st.shoulder, Math.abs(nH[j] - h) * CUT));   // deep cuts and tall fills get gentler banks
+      const road = list[nR[j]]; if (paved && road.kind === 'dirt') continue;
+      const st = road.style, ease = Math.min(REACH - st.half, Math.max(st.shoulder, Math.abs(nH[j] - h) * CUT));   // deep cuts and tall fills get gentler banks
       const w = nD[j] <= st.half ? 1 : 1 - smooth(st.half, st.half + ease, nD[j]); if (w <= 0) continue;
       const w4 = w ** 4; wmax = Math.max(wmax, w); sw += w4; sh += w4 * nH[j];
     }
@@ -199,10 +298,12 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   }
   /** 'asphalt' on the lanes, 'gravel' on the paved edge, else null */
   function surfaceKey(x, z) {
+    const paved = pavedSurfaceAt(x, z); if (paved) return paved;
     const q = near(x, z); if (!q) return null;
+    if (q.road.kind === 'dirt') return q.d <= q.road.style.lanes ? 'dirt' : q.d <= q.road.style.half ? 'looseDirt' : null;
     return q.d <= q.road.style.lanes ? 'asphalt' : q.d <= q.road.style.half ? 'gravel' : null;
   }
   /** on (or within pad m of) a highway's paved width */
   const isNear = (x, z, pad = 0) => { const q = near(x, z); return !!q && q.d <= q.road.style.half + pad; };
-  return { roads: list, kept, near, crossingDistance, blend, surfaceKey, isNear };
+  return { roads: list, kept, near, pavedAt, higherRoadAt, crossingDistance, blend, surfaceKey, isNear };
 }

@@ -4,8 +4,8 @@ export const HM_SIZE = 6000;      // metres covered by public/terrain/height.bin
 export const WORLD_SIZE = 12000;   // metres the surface grid, terrain tiles, highway table, minimap and scatter cover (a square centred on the garage)
 export const DRIVE_LIMIT = 2940;  // how far from the centre you can drive today; the hologram wall stands here (worlds/boundary.js)
 // where you can drive/walk, per side (the hologram walls stand on this rectangle). Region 1 opened the SOUTH side: 1.5 km more.
-/** ?realmap: the county sits on the REAL border slice (docs/WORLD_MAP.md step 4, PROPOSAL). Off by default: today's game is unchanged. */
-export const REAL = typeof location !== 'undefined' && /[?&]realmap/.test(location.search);
+/** The playable county uses the real border slice by default; ?classicmap retains the older test terrain. */
+export const REAL = typeof location !== 'undefined' && !/[?&]classicmap(?:[=&]|$)/.test(location.search);
 // the real map's drivable box (public/terrain/border.json, a little inside it)
 const REAL_DRIVE = { x0: -15800, x1: 23600, z0: -7200, z1: 45700 };
 export const DRIVE = REAL ? REAL_DRIVE : { x0: -5940, x1: 4440, z0: -DRIVE_LIMIT, z1: 4440 };   // region 2 (PROPOSAL) opened the EAST side too: 1.5 km more

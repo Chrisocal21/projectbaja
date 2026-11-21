@@ -50,3 +50,57 @@ test('a side road ending near a highway joins its centre line', () => {
   assert.ok(Math.hypot(side.pts[0].x - 20, side.pts[0].z) < 2);
   assert.ok(H.crossingDistance(side.pts[0].x, side.pts[0].z, side) < 2);
 });
+test('a short mapped gap at a paved junction is connected', () => {
+  const H = makeHighways([
+    { name: 'Through', kind: 'major', pts: [[-200, 0], [200, 0]] },
+    { name: 'Approach', kind: 'secondary', pts: [[0, 45], [0, 200]] },
+  ], () => 0);
+  const approach = H.roads.find(r => r.name === 'Approach');
+  assert.ok(Math.hypot(approach.pts[0].x, approach.pts[0].z) < 3);
+});
+
+test('a longer mapped gap joins even when the approach is built first', () => {
+  const H = makeHighways([
+    { name: 'Approach', kind: 'secondary', pts: [[30, 110], [30, 500]] },
+    { name: 'Through', kind: 'secondary', pts: [[-400, 0], [400, 0]] },
+  ], () => 0);
+  const approach = H.roads.find(r => r.name === 'Approach');
+  assert.ok(H.crossingDistance(approach.pts[0].x, approach.pts[0].z, approach) < 1);
+  assert.ok(Math.abs(approach.pts[0].hs) < 0.01);
+});
+
+test('pavement owns a dirt-road crossing in surface and grade', () => {
+  const H = makeHighways([
+    { name: 'Main', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'Dirt', kind: 'dirt', pts: [[0, -300], [0, 300]] },
+  ], (x, z) => z === 0 ? 2 : 8);
+  assert.equal(H.surfaceKey(0, 0), 'asphalt');
+  assert.equal(H.pavedAt(0, 0), true);
+  assert.equal(H.surfaceKey(0, 100), 'dirt');
+  assert.equal(H.crossingDistance(0, 0, H.roads.find(r => r.kind === 'major')), Infinity);
+  const paved = makeHighways([{ name: 'Main', kind: 'major', pts: [[-500, 0], [500, 0]] }], (x, z) => z === 0 ? 2 : 8);
+  assert.ok(Math.abs(H.blend(0, 0, 2) - paved.blend(0, 0, 2)) < 0.01);
+});
+
+test('a mapped mountain road grades through a ridge without a sheer fill', () => {
+  const ground = (x) => 100 - 96 * Math.max(0, Math.min(1, (x + 500) / 900)) ** 0.5;
+  const H = makeHighways([{ name: 'Mex 2D', kind: 'major', pts: [[-500, 0], [400, 0]] }], ground);
+  const p = H.roads[0].pts;
+  for (let i = 1; i < p.length; i++) {
+    const d = Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z);
+    assert.ok(Math.abs(p[i].hs - p[i - 1].hs) / d <= 0.141);
+    assert.ok(Math.abs(p[i].hs - ground(p[i].x)) <= 35.1);
+  }
+});
+
+test('one paved road carries through a junction while the other stops at it', () => {
+  const H = makeHighways([
+    { name: 'Through', kind: 'major', pts: [[-200, 0], [200, 0]] },
+    { name: 'Joining', kind: 'secondary', pts: [[0, -200], [0, 200]] },
+  ], () => 0);
+  const through = H.roads.find(r => r.name === 'Through');
+  const joining = H.roads.find(r => r.name === 'Joining');
+  assert.equal(H.higherRoadAt(0, 0, joining), true);
+  assert.equal(H.higherRoadAt(0, 0, through), false);
+  assert.equal(H.higherRoadAt(0, 20, joining), false);
+});

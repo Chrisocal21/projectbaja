@@ -8,6 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame } from '../game/store.js';
 import { held, nameOfItem, itemSize } from '../game/items.js';
 import { Crate } from '../game/Items.jsx';
+import { carFitReady } from '../game/carSnap.js';
 import { resolve } from '../build.js';
 import { BUG } from '../rules/vehicles.js';
 import { isFitted } from '../rules/restore.js';
@@ -139,7 +140,7 @@ function Controller() {
 
   useFrame(() => {
     aim.cur = null;
-    if (!game.onFoot || game.buildMode || game.paused) return show('');
+    if (!game.onFoot || game.buildMode || game.paused || carFitReady()) return show('');   // a held part that fits the car snaps onto the car instead (game/carSnap.js)
     raycaster.setFromCamera(CENTER, camera);
     let best = null, mb = null;
     const hh = held(), tireHeld = !!hh && isTire(hh);
