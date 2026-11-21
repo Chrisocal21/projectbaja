@@ -112,6 +112,17 @@ export function Crate({ item, scale = 1 }) {
   return <group scale={scale}>{body ? <React.Suspense fallback={crate}>{body}</React.Suspense> : crate}</group>;
 }
 
+/** every searchable container in the world; the ones far from you (roadside stops are kilometres apart) are not drawn */
+function Containers() {
+  useGame();
+  const refs = useRef([]), { camera } = useThree(), tick = useRef(0);
+  useFrame(() => {
+    if (tick.current++ % 15) return;
+    for (let i = 0; i < containers.length; i++) { const g = refs.current[i]; if (g) g.visible = Math.hypot(containers[i].x - camera.position.x, containers[i].z - camera.position.z) < 260; }
+  });
+  return containers.map((c, i) => <group key={c.id} ref={el => { refs.current[i] = el; }} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>);
+}
+
 /** boxes lying around the world, plus the box in the player's hands */
 export default function Items() {
   useGame();
@@ -133,7 +144,7 @@ export default function Items() {
   return <>
     {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
-    {containers.map(c => <group key={c.id} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>)}
+    <Containers />
     <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
   </>;
 }

@@ -158,3 +158,6 @@ Driven in headless Chrome: deliver, fit every driving part, E at the truck, reve
 
 ## Driving cost (Nov 21)
 `tireSupport`/`wheelContact` (suspension.js) made ~1,500+ ground queries per frame. Two safe cuts: the 4-pass hub solve now stops once it moves under 0.2 mm, and each tire arc is sampled 9 times instead of 13 (still 3 across). El Cajon, reversing at 9 m/s on the real map, headless Chrome: **24 -> 36 FPS**. 325 tests pass. Not yet felt by hand: check grip, bumps and landings feel the same. Left: world triangles (4.4M), ~1,900 shadow casters, terrain tile streaming hitches.
+
+## Roadside loot (Nov 21, Group A step 1)
+Every rest area and gas station on the real highways (36 of them: 8 rest, 28 gas) now has two containers (a cardboard box and a crate, or a tool chest for some) and a loose-part spot (gas: on the ground; rest: on the picnic table, ~75% of stops). Pure data in `game/roadsideLoot.js` (tested), merged into `game/loot.js` containers/spots, so they use the same search, cash, scrap, and "site cleared" code as the barn and warehouse. New games stock them in `seedWorld`; old saves get them once (`home.roadV`, `ensureRoadsideLoot`). Containers more than 260 m from you are not drawn. Not done yet: map markers for roadside stops, and richer stocks (the same random table as the shacks for now).

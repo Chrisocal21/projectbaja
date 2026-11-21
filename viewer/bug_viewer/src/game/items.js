@@ -167,24 +167,37 @@ export function boxAtShop(kind, id) {
 }
 
 /** new game: stock the garage, then hide parts and cash around the map */
-export function seedWorld(bodyId) {
-  game.items = []; game.boxes = {};
+/** hide cash, scrap and parts in these containers and loose-part spots (a random roll; the garage's starter stock is fixed). `add` puts one item into game.items. */
+function stockPlaces(cs, ss, bodyId, add) {
   const cat = catalogFor(bodyId || 'classic'), pool = [...cat.part.map(p => ['part', p.id]), ...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id]), ['stock', 'battery'], ['stock', 'headlights'], ['stock', 'seatPassenger'], ['tool', 'jack']];
   const pick = max => { const ok = pool.filter(([k, id]) => sizeOf(k, id) <= max); return ok[Math.floor(Math.random() * ok.length)]; };
   const rint = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
-  let n = 0; const add = (o) => game.items.push({ uid: ++n, ...o });
-  const g = SITES.garage;
-  for (const [k, id, lx, lz, ly] of [STARTER.garageBench, STARTER.garageFloor]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
-  // grandpa had the Bug half apart: its rear-right wheel leans by the car, the driver's seat sits on the floor
-  for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0, ry: g.rot + 0.4, ...extra }); }
-  for (const c of containers) {
+  for (const c of cs) {
     const rule = CONTAINER_RULES[c.type], fixed = STARTER[c.id];
     game.boxes[c.id] = { cash: fixed ? fixed.cash : Math.random() < 0.6 ? rint(rule.cash) : 0, scrap: !fixed && c.type !== 'toolbox' && Math.random() < 0.45 ? 1 + Math.floor(Math.random() * 2) : 0, searched: false };
     const list = fixed ? fixed.items : Array.from({ length: rint(rule.n) }, () => pick(rule.max)).filter(Boolean);
     for (const [k, id] of list) add({ kind: k, id, loc: 'box', box: c.id });
   }
+  for (const s of ss) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
+}
+/** the roadside stops (rest areas and gas stations) were added after some saves began: stock them once per save. New games get them from seedWorld. */
+export function ensureRoadsideLoot() {
+  if ((game.home.roadV || 0) >= 1) return;
+  game.home = { ...game.home, roadV: 1 };
+  const cs = containers.filter(c => c.site.startsWith('rs') && !game.boxes[c.id]), ss = spots.filter(s => s.site.startsWith('rs'));
+  if (cs.length || ss.length) stockPlaces(cs, ss, game.build?.body, o => game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...o }));
+  save();
+}
+export function seedWorld(bodyId) {
+  game.items = []; game.boxes = {};
+  let n = 0; const add = (o) => game.items.push({ uid: ++n, ...o });
+  const g = SITES.garage;
+  for (const [k, id, lx, lz, ly] of [STARTER.garageBench, STARTER.garageFloor]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
+  // grandpa had the Bug half apart: its rear-right wheel leans by the car, the driver's seat sits on the floor
+  for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0, ry: g.rot + 0.4, ...extra }); }
   add({ kind: 'tool', id: 'wrench', loc: 'pack' });   // you start with a wrench in your pack
-  for (const s of spots) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
+  stockPlaces(containers, spots, bodyId, add);
+  game.home = { ...game.home, roadV: 1 };   // a new game already has the roadside stocked
   game.nextUid.items = n + 1; save();
 }
 /** the yard in front of the garage, where a lifted-off body shell is set down */

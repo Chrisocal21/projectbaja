@@ -15,7 +15,7 @@ Read this first when picking the work back up. Labels: **PROPOSAL** = design gue
 
 ## Salvage Road merge and the El Cajon (Nov 21) - uncommitted on branch racer-items-fitglow
 - Only Salvage Road's **vehicle building** came over. Hold-click part mechanic, tire machine, many restorable vehicles (donor Bugs), and the **El Cajon** as a second restorable project (Dusty's gift, **CANON? not locked**). Details: [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md), [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md).
-- **El Cajon is drivable now** (promote a finished project with E; see REPAIR_AND_WORLD_PLAN). **Next:** driving-time perf, then loot data, `?realmap` coast look, dressing from unused assets, cities.
+- **El Cajon is drivable now** (promote a finished project with E; see REPAIR_AND_WORLD_PLAN). **Next:** driving-time perf, then roadside loot is in (Group A step 1); more loot buildings, `?realmap` coast look, dressing from unused assets, cities.
 - Test hooks: `window.__game`, `__walk`, `__cajon.deliver()`. Controls still unbuilt: L lights, Tab vehicle storage, back seat, crates and tire racks.
 
 ## Done and pushed

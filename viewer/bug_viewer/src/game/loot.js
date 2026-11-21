@@ -1,6 +1,7 @@
 // Where things are found: furniture, containers (toolboxes, drawers, boxes, crates) and loose-part spots
 // inside the garage, barn, warehouse, shacks and gas station. Pure data + the new-game shuffle.
-import { SITES, toWorld } from '../worlds/county.js';
+import { SITES, toWorld, junctions, groundHeight } from '../worlds/county.js';
+import { roadsideLoot } from './roadsideLoot.js';
 
 const BENCH_TOP = 0.98;   // grandpa's letter lies on the bench at local x -2.6 (see siteData TARGETS)
 // furniture: bench = workbench (2.4 m), rack = pallet rack (len m, 2 shelves)
@@ -43,8 +44,10 @@ export const CONTAINER_RULES = {
   car: { max: 4, n: [0, 0], cash: [0, 0], label: "grandpa's race car", r: 0 },
 };
 
+const RS = roadsideLoot(junctions()?.roadside?.sites || [], groundHeight);   // classic map: no roadside, no finds
+
 const place = o => { const s = SITES[o.site], [x, z] = toWorld(s, o.lx, o.lz); return { ...o, x, z, y: s.y + (o.ly || 0), wry: s.rot + (o.ry || 0) }; };
-export const containers = CONTAINERS.map(place), spots = SPOTS.map(place), furniture = FURNITURE.map(place);
+export const containers = [...CONTAINERS.map(place), ...RS.containers], spots = [...SPOTS.map(place), ...RS.spots], furniture = FURNITURE.map(place);
 export const containerById = Object.fromEntries(containers.map(c => [c.id, c]));
 
 /** circles the walker / car bump into */
