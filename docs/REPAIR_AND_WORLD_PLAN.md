@@ -170,3 +170,6 @@ Every rest area and gas station on the real highways (36 of them: 8 rest, 28 gas
 - **Bug storage is already rich** (front trunk, luggage shelf, roof rack are grid surfaces in `placement/vehicleSurfaces.js`; the quick-stow cab and roof are the legacy spots). A legacy trunk I tried would have overlapped the grid one, so it was dropped.
 - **Tire racks on the Cajon bed:** four tire mounts (5-8) like the pickup's, two on the floor and two on the well tops, tested against the placement rules. Crates use the bed's grid as before.
 - **Bug found on the way:** tools showed as "Wrenchfalse" (a helper returned `false` and it was glued onto the name). Fixed.
+
+## Group C: ordering (Nov 21)
+Garage supplies and tools can be ordered from the phone's Internet app and the office PC (new Supplies and Tools tabs, order kind `garage`, same 3 game hour delivery to the shop pickup). Prices match Dusty's store. See CONTROLS_AND_STORAGE_PLAN.

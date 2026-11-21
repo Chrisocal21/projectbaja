@@ -8,11 +8,8 @@ import { homeLocal, isOpen } from './home.js';
 import { standingVehicles } from './fleet.js';
 import { upgradeLevel } from './upgrades.js';
 
-export const SUPPLIES = {
-  oil: { name: 'Motor oil (5 qt)', price: 12 }, bulb: { name: 'Headlight bulb', price: 6 },
-  plug: { name: 'Tire plug kit', price: 10 }, wipers: { name: 'Wiper blades', price: 14 },
-  belt: { name: 'Fan belt', price: 18 },
-};
+import { SUPPLIES } from './garageSupplies.js';
+export { SUPPLIES };   // (the data lives in garageSupplies.js so ordering can share it)
 /** Dusty's corner store, in shelf order: [what, name, price, note]. 'supply:*' rows come from SUPPLIES. */
 export const STORE_ITEMS = [
   ['stock:battery', '12V car battery', 60, 'small · fits in your pack'],

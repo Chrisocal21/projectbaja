@@ -5,6 +5,7 @@ import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
 import { cajonCatalog, cajonPriceOf } from './cajonParts.js';
+import { supplyName, supplyPrice } from './garageSupplies.js';
 import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan, keysToPrune } from './saveFormat.js';
 
 export const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
@@ -73,9 +74,10 @@ export const saveBuild = b => { game.build = b; persist(); };
 export const itemKey = (kind, id) => `${kind}:${id}`;
 export const isFree = (kind, id) => (kind === 'wheel' && id === 'stock') || (kind === 'rim' && id === 'steel');
 export const owns = (kind, id) => game.unlockAll || isFree(kind, id) || game.owned.has(itemKey(kind, id));
-export const nameOf = (kind, id, bodyId) => (kind === 'stock' ? cajonCatalog().find(c => c.id === id)?.name || id : labelFor(kind === 'part' ? partById[id] : kind === 'wheel' ? wheelById[id] : rimById[id], bodyId));   // 'stock' = the El Cajon's parts online
+export const nameOf = (kind, id, bodyId) => (kind === 'garage' ? supplyName(id) : kind === 'stock' ? cajonCatalog().find(c => c.id === id)?.name || id : labelFor(kind === 'part' ? partById[id] : kind === 'wheel' ? wheelById[id] : rimById[id], bodyId));   // 'stock' = the El Cajon's parts online
 
 export function priceOf(kind, id) {
+  if (kind === 'garage') return supplyPrice(id);
   if (kind === 'stock') return cajonPriceOf(id);
   if (kind === 'part') { const p = partById[id]; return p.price ?? Math.round((120 + (p.perf?.topMph || 0) * 12 + ((p.perf?.power || 1) - 1) * 600) / 10) * 10; }
   if (kind === 'wheel') return wheelById[id].price ?? 300;

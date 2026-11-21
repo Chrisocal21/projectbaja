@@ -11,6 +11,7 @@ import { missing, missingToDrive, listNames } from '../rules/restore.js';
 import { CAJON } from '../rules/vehicles.js';
 import { cajonCatalog } from './cajonParts.js';
 import { cajonProject } from './cajonGift.js';
+import { SUPPLY_TABS, suppliesIn } from './garageSupplies.js';
 import { LETTER } from './home.js';
 
 const clock = h => { const m = Math.round((h % 24) * 60), hh = Math.floor(m / 60) % 24, mm = m % 60; return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`; };
@@ -36,14 +37,15 @@ function VehiclesTab() {
 
 function PartsTab() {
   const [tab, setTab] = useState('part'), [cart, setCart] = useState([]), body = game.build?.body || 'classic', list = { ...catalogFor(body), stock: cajonCatalog() }[tab] || [], hasCajon = !!cajonProject();   // 'stock' = the El Cajon's parts, once it is in the yard
+  const rows = SUPPLY_TABS.some(([k]) => k === tab) ? suppliesIn(tab).map(r => ({ id: r.id, kind: 'garage', label: r.name, price: r.price })) : list.map(p => ({ id: p.id, kind: tab, label: nameOf(tab, p.id, body), price: priceOf(tab, p.id) }));
   const total = cart.reduce((s, c) => s + priceOf(c.kind, c.id), 0), waiting = ordersOnTheWay();
   const add = (kind, id) => setCart(c => [...c, { kind, id }]);
   const send = () => { if (game.dev) return say('Ordering is off in test sessions.'); if (game.cash < total) return say(`Not enough cash ($${total}).`); cart.forEach(c => placeOrder(c.kind, c.id)); setCart([]); };
   return <div>
     <small>Cash ${game.cash} · each order arrives at the pickup area about {ORDER_HOURS} game hours later</small>
-    <div style={{ display: 'flex', gap: 6, margin: '6px 0' }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : [])].map(([k, l]) => <button key={k} className={tab === k ? 'big' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+    <div style={{ display: 'flex', gap: 6, margin: '6px 0' }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : []), ...SUPPLY_TABS].map(([k, l]) => <button key={k} className={tab === k ? 'big' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-      <div style={{ maxHeight: 300, overflow: 'auto' }}>{list.map(p => <div key={p.id} style={row}><span>{nameOf(tab, p.id, body)}<small> · ${priceOf(tab, p.id)}</small></span><button onClick={() => add(tab, p.id)}>Add</button></div>)}</div>
+      <div style={{ maxHeight: 300, overflow: 'auto' }}>{rows.map(r => <div key={r.id} style={row}><span>{r.label}<small> · ${r.price}</small></span><button onClick={() => add(r.kind, r.id)}>Add</button></div>)}</div>
       <div><b>Cart</b>
         {cart.length ? cart.map((c, i) => <div key={i} style={row}><span>{nameOf(c.kind, c.id, body)}<small> · ${priceOf(c.kind, c.id)}</small></span><button onClick={() => setCart(x => x.filter((_, j) => j !== i))}>Remove</button></div>) : <p><small>Empty. Add parts from the list.</small></p>}
         {cart.length > 0 && <div style={{ ...row, borderBottom: 'none' }}><b>Total ${total}</b><button className="big" disabled={game.cash < total} onClick={send}>{game.cash < total ? 'Not enough cash' : `Order all (${cart.length})`}</button></div>}

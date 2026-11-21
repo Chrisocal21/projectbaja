@@ -67,3 +67,7 @@ To do: a **garage-supplies category** (what Walt's shop needs to run: oil, shop 
 ## Status update (Nov 21, end of day)
 - Built since this plan was written: hold-left to take off now works on any restorable vehicle (donors, El Cajon); the El Cajon exists as a restorable project delivered by Dusty (CANON? not locked) with phone/PC Parts online ordering. See [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md).
 - Still not built: L lights, Tab merged vehicle storage, back-seat/roof storage rebalance, truck crates and tire racks, a drivable El Cajon (with its bed storage), garage-supply ordering categories.
+
+## Status update (Nov 21, Group B and C)
+- Built: L headlights, Tab inventory for every nearby vehicle, tire mounts on the El Cajon bed, and **garage-supplies ordering**: the phone's Internet app and the office PC Parts tab have **Supplies** (oil, bulb, plug kit, wipers, fan belt, car battery) and **Tools** (wrench, floor jack) tabs. Data is pure (`game/garageSupplies.js`, tested); an order is `{ kind: 'garage', id: 'supply:oil' }` and arrives boxed at the shop pickup like a part. Prices equal Dusty's over-the-counter prices (a test checks that), so ordering saves the walk, not the money; Dusty's store stays the faster source (no wait). Q3 (what the garage needs to run) is answered with the existing job supplies; more items are one line each in `GARAGE_SUPPLIES`.
+- Still not built: a combined back-seat surface for the Bug (it already has trunk, shelf and roof rack as grid surfaces), crate building.

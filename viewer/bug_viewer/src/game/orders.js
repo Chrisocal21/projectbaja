@@ -5,6 +5,7 @@ import { boxAtShop } from './items.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
 import { VEHICLE_TYPES, FOR_SALE, lotPose, owned } from './fleet.js';
 import { giftArrives } from './cajonGift.js';
+import { itemOf } from './garageSupplies.js';
 
 export const ordersOnTheWay = () => game.home?.orders || [];
 const bodyId = () => game.build?.body || 'classic';
@@ -28,7 +29,8 @@ export function passTime(hours) {
   for (const o of r.arrived) {
     if (o.kind === 'car') { carArrives(o.id); continue; }
     if (o.kind === 'gift') { giftArrives(); continue; }   // Dusty's El Cajon: set down in Walt's yard, not boxed at the shop
-    boxAtShop(o.kind, o.id); say(`Your order arrived at the pickup area: ${nameOf(o.kind, o.id, bodyId())}`);
+    if (o.kind === 'garage') boxAtShop(...itemOf(o.id)); else boxAtShop(o.kind, o.id);
+    say(`Your order arrived at the pickup area: ${nameOf(o.kind, o.id, bodyId())}`);
   }
   save();
 }
