@@ -1,25 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { game, useGame } from './store.js';
 import { TRACKS, stagesOf, hasStage, stageWhy, buyStage, nextStage, effects } from './upgrades.js';
 
-/** U: Walt's place in four tracks, built in stages. The build menu (B) is decorations only; this is how the house itself grows. */
+/** U: Walt's place in four tracks, built in stages, one tab per track so it fits on one screen (no scrolling). The build menu (B) is decorations only; this is how the house itself grows. */
 export default function UpgradesPanel({ onClose }) {
   useGame();
-  const fx = effects();
-  return <div className="overlay"><div className="card inv upgrades">
+  const [tab, setTab] = useState(() => TRACKS.find(t => nextStage(t.id))?.id || TRACKS[0].id);
+  const fx = effects(), t = TRACKS.find(x => x.id === tab), list = stagesOf(t.id), next = nextStage(t.id);
+  return <div className="overlay"><div className="card inv upgrades" style={{ overflow: 'hidden', maxHeight: 'none' }}>
     <div className="shop-head"><h2>UPGRADES</h2><span className="cash">${game.cash.toLocaleString()}</span><button onClick={onClose}>Close (Esc)</button></div>
-    <p className="hint">Walt's place grows in stages: garage, office, camper and property. Each stage is bought once and never taken down. (B is for decorations and furniture.)</p>
-    <p className="hint">Now: parts come off and go on at {Math.round(fx.holdScale * 100)}% of the usual time · orders arrive in {fx.orderHours} hour{fx.orderHours === 1 ? '' : 's'} · pack holds {4 + fx.packBonus}.</p>
-    {TRACKS.map(t => { const list = stagesOf(t.id), done = list.filter(s => hasStage(s.id)).length, next = nextStage(t.id);
-      return <div key={t.id} className="up-row">
-        <div className="up-main"><span><b>{t.name}</b><small>{t.blurb} · stage {done}/{list.length}{done === list.length ? ' · fully built' : ''}</small></span></div>
-        <div className="up-levels">{list.map(s => <i key={s.id} className={hasStage(s.id) ? 'on' : ''} />)}</div>
-        {list.map(s => { const own = hasStage(s.id), why = stageWhy(s.id), cash = game.cash < s.price && !game.settings?.creative;
-          return <div key={s.id} className="up-main" style={{ opacity: own ? 0.55 : 1 }}>
-            <span><b>{own ? '✓ ' : s.id === next?.id ? '→ ' : ''}{s.name}</b><small>{s.note}</small></span>
-            {own ? <small>built</small> : <button className="buy" disabled={!!why && !(cash && why.startsWith('Not enough'))} title={why} onClick={() => buyStage(s.id)}>{why && !why.startsWith('Not enough') ? 'Locked' : cash ? `Need $${s.price}` : `$${s.price}`}</button>}
-            {!own && why && !why.startsWith('Not enough') && <small>{why}</small>}
-          </div>; })}
+    <div style={{ display: 'flex', gap: 6, margin: '2px 0 8px' }}>{TRACKS.map(x => { const n = stagesOf(x.id), done = n.filter(s => hasStage(s.id)).length;
+      return <button key={x.id} className={tab === x.id ? 'big' : ''} style={tab === x.id ? { borderColor: '#DC652D', color: '#DC652D' } : undefined} onClick={() => setTab(x.id)}>{x.name} {done}/{n.length}</button>; })}</div>
+    <p className="hint" style={{ margin: '0 0 6px' }}>{t.blurb} Bought once, never taken down.</p>
+    {list.map(s => { const own = hasStage(s.id), why = stageWhy(s.id), poor = why.startsWith('Not enough'), locked = !!why && !poor && !own;
+      return <div key={s.id} className="up-main" style={{ opacity: own ? 0.55 : 1, padding: '5px 0' }}>
+        <span><b>{own ? '✓ ' : s.id === next?.id ? '→ ' : ''}{s.name}</b><small>{s.note}{locked ? ` (${why})` : ''}</small></span>
+        {own ? <small>built</small> : <button className="buy" disabled={locked} title={why} onClick={() => buyStage(s.id)}>{locked ? 'Locked' : poor ? `Need $${s.price}` : `$${s.price}`}</button>}
       </div>; })}
+    <p className="hint" style={{ margin: '8px 0 0' }}>Now: fitting at {Math.round(fx.holdScale * 100)}% of the usual time · orders in {fx.orderHours} hour{fx.orderHours === 1 ? '' : 's'} · pack holds {4 + fx.packBonus}. (B is for decorations and furniture.)</p>
   </div></div>;
 }
