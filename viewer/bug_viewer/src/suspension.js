@@ -38,8 +38,8 @@ export function tireSupport(hub, radius, heading, sample = terrainHeight, orient
   let height = -Infinity;
   const quaternion = orientation || new THREE.Quaternion().setFromAxisAngle(UP, heading);
   const point = new THREE.Vector3();
-  for (const across of [-halfWidth, 0, halfWidth]) for (let i = 0; i <= 12; i++) {
-    const angle = (i / 12 - 0.5) * Math.PI;
+  for (const across of [-halfWidth, 0, halfWidth]) for (let i = 0; i <= 8; i++) {
+    const angle = (i / 8 - 0.5) * Math.PI;
     point.set(across, -Math.cos(angle) * radius, Math.sin(angle) * radius).applyQuaternion(quaternion);
     height = Math.max(height, sample(hub.x + point.x, hub.z + point.z) - point.y);
   }
@@ -57,7 +57,9 @@ function wheelContact(st, mount, quaternion, config, sample, dims) {
   for (let i = 0; i < 4; i++) {
     support = tireSupport(hub, mount.radius, heading, sample, orientation, mount.halfWidth);
     needed = (support - nominal.y) / up.y;
+    const lastY = hub.y;
     hub.copy(nominal).addScaledVector(up, clamp(needed, -config.droop, config.compression));
+    if (i > 0 && Math.abs(hub.y - lastY) < 2e-4) break;   // settled to 0.2 mm: more passes only repeat the same 39 ground samples
   }
   return { needed, support, nominal, hub, up };
 }
