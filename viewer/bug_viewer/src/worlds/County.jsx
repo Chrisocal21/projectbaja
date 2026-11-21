@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { wrecks } from '../game/loot.js';
+import { SCENERY_WRECKS } from '../game/roadsideLoot.js';
 import { HM_SIZE, TERRAIN, REAL } from './world.js';
 import { WaterSheet } from './Border.jsx';
 import { border, SEA_Y } from './border.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
@@ -415,6 +419,43 @@ function RoadsidePlaces() {
   }, [sites]);
   return <instancedMesh ref={mesh} args={[null, null, Math.max(1, n)]} frustumCulled={false} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.8} /></instancedMesh>;
 }
+// ---------------- dressing wrecks at the roadside stops (the Salvage Road blockout pickup and step van; game/roadsideLoot.js sceneryWrecks) ----------------
+/** one model's ~100 parts baked into a single upright mesh (the files are Z-up with vertex colours): one draw call per wreck */
+function useMergedWreck(file) {
+  const { scene } = useGLTF(file);
+  return useMemo(() => {
+    scene.updateMatrixWorld(true);
+    const list = [];
+    scene.traverse(o => {
+      if (!o.isMesh) return;
+      const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+      g.deleteAttribute('uv'); g.deleteAttribute('uv1'); g.deleteAttribute('tangent');
+      const c0 = g.getAttribute('color'), n = g.getAttribute('position').count, rgb = new Float32Array(n * 3).fill(0.55);   // (the files store 8-bit RGBA; flatten to float RGB so every part merges)
+      if (c0) for (let i = 0; i < n; i++) { rgb[i * 3] = c0.getX(i); rgb[i * 3 + 1] = c0.getY(i); rgb[i * 3 + 2] = c0.getZ(i); }
+      g.setAttribute('color', new THREE.BufferAttribute(rgb, 3)); g.deleteAttribute('normal');
+      list.push(g.index ? g.toNonIndexed() : g);
+    });
+    const merged = mergeGeometries(list);
+    merged.rotateX(-Math.PI / 2);   // Z up -> Y up
+    merged.computeVertexNormals();   // (the files have none: flat shaded)
+    merged.computeBoundingBox(); merged.translate(0, -merged.boundingBox.min.y, 0);
+    merged.computeBoundingSphere();
+    return merged;
+  }, [scene]);
+}
+function WreckKind({ kind, list }) {
+  const geo = useMergedWreck(SCENERY_WRECKS[kind].file), refs = useRef([]), { camera } = useThree(), tick = useRef(0);
+  useFrame(() => {   // only the ones near you are drawn
+    if (tick.current++ % 20) return;
+    list.forEach((w, i) => { const m = refs.current[i]; if (m) m.visible = Math.hypot(w.x - camera.position.x, w.z - camera.position.z) < 500; });
+  });
+  return list.map((w, i) => <mesh key={w.site} ref={el => { refs.current[i] = el; }} geometry={geo} position={[w.x, height(w.x, w.z) - 0.05, w.z]} rotation={[0, w.yaw, 0]} castShadow receiveShadow>
+    <meshStandardMaterial vertexColors roughness={0.9} metalness={0.15} /></mesh>);
+}
+function RoadsideWrecks() {
+  const byKind = useMemo(() => { const m = {}; for (const w of wrecks) (m[w.kind] ||= []).push(w); return m; }, []);
+  return <React.Suspense fallback={null}>{Object.entries(byKind).map(([k, list]) => <WreckKind key={k} kind={k} list={list} />)}</React.Suspense>;
+}
 function RoadsideDriveways() {
   const sites = useMemo(() => junctions().roadside.sites, []);
   const geo = useMemo(() => {
@@ -547,6 +588,7 @@ export default function CountyScene() {
     {roadConnections && <HighwayJunctionSurfaces connections={roadConnections} />}
     {REAL && <HighwayFurniture />}
     {REAL && <RoadsidePlaces />}
+    {REAL && <RoadsideWrecks />}
     {REAL && <RoadsideDriveways />}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}
     <Ribbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />

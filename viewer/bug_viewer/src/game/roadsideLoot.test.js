@@ -41,3 +41,20 @@ test('stops far from home are worth more', () => {
   const { containers } = roadsideLoot([{ type: 'gas', x: 0, z: 0, ry: 0 }, { type: 'gas', x: FAR_KM * 3, z: 0, ry: 0 }]);
   assert.ok(containers[0].far < 0.01 && containers.at(-1).far === 2);
 });
+
+import { sceneryWrecks, wreckColliders, SCENERY_WRECKS } from './roadsideLoot.js';
+const many2 = Array.from({ length: 14 }, (_, i) => ({ type: i % 3 === 1 ? 'rest' : 'gas', x: i * 913, z: i * -377, ry: i * 0.4 }));
+test('scenery wrecks skip the stops that have a Bug wreck, are deterministic and only use known models', () => {
+  const w = sceneryWrecks(many2), bug = wreckSites(many2).map(b => b.site);
+  assert.ok(w.length > 0);
+  assert.ok(w.every(q => !bug.includes(q.site) && SCENERY_WRECKS[q.kind]));
+  assert.deepEqual(w, sceneryWrecks(many2));
+  assert.equal(new Set(w.map(q => q.site)).size, w.length, 'one per stop');
+});
+test('a wreck is solid along its whole length', () => {
+  const w = [{ site: 'rs0', kind: 'van', x: 100, z: 200, yaw: 0.7 }], c = wreckColliders(w);
+  assert.equal(c.length, 3);
+  const xs = c.map(q => q[0]), zs = c.map(q => q[1]);
+  assert.ok(Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs)) > 3, 'spread along the van');
+  assert.ok(c.every(q => q[2] > 1 && q[2] < SCENERY_WRECKS.van.width));
+});

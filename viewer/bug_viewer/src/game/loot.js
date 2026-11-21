@@ -1,7 +1,7 @@
 // Where things are found: furniture, containers (toolboxes, drawers, boxes, crates) and loose-part spots
 // inside the garage, barn, warehouse, shacks and gas station. Pure data + the new-game shuffle.
 import { SITES, toWorld, junctions, groundHeight } from '../worlds/county.js';
-import { roadsideLoot } from './roadsideLoot.js';
+import { roadsideLoot, sceneryWrecks, wreckColliders } from './roadsideLoot.js';
 
 const BENCH_TOP = 0.98;   // grandpa's letter lies on the bench at local x -2.6 (see siteData TARGETS)
 // furniture: bench = workbench (2.4 m), rack = pallet rack (len m, 2 shelves)
@@ -44,6 +44,9 @@ export const CONTAINER_RULES = {
   car: { max: 4, n: [0, 0], cash: [0, 0], label: "grandpa's race car", r: 0 },
 };
 
+const ROADSIDE_SITES = junctions()?.roadside?.sites || [];
+/** the dressing wrecks at the roadside stops (drawn by worlds/County.jsx RoadsideWrecks; solid, but nothing to take) */
+export const wrecks = sceneryWrecks(ROADSIDE_SITES);
 const RS = roadsideLoot(junctions()?.roadside?.sites || [], groundHeight);   // classic map: no roadside, no finds
 
 const place = o => { const s = SITES[o.site], [x, z] = toWorld(s, o.lx, o.lz); return { ...o, x, z, y: s.y + (o.ly || 0), wry: s.rot + (o.ry || 0) }; };
@@ -55,6 +58,7 @@ export const LOOT_COLLIDERS = (() => {
   const out = [];
   for (const f of furniture) { const s = SITES[f.site], n = Math.max(2, Math.round(f.len / 1.1)); for (let i = 0; i < n; i++) { const t = (i / (n - 1) - 0.5) * (f.len - 0.6); const [x, z] = toWorld(s, f.lx + Math.cos(f.ry) * t, f.lz - Math.sin(f.ry) * t); out.push([x, z, f.type === 'rack' ? 0.65 : 0.5, 99]); } }
   for (const c of containers) if (!c.ly && CONTAINER_RULES[c.type].r) out.push([c.x, c.z, CONTAINER_RULES[c.type].r, c.id === 'g-chest' ? c.y + 1.5 : 99]);
+  out.push(...wreckColliders(wrecks));
   return out;
 })();
 

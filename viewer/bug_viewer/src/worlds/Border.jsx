@@ -101,13 +101,20 @@ export function WaterSheet({ bit, y, color }) {
     const { nx, nz, cell, x0, z0 } = B.meta, data = new Uint8Array(nx * nz);
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) data[j * nx + i] = (B.maskAt(x0 + i * cell, z0 + j * cell) & bit) ? 255 : 0;
     const tex = new THREE.DataTexture(data, nx, nz, THREE.RedFormat, THREE.UnsignedByteType); tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
+    // the ocean also gets the seabed height (half resolution, half floats) so the water can be deeper-coloured offshore and break into surf lines on the shelf
+    let hTex = null;
+    if (bit === 1) {
+      const sx = Math.ceil(nx / 2), sz = Math.ceil(nz / 2), hd = new Uint16Array(sx * sz);
+      for (let j = 0; j < sz; j++) for (let i = 0; i < sx; i++) hd[j * sx + i] = THREE.DataUtils.toHalfFloat(Math.max(-60, Math.min(60, B.heightAt(x0 + i * 2 * cell, z0 + j * 2 * cell))));
+      hTex = new THREE.DataTexture(hd, sx, sz, THREE.RedFormat, THREE.HalfFloatType); hTex.magFilter = hTex.minFilter = THREE.LinearFilter; hTex.needsUpdate = true;
+    }
     const m = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.85, roughness: 0.24, metalness: 0.05, depthWrite: false });
     const clock = { value: 0 };
     m.userData.clock = clock;
     m.onBeforeCompile = sh => {
-      sh.uniforms.tMask = { value: tex }; sh.uniforms.uBox = { value: new THREE.Vector4(x0, z0, nx * cell, nz * cell) }; sh.uniforms.uCell = { value: cell }; sh.uniforms.uWaterTime = clock;
+      sh.uniforms.tMask = { value: tex }; if (hTex) sh.uniforms.tHeight = { value: hTex }; sh.uniforms.uBox = { value: new THREE.Vector4(x0, z0, nx * cell, nz * cell) }; sh.uniforms.uCell = { value: cell }; sh.uniforms.uWaterTime = clock;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWXZ;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWXZ = (modelMatrix * vec4(position, 1.0)).xz;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D tMask; uniform vec4 uBox; uniform float uCell; uniform float uWaterTime; varying vec2 vWXZ;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + (bit === 1 ? 'uniform sampler2D tHeight;' : '') + ' uniform sampler2D tMask; uniform vec4 uBox; uniform float uCell; uniform float uWaterTime; varying vec2 vWXZ;')
         .replace('#include <color_fragment>', `#include <color_fragment>
           {
             vec2 uv = (vWXZ - uBox.xy + 0.5 * uCell) / uBox.zw;
@@ -120,6 +127,17 @@ export function WaterSheet({ bit, y, color }) {
             float foam = smoothstep(0.2, 0.65, wave) * shore * 0.32;
             diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.72, 0.82, 0.81), foam);
             diffuseColor.a *= smoothstep(0.08, 0.72, mask);
+            ${bit === 1 ? `
+            // depth tint and surf lines (ocean only): shallow turquoise over the shelf, deep blue offshore, white lines that run up the beach
+            float bed = (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) ? -30.0 : texture2D(tHeight, uv).r;
+            float depth = max(0.0, -bed);
+            float deepK = smoothstep(0.0, 2.2, depth);
+            vec3 tint = mix(vec3(0.34, 0.74, 0.74), vec3(0.07, 0.29, 0.48), deepK) * (0.95 + 0.07 * wave);
+            diffuseColor.rgb = mix(diffuseColor.rgb, tint, 0.85);
+            float lines = smoothstep(0.62, 1.0, sin(depth * 11.0 - uWaterTime * 1.2 + wave * 0.8)) * (1.0 - smoothstep(0.15, 0.9, depth));
+            float lip = 1.0 - smoothstep(0.0, 0.12, depth);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 0.94), clamp(lines * 0.5 + lip * 0.75, 0.0, 0.85));
+            diffuseColor.a = mix(0.62, 0.92, deepK) * smoothstep(0.08, 0.72, mask);` : ''}
           }`);
     };
     m.customProgramCacheKey = () => 'border-water-' + bit;

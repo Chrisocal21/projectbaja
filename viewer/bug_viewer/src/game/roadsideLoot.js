@@ -32,3 +32,25 @@ export function wreckSites(sites, max = 4) {
   const rests = sites.map((q, i) => ({ ...q, i })).filter(q => q.type === 'rest').filter((_, k) => k % 2 === 0).slice(0, max);
   return rests.map(q => { const [x, z] = toWorld({ x: q.x, z: q.z, rot: q.ry }, WRECK_SPOT.lx, WRECK_SPOT.lz); return { x, z, h: q.ry + WRECK_SPOT.ry, site: 'rs' + q.i }; });
 }
+
+// ---- scenery wrecks (not strippable: dressing, but solid) ----
+// Two prototype models carried over from Salvage Road's vehicle pack (original blockouts): an unfinished pickup and a step van. Placed at the stops
+// that have no Bug wreck: every rest area the project wrecks skip, and about half the gas stops. Model frame: length along x, Z up in the file (turned upright when drawn).
+export const SCENERY_WRECKS = { pickup: { file: '/models/WRECK_UnfinishedPickup.glb', length: 5.8, width: 2.5 }, van: { file: '/models/WRECK_StepVan.glb', length: 7.0, width: 2.9 } };
+export const WRECK_LOCAL = { gas: { lx: 11.5, lz: 7 }, rest: { lx: 11.5, lz: 9 } };   // beside the apron, clear of the pumps, tables and containers
+export function sceneryWrecks(sites) {
+  const taken = new Set(wreckSites(sites).map(w => w.site)), out = [];
+  sites.forEach((q, i) => {
+    const L = WRECK_LOCAL[q.type]; if (!L || taken.has('rs' + i)) return;
+    if (q.type === 'gas' && hash(q.x + 7, q.z) > 0.5) return;   // about half the gas stops
+    const kind = hash(q.z, q.x + 3) > 0.5 ? 'van' : 'pickup', yaw = q.ry + (hash(q.x, q.z + 5) - 0.5) * 0.5, [x, z] = toWorld({ x: q.x, z: q.z, rot: q.ry }, L.lx, L.lz);
+    out.push({ site: 'rs' + i, kind, x, z, yaw });
+  });
+  return out;
+}
+/** circles the walker and the car bump into: three along the wreck's length. [x, z, r, height] like the other solids */
+export function wreckColliders(wrecks) {
+  const out = [];
+  for (const w of wrecks) { const d = SCENERY_WRECKS[w.kind], u = [Math.cos(w.yaw), -Math.sin(w.yaw)], r = d.width / 2 - 0.1; for (const k of [-1, 0, 1]) out.push([w.x + u[0] * k * (d.length / 2 - r), w.z + u[1] * k * (d.length / 2 - r), r, 3]); }
+  return out;
+}

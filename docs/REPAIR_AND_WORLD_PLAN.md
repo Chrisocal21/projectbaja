@@ -173,3 +173,9 @@ Every rest area and gas station on the real highways (36 of them: 8 rest, 28 gas
 
 ## Group C: ordering (Nov 21)
 Garage supplies and tools can be ordered from the phone's Internet app and the office PC (new Supplies and Tools tabs, order kind `garage`, same 3 game hour delivery to the shop pickup). Prices match Dusty's store. See CONTROLS_AND_STORAGE_PLAN.
+
+## Group D, step 1: coast and dressing from unused assets (Nov 21)
+ChatGPT's coast and region art (ART_PROMPTS Group D) has not arrived yet, so this step is data and mechanics only; the look gets restyled when it does.
+- **Coast water** (`worlds/Border.jsx` `WaterSheet`, ocean only): the sheet now carries a half-resolution seabed height texture, so the shader tints shallow turquoise to deep blue by depth, draws a white lip at the waterline and faint surf lines on the shelf. The heights in game metres are scaled down 8x (border.json vScale 0.125), so the depth ranges are small (full deep colour at 2.2 m). PROPOSAL values; they will want tuning against ChatGPT's D2 references. Costs one 1.3M-sample texture built at load.
+- **Scenery wrecks from Salvage Road's vehicle pack** (the two unused blockout models, 77 and 80 KB, copied to `public/models/WRECK_*.glb`): an unfinished pickup and a step van stand at the roadside stops that have no Bug wreck (every rest area the project wrecks skip and about half the gas stops; 20 in all). They are dressing, not parts sources: solid (three collision circles each) but nothing to strip. Each file's ~100 parts are merged into one mesh (the files have no normals and 8-bit RGBA vertex colours, so flat normals are computed and colours flattened), one draw call per wreck, drawn only within 500 m. Data and tests in `game/roadsideLoot.js`.
+- Still unused: the 2004 Frontier (19 MB GLB, too big to ship as is; needs a decimated copy), the spare Beetle models, `ENV_*` packs beyond what the scatter already uses.
