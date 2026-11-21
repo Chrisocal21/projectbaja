@@ -181,3 +181,15 @@ test('trailer surfaces (data only): a flat deck and an enclosed floor with real 
   assert.equal(why(box, GAME_PLACEABLES.crate4, on(box, 'crate4', 0.5, 0.6, { y: 1.3 }), [], items), 'too tall for here', 'the roof');
   assert.equal(why(box, GAME_PLACEABLES.crate4, on(box, 'crate4', 0.5, 0.6), [], items), null);
 });
+
+test('El Cajon bed mounts 5-8: four upright tires against the cab wall, the outer two on the well tops, none through a well', () => {
+  const b = surfacesFor('cajon', {})[0], there = [];
+  assert.deepEqual(b.mounts.map(m => m.label), ['Tire mount 5', 'Tire mount 6', 'Tire mount 7', 'Tire mount 8']);
+  for (const m of b.mounts) {
+    const pl = { ...atMount(m, 'tire', b.id, 'u' + m.id) };
+    assert.equal(why(b, upright, pl, there, items), null, `${m.label} is a legal spot even with the others filled`);
+    near(pl.z, b.size[1] - TIRE_SIZE.dia / 2, 'flush against the cab wall'); there.push(pl);
+  }
+  assert.deepEqual(b.mounts.map(m => m.y), [0.26, 0, 0, 0.26]);
+  for (let i = 1; i < 4; i++) assert.ok(there[i].x - there[i - 1].x >= TIRE_SIZE.width - 1e-9, 'a tire-width apart');
+});

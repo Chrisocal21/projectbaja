@@ -24,8 +24,9 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
-import { applyMachinePlan, held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
+import { applyMachinePlan, held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
+import { toggleLights } from './game/lights.js';
 import { carFitReady } from './game/carSnap.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
 import { dustyVisit } from './game/cajonGift.js';
@@ -272,11 +273,12 @@ function App() {
         if (e.code === 'KeyX') { const o = nearestOpening(bm.x, bm.z), n0 = game.props.map(q => Math.hypot(q.x - bm.x, q.z - bm.z)).sort((a, b) => a - b)[0]; if (o && o.d < 2.5 && (n0 === undefined || o.d <= n0)) { closeOpening(o.key); return; } const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
+      if (e.code === 'KeyL' && !e.repeat && p === null && !game.buildMode) { toggleLights(); return; }
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
       if (e.code === 'Escape') { if (p === 'pause' || p === 'shop' || p === 'garage' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
-      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (game.nearCar) { if (held()) loadHeld(); else takeFromCar(); } }
+      else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (vehiclesNear().length) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };

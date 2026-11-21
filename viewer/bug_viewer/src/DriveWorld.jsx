@@ -28,6 +28,7 @@ import { defOf } from './game/projects.js';
 import Walker from './game/Walker.jsx';
 import Items, { Cargo } from './game/Items.jsx';
 import DeliveryTruck from './game/DeliveryTruck.jsx';
+import { lightsUsable } from './game/lights.js';
 import VehicleCargo from './placement/VehicleCargo.jsx';   // vehicle cargo placement (Stage 3)
 import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
@@ -157,6 +158,19 @@ function Gates({ race }) {
   useFrame(() => { mats.current.forEach((m, i) => { if (!m) return; const on = i === race.current.next; m.color.set(on ? '#ffd23f' : '#3a6ea5'); m.opacity = on ? 0.95 : 0.35; }); });
   return <>{GATES.map(([x, z], i) => <mesh key={i} position={[x, terrainHeight(x, z) + 3.2, z]} rotation={[0, Math.atan2(-x, -z) + Math.PI / 2, 0]}>
     <torusGeometry args={[3.4, 0.28, 8, 28]} /><meshBasicMaterial ref={m => (mats.current[i] = m)} transparent depthWrite={false} /></mesh>)}</>;
+}
+
+/** two headlight beams on the front of the vehicle (L). Real lights only while on, so the shader only pays for them then. */
+function Headlights({ dims }) {
+  useGame();
+  const on = !!game.lights && lightsUsable().ok;
+  const fl = dims.mounts?.find(m => m.name === 'FL'), fz = fl ? fl.center[2] : 1.5, dir = fz >= 0 ? 1 : -1, z = fz + dir * 0.9, spread = (dims.track || 1.6) * 0.32;
+  const targets = useMemo(() => [new THREE.Object3D(), new THREE.Object3D()], []);
+  if (!on) return null;
+  return <>{[-1, 1].map((side, i) => <React.Fragment key={side}>
+    <spotLight position={[side * spread, 0.75, z]} target={targets[i]} color="#fff1d0" intensity={300} distance={90} decay={1.4} angle={0.5} penumbra={0.55} />
+    <primitive object={targets[i]} position={[side * spread * 0.6, -0.5, z + dir * 22]} />
+  </React.Fragment>)}</>;
 }
 
 function Vehicle({ children, hud, dims, race, sun }) {
@@ -451,7 +465,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (acc.current > STEP * 5) acc.current = 0;
   });
 
-  return <group ref={group}>{children}<Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group>;
+  return <group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group>;
 }
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };

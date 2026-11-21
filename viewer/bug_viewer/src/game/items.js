@@ -4,7 +4,7 @@ import { allocUid } from './saveFormat.js';
 import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld } from '../worlds/county.js';
-import { activeType } from './fleet.js';
+import { activeType, vehicleType, parked } from './fleet.js';
 import { dropSpot } from './dropSpot.js';
 import { SUPPLIES } from './jobs.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
@@ -28,7 +28,7 @@ const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooli
 export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
-const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '');   // tire machine: wheels and tires can be punctured or flat
+const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '') || '';   // tire machine: wheels and tires can be punctured or flat
 export const nameOfItem = it => withTread(baseName(it), it) + wheelState(it);
 const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
@@ -39,10 +39,17 @@ export const CAPACITY = { pack: 4, cab: 4, roof: 6 };
 export const hasRack = () => !!game.build?.parts?.roofRack;
 const vehOf = i => i.veh || 'bug';
 export const used = (spot, veh = game.active) => game.items.filter(i => (spot === 'pack' ? i.loc === 'pack' : i.loc === 'car' && vehOf(i) === veh && i.spot === spot)).reduce((n, i) => n + itemSize(i), 0);
-/** the active vehicle's storage spots: the Bug has a cab (+ a roof deck with a rack), trucks have a cab and a bed */
-export function storageOf() {
-  const t = activeType(); if (t.storage) return t.storage;
+/** a vehicle's quick-stow spots: the Bug has its cab (4) and a roof deck with a rack (6); trucks have a cab and a bed. (The Bug's front trunk and luggage shelf are grid surfaces: placement/vehicleSurfaces.js.) */
+export function storageOf(veh = game.active) {
+  const t = vehicleType(veh); if (t.storage) return t.storage;
   return { cab: { cap: CAPACITY.cab, max: 4, label: 'car' }, ...(hasRack() ? { roof: { cap: CAPACITY.roof, max: 3, label: 'roof rack' } } : {}) };
+}
+/** owned vehicles you are standing at (within 6 m, nearest first): the one you drive and any you left parked. Their storage is reachable from the inventory. */
+export function vehiclesNear(reach = 6) {
+  const out = [];
+  if (game.nearCar) out.push([game.active, 0]);
+  for (const v of parked()) if (v.pose && game.pos) { const d = Math.hypot(v.pose.x - game.pos.x, v.pose.z - game.pos.z); if (d < reach) out.push([v.id, d]); }
+  return out.sort((a, b) => a[1] - b[1]).map(([id]) => id);
 }
 export const held = () => game.items.find(i => i.loc === 'hand');
 export const packItems = () => game.items.filter(i => i.loc === 'pack');
@@ -53,9 +60,9 @@ export function storeInGarage(uidN) { const it = game.items.find(i => i.uid === 
 export function takeFromGarage(uidN) { const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'garage') return; const w = takeOnto(it); if (!w) return say(fullMsg(it)); commit(); }
 export function giveToGarage(kind, id, extra = {}) { game.items.push({ uid: uid(), kind, id, loc: 'garage', ...extra }); commit(); }
 export const boxItems = id => game.items.filter(i => i.loc === 'box' && i.box === id);
-export function spotFor(it) {
+export function spotFor(it, veh = game.active) {
   const s = itemSize(it);
-  for (const [k, v] of Object.entries(storageOf())) if (s <= v.max && used(k) + s <= v.cap) return k;
+  for (const [k, v] of Object.entries(storageOf(veh))) if (s <= v.max && used(k, veh) + s <= v.cap) return k;
   return null;
 }
 const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= CAPACITY.pack;
@@ -114,15 +121,15 @@ export function holdItem(uidN) {
   if (h) { if (itemSize(h) === 1) h.loc = 'pack'; else return say('Your hands are full.'); }
   it.loc = 'hand'; commit();
 }
-export function stowInCar(uidN) {
+export function stowInCar(uidN, veh = game.active) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
-  const spot = spotFor(it);
-  if (!spot) return say(activeType().storage ? `The ${activeType().name} is full.` : itemSize(it) >= 4 || !hasRack() ? "Won't fit in the Bug. You need a truck for that (Al has one), or a roof rack for smaller parts." : 'The car is full.');
-  at(it); it.loc = 'car'; it.spot = spot; it.veh = game.active; commit(); say(`${nameOfItem(it)} → ${storageOf()[spot].label}`);
+  const spot = spotFor(it, veh), t = vehicleType(veh);
+  if (!spot) return say(t.storage ? `The ${t.name} is full.` : itemSize(it) >= 4 || !hasRack() ? "Won't fit in the Bug. You need a truck for that (Al has one), or a roof rack for smaller parts." : 'The car is full.');
+  at(it); it.loc = 'car'; it.spot = spot; it.veh = veh; commit(); say(`${nameOfItem(it)} → ${storageOf(veh)[spot].label}`);
 }
-export const loadHeld = () => stowInCar();
+export const loadHeld = () => stowInCar(undefined, vehiclesNear()[0] || game.active);
 export function takeFromCar(uidN) {
-  const it = uidN ? game.items.find(i => i.uid === uidN) : [...carItems()].reverse().find(i => fitsPack(i) || !held());
+  const it = uidN ? game.items.find(i => i.uid === uidN) : [...carItems(vehiclesNear()[0] || game.active)].reverse().find(i => fitsPack(i) || !held());
   if (!it) return say(carItems().length ? 'Your hands are full.' : 'Nothing in the car.');
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
   commit(); say(`Took out: ${nameOfItem(it)}`);

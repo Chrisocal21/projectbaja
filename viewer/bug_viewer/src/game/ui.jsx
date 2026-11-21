@@ -1,9 +1,9 @@
 import React from 'react';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
-import { VEHICLE_TYPES, FOR_SALE, activeType } from './fleet.js';
+import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
 import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas } from './home.js';
-import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone } from './items.js';
+import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone, vehiclesNear } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
@@ -136,17 +136,22 @@ export function ContainerPanel({ id, onClose }) {
     <p className="hint">Small parts go in your pack. Anything bigger has to be carried in your hands, one at a time.</p></div></div>;
 }
 
-/** Tab: hands, pack, and the car's storage when you're standing next to it */
+/** Tab: hands, pack, the storage of every vehicle you are standing at (the one you drive and any you left parked), the garage shelves */
 export function InventoryPanel({ onClose }) {
   useGame();
-  const h = held(), pack = packItems(), car = carItems(), near = game.nearCar, shed = inGarageZone(game.pos.x, game.pos.z), shelf = garageItems();
+  const h = held(), pack = packItems(), vehs = vehiclesNear(), shed = inGarageZone(game.pos.x, game.pos.z), shelf = garageItems();
+  const shown = [game.active, ...vehs.filter(v => v !== game.active)];   // the one you drive is always listed; parked ones appear when you walk up to them
   const toShelf = it => shed && <button onClick={() => storeInGarage(it.uid)}>Shelve</button>;
+  const putIn = it => vehs.map(v => <button key={v} onClick={() => stowInCar(it.uid, v)}>{vehs.length > 1 ? `Put in ${vehicleType(v).name}` : 'Put in car'}</button>);
   return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
-    <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{near && <button onClick={() => stowInCar(h.uid)}>Put in car</button>}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
+    <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
     <div className="inv-sec">PACK <span>{used('pack')}/{CAPACITY.pack} · small parts only</span></div>
-    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{near && <button onClick={() => stowInCar(it.uid)}>Put in car</button>}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
-    <div className="inv-sec">{activeType().name.toUpperCase()} <span>{Object.entries(storageOf()).map(([k, v]) => `${v.label} ${used(k)}/${v.cap}`).join(' · ')}{activeType().kind === 'build' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
-    {car.length ? car.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to the car</small>}</Row>) : <p className="hint">Empty</p>}
+    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
+    {shown.map(v => { const t = vehicleType(v), near = vehs.includes(v), list = carItems(v);
+      return <React.Fragment key={v}>
+        <div className="inv-sec">{t.name.toUpperCase()} <span>{Object.entries(storageOf(v)).map(([k, s]) => `${s.label} ${used(k, v)}/${s.cap}`).join(' · ')}{v === 'bug' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
+        {list.length ? list.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
+      </React.Fragment>; })}
     <div className="inv-sec">SCRAP METAL <span>{game.mats?.scrap || 0} pieces · used at the workbench</span></div>
     <div className="inv-sec">GARAGE SHELVES <span>{shelf.length} parts{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}

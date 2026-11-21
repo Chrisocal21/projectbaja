@@ -53,7 +53,7 @@ export function KeyHints({ driving, pro, cabLabel }) {
   const list = bm ? (bm.moving ? [['Click', 'Set down'], ['Wheel/Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Esc', 'Cancel']]
     : [['Click', 'Build / pick up'], ['Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Wheel', 'Rotate'], ['1-8', 'Hotbar'], ['N', 'Material'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Esc', 'Put away']])
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]
-      : [['WASD', 'Walk'], ['Shift', 'Run'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ...(game.canBuild ? [['B', 'Build'], ['U', 'Upgrades']] : []), ['M', 'Map'], ['I', 'Index'], ['Esc', 'Menu']];
+      : [['WASD', 'Walk'], ['Shift', 'Run'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['L', 'Lights'], ...(game.canBuild ? [['B', 'Build'], ['U', 'Upgrades']] : []), ['M', 'Map'], ['I', 'Index'], ['Esc', 'Menu']];
   return <div className={`hud-keys2${bm ? ' col' : ''}`}>{bm?.why && <span style={{ color: '#ff8a7a' }}>{bm.why}</span>}{list.map(([k, t]) => <span key={k + t}><Key k={k} />{t}</span>)}</div>;
 }
 

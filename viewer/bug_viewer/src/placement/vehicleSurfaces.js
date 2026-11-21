@@ -44,9 +44,13 @@ const pickupBed = cargo({
 // ---- the El Cajon (cajon/model.js, ray-cast down the model 2026-11-21): bed floor y 0.60 between the cab wall (z -0.75) and the tailgate (z -2.45), x +-0.9;
 // the wheel wells stand 0.26 over the floor at x 0.5..0.9, z -1.65..-0.8. Frame = the model's own: nose +z (no turn like the pickup's), so rotY 0. Headroom is a PROPOSAL (open top). ----
 const CAJON_BED = { w: 1.8, d: 1.65, well: { inner: 0.4, from: 0.75, to: 1.65, top: 0.26 } };
+// TIRE MOUNTS 5-8 on the Cajon's bed (PROPOSAL, same idea as the pickup's): the cab wall is at the surface's far end (z = d, the model is not turned), so the
+// tires stand against it. Between the wells there is 1.0 m: two tires fit on the floor (x 0.62, 1.18), the outer two stand on the well tops.
+const cajonMounts = [[5, 0.20, CAJON_BED.well.top], [6, 0.62, 0], [7, 1.18, 0], [8, 1.60, CAJON_BED.well.top]].map(([n, x, y]) => ({ id: `m${n}`, label: `Tire mount ${n}`, x, z: CAJON_BED.d - TIRE_R, y, pose: 'upright', accepts: ['tire'] }));
 const cajonBed = cargo({
   id: 'bed', name: 'Bed', size: [CAJON_BED.w, CAJON_BED.d], at: { x: 0, y: 0.6, z: -1.6 }, clearance: 1.2, gridSteps: [0.25, 0.1, 0.05],
   blocks: [{ x0: 0, z0: CAJON_BED.well.from, x1: CAJON_BED.well.inner, z1: CAJON_BED.well.to, top: CAJON_BED.well.top }, { x0: CAJON_BED.w - CAJON_BED.well.inner, z0: CAJON_BED.well.from, x1: CAJON_BED.w, z1: CAJON_BED.well.to, top: CAJON_BED.well.top }],
+  mounts: cajonMounts,
 });
 
 // ---- TRAILERS (no trailer exists in the game yet: data only, ready for when one is towed. All numbers are PROPOSALS, typical small utility trailers).
