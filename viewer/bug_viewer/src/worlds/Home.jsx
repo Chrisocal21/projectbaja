@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import MergedStatic from './MergedStatic.jsx';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { SITES, groundHeight, height } from './county.js';
@@ -457,6 +458,8 @@ function PegboardModel({ uid }) {
     </group>)}
   </>;
 }
+/** placed props that never change shape are baked into a few meshes (MergedStatic); structure pieces and the pegboard (tools hang on it) are not */
+const MERGE_OK = id => !isPiece(id) && id !== 'pegboard';
 export function PropModel({ id, T, mat, uid }) {
   if (isPiece(id)) return <StructureModel id={id} mat={mat} />;
   if (id === 'wallOpening') return <group>{[-0.96, 0.96].map(x => <mesh key={x} position={[x, 1.3, 0]}><boxGeometry args={[0.1, 2.6, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh>)}<mesh position={[0, 2.56, 0]}><boxGeometry args={[2, 0.1, 0.3]} /><meshStandardMaterial color="#6b4a2f" /></mesh></group>;
@@ -576,7 +579,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
     {PLACEMENT && <GarageCargo />}
     <Customer />
     <Ghost T={T} />

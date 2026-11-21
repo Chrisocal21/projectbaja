@@ -169,8 +169,8 @@ export default function Walker({ world, sun }) {
     const eye = { x: camera.position.x, y: camera.position.y, z: camera.position.z }, look = lookDir(s.yaw, s.pitch);
     // shape = { r, h, dy } vertical post (radius, height, offset above the floor you stand on) or { box:{hx,hz,h,yaw} }. On foot the view ray must pass through it.
     const consider = (id, x, z, r, face, bonus = 1, shape = AIM_DEFAULT) => {
+      const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;   // (cheap distance first: the terrain height below is costly and most targets are far away)
       if (foot && world.id === 'county' && s.y > world.height(x, z) + 1.4) return;
-      const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;
       if (foot && !(shape.box ? aimsAtBox(eye, look, { x, z, y: s.y, ...shape.box }, r) : aimsAt(eye, look, { x, z, y: s.y + (shape.dy || 0), h: shape.h, r: shape.r }, r))) return;
       if (d * bonus < bd) { bd = d * bonus; best = id; }
     };

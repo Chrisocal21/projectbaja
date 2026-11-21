@@ -482,10 +482,18 @@ const COUNTY_WORLD = {
     return obsCache.list;
   },
 };
+const SKIP_MATRICES = () => {};
 /** draws its children only while you are within `r` metres (projects far away cost nothing: no draw calls, no shadow pass) */
 function Near({ x, z, r = 140, children, ...props }) {
   const g = useRef();
-  useFrame(() => { if (g.current) g.current.visible = Math.hypot(game.pos.x - x, game.pos.z - z) < r; });
+  useFrame(() => {
+    const o = g.current; if (!o) return;
+    const on = Math.hypot(game.pos.x - x, game.pos.z - z) < r;
+    o.visible = on;
+    // hidden is not free: three still walks every child to update its matrix each frame (a project car is ~200 objects). While away, skip the subtree entirely.
+    if (!on) { if (o.updateMatrixWorld !== SKIP_MATRICES) o.updateMatrixWorld = SKIP_MATRICES; }
+    else if (o.updateMatrixWorld === SKIP_MATRICES) { delete o.updateMatrixWorld; o.matrixWorldNeedsUpdate = true; }   // back in range: the prototype method again, and a full refresh
+  });
   return <group ref={g} {...props}>{children}</group>;
 }
 /** every vehicle that is not the one you are using: parked where you left it, or waiting on Al's lot */
