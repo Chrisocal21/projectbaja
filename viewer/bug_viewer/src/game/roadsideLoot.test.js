@@ -28,3 +28,16 @@ test('containers stand on the ground and spots sit inside the place', () => {
 test('a classic map (no roadside) has no finds', () => {
   assert.deepEqual(roadsideLoot([]), { containers: [], spots: [] });
 });
+
+import { wreckSites, FAR_KM } from './roadsideLoot.js';
+test('wrecks stand at every other rest area, beside the building, never at gas stations', () => {
+  const many = [{ type: 'rest', x: 0, z: 0, ry: 0 }, { type: 'gas', x: 50, z: 0, ry: 0 }, { type: 'rest', x: 100, z: 0, ry: 0 }, { type: 'rest', x: 200, z: 0, ry: 0 }, { type: 'rest', x: 300, z: 0, ry: 0 }];
+  const w = wreckSites(many);
+  assert.deepEqual(w.map(q => q.site), ['rs0', 'rs3']);   // rests are rs0, rs2, rs3, rs4: every other one
+  assert.ok(Math.abs(w[0].x + 10.5) < 1e-9 && Math.abs(w[0].z + 3) < 1e-9);
+  assert.equal(wreckSites(many, 1).length, 1);
+});
+test('stops far from home are worth more', () => {
+  const { containers } = roadsideLoot([{ type: 'gas', x: 0, z: 0, ry: 0 }, { type: 'gas', x: FAR_KM * 3, z: 0, ry: 0 }]);
+  assert.ok(containers[0].far < 0.01 && containers.at(-1).far === 2);
+});

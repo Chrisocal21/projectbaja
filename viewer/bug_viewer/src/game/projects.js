@@ -4,7 +4,8 @@
 //   game.work     = the restorable vehicle you are standing at right now (set every frame by Walker): { id, active, def, build, pose, zone, lx, lz }
 // Ids: the Bug is 'bug'; a project is 'p' + its uid. A project's build says which vehicle it is (build.def) so the rules never have to guess.
 import { game, save } from './store.js';
-import { SITES, toWorld } from '../worlds/county.js';
+import { SITES, toWorld, junctions } from '../worlds/county.js';
+import { wreckSites } from './roadsideLoot.js';
 import { defaultBuild, normalize } from '../build.js';
 import { vehicleType } from './fleet.js';
 import { BUG, VEHICLES } from '../rules/vehicles.js';
@@ -28,7 +29,21 @@ export function ensureProjects() {
     return { uid: i + 1, name: d.name, def: 'bug', build: normalize({ ...defaultBuild(), stripped: d.stripped, hidden: d.hidden }), pose: { x, z, h: s.rot + d.ry } };
   });
   game.projects = [...(game.projects || []), ...made.filter(m => !(game.projects || []).some(p => p.uid === m.uid))];
-  game.home = { ...game.home, projectsV: 1 };
+  game.home = { ...game.home, projectsV: Math.max(1, game.home.projectsV || 0) };
+  save();
+}
+
+/** wrecks at the roadside rest areas (once per save, home.projectsV 2): three kinds, so a long drive turns up a different mix of parts each time */
+export const WRECKS = [
+  { name: "'63 Bug (shell, seats and glass)", stripped: ['engine', 'battery', 'wheelFL', 'wheelFR', 'wheelRL', 'wheelRR'], hidden: ['windshield', 'headlights', 'dash', 'steering'] },
+  { name: "'72 Bug (engine and battery)", stripped: ['wheelFL', 'wheelFR', 'wheelRL', 'wheelRR'], hidden: ['hoodPanel', 'doorL', 'doorR', 'windshield', 'fenderFL', 'fenderFR', 'frontBumperP', 'rearBumperP', 'seatDriver', 'seatPassenger', 'seatBack', 'headlights', 'dash', 'steering'] },
+  { name: "'65 Bug (wheels, no motor)", stripped: ['engine', 'battery'], hidden: ['hoodPanel', 'doorL', 'doorR', 'fenderFL', 'fenderFR', 'frontBumperP', 'rearBumperP', 'seatBack', 'headlights'] },
+];
+export function ensureRoadsideWrecks() {
+  if ((game.home.projectsV || 0) >= 2) return;
+  game.home = { ...game.home, projectsV: 2 };
+  const spots = wreckSites(junctions()?.roadside?.sites || []);
+  spots.forEach((w, k) => { const d = WRECKS[k % WRECKS.length]; addProject({ uid: nextProjectUid(), name: d.name, def: 'bug', build: normalize({ ...defaultBuild(), stripped: d.stripped, hidden: d.hidden }), pose: { x: w.x, z: w.z, h: w.h } }); });
   save();
 }
 
