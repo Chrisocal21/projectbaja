@@ -23,7 +23,7 @@ import { TRUNKS } from './worlds/biomes/trunks.js';
 import { vehicleType, standingVehicles } from './game/fleet.js';
 import TruckModel from './Truck.jsx';
 import BuildModel from './BuildModel.jsx';
-import CajonModel from './cajon/CajonModel.jsx';
+import CajonModel, { CajonCar } from './cajon/CajonModel.jsx';
 import { defOf } from './game/projects.js';
 import Walker from './game/Walker.jsx';
 import Items, { Cargo } from './game/Items.jsx';
@@ -169,7 +169,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef(null);
-  if (!s.current) { s.current = spawnState(); if (game.keepPose && game.pose) { Object.assign(s.current, { x: game.pose.x, z: game.pose.z, h: game.pose.h, y: world.height(game.pose.x, game.pose.z) + 0.5 }); game.keepPose = false; } }
+  if (!s.current) {
+    s.current = spawnState();
+    const at = game.keepPose && (game.spawnAt || game.pose);   // a vehicle swap carries its own spawn spot: the car you just left is still writing game.pose every frame until it unmounts
+    if (at) { Object.assign(s.current, { x: at.x, z: at.z, h: at.h, y: world.height(at.x, at.z) + 0.5 }); game.keepPose = false; game.spawnAt = null; }
+  }
   useEffect(() => {   // number keys teleport between test-center areas
     const tp = e => { if (!game.dev || game.paused) return; const w = world.spawns.find(p => e.code === 'Digit' + p.key || e.code === p.code); if (!w) return; Object.assign(s.current, spawnState(), { x: w.x, z: w.z, h: w.h, y: world.height(w.x, w.z) + 0.5 }); camPos.current.set(w.x - Math.sin(w.h) * 10, 4, w.z - Math.cos(w.h) * 10); };
     window.addEventListener('keydown', tp); return () => window.removeEventListener('keydown', tp);
@@ -474,7 +478,7 @@ function Near({ x, z, r = 140, children, ...props }) {
 function Fleet() {
   useGame();
   return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.groundHeight(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
-    <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : <TruckModel />}</Suspense>
+    <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : v.id === 'cajon' ? <CajonCar /> : <TruckModel />}</Suspense>
     <Cargo veh={v.id} />
     {!v.forSale && <VehicleCargo veh={v.id} />}
   </group>)}

@@ -3,7 +3,7 @@
 import { game, save, say, transact } from './store.js';
 import { newOrder } from './orderlogic.js';
 import { isDriveable } from '../rules/restore.js';
-import { BUG } from '../rules/vehicles.js';
+import { BUG, CAJON } from '../rules/vehicles.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { nextProjectUid, addProject } from './projects.js';
 import { shellBuild, pileSpots, shouldOffer, GIFT_HOURS, YARD_SPOT } from './cajonParts.js';
@@ -25,7 +25,7 @@ export function dustyVisit() {
 
 /** the order is due: the shell is set down in the yard with its pile of parts beside it */
 export function giftArrives() {
-  if (cajonProject()) return;
+  if (cajonProject() || game.fleet?.cajon || cajonState()?.promoted) return;
   const s = SITES.garage, [x, z] = toWorld(s, YARD_SPOT.lx, YARD_SPOT.lz), pose = { x, z, h: s.rot + YARD_SPOT.ry }, uid = nextProjectUid();
   transact(() => {   // the truck, its pile and the note that it came are ONE save write
     addProject({ uid, name: "'66 El Cajon", def: 'cajon', build: shellBuild(), pose });
@@ -35,5 +35,19 @@ export function giftArrives() {
   say("Dusty dropped the El Cajon in Walt's yard — just a shell, with a pile of its parts beside it. The rest is on the phone's Parts online.");
 }
 
+/** the truck runs: it stops being a project and becomes one of your vehicles (game.fleet.cajon: its pose and the parts it has on). Returns false if it cannot be driven yet. */
+export function promoteCajon(uid) {
+  const p = (game.projects || []).find(x => x.uid === uid && x.def === 'cajon');
+  if (!p || game.fleet.cajon || !isDriveable(CAJON, p.build)) return false;
+  transact(() => {
+    game.projects = game.projects.filter(x => x.uid !== uid);
+    game.fleet = { ...game.fleet, cajon: { pose: p.pose, build: p.build } };
+    game.items = game.items.map(i => (i.veh === 'p' + uid ? { ...i, veh: 'cajon' } : i));
+    game.home = { ...game.home, cajon: { ...(game.home.cajon || {}), promoted: true } };
+  });
+  say('The El Cajon turns over. Dusty would be proud.');
+  return true;
+}
+
 // test hook (like window.__walk / __fleet): deliver the truck now, or see where the gift stands
-if (typeof window !== 'undefined') window.__cajon = { deliver: giftArrives, offer: dustyVisit, state: cajonState, project: cajonProject };
+if (typeof window !== 'undefined') window.__cajon = { promote: promoteCajon, deliver: giftArrives, offer: dustyVisit, state: cajonState, project: cajonProject };

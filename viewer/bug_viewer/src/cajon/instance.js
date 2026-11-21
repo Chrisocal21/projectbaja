@@ -28,7 +28,7 @@ function ownMaterials(root) {
 }
 
 /** a new truck: { root, lift, shell, parts: {slotId -> group}, wheels: {FL.. -> mesh}, stands: {FL.. -> group}, open: {coverId -> 0..1} } */
-export function makeCajon() {
+export function makeCajon(rig = false) {   // rig: name the wheels Wheel_FL.. so the drive rig (suspension.js buildWheelRig) can spin and steer them
   const T = getTemplate(), root = new THREE.Group(), lift = new THREE.Group();
   root.name = 'El Cajon'; lift.position.y = GROUND_Y; root.add(lift);
   const shell = T.body.clone(true); ownMaterials(shell); lift.add(shell);
@@ -40,7 +40,7 @@ export function makeCajon() {
   }
   const post = new THREE.MeshStandardMaterial({ color: '#b8361f', metalness: 0.4, roughness: 0.5 });
   Object.entries(HUBS).forEach(([name, at], i) => {
-    const w = T.wheels[i].clone(true); ownMaterials(w); w.position.set(...at); w.userData.slot = 'ecWheel' + name; lift.add(w); wheels[name] = w;
+    const w = T.wheels[i].clone(true); ownMaterials(w); w.position.set(...at); w.userData.slot = 'ecWheel' + name; if (rig) w.name = 'Wheel_' + name; lift.add(w); wheels[name] = w;
     const st = new THREE.Group(), h = at[1] + GROUND_Y;   // a jack stand under the bare hub: the truck sits on blocks, not on its axle
     const mast = new THREE.Mesh(new THREE.BoxGeometry(0.22, h * 0.9, 0.22), post); mast.position.y = h * 0.45; mast.castShadow = true;
     const foot = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.04, 0.46), post); foot.position.y = 0.02;

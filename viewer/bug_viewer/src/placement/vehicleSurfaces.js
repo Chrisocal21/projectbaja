@@ -41,6 +41,14 @@ const pickupBed = cargo({
   mounts: bedMounts,
 });
 
+// ---- the El Cajon (cajon/model.js, ray-cast down the model 2026-11-21): bed floor y 0.60 between the cab wall (z -0.75) and the tailgate (z -2.45), x +-0.9;
+// the wheel wells stand 0.26 over the floor at x 0.5..0.9, z -1.65..-0.8. Frame = the model's own: nose +z (no turn like the pickup's), so rotY 0. Headroom is a PROPOSAL (open top). ----
+const CAJON_BED = { w: 1.8, d: 1.65, well: { inner: 0.4, from: 0.75, to: 1.65, top: 0.26 } };
+const cajonBed = cargo({
+  id: 'bed', name: 'Bed', size: [CAJON_BED.w, CAJON_BED.d], at: { x: 0, y: 0.6, z: -1.6 }, clearance: 1.2, gridSteps: [0.25, 0.1, 0.05],
+  blocks: [{ x0: 0, z0: CAJON_BED.well.from, x1: CAJON_BED.well.inner, z1: CAJON_BED.well.to, top: CAJON_BED.well.top }, { x0: CAJON_BED.w - CAJON_BED.well.inner, z0: CAJON_BED.well.from, x1: CAJON_BED.w, z1: CAJON_BED.well.to, top: CAJON_BED.well.top }],
+});
+
 // ---- TRAILERS (no trailer exists in the game yet: data only, ready for when one is towed. All numbers are PROPOSALS, typical small utility trailers).
 // Frame = the trailer's own model frame like a vehicle's: +z toward the hitch (the tow vehicle), y up from the ground under the wheels, x across.
 // flat bed: 1.6 x 3.0 m deck 0.6 m up, open top, low rail all round (nothing is refused for height), items pull flush to the rails.
@@ -52,6 +60,7 @@ const trailerEnclosed = cargo({ id: 'floor', name: 'Trailer floor', size: [1.7, 
 export const VEHICLE_SURFACES = {
   bug: { classic: bugSurfaces(0), 'classic-stage2': bugSurfaces(0.14) },
   pickup84: [pickupBed],
+  cajon: [cajonBed],
   trailerFlat: [trailerFlat],
   trailerEnclosed: [trailerEnclosed],
 };

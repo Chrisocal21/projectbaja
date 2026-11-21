@@ -54,6 +54,15 @@ function FitGhost({ build, vehId }) {
   </group>;
 }
 
+/** the finished truck you drive or have parked (game.fleet.cajon): the same model, rigged for the drive sim. Parts are fixed on it now; doors and hood stay shut. */
+export function CajonCar() {
+  useGame();
+  const build = game.fleet?.cajon?.build, inst = useMemo(() => makeCajon(true), []);
+  useEffect(() => () => disposeCajon(inst), [inst]);
+  useEffect(() => { if (build) applyBuild(inst, build); }, [inst, build]);
+  return <primitive object={inst.root} />;
+}
+
 export default function CajonModel({ build, drive = false, vehId, uid }) {
   const inst = useMemo(makeCajon, []), carRef = useRef();
   useEffect(() => () => disposeCajon(inst), [inst]);

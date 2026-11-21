@@ -134,7 +134,7 @@ Built and **driven through the real game in headless Chrome** (not yet by Chris'
 - **Parts.** Dusty's pile: bench seat, dashboard, steering wheel, hood, both doors. Everything else is to find or buy: phone and office PC, Parts online, new "El Cajon" tab once it is in the yard (engine $420, battery $85, grille $60, headlights $70, bumpers $90 each, tailgate $120, windshield $150, stock wheel $55; **all prices PROPOSAL**; about $1,300 for the lot). Orders arrive boxed at the shop pickup like other parts.
 - **What changed under it.** `workshop.js` takes the definition from the build (`build.def`, absent = Bug), so the Bug path is unchanged; `main.jsx` no longer runs the Bug-only `normalize` on a Cajon build; `items.js` knows every vehicle's parts; the office PC lists its status.
 - **Limits, honestly:**
-  - **You cannot drive it yet.** Promoting a finished project to a driveable vehicle needs fleet, physics dims, a truck-style cargo layout and a fleet-side build. That is the next step.
+  - ~~You cannot drive it yet~~ **Done (see "El Cajon drivable" below).**
   - Wheels are the plain stock wheel; the tire machine works on them, but the model's own alloy wheel is what shows on the truck.
   - It is heavy (about 145k triangles with wheels). With the Bug and the garage in view the frame rate will drop; there is no level of detail yet.
   - Positions of the truck and its pile are guesses: check it clears the fridge at (9, 15) and the fence, and that the ground under 5.5 m of truck is level enough.
@@ -146,3 +146,12 @@ Chris reported 7-15 FPS. Measured in headless Chrome with the in-game `?perf` HU
 - **Fix:** `DriveWorld.jsx` `simGuarded`: once the car is parked on foot and has not moved more than 2 cm for 20 physics steps, the physics step is skipped; it wakes the moment you get in or anything moves it. FPS at the garage, same spots: about 30 -> 53 looking away, 27 -> 42 at the truck.
 - **Also done:** projects hidden beyond 140 m; the El Cajon's small parts no longer cast shadows.
 - **Still open:** driving costs the same ground queries every frame (about 1,500 per frame): cache or thin the tire samples. The world is about 4.4M triangles and 1,700 draw calls, with 1,900 shadow casters (shadows off gave about +15%). Terrain tile streaming makes the first seconds after loading slow (150 ms frames).
+
+## El Cajon drivable (Nov 21)
+
+Driven in headless Chrome: deliver, fit every driving part, E at the truck, reverse out, accelerate and steer at 20+ m/s, brake, get out, walk back, re-enter, and the save holds it. 325 tests pass, build ok. Not yet by Chris's hands.
+- **Promotion.** Once the project has every start / drive / steer / grip part (`isDriveable(CAJON, build)`), looking at it with empty hands shows "Press E - Get in the El Cajon". `promoteCajon(uid)` (`game/cajonGift.js`) then turns the project into a fleet vehicle in one save write: `game.fleet.cajon = { pose, build }`, the project is removed, any cargo keyed to it moves over. If it is not drivable the prompt says what is missing.
+- **As a vehicle.** `VEHICLE_TYPES.cajon` (kind 'truck', `CAJON_DIMS`: wheelbase 3.1, track 1.8, top speed 31 m/s, accel x0.75, driver on the left). PROPOSAL numbers, a heavier and slower coupe-ute than the Bug. The model is the same procedural one (`CajonCar` in `cajon/CajonModel.jsx`) with its wheels named `Wheel_FL..` so the existing suspension rig steers and spins them.
+- **Cargo.** Cab (3 spots, max size 2) and bed (12) like a smaller pickup. The bed is a real placement surface (`placement/vehicleSurfaces.js` `cajon`: floor y 0.60, 1.8 x 1.65 m, two wheel wells 0.26 high), numbers ray-cast from the model. Legacy crates use `CAJON_LOAD` in `Items.jsx`. Storage rebalance is still open.
+- **Bug fixed on the way.** Swapping vehicles spawned the new one at the garage spawn: the old vehicle kept writing `game.pose` until it unmounted. `switchTo` now carries `game.spawnAt`, which `DriveWorld` reads first. This probably affected the '84 pickup too.
+- **Limits.** A promoted truck is finished: you cannot strip or refit it (the work-in-place mechanic only covers projects and the Bug). It spawns nose-in toward the garage, so you reverse out first. Entering from the seat/door look is not separate: any empty-hand look at the truck works.

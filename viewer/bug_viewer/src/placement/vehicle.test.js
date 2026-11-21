@@ -72,6 +72,13 @@ test('adapter: per-body heights, lift raises everything, unknown vehicles have n
   assert.deepEqual(surfacesFor('pickup78', {}), []); assert.deepEqual(surfacesFor('nope', {}), []);
   assert.equal(surfacesFor('pickup84', {}).length, 1);
 });
+test('the El Cajon has a bed: floor at the measured height, behind the cab, wheel wells block the sides', () => {
+  const bed = surfacesFor('cajon', {})[0];
+  assert.equal(surfacesFor('cajon', {}).length, 1);
+  near(bed.at.y, 0.6); assert.ok(bed.at.z < -0.75 && bed.at.z > -2.45);
+  const c = toCar(bed, 0.9, 0.5 * bed.size[1]); near(c.x, 0);   // centre line
+  assert.equal(bed.blocks.length, 2); for (const b of bed.blocks) near(b.top, 0.26);
+});
 test('surface-local <-> car-local round trip; the local centre is the anchor', () => {
   for (const s of [...surfacesFor('bug', bugCtx({ all: true })), ...surfacesFor('pickup84', {})]) for (const [x, z] of [[0, 0], [0.3, 0.2], [s.size[0], s.size[1]]]) {
     const c = toCar(s, x, z, 0.1), b = fromCar(s, c.x, c.z); near(b.x, x); near(b.z, z); near(c.y, s.at.y + 0.1);

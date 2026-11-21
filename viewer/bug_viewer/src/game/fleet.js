@@ -10,8 +10,17 @@ export const TRUCK_DIMS = {
   mounts: [['FL', 0.96, 1.61], ['FR', -0.96, 1.61], ['RL', 0.94, -1.61], ['RR', -0.94, -1.61]].map(([name, x, z]) => ({ name, radius: 0.51, center: [x, 0.513, z], halfWidth: 0.14 })),
 };
 
+/** the El Cajon (rules/vehicles.js CAJON: hubs at x +-0.9, z 1.8 / -1.3, radius 0.38). Driver sits on the left (+x) like the Bug. PROPOSAL numbers: a 1960s coupe-utility, heavier and slower than the Bug, a little less grip. */
+export const CAJON_DIMS = {
+  wheelbase: 3.1, track: 1.8, cabEye: [0.4, 1.55, -0.05], lift: 0, bellyHeight: 0.34, offroad: true,
+  topSpeed: 31, accelMul: 0.75, tire: { mu: 1.0, rr: 1, surf: {} },
+  mounts: [['FL', 0.9, 1.8], ['FR', -0.9, 1.8], ['RL', 0.9, -1.3], ['RR', -0.9, -1.3]].map(([name, x, z]) => ({ name, radius: 0.38, center: [x, 0.38, z], halfWidth: 0.12 })),
+};
+
 /** every vehicle in the game. `storage`: what fits where (sizes add up; `max` = biggest single item) */
 export const VEHICLE_TYPES = {
+  cajon: { id: 'cajon', name: 'El Cajon', length: 5.5, width: 2.0, kind: 'truck', dims: CAJON_DIMS, model: 'cajon',   // not for sale: Dusty's gift, rebuilt in Walt's yard (game/cajonGift.js)
+    storage: { cab: { cap: 3, max: 2, label: 'cab' }, bed: { cap: 12, max: 4, label: 'bed' } }, pitch: "Dusty's old coupe-utility, rebuilt." },
   bug: { id: 'bug', name: "'71 Bug", length: 4.1, width: 1.6, kind: 'build' },
   pickup84: { id: 'pickup84', name: "'84 4x4 Pickup", length: 5.4, width: 2.0, price: 4800, kind: 'truck', dims: TRUCK_DIMS,
     storage: { cab: { cap: 3, max: 2, label: 'cab' }, bed: { cap: 16, max: 4, label: 'bed' } },
@@ -55,7 +64,7 @@ export function switchTo(id, enter = false) {
   const next = game.fleet[id].pose;
   game.fleet = { ...game.fleet, [game.active]: { ...game.fleet[game.active], pose: now }, [id]: { ...game.fleet[id], pose: null } };
   game.active = id;
-  game.pose = next; game.keepPose = true;
+  game.pose = next; game.spawnAt = next; game.keepPose = true;
   if (game.onFoot && game.walkPose) game.walkStart = { ...game.walkPose };
   game.open = new Set();
   game.pendingEnter = enter;

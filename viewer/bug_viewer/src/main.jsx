@@ -9,6 +9,8 @@ import ProDrive from './ProDrive.jsx';
 import ProDebug from './ProDebug.jsx';
 import BuildModel from './BuildModel.jsx';
 import TruckModel from './Truck.jsx';
+import { CajonCar } from './cajon/CajonModel.jsx';
+import { promoteCajon } from './game/cajonGift.js';
 import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
 import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
@@ -85,7 +87,7 @@ function Stage({ build, wireframe, autoRotate, resetKey, onSelect, showGrid, dri
   </Canvas>;
   if (drive) { const t = world === 'county' ? vehicleType(game.active) : vehicleType('bug'), truck = t.kind === 'truck';
     return <Canvas shadows key={`drive-${world}`} camera={{ position: [0, 4, -16], fov: 60, near: 0.1, far: 5200 }} dpr={canvasDpr(world === 'border' || (world === 'county' && REAL))}>
-      <Suspense fallback={null}><DriveWorld hud={hud} dims={truck ? t.dims : r.dims} worldId={world} bodyId={build.body} vehKey={truck ? t.id : `${t.id}-${physicsKey(build, r)}`}>{truck ? <TruckModel /> : <BuildModel build={build} wireframe={wireframe} drive />}</DriveWorld></Suspense>
+      <Suspense fallback={null}><DriveWorld hud={hud} dims={truck ? t.dims : r.dims} worldId={world} bodyId={build.body} vehKey={truck ? t.id : `${t.id}-${physicsKey(build, r)}`}>{truck ? (t.id === 'cajon' ? <CajonCar /> : <TruckModel />) : <BuildModel build={build} wireframe={wireframe} drive />}</DriveWorld></Suspense>
     </Canvas>; }
   return <Canvas key="view" shadows camera={{ position: CAMERA_POSITION, fov: 43, near: 0.05, far: 100 }} dpr={[1, 2]} onPointerMissed={() => onSelect(null)}>
     <color attach="background" args={['#172124']} />
@@ -193,6 +195,7 @@ function App() {
     else if (id.startsWith('box:')) { searchBox(id.slice(4)); setPanel(id); }
     else if (id === 'car:fit') say('Hold left click to bolt it on.');
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
+    else if (id === 'car:drive') { const uid = game.carPlan?.uid; if (promoteCajon(uid)) worldInteract('veh:cajon'); }
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
     else if (id === 'store') { dustyVisit(); setPanel('store'); }   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)

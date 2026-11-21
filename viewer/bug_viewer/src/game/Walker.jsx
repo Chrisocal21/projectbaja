@@ -22,7 +22,7 @@ import { FEEL } from './restPose.js';
 import { carFitReady } from './carSnap.js';
 import { pickWork } from './workTarget.js';
 import { workVehicles } from './projects.js';
-import { zoneAt } from '../rules/restore.js';
+import { zoneAt, isDriveable, missingToDrive } from '../rules/restore.js';
 import { machineNear, planAtMachine } from './tireMachine.js';
 import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift snaps (not runs) while a held item is aimed at a vehicle surface
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
@@ -92,6 +92,10 @@ function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair i
     const door = ap === 'seatL' ? 'doorL' : 'doorR', hasDoor = isFitted(D, b, door);
     if (driveable(b)) return { type: 'enter', door: hasDoor ? door : null, text: `Press E — Sit in the ${ap === 'seatL' ? "driver's" : 'passenger'} seat` };
     return { type: 'why', why: whyNotDrive(b), text: `${whyNotDrive(b)}` };
+  }
+  if (W && !W.active && D.id === 'cajon' && !h) {   // the El Cajon project: once it runs, E takes it as your truck (game/cajonGift.js promoteCajon)
+    if (isDriveable(D, b)) return { type: 'drive', uid: W.uid, text: 'Press E — Get in the El Cajon' };
+    return { type: 'none', text: `Can't drive yet: ${missingToDrive(D, b).map(s => (s.name || s.id).toLowerCase()).slice(0, 3).join(', ')}` };
   }
   return { type: 'none', text: '' };
 }
