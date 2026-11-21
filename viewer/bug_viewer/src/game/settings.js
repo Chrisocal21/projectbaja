@@ -2,7 +2,7 @@
 import { game, emit } from './store.js';
 
 const KEY = 'baja-settings-v1';
-export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', keyHints: true, crosshair: true, showFps: true };
+export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', screenHints: false, crosshair: true, showFps: true };
 /** what the settings panel shows, in order. Every row here is wired to something real. */
 export const SETTING_ROWS = [
   { sec: 'Gameplay' },
@@ -15,7 +15,7 @@ export const SETTING_ROWS = [
   { k: 'renderScale', type: 'choice', label: 'Render resolution', options: [['auto', 'Auto'], [1, '100%'], [0.75, '75%'], [0.5, '50%']], note: 'Lower is faster on slow machines.' },
   { sec: 'HUD' },
   { k: 'showFps', type: 'toggle', label: 'Show FPS counter' },
-  { k: 'keyHints', type: 'toggle', label: 'Show key hints' },
+  { k: 'screenHints', type: 'toggle', label: 'Show key hints on screen', note: 'Off by default. Every key is listed under Controls (the tab above).' },
   { k: 'crosshair', type: 'toggle', label: 'Show crosshair' },
 ];
 

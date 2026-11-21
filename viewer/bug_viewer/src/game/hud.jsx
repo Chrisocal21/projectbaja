@@ -49,7 +49,7 @@ export function HudOverlay() {
 export function KeyHints({ driving, pro, cabLabel }) {
   useGame();
   const bm = game.buildMode;
-  if (!game.settings?.keyHints) return null;
+  if (!game.settings?.screenHints) return null;   // the keys live in the phone's Settings > Controls; this bar is opt-in
   const list = bm ? (bm.moving ? [['Click', 'Set down'], ['Wheel/Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Esc', 'Cancel']]
     : [['Click', 'Build / pick up'], ['Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Wheel', 'Rotate'], ['1-8', 'Hotbar'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Esc', 'Put away']])
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]

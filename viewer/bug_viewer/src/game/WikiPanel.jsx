@@ -11,6 +11,7 @@ import { TOOLS, SIZE_NAME } from './items.js';
 import { CONTAINER_RULES } from './loot.js';
 import { DEF } from './workshop.js';
 import { STAGES, TRACKS, hasStage } from './upgrades.js';
+import { CONTROLS } from './controls.js';
 import { BIOMES } from '../worlds/county.js';
 import { Icon, Key } from './BuildMenu.jsx';
 
@@ -22,11 +23,7 @@ const needName = n => (n.tool ? TOOLS[n.tool]?.name : n.kind === 'supply' ? SUPP
 const FN = { start: 'Needed to start', drive: 'Needed to drive', steer: 'Needed to drive', grip: 'Needed to drive' };
 const TOOL_NAME = { hoist: 'Engine hoist (in your garage)', jack: 'Floor jack' };
 
-export const CONTROLS = [
-  ['On foot', [['WASD', 'Walk'], ['Shift', 'Run'], ['Mouse', 'Look'], ['E', 'Interact / pick up into your pack'], ['Click', 'Hold an item'], ['Right-click', 'Put down'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['L', 'Headlights (need battery and headlights fitted)'], ['Hold left-click', 'At the car: take the part you aim at off, or bolt on the part in your hands (the bar fills)'], ['E at the door handle', 'Open / close that door'], ['E at a seat', 'Sit'], ['B', 'Build menu'], ['U', 'Upgrades'], ['M', 'Map'], ['I', 'Game index'], ['Esc', 'Menu']]],
-  ['Driving', [['W / S', 'Throttle / brake-reverse'], ['A / D', 'Steer'], ['Space', 'Handbrake'], ['R', 'Reset'], ['C', 'Cab view'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu']]],
-  ['Building', [['Click / E', 'Build'], ['R', 'Rotate'], ['Wheel', 'Next in group'], ['[ ]', 'Previous / next piece'], [', .', 'Previous / next category'], ['1-8', 'Hotbar'], ['V', 'Move a placed thing'], ['X', 'Take down (50% back)'], ['B', 'Build menu'], ['Q / Right-click', 'Put the build tool away']]],
-];
+export { CONTROLS };   // (the list lives in controls.js: the phone's Settings shows it too)
 
 /** every section: { id, label, view: 'grid'|'list', items: [{ id, name, icon?, price?, sub, tags, text, stats }] } */
 function sections() {
