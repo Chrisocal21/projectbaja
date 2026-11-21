@@ -20,16 +20,25 @@ export default function LoadingScreen() {
   st.current.active = active;
   const tip = useRef(TIPS[Math.floor(Math.random() * TIPS.length)]).current;
   useEffect(() => {
+    // Downloads finishing isn't "ready": terrain tiles, roads and shaders keep building for a few seconds and cause long frames.
+    // So also hold the cover until frames have been smooth (no frame over 90 ms) for 1.5 s, or 20 s have passed.
+    let raf = 0, last = performance.now();
+    const frame = t => {
+      if (t - last > 90) st.current.lastHitch = t;
+      last = t; raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
     const id = setInterval(() => {
       const s = st.current, now = performance.now(), busy = s.active;   // real downloads only: fitting a part must never cover the screen
       if (busy) s.lastBusy = now;
       setShow(v => {
         if (!v) return false;   // once the world is up it never comes back: small models streaming in later (a held part, a ghost) just pop in
-        if (now - s.lastBusy > 800 && now - s.shownAt > 1400) return false;
+        const smooth = now - Math.max(s.lastHitch || 0, s.shownAt) > 1500, timedOut = now - s.shownAt > 20000;
+        if (timedOut || (now - s.lastBusy > 800 && now - s.shownAt > 1400 && smooth)) return false;
         return v;
       });
     }, 100);
-    return () => clearInterval(id);
+    return () => { clearInterval(id); cancelAnimationFrame(raf); };
   }, []);
   return <div className={`loading title-bg${show ? '' : ' done'}`}>
     <div className="loading-card">
