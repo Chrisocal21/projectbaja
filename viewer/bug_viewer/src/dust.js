@@ -7,7 +7,7 @@ varying float vAlpha; varying vec3 vColor; uniform float uScale;
 void main() { vAlpha = aAlpha; vColor = aColor; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = aAlpha > 0.003 ? clamp(aSize * uScale / max(0.5, -mv.z), 1.0, 360.0) : 0.0; }`;
 const FRAG = `
 varying float vAlpha; varying vec3 vColor;
-void main() { float d = length(gl_PointCoord - 0.5) * 2.0; float a = smoothstep(1.0, 0.15, d) * vAlpha; if (a < 0.004) discard; gl_FragColor = vec4(vColor, a); }`;
+void main() { float d = length(gl_PointCoord - 0.5) * 2.0; float a = pow(smoothstep(1.0, 0.0, d), 1.7) * vAlpha; if (a < 0.004) discard; gl_FragColor = vec4(vColor, a); }`;
 
 export function createDust(N = 480) {
   const pos = new Float32Array(N * 3), size = new Float32Array(N), alpha = new Float32Array(N), col = new Float32Array(N * 3);

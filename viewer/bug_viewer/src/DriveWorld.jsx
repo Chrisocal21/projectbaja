@@ -39,6 +39,7 @@ import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelS
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
 import { pad } from './game/gamepad.js';
 import { createDust, dustiness } from './dust.js';
+import { createRuts, rutDepth } from './ruts.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
@@ -194,6 +195,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const s = useRef(null);
   const dustFx = useMemo(() => createDust(), []), dustAcc = useRef([0, 0, 0, 0]), dustTouch = useRef([true, true, true, true]);
   useEffect(() => () => dustFx.dispose(), [dustFx]);
+  const rutFx = useMemo(() => createRuts(), []), rutLast = useRef([null, null, null, null]);
+  useEffect(() => () => rutFx.dispose(), [rutFx]);
   if (!s.current) {
     s.current = spawnState();
     const at = game.keepPose && (game.spawnAt || game.pose);   // a vehicle swap carries its own spawn spot: the car you just left is still writing game.pose every frame until it unmounts
@@ -408,22 +411,31 @@ function Vehicle({ children, hud, dims, race, sun }) {
     { const st = s.current, dtD = Math.min(rawDt, 0.1); dustFx.update(dtD);
       if (st.wheels && st.rb && group.current) {
         const dust = dustiness(st.sfKey), sp = Math.hypot(st.v, st.lateralV), slide = Math.min(1, (st.slip || 0) / 0.3), rate = dust * (sp > 2 ? Math.min(1, sp / 22) * 16 + slide * 40 : 0);
-        group.current.updateMatrixWorld(true); const c = DUST_C.set(st.sfColor || '#a98c5a').lerp(DUST_W, 0.3), v = st.rb.vel;
+        group.current.updateMatrixWorld(true); const c = DUST_C.set(st.sfColor || '#a98c5a').lerp(DUST_W, 0.55), v = st.rb.vel;
         st.wheels.forEach((w, i) => {
           const was = dustTouch.current[i]; dustTouch.current[i] = w.touching;
+          if (!w.touching) { rutLast.current[i] = null; }
           if (!w.touching || dust <= 0) { dustAcc.current[i] = 0; return; }
           const p = group.current.localToWorld(DUST_P.copy(w.hub)); p.y -= 0.3;
-          if (!was) for (let k = 0; k < 7; k++) dustFx.emit(p.x, p.y, p.z, v.x * 0.2 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 1.6, v.z * 0.2 + (Math.random() - 0.5) * 3, c, 0.7, 3.2, 0.5 * Math.min(1, dust), 1.6);   // landing puff
+          if (!was) for (let k = 0; k < 7; k++) dustFx.emit(p.x, p.y, p.z, v.x * 0.2 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 1.6, v.z * 0.2 + (Math.random() - 0.5) * 3, c, 0.7, 3.2, 0.26 * Math.min(1, dust), 1.6);   // landing puff
+          { const depth = rutDepth(st.sfKey), hard = Math.min(1, (st.slip || 0) / 0.3), want = depth + (depth === 0 ? hard * 0.5 : 0);   // paved ground only marks when sliding hard
+            if (want > 0.2 && (sp > 1.5 || hard > 0.1)) {
+              const gy = world.height(p.x, p.z), L = rutLast.current[i];
+              if (!L) rutLast.current[i] = { x: p.x, z: p.z };
+              else { const dx = p.x - L.x, dz = p.z - L.z, d = Math.hypot(dx, dz);
+                if (d > 0.5) { const e = 1, nx = -(world.height(p.x + e, p.z) - world.height(p.x - e, p.z)) / (2 * e), nz = -(world.height(p.x, p.z + e) - world.height(p.x, p.z - e)) / (2 * e), tone = Math.max(0.28, 0.62 - 0.22 * want - 0.18 * hard);
+                  rutFx.stamp(p.x, gy, p.z, dx / d, dz / d, nx, 1, nz, 0.3 + 0.1 * hard, Math.min(1.6, d * 1.04), DUST_R.set(st.sfColor || '#a98c5a').multiplyScalar(tone)); rutLast.current[i] = { x: p.x, z: p.z }; } }
+            } else rutLast.current[i] = null; }
           dustAcc.current[i] += rate * dtD;
           while (dustAcc.current[i] >= 1) { dustAcc.current[i] -= 1; const big = 0.5 + Math.min(1, sp / 30) * 0.9 + slide * 0.6;
-            dustFx.emit(p.x + (Math.random() - 0.5) * 0.4, p.y, p.z + (Math.random() - 0.5) * 0.4, v.x * 0.3 + (Math.random() - 0.5) * 1.6, 0.5 + Math.random() * 1.4, v.z * 0.3 + (Math.random() - 0.5) * 1.6, c, 0.5 * big, 2.4 * big + 0.8, Math.min(0.55, 0.24 + 0.25 * dust), 1.1 + Math.min(1, sp / 30) * 0.9); }
+            dustFx.emit(p.x + (Math.random() - 0.5) * 0.4, p.y, p.z + (Math.random() - 0.5) * 0.4, v.x * 0.3 + (Math.random() - 0.5) * 1.6, 0.5 + Math.random() * 1.4, v.z * 0.3 + (Math.random() - 0.5) * 1.6, c, 0.5 * big, 2.4 * big + 0.8, Math.min(0.24, 0.08 + 0.12 * dust), 1.1 + Math.min(1, sp / 30) * 0.9); }
         });
       } }
   });
 
-  return <><primitive object={dustFx.points} /><group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group></>;
+  return <><primitive object={dustFx.points} /><primitive object={rutFx.mesh} /><group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group></>;
 }
-const DUST_C = new THREE.Color(), DUST_W = new THREE.Color('#ffffff'), DUST_P = new THREE.Vector3();
+const DUST_R = new THREE.Color(), DUST_C = new THREE.Color(), DUST_W = new THREE.Color('#ffffff'), DUST_P = new THREE.Vector3();
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
 const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, get spawn() { return game.start === 'lot' ? BUG_SPOT : game.start === 'garage' ? GARAGE_DRIVE : { x: 0, z: 0, h: Math.PI / 2 }; }, gates: [], spawns: TC.spawns, area: TC.areaAt, obstacles: SITE_OBSTACLES };
