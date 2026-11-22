@@ -48,6 +48,24 @@ export function weakest(parts) {
   const on = ENGINE_SLOTS.filter(s => parts?.[s.id]).map(s => ({ id: s.id, name: s.name, c: parts[s.id].c }));
   return on.length ? on.sort((a, b) => a.c - b.c)[0] : null;
 }
+/** pieces the engine cannot start without, and what each one does (the why names the piece). DEAD: below this condition the piece is shot. PROPOSAL numbers. */
+export const DEAD = 15;
+const NEEDS = [
+  ['starter', 'There is no starter motor on the engine: nothing turns it over.', 'The starter motor is shot (%): it only clicks.'],
+  ['carb', 'There is no carburetor on the engine: no fuel gets in.', 'The carburetor is shot (%): it floods and will not draw fuel.'],
+  ['coil', 'There is no ignition coil on the engine: no spark.', 'The ignition coil is shot (%): no spark.'],
+  ['distributor', 'There is no distributor on the engine: no spark gets to the plugs.', 'The distributor is shot (%): the spark goes nowhere.'],
+  ['plugs', 'There are no spark plugs in the engine: no spark.', 'The spark plugs are fouled (%): they will not fire.'],
+];
+/** can this engine start? parts: the engine's pieces (undefined = a complete engine). -> { ok, why } and the why names the piece */
+export function engineStartCheck(parts) {
+  if (!parts) return { ok: true, why: '' };
+  for (const [id, missing, shot] of NEEDS) {
+    if (!parts[id]) return { ok: false, why: missing };
+    if (parts[id].c < DEAD) return { ok: false, why: shot.replace('%', Math.round(parts[id].c) + '%') };
+  }
+  return { ok: true, why: '' };
+}
 /** a short line for the engine's name tag */
 export function engineTag(eng) {
   const m = missingOf(partsOf(eng));

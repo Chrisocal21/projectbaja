@@ -38,3 +38,23 @@ test('the air cleaner cannot go on before the carburetor it covers', () => {
   assert.match(fitBlock(p, 'airCleaner'), /carburetor first/);
   assert.equal(fitBlock(p, 'carb'), '');
 });
+import { engineStartCheck, DEAD } from './engineRules.js';
+import { startCheck } from '../rules/fuel.js';
+test('a complete engine starts, and an old engine with no parts field does too', () => {
+  assert.equal(engineStartCheck(freshParts(() => 0.5)).ok, true);
+  assert.equal(engineStartCheck(undefined).ok, true);
+});
+test('a missing or shot piece stops the start and the reason names it', () => {
+  const p = freshParts(() => 0.5); delete p.plugs;
+  assert.match(engineStartCheck(p).why, /spark plugs/);
+  const q = freshParts(() => 0.5); q.starter.c = DEAD - 1;
+  assert.match(engineStartCheck(q).why, /starter motor is shot \(14%\)/);
+  const r = freshParts(() => 0.5); delete r.fanBelt; delete r.exhaust;
+  assert.equal(engineStartCheck(r).ok, true);   // the belt and exhaust do not stop a start
+});
+test('the engine check slots into startCheck after the battery and before the fuel', () => {
+  const bad = engineStartCheck({ ...freshParts(() => 0.5), coil: undefined });
+  assert.match(startCheck({ battery: true, litres: 0, engine: bad }).why, /coil/);
+  assert.match(startCheck({ battery: false, litres: 5, engine: bad }).why, /battery/);
+  assert.match(startCheck({ battery: true, litres: 0, engine: { ok: true } }).why, /dry/);
+});
