@@ -35,7 +35,8 @@ import { lightsLit } from './game/lights.js';
 import VehicleCargo from './placement/VehicleCargo.jsx';   // vehicle cargo placement (Stage 3)
 import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
-import { STEP, createVehicleState, buildWheelRig, stepSuspension, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
+import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
+import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
 const STEER_FADE = 0.035;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
@@ -183,7 +184,7 @@ function Headlights({ dims }) {
 
 function Vehicle({ children, hud, dims, race, sun }) {
   const world = useContext(WorldCtx), HALF = world.half, GATES = world.gates;
-  const spawnState = () => { const st = createVehicleState(); st.x = world.spawn.x; st.z = world.spawn.z; st.h = world.spawn.h; st.y = world.height(st.x, st.z) + 0.3; return st; };
+  const spawnState = () => { const st = createVehicleState(); st.rb = null; st.x = world.spawn.x; st.z = world.spawn.z; st.h = world.spawn.h; st.y = world.height(st.x, st.z) + 0.3; return st; };
   const WHEELBASE = dims.wheelbase, CAB_EYE = dims.cabEye;
   const MAXV = dims.topSpeed || 40, ACC = ACCEL * (dims.accelMul || 1), DRG = 0.3 * ACC / (MAXV * MAXV);   // top speed and power come from the build (engine + exhaust mods)
   const group = useRef();
@@ -251,6 +252,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
     const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
+    if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
       Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
       rig.current.wheels.forEach(w => { w.spin.rotation.x = 0; });
@@ -259,88 +261,16 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
     const throttle = bugAsleep() ? 0 : (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);   // grandma's Bug won't pull until she's fired once
     const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
-    let fx = Math.sin(st.h), fz = Math.cos(st.h);
-    let rx = fz, rz = -fx;
-
-    // --- longitudinal (only with traction) ---
-    if (!st.air && !st.rolled) {
-      const rearContact = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('R') && w.touching).length / 2 : 1;
-      if (throttle > 0) st.v += ACC * rearContact * Math.min(1.1, grip) * (1 - Math.max(0, st.v) / MAXV) * dt;
-      else if (throttle < 0) st.v += (st.v > 0.5 ? -BRAKE * Math.min(1, grip) : -ACC * rearContact * 0.6) * dt;
-      if (k.Space) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), BRAKE * Math.min(1, grip) * dt);
-      if (!throttle) st.v -= Math.sign(st.v) * Math.min(Math.abs(st.v), ROLL_RES * sf.rr * dt);
-      st.v -= st.v * Math.abs(st.v) * DRG * dt;
-      if (!throttle) st.v -= st.v * 0.05 * dt;   // engine braking: lifting off scrubs speed (and loads the front tires)
-      // gravity along slope
-      const e = 0.6;
-      const slope = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e);
-      st.v -= G * slope / Math.sqrt(1 + slope * slope) * dt;
-      st.v = Math.max(-9, Math.min(MAXV * 1.1, st.v));
-
-      // --- steering ---
-      const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);   // wheel angle fades with speed (tighter = less wobble); the tires + yaw assist decide how much the car can actually use
-      st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)));   // slower to swing at speed, snaps back to centre when you let go (no tail wag)
-
-      // --- tires: dynamic bicycle model with a shared friction circle (rear-engine, so the rear carries ~58% of the weight) ---
-      const L = WHEELBASE, ca = 0.58 * L, cb = L - ca, MASS = 1000, IZ = MASS * ca * cb * 1.4, mu = sf.mu, tmuNow = sf.mu;
-      const dN = MASS * (st.ax || 0) * 0.6 / L;                                   // longitudinal weight transfer
-      const Nf = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('F')).reduce((sum, w) => sum + w.load, 0)
-        : Math.max(500, MASS * G * cb / L - dN);
-      const Nr = st.wheels.length ? st.wheels.filter(w => w.name.startsWith('R')).reduce((sum, w) => sum + w.load, 0)
-        : Math.max(500, MASS * G * ca / L + dN);
-      const accelCmd = throttle > 0 ? ACC * Math.min(1.1, grip) : 0;
-      const brakeCmd = (throttle < 0 && st.v > 0.5 ? BRAKE : 0) + (k.Space ? BRAKE : 0);
-      const uxF = Math.min(0.95, brakeCmd * MASS * 0.65 / Math.max(1, mu * Nf));
-      const uxR = k.Space ? 0.93 : Math.min(0.95, (accelCmd + brakeCmd * 0.35) * MASS / Math.max(1, mu * Nr));   // handbrake locks the rear
-      // buggy stance: rear is the planted driven axle (extra grip, throttle only half-eats it), front guides - the car never out-slides at the back
-      const capF = mu * Nf * Math.sqrt(1 - uxF * uxF), capR = mu * Nr * 1.2 * Math.sqrt(1 - (k.Space ? uxR : uxR * 0.5) ** 2);
-      const tire = (alpha, cap) => -cap * Math.tanh(alpha / 0.17) * (1 - 0.05 * smooth(0.3, 0.8, Math.abs(alpha)));   // peak ~8 deg, then falls off
-      const vx = Math.max(st.v, 0.5);
-      const aF = Math.atan2(st.lateralV + ca * st.yr, vx) - st.steer, aR = Math.atan2(st.lateralV - cb * st.yr, vx);
-      let FyF = tire(aF, capF), FyR = tire(aR, capR);
-      const cs = Math.cos(st.steer), latTotal = FyF * cs + FyR, latMax = MASS * G * 1.0;   // stability limit: never ask the chassis for more than ~1 g sideways, so it stays on four wheels
-      if (Math.abs(latTotal) > latMax) { const k = latMax / Math.abs(latTotal); FyF *= k; FyR *= k; }
-      let aL = (FyF * cs + FyR) / MASS;   // sideways acceleration the tires really apply (drives body roll)
-      st.lateralV += (aL - st.v * st.yr) * dt;
-      st.yr += ((ca * FyF * cs - cb * FyR) / IZ - st.yr * YAW_DAMP) * dt;   // extra yaw damping: planted, no spin-outs
-      st.v += st.lateralV * st.yr * dt;
-      // go where the wheels point: pull the body's turn rate toward the wheels' geometric turn rate (capped by what the tires can give),
-      // and bleed off sideways drift so the velocity follows the nose
-      const gf = Math.min(1, Math.max(0.3, tmuNow / 0.9)), yrWant = st.v * Math.tan(st.steer) / L, yrCap = 1.15 * G * gf / Math.max(Math.abs(st.v), 4);
-      const sl = 1 - 0.75 * smooth(0.3, 0.9, st.slip || 0);   // a car already sliding badly (bad landing) is not helped back in line: it can swap ends
-      st.yr += (Math.max(-yrCap, Math.min(yrCap, yrWant)) - st.yr) * Math.min(1, 6 * gf * sl * dt);
-      // trip: sliding sideways FAST then biting (rut, grippier ground) dumps the sideways speed all at once and levers the car over - only well past the limit, so it is a rare, earned roll
-      const trip = smooth(4, 8, Math.abs(st.lateralV)) * smooth(18, 28, Math.abs(st.v));
-      const b1 = st.lateralV * Math.min(1, (2.5 * gf * sl + 10 * trip) * dt); st.lateralV -= b1; aL -= b1 / dt;
-      const w = smooth(1.5, 4, st.v);                                              // below ~4 m/s: plain kinematic steering (no slip blow-up)
-      if (w < 1) { st.yr += ((st.v / L) * Math.tan(st.steer) - st.yr) * (1 - w) * Math.min(1, dt * 12); const b2 = st.lateralV * (1 - w) * Math.min(1, dt * 12); st.lateralV -= b2; aL -= b2 / dt; }
-      if (st.v < 0.5) { st.yr = (st.v / L) * Math.tan(st.steer); st.lateralV = 0; }
-      st.slip = Math.abs(Math.atan2(st.lateralV, Math.max(Math.abs(st.v), 0.5)));
-      st.aLat = (st.aLat || 0) + (aL - (st.aLat || 0)) * Math.min(1, dt * 10);
-      st.airT = 0;
-    } else {
-      st.aLat = (st.aLat || 0) * (1 - Math.min(1, dt * 8));
-      st.yr *= 1 - (st.rolled && st.touch ? 1.5 : 0.03) * dt;
-      if (st.rolled && st.touch) { const f = 1 - Math.min(1, 1.4 * dt); st.v *= f; st.lateralV *= f; }   // sliding on its side: friction scrubs speed
-      if (st.air) {   // cat reflex: a launched car twists itself to meet the ground wheels-first (centre of gravity low, weight in the tyres)
-        st.airT = (st.airT || 0) + dt;
-        if (st.airT > 0.35) {
-          const e = 2, sl2 = (world.height(st.x + fx * e, st.z + fz * e) - world.height(st.x - fx * e, st.z - fz * e)) / (2 * e), sd = (world.height(st.x + rx * 1, st.z + rz * 1) - world.height(st.x - rx * 1, st.z - rz * 1)) / 2;
-          const wrap = a => (a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a);
-          const lim = 4, ep = wrap(Math.atan(sl2) - st.pitch), er = wrap(Math.atan(sd) - st.roll), k = Math.min(1, (st.airT - 0.35) / 0.6);
-          st.pitchV += Math.max(-lim, Math.min(lim, 2.2 * ep * k - 1.0 * st.pitchV * k)) * dt;
-          st.rollV += Math.max(-lim, Math.min(lim, 2.2 * er * k - 1.0 * st.rollV * k)) * dt;
-        }
-      }
-      if (throttle && !st.touch) st.pitchV += throttle * 0.7 * dt;                                   // in the air: gas pitches the nose up, brake pitches it down
-    }
-    const free = st.air || st.rolled, vxw = fx * st.v + rx * st.lateralV, vzw = fz * st.v + rz * st.lateralV;
-    st.h += st.yr * dt;
-    fx = Math.sin(st.h); fz = Math.cos(st.h); rx = fz; rz = -fx;
-    if (free) { st.v = vxw * fx + vzw * fz; st.lateralV = vxw * rx + vzw * rz; }   // nothing steers a flying car: it keeps its world velocity, so a spun car lands travelling the way it was going
-
-    st.x += (fx * st.v + rx * st.lateralV) * dt; st.z += (fz * st.v + rz * st.lateralV) * dt;
-    st.ax = (st.ax || 0) + ((st.v - v0) / dt - (st.ax || 0)) * Math.min(1, dt * 8);
+    // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
+    const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
+    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)));
+    // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
+    if (!st.rb) st.rb = createBody(dims, st);
+    const rb = st.rb;
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer }, { height: world.height, mu: sf.mu, rr: sf.rr, ACC, MAXV, DRG }, dt);
+    if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
+    readBody(rb, st);
+    const fx = Math.sin(st.h), fz = Math.cos(st.h), rx = fz, rz = -fx, ox = st.x, oz = st.z, ov = st.v;
     // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
     for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of [...world.obstacles, ...(world.trunks ? world.trunks(st.x, st.z) : [])]) {
       if (st.y + dims.bellyHeight > top) continue;
@@ -354,15 +284,15 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
     { const bd = world.bounds || { x0: -HALF, x1: HALF, z0: -HALF, z1: HALF }; st.x = Math.max(bd.x0, Math.min(bd.x1, st.x)); st.z = Math.max(bd.z0, Math.min(bd.z1, st.z)); }   // (county: a rectangle, the south side is open: worlds/world.js DRIVE)
 
-    const wasAir = st.air;
-    stepSuspension(st, dims, dt, world.height);
-    if (st.rolled && Math.abs(st.v) + Math.abs(st.lateralV) < 1.2) {   // lying still on its side/roof: the marshals flip it back after a moment
+    if (st.x !== ox || st.z !== oz) { rb.c.x += st.x - ox; rb.c.z += st.z - oz; }   // pushed out of a rock or the map edge
+    if (ov !== st.v && Math.abs(ov) > 1e-3) { const f = st.v / ov; rb.vel.x *= f; rb.vel.z *= f; }
+    if ((st.upY < 0.5 || st.rolled) && Math.hypot(st.v, st.lateralV) < 1.2 && rb.w.length() < 1) {   // lying still on its side or roof: the crew stands it back up after a moment
       st.rolledT = (st.rolledT || 0) + dt;
-      if (st.rolledT > 2.5) { st.pitch = 0; st.roll = 0; st.pitchV = 0; st.rollV = 0; st.yr = 0; st.vy = 0; st.y += 0.8; st.rolledT = 0; }
+      if (st.rolledT > 3) { uprightBody(rb, dims); st.rolledT = 0; }
     } else st.rolledT = 0;
     const g = group.current;
     g.position.set(st.x, st.y, st.z);
-    g.rotation.set(-st.pitch, st.h, st.roll, 'YXZ');
+    g.quaternion.copy(st.rb.q);
     if (!game.onFoot) {
       if (world.id === 'county') { const [dx, dy, dz] = sunDirection(clockHour()); sun.current.position.set(st.x + dx * SUN_FOLLOW, st.y + dy * SUN_FOLLOW, st.z + dz * SUN_FOLLOW); }
       else sun.current.position.set(st.x + 30, st.y + 45, st.z + 20);
@@ -425,7 +355,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to reset)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

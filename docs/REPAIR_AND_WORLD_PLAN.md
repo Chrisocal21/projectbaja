@@ -234,3 +234,8 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 
 ### Baja Bug look pass (concept art)
 - Carbon panels now have a twill weave (weather.js `carbon`), tubular fender arches over each wheel (`FENDER_ArchTubes`, slot `fenderTubes`), mud on tires, and an orange-and-white worn patch livery (`build.livery`, set by Admin's FIT button; shader `LIVERY` uniform on the Bug's paint).
+
+### Drive physics: real rigid body (rigid.js)
+- The car is now one rigid body with a quaternion orientation (was: heading + separate pitch/roll angles that tangled when rolled). Four spring-damper wheels (travel, bump stop, anti-roll), a friction-circle tire at each contact patch (slip-angle lateral, engine/brake/handbrake longitudinal), a body shell of contact points that scrapes and rests on the ground, air drag. Fixed 120 Hz. `suspension.js` keeps the visuals/rig; its old `stepSuspension` is no longer used by the game.
+- Rolled cars tumble, come to rest, and the crew stands them up after ~3 s still (or press R). Tests: `src/rigid.test.js`.
+- Tuning knobs live in rigid.js (grip caps, `ACC` factor, damping) and DriveWorld.jsx (STEER_FADE).
