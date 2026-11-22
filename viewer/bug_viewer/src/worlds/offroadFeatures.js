@@ -21,16 +21,16 @@ function whoops(f, s, t) {
   const end = smooth(0, f.lam * 2, s) * smooth(f.L, f.L - f.lam * 2, s), side = 1 - smooth(f.W * 0.3, f.W / 2, Math.abs(t));
   return f.A * end * side * (0.5 - 0.5 * Math.cos(TAU * s / f.lam));
 }
-/** a jump: a ramp up, a short flat lip, a drop, a gap, then a landing mound that eases back down */
+/** a table top: a long, low ramp up, a flat top, and a long ramp down the far side (like the desert ones in the photos: you fly low and land on the down slope, not off a cliff) */
+export const tableLengths = H => { const up = H / 0.1, top = 5 + H * 5, down = H / 0.12; return { up, top, down, total: up + top + down }; };
 function jump(f, s, t) {
   const side = 1 - smooth(f.W * 0.32, f.W / 2, Math.abs(t)); if (!side) return 0;
-  const up = f.H / 0.2, top = 3, drop = 1.6, gap = 5 + f.H * 4, land = 18;   // ramp slope ~0.2, a 3 m lip
-  const s1 = up, s2 = s1 + top, s3 = s2 + drop, s4 = s3 + gap;
+  const { up, top, down } = tableLengths(f.H), s1 = up, s2 = s1 + top, s3 = s2 + down;
   let h = 0;
-  if (s > 0 && s <= s1) h = f.H * smooth(0, 1, s / s1) ** 1.25;
+  if (s < 0 || s > s3) return 0;
+  if (s <= s1) h = f.H * smooth(0, 1, s / s1);
   else if (s <= s2) h = f.H;
-  else if (s <= s3) h = f.H * (1 - smooth(0, 1, (s - s2) / drop));
-  else if (s > s4 && s <= s4 + land) h = f.H * 0.55 * Math.sin(Math.PI * (s - s4) / land) * (1 - 0.35 * (s - s4) / land);   // the landing mound
+  else if (s <= s3) h = f.H * (1 - smooth(0, 1, (s - s2) / down));
   return h * side;
 }
 /** a banked dirt berm on the outside of a turn: rises toward the outer lip, then drops off */
@@ -58,7 +58,7 @@ export function primitivesOf(it, baseH = () => 0) {
   const out = [], H = it.h;
   const add = (p, rad) => out.push({ ...p, rad });
   if (it.kind === 'whoops') add({ type: 'whoops', x: it.x, z: it.z, h: H, L: it.L, W: it.W, lam: it.lam, A: it.A }, it.L + it.W);
-  else if (it.kind === 'jump') add({ type: 'jump', x: it.x, z: it.z, h: H, H: it.H, W: it.W }, it.H / 0.2 + 3 + 1.6 + 5 + it.H * 4 + 18 + it.W);
+  else if (it.kind === 'jump') add({ type: 'jump', x: it.x, z: it.z, h: H, H: it.H, W: it.W }, tableLengths(it.H).total + it.W);
   else if (it.kind === 'berms') {   // an S of two berms: a turn one way, then the other
     add({ type: 'berm', x: it.x, z: it.z, R: it.R, dir: H + Math.PI / 2, span: 1.25, B: it.B }, it.R + 6);
     const c = place(it.x, it.z, H, it.R * 1.5, it.R * 2.2);
@@ -98,11 +98,11 @@ export function planFeatures(roads, okSpot = () => true, okWild = okSpot) {   //
         const x = px + nx * off, z = pz + nz * off; n++;
         let it = null, wild = null;
         if (r < 0.26) it = { kind: 'whoops', x, z, h: along, L: 70 + hash(k, 5) * 90, W: 13, lam: 7.5 + hash(k, 6) * 2, A: 0.4 + hash(k, 7) * 0.35 };
-        else if (r < 0.44) it = { kind: 'jump', x, z, h: along, H: 1.0 + hash(k, 5) * 1.0, W: 9 };
+        else if (r < 0.44) it = { kind: 'jump', x, z, h: along, H: 0.5 + hash(k, 5) * 0.55, W: 9 };
         else if (r < 0.56) it = { kind: 'berms', x, z, h: along, R: 24 + hash(k, 5) * 14, B: 1.0 + hash(k, 6) * 0.7 };
         else if (r < 0.66) { const far = 90 + hash(k, 8) * 200; it = { kind: 'whoops', x: px + nx * far, z: pz + nz * far, h: along + Math.PI / 2, L: 60 + hash(k, 5) * 60, W: 13, lam: 8, A: 0.35 + hash(k, 6) * 0.3 }; }
         else if (r >= 0.72) { wild = planWild(r < 0.78 ? 'ford' : r < 0.84 ? 'climb' : r < 0.95 ? 'forest' : 'river', px, pz, nx, nz, tx, tz, k); it = wild.item; }
-        else { const far = 220 + hash(k, 8) * 260; it = { kind: 'track', x: px + nx * far, z: pz + nz * far, h: along + (hash(k, 9) - 0.5) * 1.2, S: 90 + hash(k, 5) * 50, R: 24 + hash(k, 6) * 6, B: 1.3 + hash(k, 7) * 0.5, lam: 8, A: 0.45 + hash(k, 10) * 0.25, H: 1.2 + hash(k, 11) * 0.6 }; }
+        else { const far = 220 + hash(k, 8) * 260; it = { kind: 'track', x: px + nx * far, z: pz + nz * far, h: along + (hash(k, 9) - 0.5) * 1.2, S: 90 + hash(k, 5) * 50, R: 24 + hash(k, 6) * 6, B: 1.3 + hash(k, 7) * 0.5, lam: 8, A: 0.45 + hash(k, 10) * 0.25, H: 0.7 + hash(k, 11) * 0.4 }; }
         if (!it || !footprint(it).every(p => (wild && !p.creek ? okWild : okSpot)(p.x, p.z))) continue;
         if (wild) { items.push(Object.assign(it, { id: items.length })); trails.push(wild.trail); continue; }
         it.id = items.length;
@@ -138,7 +138,7 @@ export function planHighwayFeatures(roads, okSpot = () => true, firstId = 0) {
         carried = hash(k, 7) * 220; n++;
         const off = 24 + hash(k, 3) * 18, x = px + nx * off, z = pz + nz * off, h = Math.atan2(tx, tz) + (hash(k, 4) < 0.5 ? 0 : Math.PI), r = hash(k, 1);
         const it = r < 0.55 ? { kind: 'whoops', x, z, h, L: 45 + hash(k, 5) * 40, W: 12, lam: 7.5 + hash(k, 6) * 2, A: 0.3 + hash(k, 8) * 0.3 }
-          : { kind: 'jump', x, z, h, H: 0.8 + hash(k, 5) * 0.8, W: 9 };
+          : { kind: 'jump', x, z, h, H: 0.45 + hash(k, 5) * 0.5, W: 9 };
         if (!footprint(it).every(p => okSpot(p.x, p.z))) continue;
         it.id = firstId + items.length; it.roadside = true; items.push(it);
         trails.push({ name: 'Roadside spur', kind: 'dirt', pts: [[px, pz], [x - nx * 7, z - nz * 7]] });   // from just off the shoulder to the strip
@@ -207,7 +207,7 @@ export function planRoadFeatures(roads, okSpot = () => true, firstId = 0) {
       const L = r < 0.62 ? 55 + hash(k, 2) * 55 : 80, end = pts.find(q => q.s >= p.s + L); if (!end) continue;
       if (Math.abs(Math.atan2(Math.sin(Math.atan2(end.tx, end.tz) - h), Math.cos(Math.atan2(end.tx, end.tz) - h))) > 0.18) continue;   // keep to the straights
       const it = r < 0.62 ? { kind: 'whoops', x: p.x, z: p.z, h, L, W: 11, lam: 7.5 + hash(k, 3) * 2.5, A: 0.35 + hash(k, 4) * 0.3 }
-        : { kind: 'jump', x: p.x, z: p.z, h, H: 0.9 + hash(k, 3) * 0.8, W: 9 };
+        : { kind: 'jump', x: p.x, z: p.z, h, H: 0.45 + hash(k, 3) * 0.5, W: 9 };
       if (!footprint(it).every(q => okSpot(q.x, q.z))) continue;
       it.id = firstId + items.length; it.onRoad = true; items.push(it); n++;
     }

@@ -44,7 +44,7 @@ import { createDust, dustiness } from './dust.js';
 import { updateAudio, thump, clunk } from './audio.js';
 import { steerAssist, speedFov, steerStep, steerRate } from './handling.js';
 import { createRuts, rutDepth } from './ruts.js';
-import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
+import { createBody, stepBody, readBody, uprightBody, suspensionSpec } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
 const STEER_FADE = 0.026;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
@@ -293,7 +293,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);
     // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
-    { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = dims.offroad ? 0.42 : 0.15;
+    { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = suspensionSpec(dims).compression;
       st.cool = Math.max(0, (st.cool || 0) - dt);
       if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onLanding(wr, imp, wmods); thump(imp); st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
       const bottom = rb.travel.some(t => t > full * 0.96);

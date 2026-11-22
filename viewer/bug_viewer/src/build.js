@@ -115,7 +115,8 @@ export function resolve(build) {
     dims: { topSpeed: perf.topMph * 0.44704, accelMul: perf.power, tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
       ...(massDims(build, fl.center[2] - rl.center[2])),
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
-      offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
+      offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks'),
+      longTravel: active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
   };
 }
 

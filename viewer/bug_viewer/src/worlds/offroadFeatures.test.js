@@ -22,13 +22,15 @@ test('heights are small, never negative, and zero away from features', () => {
   assert.ok(max > 0.6, 'max ' + max); assert.ok(nonzero > 100);
   assert.equal(f.heightAt(-5000, -5000), 0);
 });
-test('whoops repeat along their length; a jump rises, drops, then has a landing mound', () => {
+test('whoops repeat along their length; a jump is a low table top', () => {
   const w = { kind: 'whoops', x: 0, z: 0, h: 0, L: 100, W: 13, lam: 8, A: 0.6 }, fw = buildField([w]);
   const hs = Array.from({ length: 100 }, (_, i) => fw.heightAt(0, i)); const peaks = hs.filter((v, i) => i > 0 && i < 99 && v > hs[i - 1] && v >= hs[i + 1] && v > 0.3).length;
   assert.ok(peaks >= 9, 'peaks ' + peaks);
-  const j = { kind: 'jump', x: 0, z: 0, h: 0, H: 1.6, W: 9 }, fj = buildField([j]), prof = Array.from({ length: 80 }, (_, i) => fj.heightAt(0, i));
-  const top = Math.max(...prof.slice(0, 20)), gapMin = Math.min(...prof.slice(top ? prof.indexOf(top) + 6 : 0, 36)), mound = Math.max(...prof.slice(36));
-  assert.ok(top > 1.4 && gapMin < 0.05 && mound > 0.4, JSON.stringify({ top, gapMin, mound }));
+  const j = { kind: 'jump', x: 0, z: 0, h: 0, H: 1.0, W: 9 }, fj = buildField([j]), prof = Array.from({ length: 80 }, (_, i) => fj.heightAt(0, i));
+  const top = Math.max(...prof); assert.ok(top > 0.95 && top <= 1.0001, 'top ' + top);
+  // a table top: no cliffs (the steepest step is a gentle slope), a flat top, and it comes back down to the ground
+  let steepest = 0; for (let i = 1; i < prof.length; i++) steepest = Math.max(steepest, Math.abs(prof[i] - prof[i - 1])); assert.ok(steepest < 0.25, 'steepest ' + steepest);
+  assert.ok(prof.filter(v => v > 0.99).length >= 8, 'flat top'); assert.ok(prof[79] < 0.01 && prof[0] < 0.01);
 });
 test('features that fail the check are dropped', () => {
   const { items } = plan(), none = buildField(items, () => false);
