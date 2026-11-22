@@ -9,6 +9,7 @@ import { spawnItem } from './items.js';
 import { custWheel, isCustWheel, custWheelReady } from './custJobs.js';
 import { standingVehicles } from './fleet.js';
 import { upgradeLevel } from './upgrades.js';
+import { payFor, gapScale, afterJob } from './repRules.js';
 
 import { SUPPLIES } from './garageSupplies.js';
 import { standFor, stockOf, takeStock } from './stock.js';
@@ -55,7 +56,7 @@ export function tickJobs(dt) {
     spawnItem('stock', 'wheel', pose.x + Math.cos(pose.h) * 2.2, pose.z - Math.sin(pose.h) * 2.2);
     Object.assign(game.items[game.items.length - 1], custWheel());
   }
-  h.jobClock = 0; h.nextJobAt = GAP[0] + Math.random() * (GAP[1] - GAP[0]);
+  h.jobClock = 0; h.nextJobAt = (GAP[0] + Math.random() * (GAP[1] - GAP[0])) * gapScale(h);
   save(); say(`A car just pulled into the lot — ${j.who} needs a hand.`);
 }
 /** can you do the job right now? → { ok, why, item } */
@@ -73,7 +74,8 @@ export function doJob() {
   const c = jobCheck(j); if (!c.ok) return say(c.why);
   if (c.item) game.items = game.items.filter(i => i !== c.item);
   else if (c.stand) game.home = takeStock(game.home, c.stand).home;
-  addCash(j.pay, `Job: ${j.who}`);
-  game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id };
-  game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${j.pay})`);
+  const pay = payFor(j.pay, game.home, j.who), a = afterJob(game.home, j.who);
+  addCash(pay, `Job: ${j.who}`);
+  game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id, rep: a.rep, regulars: a.regulars };
+  game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${pay})${pay > j.pay ? ' Good word gets around: a little extra.' : ''}${a.note ? ' ' + a.note : ''}`);
 }
