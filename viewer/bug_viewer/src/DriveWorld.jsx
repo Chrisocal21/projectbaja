@@ -270,7 +270,9 @@ function Vehicle({ children, hud, dims, race, sun }) {
     }
 
     const WEAR = (game.home.wear ||= {}), wr = (WEAR[game.active] ||= FRESH()), wfx = effects(wr);   // wear (wear.js): worn shocks, tires, alignment and engine change how the car drives
-    if (!game.onFoot) { drive(wr, dt, { speed: st.v, rough: sf0.key === 'asphalt' ? 0 : 0.5, hot: !!st.engHot, wading: st.wade || 0 }); st.clueT = (st.clueT ?? 20) - dt; if (st.clueT <= 0) { st.clueT = 45; const c = clues(wr)[0]; if (c) say(c); } }
+    if (!game.onFoot) { drive(wr, dt, { speed: st.v, rough: sf0.key === 'asphalt' ? 0 : 0.5, hot: !!st.engHot, wading: st.wade || 0 }); st.clueT = (st.clueT ?? 20) - dt; if (st.clueT <= 0) { st.clueT = 45; const c = clues(wr, game.home?.tirePsi ?? 30)[0]; if (c) say(c); } }
+    if (wade > 0.05) st.wetT = 7; else if (st.wetT > 0) { st.wetT -= dt; if (st.wetT <= 0) say('The brakes have dried out and bite again.'); }   // wet brakes: weak for a few seconds after a crossing (fades back in)
+    const wetK = st.wetT > 0 ? 1 - 0.6 * Math.min(1, st.wetT / 3) : 1;
     const throttle = bugAsleep() ? 0 : Math.max(-1, Math.min(1, (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + pad.throttle));   // grandma's Bug won't pull until she's fired once
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
@@ -280,7 +282,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp }, dt);
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     readBody(rb, st);
     // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
@@ -378,7 +380,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

@@ -108,8 +108,8 @@ export function stepBody(b, dims, ctl, env, dt) {
       if (!front && throttle > 0) Fx += Fd[m.name] || 0;
       if (!front && throttle < 0 && !braking) Fx -= MASS * ACC * 0.45 * (speed > -9 ? 1 : 0) / 2;
       const sgn = clamp(vl / 0.5, -1, 1);
-      if (braking) Fx -= sgn * M * 22 * (front ? 0.65 : 0.35) / 2;
-      if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 / 2 : cap * 2);
+      if (braking) Fx -= sgn * M * 22 * (env.brake ?? 1) * (front ? 0.65 : 0.35) / 2;   // env.brake: wet brakes (fade for a few seconds after a water crossing)
+      if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 * (env.brake ?? 1) / 2 : cap * 2 * (env.brake ?? 1));
       Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * env.rr + (throttle === 0 && !front ? 0.02 : 0)) * N;
       const avail = Math.sqrt(Math.max(0, cap * cap - Fy * Fy));
       Fx = clamp(Fx, -avail, avail);

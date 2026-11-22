@@ -27,13 +27,24 @@ export function effects(w) {
 }
 const pct = v => Math.round(v * 100);
 /** the clues, worst first: what the driver would notice (never a number you must read; the Admin / garage can show the numbers) */
-export function clues(w) {
+export function clues(w, psi = 30) {
   const out = [];
-  if (w.shocks > 0.25) out.push([w.shocks, w.shocks > 0.6 ? 'The suspension is blown: the ride is floaty and bouncy.' : 'The shocks feel soft after those landings.']);
+  if (w.shocks > 0.25) out.push([w.shocks, (w.shocks > 0.6 ? 'The suspension is blown: the ride is floaty and bouncy.' : 'The shocks feel soft after those landings.') + (psi >= 28 ? ' (Or is the tire pressure just too high for dirt? Look it over: hold T with empty hands.)' : '')]);
   if (w.align > 0.2) out.push([w.align, 'The car pulls to one side: something got knocked out of line.']);
   if (w.tires > 0.3) out.push([w.tires, 'The tires are getting slick and worn.']);
   if (w.engine > 0.2) out.push([w.engine, w.engine > 0.6 ? 'The engine is tired and short of power: it has been run hot.' : 'The engine feels a little flat after running hot.']);
   return out.sort((a, b) => b[0] - a[0]).map(c => c[1]);
+}
+/** a proper look over (empty hands, hold T): what is actually wrong, in a mechanic's words, and what is NOT a worn part (tire pressure) */
+export function inspect(w, psi = 30) {
+  const out = [];
+  if (w.shocks > 0.05) out.push(w.shocks > 0.6 ? 'Shocks: leaking and tired, the rebound is gone. Replace or service.' : 'Shocks: a little soft. Service them.');
+  if (w.align > 0.05) out.push(w.align > 0.4 ? 'Alignment: toe is well out, one side drags.' : 'Alignment: slightly out.');
+  if (w.tires > 0.1) out.push(w.tires > 0.6 ? 'Tires: worn smooth.' : 'Tires: wearing, tread getting thin.');
+  if (w.engine > 0.05) out.push(w.engine > 0.5 ? 'Engine: heat-stressed, low compression feel. Tune it up.' : 'Engine: a little tired from running hot.');
+  if (psi >= 28) out.push('Tire pressure is high (' + psi + ' psi): firm and skittish on dirt. Not a worn part: let some air out (Admin / pressure setting).');
+  else if (psi <= 14) out.push('Tire pressure is very low (' + psi + ' psi): soft and squirmy on pavement. Fine for sand and rock.');
+  return out.length ? out : ['Looks good: nothing worn that you can find.'];
 }
 export const summary = w => WEAR_PARTS.map(p => p + ' ' + pct(w[p]) + '%').join(' · ');
 /** the price of servicing one part (cheap on purpose; nothing to pay when it is fresh) */

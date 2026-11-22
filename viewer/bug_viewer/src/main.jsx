@@ -1,5 +1,5 @@
 import { ClerkProvider } from '@clerk/react';
-import { FRESH, SERVICE_VERB, PART_NAME, partCost, serviced } from './wear.js';
+import { inspect, FRESH, SERVICE_VERB, PART_NAME, partCost, serviced } from './wear.js';
 import { CloudAuto } from './game/CloudBox.jsx';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -291,6 +291,7 @@ function App() {
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (vehiclesNear().length) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyT' && !e.repeat && p === null && game.onFoot && toolInHand() && game.target?.startsWith('car:') && game.carPlan?.part) { const part = game.carPlan.part; cancelHold(); startHold(SERVICE_VERB[part] + '…', () => doService(part), false, 4000); }   // hold T near the car with a tool: service what is worn (wear.js)
+      else if (e.code === 'KeyT' && !e.repeat && p === null && game.onFoot && !held() && game.target?.startsWith('car:') && game.carPlan?.look) { cancelHold(); startHold('Looking it over…', () => say(inspect(game.home?.wear?.[game.active] || FRESH(), game.home?.tirePsi ?? 30).join(' ')), false, 2000); }
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const shiftT = e => { furn.shift = e.type === 'blur' ? false : e.shiftKey; }; window.addEventListener('keydown', shiftT); window.addEventListener('keyup', shiftT); window.addEventListener('blur', shiftT);
