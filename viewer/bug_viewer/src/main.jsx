@@ -36,6 +36,7 @@ import { useBin, takeBin } from './game/bins.js';
 import { sellItem } from './game/sell.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
+import { mayStrip } from './game/salvage.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
 import { dustyVisit } from './game/cajonGift.js';
 import { defOfBuild, BUG } from './rules/vehicles.js';
@@ -170,6 +171,7 @@ function App() {
   const doDetach = (slotId, zone) => {
     const W = game.work, isBug = !W || W.id === 'bug', b = isBug ? buildRef.current : W.build, plan = planDetach(slotId, b, W ? W.zone : zone);
     if (!plan.ok) { if (plan.openCover) toggleCover(plan.openCover); return say(plan.why); }
+    if (!mayStrip(W)) return;   // a wreck is somebody's: the posted salvage fee comes first (game/salvageRules.js)
     if (plan.toYard) { const n = game.items.filter(i => i.kind === 'shell' && i.loc === 'world').length, y = yardSpot(n), nb = tidy(b, plan.apply(b)); transact(() => { spawnItem('shell', b.body, y.x, y.z, 0, GARAGE_DRIVE.h + Math.PI / 2); putBuild(isBug, W, nb); }); say('The hoist lifts the body off — the shell is out in the yard. The chassis rolls on its own now.'); return isBug && rebuild(nb); }
     const [k, id, extra] = plan.item, name = nameOfItem({ kind: k, id, ...(extra || {}) });
     const nb = tidy(b, plan.apply(b)), inHands = canCarry(k, id);
