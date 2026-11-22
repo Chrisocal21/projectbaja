@@ -211,3 +211,8 @@ Chris: "dirt side roads that are part of each race track: all SCORE races, all M
 - **Markers** (`worlds/RaceMarkers.jsx`, mounted in DriveWorld): a start arch (and a finish arch on point to point), an orange flag every 1.2 km along the route; baked into a few meshes per course and drawn only within 900 m.
 - **Admin > Races** on the phone lists every course (series, loop or point to point, km of dirt and paved) and has **Go to start / finish** (`game.teleportTo`, picked up by the walker or the vehicle).
 - **Not done**: the map overlay (the map is codex's), race rules (timer, checkpoints in order, results; canon puts races in a later phase), and more courses (Baja Sur 500, other Imperial Valley events). Official SCORE GPX files would replace the approximate waypoints.
+
+## Explorer: things to find on the map (Nov 21)
+- Phone app **Explorer** lists what you have found and nudges toward what you have not ("a wreck, north-east of Ensenada", never a pin). Found by getting close: towns 450 m, roadside stops 55 m, wrecks 30 m, race course starts 80 m, the places already named in the game 45 m. Saved in `game.home.found`; a "Discovered: ..." message shows on each find. Test sessions do not count.
+- Code: `game/discoveries.js` (pure, tested), `game/explorer.js` (runtime list + marking), `game/Discoveries.jsx` (builds the list from the real map, checks every 0.7 s), `game/ExplorerApp.jsx`.
+- **No lore was invented**: every entry is a real place name, or something already in the world. Rewards, rumours and NPC leads are NOT built (they would need story decisions from Chris, see CANON).

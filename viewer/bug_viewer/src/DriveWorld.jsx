@@ -6,6 +6,7 @@ import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
 import PerfHud from './game/PerfHud.jsx';
 import Governor from './game/Governor.jsx';
+import Discoveries from './game/Discoveries.jsx';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
@@ -546,5 +547,6 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     {world.id === 'county' && <Fleet />}
     <PerfHud />
     <Governor />
+    {world.id === 'county' && <Discoveries />}
   </WorldCtx.Provider>;
 }
