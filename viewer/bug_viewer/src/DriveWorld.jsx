@@ -193,6 +193,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef(null);
+  const shake = useRef(0);   // camera kick from hard landings and bottoming out
   const dustFx = useMemo(() => createDust(), []), dustAcc = useRef([0, 0, 0, 0]), dustTouch = useRef([true, true, true, true]);
   useEffect(() => () => dustFx.dispose(), [dustFx]);
   const rutFx = useMemo(() => createRuts(), []), rutLast = useRef([null, null, null, null]);
@@ -275,6 +276,14 @@ function Vehicle({ children, hud, dims, race, sun }) {
     stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer }, { height: world.height, mu: sf.mu, rr: sf.rr, ACC, MAXV, DRG, diff: game.home?.diff }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     readBody(rb, st);
+    // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
+    { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = dims.offroad ? 0.42 : 0.15;
+      st.cool = Math.max(0, (st.cool || 0) - dt);
+      if (imp > 4.5 && !game.onFoot) { st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
+      const bottom = rb.travel.some(t => t > full * 0.96);
+      if (bottom && !st.cool && !game.onFoot) { st.cool = 0.5; st.bottomT = 1.0; shake.current = Math.max(shake.current, 0.35); game.home = { ...game.home, stress: { ...(game.home.stress || {}), bottomOuts: ((game.home.stress || {}).bottomOuts || 0) + 1 } }; }
+      st.impactT = Math.max(0, (st.impactT || 0) - dt); st.bottomT = Math.max(0, (st.bottomT || 0) - dt);
+      st.wasAir = st.air; st.prevVy = st.vy; }
     const fx = Math.sin(st.h), fz = Math.cos(st.h), rx = fz, rz = -fx, ox = st.x, oz = st.z, ov = st.v;
     // solid rocks and cacti: two body circles (nose + tail) pushed out of every obstacle, speed killed on impact
     for (const off of [WHEELBASE * 0.4, -WHEELBASE * 0.4]) for (const [ox, oz, or, top] of [...world.obstacles, ...(world.trunks ? world.trunks(st.x, st.z) : [])]) {
@@ -342,6 +351,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     camPos.current.set(st.x + Math.sin(ca) * cd, camPos.current.y + (ty - camPos.current.y) * kk, st.z + Math.cos(ca) * cd);
     camPos.current.y = Math.max(camPos.current.y, world.height(camPos.current.x, camPos.current.z) + 0.8);
     camera.position.copy(camPos.current);
+    if (shake.current > 0.01) { const k = shake.current * 0.28; camera.position.x += (Math.random() - 0.5) * k; camera.position.y += (Math.random() - 0.5) * k; camera.position.z += (Math.random() - 0.5) * k; shake.current *= Math.max(0, 1 - dt * 5); }
     camera.lookAt(st.x, st.y + 1.2, st.z);
     }
     }
@@ -361,7 +371,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
