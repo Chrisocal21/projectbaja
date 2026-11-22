@@ -32,6 +32,7 @@ import { perfStart, perfEnd } from '../game/perfMetrics.js';
 import { clockHour } from '../game/clock.js';
 import { dayPhase } from './clock.js';
 import { DETAIL_RADIUS } from './drawDistance.js';
+import WildScenery from './WildScenery.jsx';
 
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
@@ -697,6 +698,7 @@ export default function CountyScene() {
     {!REAL && <BiomeScene />}
     <BoundaryWall />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
+    {REAL && <WildScenery />}
     <React.Suspense fallback={null}><Desert /></React.Suspense>
     {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} roadAt={(x, z) => highways().near(x, z)} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9)} /></React.Suspense>}
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}

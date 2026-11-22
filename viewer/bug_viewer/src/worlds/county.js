@@ -271,7 +271,7 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
   const roadOk = (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14);   // never on a paved road
   FEAT.items.push(...planRoadFeatures(HW.roads.filter(r => r.kind === 'dirt'), roadOk, FEAT.items.length));   // whoops and road jumps right on the dirt roads (the ribbons read the same height, so they ride over them)
-  FIELD = buildField(FEAT.items, roadOk);
+  FIELD = buildField(FEAT.items, roadOk, realBase);   // realBase: the ground without features (creek water levels come from it)
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
@@ -341,8 +341,13 @@ const bumps = FIELD ? FIELD.heightAt : null;
 /** the ground you drive on: the land and roads, plus the whoops, jumps and berms laid on it */
 export const height = bumps ? (x, z) => groundOnly(x, z) + bumps(x, z) : groundOnly;
 export const offroadFeatureCount = FIELD ? FIELD.count : 0;
+/** metres of creek / river water over the ground at (x, z), 0 = dry */
+export const waterDepthAt = FIELD ? (x, z) => FIELD.waterDepthAt(x, z, groundOnly(x, z)) : () => 0;
+export const wildTrees = () => FIELD?.trees || [];
+export const wildCreeks = () => FIELD?.creeks || [];
+export const wildTrunksNear = FIELD ? FIELD.trunksNear : () => [];
 export const offroadPlan = () => FEAT;   // test / map hook
-export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };
+export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (FIELD && waterDepthAt(x, z) > 0.05) return SURFACES.mud; /* a creek bed is wet mud */ if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };
 BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
 export const isRoad = REAL ? (x, z) => R.isRoad(x, z) || HW.isNear(x, z, 3) : R.isRoad;
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------

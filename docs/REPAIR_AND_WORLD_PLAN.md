@@ -267,3 +267,11 @@ Polled every frame; buttons become key presses so every existing system keeps wo
 
 ## Admin as the game archive (Nov 21)
 Phone > Admin is now a searchable archive of everything in the game, each one clickable to spawn: parts (pick which body's parts with the chips; every body), tire sets, rims, Vehicles (work vehicles parked in the yard: complete or bare Bug, El Cajon shell or complete; real vehicles added to your fleet, switch to any owned one), Body shells, Items (junk, mementos, tools, supplies, El Cajon parts, scrap metal), Props (every build item), kits, races/tracks teleports, cash/time/tire pressure/diff. "Everything" searches across all of it, with an info line per entry (kind, slot, price). Spawning marks the save as admin-used. Hide this before a public build.
+
+## Water, trees, hills and forest trails (Nov 21): worlds/wildFeatures.js, WildScenery.jsx
+- New feature kinds placed beside the roads with a dirt trail from the road: **ford** (creek across a trail), **river** (a long winding river with a shallow ford where its trail crosses, cottonwood-style trees on the banks), **forest** (a 350-550 m winding trail enclosed by pine/broadleaf trees with 1-2 creek crossings), **climb** (a 9-16 m hill the trail goes straight over). About 36 fords, 18 rivers, 12 forests, 28 climbs and ~4,400 trees on the real map.
+- Creeks are trenches carved into the ground height with gentle banks; each creek segment carries a water level (so water follows the slope). `waterDepthAt(x, z)` (county.js) gives metres of water. Creek beds count as mud. Trees are solid (trunk circles through `world.trunks`).
+- Driving in water: drag grows with depth, grip drops, spray puffs, HUD "WADING n cm". No stalling or flooding yet (a design call).
+- Trees are cheap procedural low-poly models (about 130 triangles) in instanced chunks, drawn within ~620 m; water ribbons within 430 m (where the fine terrain shows the trench).
+- Admin > Cash/time: "Go to nearest creek crossing / river ford / forest trail / hill climb".
+- Not done: water that flows or ripples, deep-water stalling, bridges, rivers crossing roads, forests on non-flat ground.

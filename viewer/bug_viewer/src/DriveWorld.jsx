@@ -197,6 +197,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const shake = useRef(0);   // camera kick from hard landings and bottoming out
   const dustFx = useMemo(() => createDust(), []), dustAcc = useRef([0, 0, 0, 0]), dustTouch = useRef([true, true, true, true]);
   useEffect(() => () => dustFx.dispose(), [dustFx]);
+  const sprayAcc = useRef([0, 0, 0, 0]);
   const rutFx = useMemo(() => createRuts(), []), rutLast = useRef([null, null, null, null]);
   useEffect(() => () => rutFx.dispose(), [rutFx]);
   if (!s.current) {
@@ -258,7 +259,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.5;   // 1.5 = base off-road tire grip (was 1.25: more grip, Nov 21); psiFx: tire pressure (physics.json)
-    const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * psiFx.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
+    const wade = world.waterDepth ? Math.min(1.2, world.waterDepth(st.x, st.z)) : 0; st.wade = wade;   // in a creek or river: water drags the car and the tires slip
+    const sf = { name: wade > 0.05 ? 'Water crossing' : sf0.name, mu: tmu * (1 - 0.4 * Math.min(1, wade / 0.4)), rr: sf0.rr * psiFx.rr * tr.rr * (1 + 6 * Math.min(1, wade / 0.5)) }, grip = tmu / 0.7; st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
       Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
@@ -373,7 +375,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -422,11 +424,12 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // dust: puffs behind the tires scaled by speed, sliding and landings, tinted to the ground (dust.js)
     { const st = s.current, dtD = Math.min(rawDt, 0.1); dustFx.update(dtD);
       if (st.wheels && st.rb && group.current) {
-        const dust = dustiness(st.sfKey), sp = Math.hypot(st.v, st.lateralV), slide = Math.min(1, (st.slip || 0) / 0.3), rate = dust * (sp > 2 ? Math.min(1, sp / 22) * 16 + slide * 40 : 0);
+        const wading = (st.wade || 0) > 0.05, dust = wading ? 0 : dustiness(st.sfKey), sp = Math.hypot(st.v, st.lateralV), slide = Math.min(1, (st.slip || 0) / 0.3), rate = dust * (sp > 2 ? Math.min(1, sp / 22) * 16 + slide * 40 : 0);
         group.current.updateMatrixWorld(true); const c = DUST_C.set(st.sfColor || '#a98c5a').lerp(DUST_W, 0.55), v = st.rb.vel;
         st.wheels.forEach((w, i) => {
           const was = dustTouch.current[i]; dustTouch.current[i] = w.touching;
           if (!w.touching) { rutLast.current[i] = null; }
+          if (wading && w.touching && sp > 1) { sprayAcc.current[i] += (6 + sp * 2.2) * dtD; while (sprayAcc.current[i] >= 1) { sprayAcc.current[i] -= 1; const q = group.current.localToWorld(DUST_P.copy(w.hub)); dustFx.emit(q.x + (Math.random() - 0.5) * 0.5, world.height(q.x, q.z) + st.wade * 0.6, q.z + (Math.random() - 0.5) * 0.5, v.x * 0.35 + (Math.random() - 0.5) * 2.4, 1.2 + Math.random() * 2.6, v.z * 0.35 + (Math.random() - 0.5) * 2.4, WATER_C, 0.35, 1.5 + Math.min(1, sp / 20), 0.4, 0.9); } }
           if (!w.touching || dust <= 0) { dustAcc.current[i] = 0; return; }
           const p = group.current.localToWorld(DUST_P.copy(w.hub)); p.y -= 0.3;
           if (!was) for (let k = 0; k < 7; k++) dustFx.emit(p.x, p.y, p.z, v.x * 0.2 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 1.6, v.z * 0.2 + (Math.random() - 0.5) * 3, c, 0.7, 3.2, 0.26 * Math.min(1, dust), 1.6);   // landing puff
@@ -447,7 +450,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
 
   return <><primitive object={dustFx.points} /><primitive object={rutFx.mesh} /><group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group></>;
 }
-const DUST_R = new THREE.Color(), DUST_C = new THREE.Color(), DUST_W = new THREE.Color('#ffffff'), DUST_P = new THREE.Vector3();
+const WATER_C = new THREE.Color('#d6ecf7'), DUST_R = new THREE.Color(), DUST_C = new THREE.Color(), DUST_W = new THREE.Color('#ffffff'), DUST_P = new THREE.Vector3();
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
 const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, get spawn() { return game.start === 'lot' ? BUG_SPOT : game.start === 'garage' ? GARAGE_DRIVE : { x: 0, z: 0, h: Math.PI / 2 }; }, gates: [], spawns: TC.spawns, area: TC.areaAt, obstacles: SITE_OBSTACLES };
@@ -455,7 +458,7 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', trunks: TRUNKS.near, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', trunks: (x, z) => { const a = TRUNKS.near(x, z), b = CO.wildTrunksNear(x, z); return b.length ? [...a, ...b] : a; }, waterDepth: CO.waterDepthAt, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
