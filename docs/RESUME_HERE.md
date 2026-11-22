@@ -21,6 +21,9 @@ All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAI
 - **Sound:** a first procedural pass (`src/audio.js`, K mutes, 50% default). Real recordings are better; see the handoff.
 - **Big map (`?realmap`):** real border slice, real highways, junction signs, rest areas, gas stations. See [WORLD_MAP](./WORLD_MAP.md) and [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md). Road crossings, river crossings and driveways into places are ChatGPT's current job (Nov 22).
 
+## Right now (Nov 22, late)
+Chris paused the garage/office expansion (levels 1-3 of garage and office are built; living, mechanics, fuel room are not) to go back to **gameplay: the garage business, building and finding vehicles, and the story in levels 0 and 1**. See [EXPANSION_PLAN](./EXPANSION_PLAN.md) "Status, Nov 22".
+
 ## Next (in order, Chris's call)
 1. Test the new handling, suspension and table tops by feel; tune.
 2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. **Assigned to ChatGPT** (it owns `highways.js`; spec is item 0 in [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md)).
