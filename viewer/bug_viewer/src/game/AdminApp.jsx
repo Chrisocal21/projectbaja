@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { offroadPlan } from '../worlds/county.js';
 import { teleportPlaces } from './whereAmI.js';
+import { FRESH, summary, clues } from '../wear.js';
 import { game, useGame, save, say, addCash, catalogFor, nameOf } from './store.js';
 import { SECTIONS, sectionOfSlot } from '../build.js';
 import { cajonCatalog } from './cajonParts.js';
@@ -135,6 +136,9 @@ export default function AdminApp({ onBack }) {
         {[12, 16, 20, 30, 36].map(p => cheat('Tires ' + p + ' psi' + ((game.home?.tirePsi ?? 30) === p ? ' ✓' : ''), () => { game.home = { ...game.home, tirePsi: p }; say('Tire pressure ' + p + ' psi (street 30, sand/rock 12-20). Takes effect on the next frame.'); }))}
         {['open', 'lsd', 'locker'].map(d => cheat('Diff: ' + d + ((game.home?.diff ?? 'open') === d ? ' ✓' : ''), () => { game.home = { ...game.home, diff: d }; say('Rear differential: ' + d + ' (open sends power to the wheel with least grip; a locker drives both).'); }))}
         {['track', 'jump', 'whoops', 'berms', 'ford', 'river', 'forest', 'climb'].map(k => cheat('Go to nearest ' + ({ track: 'dirt track', ford: 'creek crossing', river: 'river ford', forest: 'forest trail', climb: 'hill climb' }[k] || k), () => { const p = offroadPlan(); const me = game.pos; const it = (p?.items || []).filter(i => i.kind === k).sort((u, v) => Math.hypot(u.x - me.x, u.z - me.z) - Math.hypot(v.x - me.x, v.z - me.z))[0]; if (!it) return say('None on this map.'); if (it.path) return go({ x: it.start[0], z: it.start[1], h: Math.atan2(it.path[1][0] - it.start[0], it.path[1][1] - it.start[1]) }, 'the nearest ' + k + ' (start of its trail)'); const s0 = k === 'track' ? -it.S / 2 - 30 : -30, Hd = it.h; go({ x: it.x + Math.sin(Hd) * s0, z: it.z + Math.cos(Hd) * s0, h: Hd }, 'the nearest ' + k); }))}
+        {cheat('Service vehicle (reset wear)', () => { game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: FRESH() } }; save(); })}
+        {cheat('Wear it out (test)', () => { game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: { shocks: 1, tires: 1, align: 1, engine: 1, side: 1 } } }; })}
+        <small style={{ width: '100%' }}>Wear: {summary(game.home?.wear?.[game.active] || FRESH())}{clues(game.home?.wear?.[game.active] || FRESH())[0] ? ' — ' + clues(game.home.wear[game.active])[0] : ''}</small>
         {cheat('+10 scrap', () => { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + 10 }; save(); })}
       </div>
       : <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 360, overflowY: 'auto' }}><small>{rows.length} shown. Click one to spawn it.</small>{rows.slice(0, 300).map((r, i) => <button key={(r.kind || r.act) + r.id + i} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => act(r)}><b>{r.label}</b><br /><small style={{ opacity: 0.7 }}>{r.info}</small></button>)}{rows.length > 300 && <small>…search to narrow {rows.length - 300} more</small>}</div>}

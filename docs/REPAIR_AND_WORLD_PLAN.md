@@ -275,3 +275,6 @@ Phone > Admin is now a searchable archive of everything in the game, each one cl
 - Trees are cheap procedural low-poly models (about 130 triangles) in instanced chunks, drawn within ~620 m; water ribbons within 430 m (where the fine terrain shows the trench).
 - Admin > Cash/time: "Go to nearest creek crossing / river ford / forest trail / hill climb".
 - Not done: water that flows or ripples, deep-water stalling, bridges, rivers crossing roads, forests on non-flat ground.
+
+## Wear and failure (forgiving first, Nov 21)
+`src/wear.js`: per vehicle (`game.home.wear[id]`) four numbers 0..1: shocks (hard landings, bottoming out), tires (fast rough driving), align (big hits), engine (running hot; wading while hot is ~8x worse). Effects are capped so nothing strands you: damping down to 60%, grip down 18%, power down 25%, a mild steering pull. Clues appear as a message about every 45 s (worst first). Admin > Cash / time: "Service vehicle (reset wear)", "Wear it out (test)" and the numbers. All rates are estimates to tune by feel. Next: a paid service at the garage, repair procedures with tools, wet brakes, more parts that change wear.

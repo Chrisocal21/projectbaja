@@ -57,7 +57,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   const F = V(0, -M * G, 0), T = V();
   const push = (f, p) => { F.add(f); T.add(tmpD.copy(p).sub(c).cross(f)); };
   const vcar = vel.x * fwdB.x + vel.z * fwdB.z, fl = Math.hypot(fwdB.x, fwdB.z) || 1, speed = vcar / fl;   // forward speed along the heading
-  const mu = env.mu, ACC = env.ACC * 0.75;
+  const mu = env.mu, ACC = env.ACC * 0.75, dmp = env.damp ?? 1;   // env.damp: worn shocks (wear.js)
 
   // ---- wheel kinematics: where the ground is under each tire, and how far that squeezes the spring ----
   const info = mounts.map((m, i) => {
@@ -72,7 +72,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   for (const o of info) {
     o.preload = M * G * (o.m.name.startsWith('F') ? 0.21 : 0.29);
     const xdot = clamp((o.x - b.xs[o.i]) / dt, -9, 9), frac = Math.max(0, o.x) / cfg.compression;
-    let N = o.preload + cfg.stiffness * o.x * (1 + 6 * frac ** 3) + (xdot > 0 ? cfg.damping * (0.3 + 2.2 * frac * frac) * xdot : cfg.damping * 3.2 * xdot);
+    let N = o.preload + cfg.stiffness * o.x * (1 + 6 * frac ** 3) + (xdot > 0 ? cfg.damping * dmp * (0.3 + 2.2 * frac * frac) * xdot : cfg.damping * dmp * 3.2 * xdot);
     if (o.needed > cfg.compression) N += 160000 * (o.needed - cfg.compression);   // bottomed out: the stop is nearly solid
     o.N = N; b.xs[o.i] = o.x;
   }
