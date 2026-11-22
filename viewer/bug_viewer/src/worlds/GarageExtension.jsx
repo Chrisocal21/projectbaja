@@ -82,7 +82,12 @@ export default function GarageExtension({ level, power }) {
     {back.gaps.map(([a, b]) => <RollUp key={`bd${a}`} face={back} a={a} b={b} H={H} T={T} />)}
     {eastPieces.map(([a, b]) => <WallRun key={`e${a}`} face={east} a={a} b={b} H={H} T={T} />)}
     {east.gaps.map(([a, b]) => <RollUp key={`ed${a}`} face={east} a={a} b={b} H={H} T={T} />)}
-    <WallRun face={west} a={e.z0} b={e.z1} H={H} T={T} />
+    {west.pieces.map(([a, b]) => <WallRun key={`w${a}`} face={west} a={a} b={b} H={H} T={T} />)}
+    {west.gaps.map(([a, b]) => <RollUp key={`wd${a}`} face={west} a={a} b={b} H={H} T={T} />)}
+    {/* the pass-through from Walt's shop into the new part: the old back wall is open between the office wing and the east wall, framed by a steel header and two jamb posts */}
+    <Box p={[0, 4.35, e.z1]} s={[14, 0.5, 0.35]} color="#5d6a74" metal={0.55} rough={0.45} />
+    {[-6.85, 6.85].map(x => <Box key={`pj${x}`} p={[x, 2.2, e.z1]} s={[0.3, 4.4, 0.35]} color="#5d6a74" metal={0.55} rough={0.45} />)}
+    {[-1, 1].map(s => <Box key={`pk${s}`} p={[s * 6.7, 0.1, e.z1]} s={[0.12, 0.2, 0.6]} color="#e8b625" cast={false} />)}
     {/* the office's back wall faces the new room: it gets the same liner and kick plate (Walt's rusty skin stays outside the office only) */}
     <Box p={[(e.x0 - 7) / 2, (1.2 + Math.min(H, 4.6)) / 2, e.z1 - 0.14]} s={[-7 - e.x0, Math.min(H, 4.6) - 1.2, 0.03]} map={rep(T.liner, 1.5, 1)} color="#fff" rough={0.8} cast={false} />
     <Box p={[(e.x0 - 7) / 2, 0.6, e.z1 - 0.15]} s={[-7 - e.x0, 1.2, 0.04]} color="#6c7378" metal={0.5} rough={0.5} cast={false} />
@@ -95,7 +100,9 @@ export default function GarageExtension({ level, power }) {
     <mesh position={[cx, H - 0.02, cz]} rotation={[Math.PI / 2, 0, 0]}><planeGeometry args={[W, D]} /><meshStandardMaterial color="#e9ecea" roughness={0.85} side={THREE.DoubleSide} /></mesh>
     {beams.map(z => <group key={`bm${z}`}>
       <Box p={[cx, H - 0.25, z]} s={[W, 0.4, 0.16]} color="#5d6a74" metal={0.55} rough={0.45} />
-      {[e.x0 + 0.15, e.x1 - 0.15].map(x => <Box key={x} p={[x, H / 2, z]} s={[0.25, H, 0.25]} color="#5d6a74" metal={0.55} rough={0.45} />)}
+      {/* columns stand in the walls only where nothing is: none on the west bench wall (pegboards hang there) and none in a door opening */}
+      {!east.gaps.some(([a, b]) => z > a - 0.5 && z < b + 0.5) && <Box p={[e.x1 - 0.15, H / 2, z]} s={[0.25, H, 0.25]} color="#5d6a74" metal={0.55} rough={0.45} />}
+      {!west.gaps.some(([a, b]) => z > a - 0.5 && z < b + 0.5) && z < -14 && <Box p={[e.x0 + 0.15, H / 2, z]} s={[0.25, H, 0.25]} color="#5d6a74" metal={0.55} rough={0.45} />}
     </group>)}
     {[e.x0 + W / 3, e.x0 + (2 * W) / 3].map(x => <Box key={`pu${x}`} p={[x, H - 0.1, cz]} s={[0.1, 0.12, D]} color="#7a868e" metal={0.5} rough={0.5} cast={false} />)}
     {/* LED high-bay rows: glow always, light the room only with the power on */}
@@ -120,6 +127,7 @@ export default function GarageExtension({ level, power }) {
     </group>; })}
     {/* outside: concrete aprons in front of each roll-up door */}
     {back.gaps.map(([a, b]) => <Box key={`ap${a}`} p={[(a + b) / 2, 0.05, e.z0 - 2.5]} s={[b - a + 1, 0.1, 5]} color="#fff" map={rep(T.concrete, 1, 1.2)} cast={false} />)}
+    {west.gaps.map(([a, b]) => <Box key={`apw${a}`} p={[e.x0 - 2.5, 0.05, (a + b) / 2]} s={[5, 0.1, b - a + 1]} color="#fff" map={rep(T.concrete, 1.2, 1)} cast={false} />)}
     {east.gaps.map(([a, b]) => <Box key={`ape${a}`} p={[e.x1 + 2.5, 0.05, (a + b) / 2]} s={[5, 0.1, b - a + 1]} color="#fff" map={rep(T.concrete, 1.2, 1)} cast={false} />)}
   </group>;
 }

@@ -28,7 +28,7 @@ export const GARAGE_LEVELS = [
   // level 3 stops at z = -22: the property line is at z = -23 (county.js PROPERTY). The back wall is too close to the line to drive through, so the
   // bays open onto a drive aisle with one big roll-up door on the east side, and whole-car racks line the back wall (3 racks x 3 tiers = 9 cars).
   { level: 3, name: 'Race warehouse', z0: -22, h: 6.4, floor: 'epoxy', bays: [...OLD_SHOP, ...row(-10.5, [-7.2, -3.2, 0.8, 4.8], false)],
-    doors: [{ id: 'E1', wall: 'east', at: -16.8, w: 4.6 }], aisle: { x0: BUILDING.x0, x1: BUILDING.x1, z0: -19.6, z1: -14 }, bench: BENCH_WALL,
+    doors: [{ id: 'E1', wall: 'east', at: -16.8, w: 4.6 }, { id: 'W1', wall: 'west', at: -16.8, w: 4.6 }], aisle: { x0: BUILDING.x0, x1: BUILDING.x1, z0: -19.6, z1: -14 }, bench: BENCH_WALL,
     racks: [-12.9, -6.2, 0.5].map((x0, i) => ({ id: `K${i + 1}`, x0, x1: x0 + 6.2, z0: -22, z1: -19.6, tiers: 3 })) },
 ];
 export const MAX_LEVEL = GARAGE_LEVELS.length - 1;
@@ -64,8 +64,8 @@ const inGap = (v, gaps) => gaps.some(([a, b]) => v > a && v < b);
 /** collision circles [lx, lz, r] for the extension's outside walls (west, east, back), with the roll-up doors left open */
 export function extensionWallCircles(level) {
   const e = extension(level); if (!e) return [];
-  const r = 0.15, step = 0.5, out = [], east = doorGaps(level, 'east'), back = doorGaps(level, 'back');
-  for (let z = e.z0; z <= e.z1 + 1e-9; z += step) { out.push([e.x0, z, r]); if (!inGap(z, east)) out.push([e.x1, z, r]); }
+  const r = 0.15, step = 0.5, out = [], east = doorGaps(level, 'east'), west = doorGaps(level, 'west'), back = doorGaps(level, 'back');
+  for (let z = e.z0; z <= e.z1 + 1e-9; z += step) { if (!inGap(z, west)) out.push([e.x0, z, r]); if (!inGap(z, east)) out.push([e.x1, z, r]); }
   for (let x = e.x0; x <= e.x1 + 1e-9; x += step) if (!inGap(x, back)) out.push([x, e.z0, r]);
   return out;
 }
@@ -78,12 +78,12 @@ export function wallFaces(level) {
   const left = { id: 'left', axis: 'x', at: -H, ry: Math.PI / 2, sign: 1, pieces: [[-Z, Z]], gaps: [] };
   if (!e) return [{ id: 'back', axis: 'z', at: -Z, ry: 0, sign: 1, pieces: [[-H, H]], gaps: [] }, front, left, { id: 'right', axis: 'x', at: H, ry: -Math.PI / 2, sign: -1, pieces: [[-Z, Z]], gaps: [] }];
   const cut = (a, b, gaps) => { const out = []; let s = a; for (const [g0, g1] of [...gaps].sort((p, q) => p[0] - q[0])) { if (g0 > s) out.push([s, g0]); s = Math.max(s, g1); } if (b > s) out.push([s, b]); return out; };
-  const back = doorGaps(level, 'back'), east = doorGaps(level, 'east');
+  const back = doorGaps(level, 'back'), east = doorGaps(level, 'east'), west = doorGaps(level, 'west');
   return [
     { id: 'back', axis: 'z', at: e.z0, ry: 0, sign: 1, pieces: cut(e.x0, e.x1, back), gaps: back },
     front, left,
     { id: 'right', axis: 'x', at: e.x1, ry: -Math.PI / 2, sign: -1, pieces: cut(e.z0, Z, east), gaps: east },
-    { id: 'west', axis: 'x', at: e.x0, ry: Math.PI / 2, sign: 1, pieces: [[e.z0, e.z1]], gaps: [] },
+    { id: 'west', axis: 'x', at: e.x0, ry: Math.PI / 2, sign: 1, pieces: cut(e.z0, e.z1, west), gaps: west },
     { id: 'officeBack', axis: 'z', at: e.z1, ry: Math.PI, sign: -1, pieces: [[e.x0, -H]], gaps: [] },
   ];
 }
@@ -108,10 +108,10 @@ export function layoutProblems(level) {
     else out.push(`${b.id} has no way in for a car`);
   });
   d.doors.forEach((dr, i) => {
-    const span = dr.wall === 'back' ? [B.x0, B.x1] : [e ? e.z0 : B.z0, B.z0];
+    const span = dr.wall === 'back' ? [B.x0, B.x1] : [e ? e.z0 : B.z0, B.z0];   // east and west walls run along z
     if (!e || dr.at - dr.w / 2 < span[0] + 0.3 || dr.at + dr.w / 2 > span[1] - 0.3) out.push(`door ${dr.id} does not fit its wall`);
     d.doors.slice(i + 1).forEach(o => { if (o.wall === dr.wall && Math.abs(o.at - dr.at) < (o.w + dr.w) / 2 + 0.3) out.push(`doors ${dr.id} and ${o.id} overlap`); });
-    if (dr.wall === 'east' && d.aisle && !(dr.at - dr.w / 2 >= d.aisle.z0 - 1e-6 && dr.at + dr.w / 2 <= d.aisle.z1 + 1e-6)) out.push(`door ${dr.id} does not open onto the aisle`);
+    if ((dr.wall === 'east' || dr.wall === 'west') && d.aisle && !(dr.at - dr.w / 2 >= d.aisle.z0 - 1e-6 && dr.at + dr.w / 2 <= d.aisle.z1 + 1e-6)) out.push(`door ${dr.id} does not open onto the aisle`);
   });
   if (e && !d.bench) out.push('no bench wall');
   if (d.bench && (Math.abs(d.bench.x0 - B.x0) > 0.05 || d.bench.z1 - d.bench.z0 < 6)) out.push('the bench wall is not on a solid wall at least 6 m long');

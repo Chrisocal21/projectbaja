@@ -57,7 +57,8 @@ Look rules (worlds/GarageExtension.jsx):
 - Roll-up doors where the layout says (raised, bump posts, concrete apron outside).
 - Lights that light the room when the power is on.
 - One slab with the old shop: fresh concrete (level 1) or flake epoxy (2-3); painted, numbered bays (number at the end the car drives in from).
-- Level 3 is taller (6.4 m) for 3-high car racks; marked drive aisle to one big east door.
+- Level 3 is taller (6.4 m) for 3-high car racks; marked drive aisle with a big door at each end (east E1, west W1: drive-through).
+- No columns in a door opening or on the bench wall; the old back wall opening is framed by a steel header and jamb posts (the pass-through).
 Plan diagram: viewer/bug_viewer/screenshots/garage_plan_0_3.png.
 
 ## Status (Nov 22)
