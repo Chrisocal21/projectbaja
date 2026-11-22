@@ -7,7 +7,7 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
-import { garageLevelOf, inExtension, levelOpenings, extensionWallCircles } from '../worlds/garageLevels.js';
+import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles } from '../worlds/garageLevels.js';
 import { ownedStages } from '../worlds/upgrades.js';
 import { upgradeLevel, stageWhy } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
@@ -158,6 +158,11 @@ function cutWhy(item, x, z) {
   const l = homeLocal(x, z), s = snapCut(l.lx, l.lz);
   if (!s) return "Aim at the garage's right wall or its back wall.";
   return openWhy(s, foundationsLocal(), openingKeys()) || (!creative() && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
+}
+/** a lift snaps to the nearest bay spot within reach of where you aim (worlds/garageLevels.js) → { x, z, ry } in world terms, or null */
+export function snapLiftWorld(x, z) {
+  const l = homeLocal(x, z), b = nearestBay(garageLevelOf(ownedStages(game.home)), l.lx, l.lz, 3.5, true); if (!b) return null;
+  const [wx, wz] = toWorld(G, b.x, b.z); return { x: wx, z: wz, ry: G.rot + b.ry };
 }
 /** wall-mounted furniture (the pegboard) stands this far off the wall and snaps to the nearest one within `reach` of where you aim */
 export const WALL_MOUNT = { offset: 0.15, reach: 3 };

@@ -32,3 +32,8 @@ test('nearest bay, bay of a car, free bays', () => {
   assert.equal(bayOf(3, -3.2, -17.5).id, 'S1');
   assert.equal(freeBays(1, [{ x: 0, z: -0.5 }]).length, 3);
 });
+
+test('nearestBay liftOnly: a lift aimed near a bay snaps to it, far away it does not', () => {
+  assert.equal(nearestBay(3, -7.0, -10.0, 3.5, true).id, 'R2');
+  assert.equal(nearestBay(3, 30, 30, 3.5, true), null);
+});
