@@ -19,6 +19,12 @@ const PROC = {
   LIGHT_BumperPods: () => mirrorX([s => [zDisc([0.3 * s, 0.67, 1.9], 0.07, 0.1), zDisc([0.3 * s, 0.67, 1.955], 0.058, 0.012, 'led'), tube(V(0.3 * s, 0.6, 1.9), V(0.3 * s, 0.5, 1.88), 0.014), box([0.3 * s, 0.5, 1.88], [0.09, 0.02, 0.07])]]).flat(),
   LIGHT_CubePods: () => mirrorX([s => [box([0.52 * s, 0.64, 1.88], [0.09, 0.09, 0.09]), box([0.52 * s, 0.64, 1.935], [0.075, 0.075, 0.012], 'led'), tube(V(0.52 * s, 0.6, 1.88), V(0.52 * s, 0.5, 1.86), 0.013), box([0.52 * s, 0.49, 1.86], [0.09, 0.02, 0.07])]]).flat(),
   LIGHT_RearBar: () => [box([0, 1.0, -2.1], [0.78, 0.045, 0.045]), box([0, 1.0, -2.128], [0.74, 0.03, 0.01], 'ledRed'), ...mirrorX([s => [tube(V(0.36 * s, 1.0, -2.1), V(0.36 * s, 0.92, -2.1), 0.014), box([0.36 * s, 0.915, -2.1], [0.07, 0.015, 0.06])]]).flat()],
+  // ---------- tube arches standing proud over each wheel (the concept art's exposed fender tubes) ----------
+  FENDER_ArchTubes: r => (r?.mounts || []).filter(m => m.name === 'FL' || m.name === 'FR' || m.name === 'RL' || m.name === 'RR').flatMap(m => {
+    const sx = m.center[0] < 0 ? -1 : 1, x = m.center[0] + sx * 0.14, ra = m.radius + 0.1, pts = [];
+    for (let i = 0; i <= 8; i++) { const t = Math.PI * i / 8; pts.push(V(x, m.center[1] + Math.sin(t) * ra * 1.02, m.center[2] + Math.cos(t) * ra)); }
+    return [...pts.slice(1).map((p, i) => tube(pts[i], p, 0.02)), tube(V(x, m.center[1], m.center[2] + ra), V(x - sx * 0.14, m.center[1] - 0.05, m.center[2] + ra), 0.02), tube(V(x, m.center[1], m.center[2] - ra), V(x - sx * 0.14, m.center[1] - 0.05, m.center[2] - ra), 0.02)];
+  }),
   // ---------- roll cage: main hoop behind the seats, front hoop at the windshield, roof bars, rear stays down to the frame, door bars, and a cross brace ----------
   ROLL_Cage: () => [
     ...mirrorX([s => [

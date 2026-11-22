@@ -13,7 +13,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile, bodyById, partById } from './build.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
-import { applyWeathering, kindForMaterial } from './weather.js';
+import { applyWeathering, kindForMaterial, LIVERY } from './weather.js';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
 import { game, useGame } from './game/store.js';
 import { BUG } from './rules/vehicles.js';
@@ -67,6 +67,7 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
         m.color.copy(material?.color ? new THREE.Color(material.color) : ch ? new THREE.Color(ch.color) : m.userData.baseColor);
         if (material) { if (material.metalness != null) m.metalness = material.metalness; if (material.roughness != null) m.roughness = material.roughness; }
         if (!material && !wheel) applyWeathering(m, kindForMaterial(m.name || ''), o, clone);
+        else if (material?.weave) applyWeathering(m, 'carbon', o, clone);
       });
     });
   }, [clone, maskKey, wireframe, isBase, channels, material]);
@@ -386,6 +387,7 @@ export function ShellProp({ bodyId }) {
 
 export default function BuildModel({ build, wireframe, onSelect, drive = false, vehId = 'bug' }) {
   const r = useMemo(() => resolve(build), [build]);
+  if (vehId === 'bug') LIVERY.value = build?.livery ? 1 : 0;
   const common = { wireframe, onSelect, channels: r.channels };
   useGame();
   const shellOff = (build.stripped || []).includes('shell');

@@ -14,10 +14,10 @@ import { adminAddProp } from './home.js';
  */
 /** the whole Baja Bug of the concept art in one build: carbon panels, tube bumpers and cage, roll cage, roof rack with four round lights, shocks, big tires */
 const fullBajaBuild = b => ({
-  ...b, body: 'classic-stage2', wheels: 'tire-deep', stripped: [], hidden: [],
+  ...b, livery: true, body: 'classic-stage2', wheels: 'tire-deep', stripped: [], hidden: [],
   parts: {
     fenders: 'CARBON_FendersCut', hood: 'CARBON_Hood', rearDeck: 'CARBON_RearDeck', frontBumper: 'PART_002_FrontTubeBumper', rearBumper: 'PART_003_RearEngineCage',
-    rockers: 'PART_011_RockerGuards', rollCage: 'ROLL_Cage', roofRack: 'ACC_RoofRack', roofLights: 'ROOF_RoundLights', rearCarrier: 'ACC_SpareCarrier',
+    rockers: 'PART_011_RockerGuards', rollCage: 'ROLL_Cage', fenderTubes: 'FENDER_ArchTubes', roofRack: 'ACC_RoofRack', roofLights: 'ROOF_RoundLights', rearCarrier: 'ACC_SpareCarrier',
     suspension: 'PART_006_TrailShockSet', shocks: 'SHOCK_001_Coilover', skid: 'GUARD_SkidPlate', mudFlaps: 'GUARD_MudFlaps', exhaust: 'EXH_Megaphone',
     frontLights: 'LIGHT_BumperPods', rearLights: 'LIGHT_RearBar', engineCarb: 'EMOD_DualWeber', engineBore: 'EMOD_Bore1776', engineCooling: 'EMOD_Doghouse',
   },

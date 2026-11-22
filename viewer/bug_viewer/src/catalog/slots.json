@@ -173,5 +173,12 @@
   "label": "Roof light pods",
   "category": "Lighting",
   "order": 16.5
+ },
+ {
+  "type": "slot",
+  "id": "fenderTubes",
+  "label": "Fender arch tubes",
+  "category": "Protection",
+  "order": 12.5
  }
 ]

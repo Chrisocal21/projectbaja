@@ -3,6 +3,8 @@ import { noiseTexture } from './worlds/groundDetail.js';
 
 /** 0 = showroom fresh, 1 = a rusty old banger. Shared by every weathered material so one slider ages the whole car. */
 export const WEAR = { value: 0.85 };
+/** 1 = the worn orange-and-white patch livery of the Baja Bug concept art (set from build.livery by BuildModel) */
+export const LIVERY = { value: 0 };
 
 export const kindForMaterial = name =>
   /fiberglass/i.test(name) ? 'fiberglass'
@@ -52,6 +54,10 @@ const BODY = {
     diffuseColor.rgb = mix(diffuseColor.rgb, rust, rustM);
     float chip = smoothstep(0.91, 0.97, wCrk) * W * (0.35 + 0.5 * sill);
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.32, 0.31, 0.29), chip * (1.0 - rustM));
+    float lv = uLivery * smoothstep(0.4, 0.46, wBig * 0.6 + wMid * 0.4);
+    float lvW = step(0.56, wBig);
+    vec3 lvC = mix(vec3(0.86, 0.38, 0.08), vec3(0.88, 0.86, 0.8), lvW);
+    diffuseColor.rgb = mix(diffuseColor.rgb, lvC * (0.78 + 0.25 * wFine), lv * 0.92 * (1.0 - rustM));
     float dirt = (1.0 - smoothstep(0.2, 0.8, wp.y)) * W * (0.18 + 0.28 * wFine);
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.27, 0.19, 0.11), dirt);
     wRough = mix(0.79, 0.97, rustM);`,
@@ -78,7 +84,17 @@ const BODY = {
     float pit = smoothstep(0.55, 0.8, wMid * 0.6 + wFine * 0.5) * W;
     diffuseColor.rgb = mix(diffuseColor.rgb * (1.0 - 0.3 * W), vec3(0.35, 0.2, 0.1), pit * 0.6);
     wRough = 0.7;`,
+  carbon: `
+    vec2 cw = abs(vWN.y) > 0.6 ? wp.xz : abs(vWN.x) > 0.6 ? wp.zy : wp.xy;
+    cw *= 70.0;
+    float cx = floor(cw.x), cy = floor(cw.y);
+    float twill = mod(cx + cy, 4.0) < 2.0 ? 1.0 : 0.0;
+    float thread = 0.5 + 0.5 * sin(6.2832 * (twill > 0.5 ? cw.x : cw.y));
+    diffuseColor.rgb = mix(vec3(0.035, 0.037, 0.04), vec3(0.11, 0.115, 0.125), twill * 0.55 + thread * 0.35);
+    wRough = mix(0.22, 0.38, thread);`,
   rubber: `
+    float mudLo = smoothstep(0.5, 0.75, wBig);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.3, 0.22, 0.13), clamp(mudLo * 0.9 * W, 0.0, 0.7));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.28), W * 0.35 * (0.4 + wBig));
     wRough = 0.95;`,
 };
@@ -92,12 +108,12 @@ export function applyWeathering(mat, kind, mesh, root) {
   const prev = mesh.onBeforeRender;
   mesh.onBeforeRender = function (...a) { root.updateWorldMatrix(true, false); rootInv.copy(root.matrixWorld).invert(); prev?.apply(this, a); };
   mat.onBeforeCompile = sh => {
-    sh.uniforms.tDetail = { value: noiseTexture() }; sh.uniforms.uWear = WEAR; sh.uniforms.uRootInv = { value: rootInv };
+    sh.uniforms.tDetail = { value: noiseTexture() }; sh.uniforms.uWear = WEAR; sh.uniforms.uLivery = LIVERY; sh.uniforms.uRootInv = { value: rootInv };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nuniform mat4 uRootInv;\nvarying vec3 vWP;\nvarying vec3 vWN;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nmat4 wRel = uRootInv * modelMatrix; vWP = (wRel * vec4(position, 1.0)).xyz; vWN = normalize(mat3(wRel) * normal);');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform sampler2D tDetail;\nuniform float uWear;\nvarying vec3 vWP;\nvarying vec3 vWN;')
+      .replace('#include <common>', '#include <common>\nuniform sampler2D tDetail;\nuniform float uWear;\nuniform float uLivery;\nvarying vec3 vWP;\nvarying vec3 vWN;')
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec3 wp = vWP;
         float wBig = texture2D(tDetail, wp.xz * 0.35 + wp.yy * 0.17).r;

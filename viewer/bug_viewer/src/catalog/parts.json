@@ -664,7 +664,8 @@
   "material": {
    "color": "#16181b",
    "metalness": 0.5,
-   "roughness": 0.28
+   "roughness": 0.28,
+   "weave": true
   },
   "price": 520
  },
@@ -692,7 +693,8 @@
   "material": {
    "color": "#16181b",
    "metalness": 0.5,
-   "roughness": 0.28
+   "roughness": 0.28,
+   "weave": true
   },
   "price": 780
  },
@@ -720,7 +722,8 @@
   "material": {
    "color": "#16181b",
    "metalness": 0.5,
-   "roughness": 0.28
+   "roughness": 0.28,
+   "weave": true
   },
   "price": 820
  },
@@ -749,7 +752,8 @@
   "material": {
    "color": "#16181b",
    "metalness": 0.5,
-   "roughness": 0.28
+   "roughness": 0.28,
+   "weave": true
   },
   "price": 460
  },
@@ -787,5 +791,21 @@
    "roofRack": "ACC_RoofRack"
   },
   "price": 340
+ },
+ {
+  "type": "part",
+  "id": "FENDER_ArchTubes",
+  "label": "Tube fender arches",
+  "slot": "fenderTubes",
+  "category": "Protection",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "FENDER_ArchTubes",
+  "price": 420
  }
 ]

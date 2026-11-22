@@ -231,3 +231,6 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 - New parts (catalog + `ProcParts.jsx`): **carbon fiber** nose, high-cut fenders, wide fenders and open rear deck (the same models as the fiberglass ones, drawn in glossy black carbon: `material` on the part; no weave texture yet), a **full roll cage** (procedural tubes: main hoop, front hoop, roof bars, rear stays, door bars, cross brace) and **four round roof light pods** (need the roof rack; they count as a light bar for the L key). Both new slots show under Bumpers & cage and Lights.
 - Admin > Baja kit + tools: **"FIT a complete Baja Bug right now"** applies the whole concept-art build at once (`game.adminSetBuild`), plus the spawn buttons.
 - Far roads: the county's own roads, trails and circuit are now gated by distance like the highway pieces (they were one always-drawn mesh each, so roads showed on the horizon).
+
+### Baja Bug look pass (concept art)
+- Carbon panels now have a twill weave (weather.js `carbon`), tubular fender arches over each wheel (`FENDER_ArchTubes`, slot `fenderTubes`), mud on tires, and an orange-and-white worn patch livery (`build.livery`, set by Admin's FIT button; shader `LIVERY` uniform on the Bug's paint).
