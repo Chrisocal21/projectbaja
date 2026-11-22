@@ -14,6 +14,8 @@ import { VEHICLES } from '../rules/vehicles.js';
 import { defOf } from './projects.js';
 import { withTread, tireSizeOf } from './tires.js';
 import { wallSpot } from './wallhang.js';
+import { engineGate } from './engineStand.js';
+import { slotOf, engineTag } from './engineRules.js';
 import { effects, owned } from './upgrades.js';
 import { garageLevelOf } from '../worlds/garageLevels.js';
 import { registerTireSizes } from '../placement/gameItems.js';
@@ -29,11 +31,11 @@ const STOCK = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots.ma
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : kind === 'epart' ? 1 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
 const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '') || '';   // tire machine: wheels and tires can be punctured or flat
-export const nameOfItem = it => withTread(baseName(it), it) + wheelState(it);
+export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${Math.round(it.cond ?? 70)}%)` : withTread(baseName(it), it) + wheelState(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '');
 const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
@@ -99,6 +101,7 @@ export function dropNearPlayer(kind, id, extra = {}) {
 
 export function pickUp(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (!engineGate(it)) return;
   if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
   commit(); say(`${nameOfItem(it)} → ${where === 'pack' ? 'pack' : 'hands'}`);
@@ -106,6 +109,7 @@ export function pickUp(uidN) {
 /** left click: grab it into your hands (hands free), else it goes to the pack like E (Stage ctl-A, PROPOSAL) */
 export function grabItem(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (!engineGate(it)) return;
   if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   if (held()) return pickUp(uidN);
   at(it).loc = 'hand'; commit(); say(`${nameOfItem(it)} → hands`);

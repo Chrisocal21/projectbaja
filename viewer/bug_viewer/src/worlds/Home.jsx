@@ -15,6 +15,7 @@ import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapC
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { tickTray } from '../game/tireMachine.js';
+import { tickEngineStand } from '../game/engineStand.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
 import { wood, metalTex, ShelfStuff, pegTex } from './Sites.jsx';
 import { PEG_SLOTS, PEG, pegState } from '../game/fixtures.js';
@@ -569,7 +570,7 @@ function Ghost({ T }) {
 /** the customer car on the driveway (odd jobs) + the clock that sends the next one */
 function Customer() {
   useGame();
-  useFrame((_, dt) => { tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); });
+  useFrame((_, dt) => { tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); });
   const j = game.job && jobById[game.job.id]; if (!j) return null;
   return <group position={[game.job.x, groundHeight(game.job.x, game.job.z), game.job.z]} rotation={[0, game.job.h, 0]}><Pickup body={j.car[0]} roof={j.car[1]} primer={j.car[0]} /></group>;
 }

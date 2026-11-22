@@ -36,7 +36,7 @@ Status key: [ ] not started, [x] done, [~] partly there.
 
 ### A. Vehicle mechanics (research/PROJECT_BAJA_VEHICLE_MECHANICS)
 1. [~] Bench system: generalise the tray into recipes; tire machine is the first. (this plan)
-2. [ ] Engine stand with a Tier 0 buildable motor (above).
+2. [x] Engine stand with a Tier 0 buildable motor (above): nine outside pieces, order enforced, condition kept. Not yet wired to whether the car starts (step 3).
 3. [ ] Part condition on the engine pieces and a real no-start check (battery, fuel, spark) that names the failing piece. Fuel and battery already matter for the Bug's first start.
 4. [ ] Workbench repair recipes and battery charger.
 5. [ ] Press, parts washer, spring compressor, brake lathe (one at a time).

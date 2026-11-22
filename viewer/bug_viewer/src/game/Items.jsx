@@ -19,6 +19,7 @@ import { partById, wheelById, rimById } from '../build.js';
 import { rimGeometry, rimLook, RUBBER } from '../Rims.jsx';
 import { carFitReady, carFitPlan } from './carSnap.js';
 import { FEEL, restOf, carryScale, HOLD } from './restPose.js';   // fit feel pass (?feel=0 turns it off)
+import { slotOf } from './engineRules.js';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
 const labels = new Map();
@@ -98,11 +99,22 @@ function StockItem({ id }) {
   return id === 'wheel' || slot?.wheel ? <group rotation={[0, 0, Math.PI / 2]} position={[0.31, 0.11, 0]}><StockPiece match={match} /></group> : <StockPiece match={match} rest={FEEL ? restOf(slot?.piece) : undefined} />;
 }
 
+/** a loose engine piece: a plain shape in its own colour (stand-in until real models exist) */
+function EnginePiece({ id }) {
+  const s = slotOf(id), c = s?.color || '#888', round = ['coil', 'distributor', 'alternator', 'starter', 'plugs'].includes(id);
+  return round
+    ? <mesh position={[0, 0.07, 0]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.16, 12]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.6} /></mesh>
+    : id === 'exhaust' ? <mesh position={[0, 0.07, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.05, 0.05, 0.5, 10]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.7} /></mesh>
+    : id === 'fanBelt' ? <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.1, 0.012, 6, 16]} /><meshStandardMaterial color={c} roughness={0.9} /></mesh>
+    : <mesh position={[0, 0.07, 0]} castShadow><boxGeometry args={[0.2, 0.14, 0.2]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.7} /></mesh>;
+}
+
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
   if (item.kind === 'junk') return <group scale={scale}>{item.id === 'engineblock' ? <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.55, 0.4, 0.42]} /><meshStandardMaterial color="#4d4a46" metalness={0.6} roughness={0.6} /></mesh> : item.id === 'crate' ? <mesh position={[0, 0.24, 0]} castShadow><boxGeometry args={[0.6, 0.48, 0.6]} /><meshStandardMaterial color="#8a6a44" roughness={0.9} /></mesh> : item.id === 'drum' ? <mesh position={[0, 0.44, 0]} castShadow><cylinderGeometry args={[0.29, 0.29, 0.88, 20]} /><meshStandardMaterial color={item.uid % 2 ? '#3d5a6e' : '#5a6b3a'} metalness={0.4} roughness={0.6} /></mesh> : <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.17, 0.4, 0.34]} /><meshStandardMaterial color="#a9281e" metalness={0.3} roughness={0.5} /></mesh>}</group>;
   if (item.kind === 'memento' && item.id === 'photo') return <group scale={scale}><PhotoSheet item={item} /></group>;   // a printed photo (PROPOSAL): the picture you posted, on paper
   if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
+  if (item.kind === 'epart') return <group scale={scale}><EnginePiece id={item.id} /></group>;
   const crate = <CrateBox item={item} />;
   let body = null;
   if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;
