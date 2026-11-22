@@ -86,3 +86,21 @@ Already equal or better in Baja: slot rules, reason codes, blockers, atomic inst
 - **Step 1, fit feel pass (Nov 21), built, not yet seen in the game.** `game/restPose.js` (+ test): resting poses for loose body parts (doors, fenders, glass, bumpers, steering wheel lie the way they'd be left) and a carry pose (part shrunk to a 0.6 m box, held low-right and tipped). Wired into `game/Items.jsx`. On by default; `?feel=0` restores the old look. The "rebuild hitch" was left alone: the scene only remounts for wheel/engine/shell/steering fits (a physics change), so it needs playing to judge. Tuning numbers (`REST`, `HOLD`) are guesses to adjust by eye.
 - Not committed.
 - **Step 3, second restorable vehicle (Nov 21), built and driven in headless Chrome:** the El Cajon via Dusty (CANON? not locked), plus the tire machine, work targets and donor Bugs that it needed. Model ported to `src/cajon/`. See [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Not drivable yet. Steps 2 (rust and weathered finish) is partly there: the El Cajon uses Salvage Road's rust shader; the Bug does not. Step 4 (GLB re-group tool) not started.
+
+## Wrap-up (Nov 22): what is done, what was skipped, and the assets
+
+Checked against both repos on Nov 22.
+
+**Done in Baja:** slot rules, reason codes, blockers, atomic installs, fit/detach glow, zones, tools in hand, covers and doors (already ahead); rest poses and carry pose for loose parts (`game/restPose.js`); the El Cajon as a second restorable vehicle with its rust shader (`src/cajon/`, ported from `render/rust.ts`); weathered paint on the Bug through Baja's own `weather.js` (so gap 5 is closed another way); wear and failure (`src/wear.js`), hand service and diagnosis, which Salvage Road never had.
+
+**Skipped on purpose:**
+- `Damaged <slot>` swaps: in Salvage Road these only exist for the box truck and the unfinished pickup (backburnered vehicles), and the Bug already shows fitted vs stripped parts. Revisit if a second restorable vehicle needs worn panels.
+- GLB re-group tool: Salvage Road has no generic importer, only hand-written code for its own step van and pickup (`refineImportedVehicle.ts`). Baja's name-prefix matching is enough for now. If mounting the parked Meshy parts becomes the bottleneck, build a small tool then, from scratch.
+
+**Assets: nothing to bring over.**
+- `delivery_step_van.glb`, `unfinished_pickup.glb`: Baja already has them (`WRECK_StepVan.glb`, `WRECK_UnfinishedPickup.glb`). They are procedural prototype blockouts.
+- `shipping-container.glb`: licence UNKNOWN (source page never recorded), and containers are backburnered. Leave it.
+- `public/textures/world/*`: made from Unity Asset Store packs and CGT Facades with UNKNOWN licences (see its `ASSET_LICENSES.md`); not safe for a paid release. Baja has its own textures.
+- `public/branding/*`: Salvage Road's logo and title art. Not for Baja.
+
+**Result:** `salvageroad` can be archived on GitHub. Keep the local folder until Chris has no further use for it as a reference; deleting it is his call.
