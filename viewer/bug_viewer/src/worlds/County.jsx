@@ -166,7 +166,7 @@ function StreamTerrain() {
 
 // ---------------- road textures ----------------
 /** 2-lane blacktop: worn asphalt, yellow double centre line, white edge lines, gravel shoulders feathered into the desert (u across 8.8 m) */
-const blacktop = (center = 'double') => () => tex(512, 1024, (g, w, h) => {
+export const blacktop = (center = 'double') => () => tex(512, 1024, (g, w, h) => {
   const r = rnd(center === 'double' ? 51 : 53), M = w / 8.8;
   g.fillStyle = '#9b917f'; g.fillRect(0, 0, w, h); dots(g, r, w, h, 9000, ['#b0a690', '#8a806e', '#77705f'], 1, 3, 0.6);
   const a0 = (8.8 - 7.2) / 2 * M;
@@ -175,11 +175,33 @@ const blacktop = (center = 'double') => () => tex(512, 1024, (g, w, h) => {
   blotches(g, r, w, h, 60, 0.06, 0.16, 70); dots(g, r, w, h, 26000, ['#5e5d58', '#353635', '#77736b', '#51514e'], 1, 2.4, 0.5);
   blurred(g, 10, () => { g.fillStyle = 'rgba(15,14,13,0.22)'; for (const cx of [0.3, 0.42, 0.58, 0.7]) g.fillRect(w * cx - 0.4 * M, 0, 0.8 * M, h); });
   wrapDraw(g, w, h, () => { for (let k = 0; k < 10; k++) crack(g, r, a0 + r() * (w - 2 * a0), r() * h, 12 + Math.floor(r() * 16), 0.5); });
-  for (let k = 0; k < 4; k++) { const x = a0 + r() * (w - 2 * a0 - 90), y = r() * (h - 200); blurred(g, 3, () => { g.fillStyle = 'rgba(22,24,26,0.35)'; g.fillRect(x, y, 60 + r() * 60, 100 + r() * 120); }); }
+  for (let k = 0; k < 3; k++) { const x = a0 + r() * (w - 2 * a0 - 90), y = r() * (h - 200); blurred(g, 6, () => { g.fillStyle = 'rgba(22,24,26,0.18)'; g.fillRect(x, y, 60 + r() * 60, 100 + r() * 120); }); }
+  // Windblown dust and aggregate collect at the edges, leaving the wheel paths cleaner.
+  for (const side of [-1, 1]) {
+    const edge = side < 0 ? a0 : w - a0;
+    const dust = g.createLinearGradient(edge, 0, edge - side * 0.55 * M, 0);
+    dust.addColorStop(0, 'rgba(176,146,102,0.26)'); dust.addColorStop(1, 'rgba(176,146,102,0)');
+    g.fillStyle = dust; g.fillRect(side < 0 ? edge : edge - 0.55 * M, 0, 0.55 * M, h);
+    for (let k = 0; k < 650; k++) { g.fillStyle = r() > 0.5 ? '#aa9473' : '#88795e'; g.globalAlpha = 0.08 + r() * 0.2;
+      g.fillRect(edge - side * r() * 0.5 * M, r() * h, 1 + r() * 3, 1 + r() * 3); }
+    g.globalAlpha = 1;
+  }
+  // Thin sealed cracks run with the traffic rather than across the whole road.
+  wrapDraw(g, w, h, () => { for (let k = 0; k < 8; k++) {
+    const x = a0 + M * (0.8 + r() * 5.6), y = r() * h;
+    g.strokeStyle = 'rgba(17,18,18,0.32)'; g.lineWidth = 1.5 + r(); g.beginPath(); g.moveTo(x, y);
+    g.bezierCurveTo(x + (r() - 0.5) * 12, y + 70, x + (r() - 0.5) * 16, y + 140, x + (r() - 0.5) * 12, y + 220); g.stroke();
+  } });
   g.restore();
   const line = (x, wid, col, dash) => { g.fillStyle = col; if (!dash) g.fillRect(x - wid / 2, 0, wid, h); else for (let y = 0; y < h; y += h / 4) g.fillRect(x - wid / 2, y, wid, h / 8); };
   if (center !== 'blank') { line(a0 + 0.25 * M, 0.12 * M, '#e8e6dc'); line(w - a0 - 0.25 * M, 0.12 * M, '#e8e6dc'); }
   if (center === 'double') { line(w / 2 - 0.1 * M, 0.1 * M, '#d8b23a'); line(w / 2 + 0.1 * M, 0.1 * M, '#d8b23a'); } else if (center !== 'none' && center !== 'blank') line(w / 2, 0.12 * M, '#e8e6dc', true);
+  // Small dark chips dull the painted edges without cutting holes through the mesh.
+  if (center !== 'blank') for (const x of [a0 + 0.25 * M, w - a0 - 0.25 * M]) for (let k = 0; k < 170; k++) {
+    g.fillStyle = k % 3 ? '#77746b' : '#434441'; g.globalAlpha = 0.2 + r() * 0.45;
+    g.fillRect(x - 0.05 * M + (r() - 0.5) * 3, r() * h, 1 + r() * 3, 2 + r() * 9);
+  }
+  g.globalAlpha = 1;
   dots(g, r, w, h, 4000, ['#3c3f43', '#4a4d51'], 1, 3, 0.6);   // wear the paint
   g.globalCompositeOperation = 'destination-out';
   for (const side of [0, 1]) { const gr = g.createLinearGradient(side ? w : 0, 0, side ? w - a0 * 0.9 : a0 * 0.9, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(side ? w - a0 : 0, 0, a0, h); }
@@ -196,11 +218,16 @@ const junctionTex = () => tex(512, 512, (g, w, h) => {
   wrapDraw(g, w, h, () => { for (let k = 0; k < 12; k++) crack(g, r, r() * w, r() * h, 8 + Math.floor(r() * 12), 0.3); });
 });
 const highwayTex = blacktop('double'), streetTex = blacktop('dashed'), rampTex = blacktop('none');
-const shoulderTex = () => tex(256, 512, (g, w, h) => {
+export const shoulderTex = () => tex(256, 512, (g, w, h) => {
   const r = rnd(71);
   g.fillStyle = '#a28b67'; g.fillRect(0, 0, w, h);
   blotches(g, r, w, h, 55, 0.07, 0.13, 35);
   dots(g, r, w, h, 9000, ['#c1aa80', '#79684e', '#b39a70', '#665844'], 1, 3.5, 0.6);
+  // Parallel scuffs and scattered larger stones break up the uniform gravel strip.
+  for (const x of [w * 0.28, w * 0.58]) {
+    g.strokeStyle = 'rgba(88,74,55,0.16)'; g.lineWidth = 4; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 9, h * 0.3, x - 8, h * 0.7, x + 3, h); g.stroke();
+  }
+  dots(g, r, w, h, 420, ['#d1bd94', '#675d4b', '#8f7a5d'], 3, 7, 0.42);
   g.globalCompositeOperation = 'destination-out';
   const fade = g.createLinearGradient(w * 0.72, 0, w, 0);
   fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');

@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 
 const pages = await (await fetch('http://127.0.0.1:9228/json')).json();
-const page = pages.find(p => p.url.includes('map-review.html') || p.url.includes('sign-review.html'));
+const page = pages.find(p => p.url.includes('map-review.html') || p.url.includes('sign-review.html') || p.url.includes('road-review.html'));
 if (!page) throw new Error('Map review tab unavailable');
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => { ws.addEventListener('open', resolve, { once: true }); ws.addEventListener('error', reject, { once: true }); });
@@ -38,4 +38,8 @@ await send('Page.navigate', { url: 'http://127.0.0.1:5173/sign-review.html' });
 await new Promise(resolve => setTimeout(resolve, 3000));
 const signs = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await writeFile(new URL('../dist/review/race-signs.png', import.meta.url), Buffer.from(signs.data, 'base64'));
+await send('Page.navigate', { url: 'http://127.0.0.1:5173/road-review.html' });
+await new Promise(resolve => setTimeout(resolve, 3000));
+const road = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await writeFile(new URL('../dist/review/road-surfaces.png', import.meta.url), Buffer.from(road.data, 'base64'));
 ws.close();
