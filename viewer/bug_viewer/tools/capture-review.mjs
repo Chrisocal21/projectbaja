@@ -1,0 +1,41 @@
+import { writeFile } from 'node:fs/promises';
+
+const pages = await (await fetch('http://127.0.0.1:9228/json')).json();
+const page = pages.find(p => p.url.includes('map-review.html') || p.url.includes('sign-review.html'));
+if (!page) throw new Error('Map review tab unavailable');
+const ws = new WebSocket(page.webSocketDebuggerUrl);
+await new Promise((resolve, reject) => { ws.addEventListener('open', resolve, { once: true }); ws.addEventListener('error', reject, { once: true }); });
+let id = 0;
+const pending = new Map();
+ws.addEventListener('message', event => {
+  const msg = JSON.parse(event.data);
+  if (msg.id && pending.has(msg.id)) { const { resolve, reject } = pending.get(msg.id); pending.delete(msg.id); msg.error ? reject(Error(msg.error.message)) : resolve(msg.result); }
+  if (msg.method === 'Runtime.exceptionThrown') console.error('PAGE EXCEPTION', msg.params.exceptionDetails.text, msg.params.exceptionDetails.exception?.description);
+  if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') console.error('PAGE ERROR', msg.params.args.map(a => a.value || a.description));
+});
+const send = (method, params = {}) => new Promise((resolve, reject) => { const key = ++id; pending.set(key, { resolve, reject }); ws.send(JSON.stringify({ id: key, method, params })); });
+await send('Runtime.enable');
+await send('Page.enable');
+await send('Page.navigate', { url: 'http://127.0.0.1:5173/map-review.html' });
+await new Promise(resolve => setTimeout(resolve, 12000));
+const state = await send('Runtime.evaluate', { expression: 'JSON.stringify({text:document.body.innerText,canvas:!!document.querySelector("canvas"),color:document.querySelector("canvas")?.getContext("2d")?.getImageData(320,400,1,1).data.toString()})', returnByValue: true });
+console.log(state.result.value);
+const courses = await send('Runtime.evaluate', { expression: `(async () => { const m = await import('/src/worlds/county.js'); return JSON.stringify(m.raceCourses().map(c => c.name)); })()`, awaitPromise: true, returnByValue: true });
+console.log('COURSES', courses.result.value);
+const placeSigns = await send('Runtime.evaluate', { expression: `(async () => { const c = await import('/src/worlds/county.js'); const b = await import('/src/worlds/border.js'); const p = await import('/src/game/realPlaces.js'); const f = await import('/src/worlds/raceFixtures.js'); const n = c.highways(), land = b.border(), paved = n.roads.filter(r => r.kind !== 'dirt' && r.kind !== 'ramp'); return JSON.stringify(p.REAL_PLACES.map(place => { const at = p.projectPlace(place.lat, place.lon, land.meta), road = f.nearestRaceRoad(at, paved, 900); return road && f.raceShoulder(road, n, land.waterAt, c.groundHeight) ? place.name : null; }).filter(Boolean)); })()`, awaitPromise: true, returnByValue: true });
+console.log('PLACE SIGNS', placeSigns.result.value);
+const reflectors = await send('Runtime.evaluate', { expression: `(async () => { const c = await import('/src/worlds/county.js'); const b = await import('/src/worlds/border.js'); const u = await import('/src/worlds/regionalUtilities.js'); return u.roadsideReflectors(c.highways(), b.border().waterAt, c.groundHeight).length; })()`, awaitPromise: true, returnByValue: true });
+console.log('REFLECTORS', reflectors.result.value);
+const warningSites = await send('Runtime.evaluate', { expression: `(async () => { const c = await import('/src/worlds/county.js'); const b = await import('/src/worlds/border.js'); const w = await import('/src/worlds/roadsideWarnings.js'); const sites = w.curveWarnings(c.highways(), b.border().waterAt, c.groundHeight); return {count:sites.length, roads:[...new Set(sites.map(s => s.road))]}; })()`, awaitPromise: true, returnByValue: true });
+console.log('CURVE WARNINGS', warningSites.result.value);
+const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await writeFile(new URL('../dist/review/map-cdp.png', import.meta.url), Buffer.from(shot.data, 'base64'));
+await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 530, y: 218, deltaX: 0, deltaY: -1200 });
+await new Promise(resolve => setTimeout(resolve, 1200));
+const detail = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await writeFile(new URL('../dist/review/map-detail.png', import.meta.url), Buffer.from(detail.data, 'base64'));
+await send('Page.navigate', { url: 'http://127.0.0.1:5173/sign-review.html' });
+await new Promise(resolve => setTimeout(resolve, 3000));
+const signs = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+await writeFile(new URL('../dist/review/race-signs.png', import.meta.url), Buffer.from(signs.data, 'base64'));
+ws.close();

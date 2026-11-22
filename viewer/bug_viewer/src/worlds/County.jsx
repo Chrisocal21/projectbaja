@@ -255,8 +255,12 @@ function hwShoulderGeometry({ r, a, b }, H) {
       const dirtHidden = r.kind === 'dirt' && (H.pavedAt(p.x, p.z, 7) || (row && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 7)));
       const pavedHidden = r.kind !== 'dirt' && (H.higherRoadAt(p.x, p.z, r, 3) || (row && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r, 3)));
       const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
+      const before = r.pts[Math.max(0, k - 10)], after = r.pts[Math.min(r.pts.length - 1, k + 10)];
+      const bend = Math.atan2(before.tx * after.tz - before.tz * after.tx, before.tx * after.tx + before.tz * after.tz);
+      const outside = r.kind !== 'dirt' && r.kind !== 'ramp' && side * Math.sign(bend) > 0 && H.crossingDistance(p.x, p.z, r) > 35;
+      const verge = width + (outside ? THREE.MathUtils.smoothstep(Math.abs(bend), 0.12, 0.5) * 1.1 : 0);
       for (let j = 0; j <= bands; j++) {
-        const t = j / bands, d = side * (edge - 0.45 + width * t) * merge;
+        const t = j / bands, d = side * (edge - 0.45 + verge * t) * merge;
         const x = p.x + nx * d, z = p.z + nz * d;
         pos.push(x, height(x, z) + 0.025, z); uv.push(t, p.s / 18);
         if (row && j && !dirtHidden && !pavedHidden) { const a0 = base + (row - 1) * (bands + 1) + j - 1, b0 = a0 + 1, c0 = base + row * (bands + 1) + j - 1, d0 = c0 + 1;
