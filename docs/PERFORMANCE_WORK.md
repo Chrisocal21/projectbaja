@@ -33,3 +33,9 @@ Chris reports lag in the game. The immediate focus is frame-time spikes while pl
 - [ ] The real map should maintain stable frame pacing in the tested routes, with no visible hitch when a terrain tile, road piece or scenery field appears.
 - [ ] Record the machine, browser, resolution and quality settings with the before/after numbers. Set a concrete FPS target after the baseline is measured.
 - [ ] Keep road seams, terrain relief, shoulder visibility and scenery density acceptable after each optimization.
+
+## Draw distance cap (Nov 21): everything but the ground vanishes past 650 m
+- `worlds/drawDistance.js`: `DETAIL_RADIUS = 650` and `useNearSites` (only sites near you exist; re-checked every 0.4 s after you move 25 m).
+- Utility poles + wires, roadside reflectors, curve-warning signs and place signs were drawn for the WHOLE map every frame (instanced with frustum culling off, or one group per sign with shadows). They now draw only within the radius. Roads (was 1300 m) and sites (was 900 m) also use it; scenery (520 m), flora (330 m) and buildings (500 m) were already inside it.
+- Terrain stays out to the fog (up to 4.3 km by day) so the mountains remain visible; the fog now starts nearer (300 m by day) so the cutoff reads as haze. Change `DETAIL_RADIUS` to trade distance for frame rate.
+- Not measured on Chris's machine yet: compare `?perf` draw calls before and after.

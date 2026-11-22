@@ -30,6 +30,7 @@ import RealScenery from './RealScenery.jsx';
 import { perfStart, perfEnd } from '../game/perfMetrics.js';
 import { clockHour } from '../game/clock.js';
 import { dayPhase } from './clock.js';
+import { DETAIL_RADIUS } from './drawDistance.js';
 
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
@@ -205,7 +206,7 @@ const ROAD_LOOK = {
 };
 
 /** ?realmap: the real highways (county.js highways()), drawn in 400 m pieces only near the player; two shared materials */
-const HW_VIEW = 1300, HW_PIECE = 100;   // roads vanish with the rest of the scenery, not at the horizon
+const HW_VIEW = DETAIL_RADIUS, HW_PIECE = 100;   // roads vanish with the rest of the scenery, not at the horizon
 /** far pieces (lod 1) use every 3rd point and 2 strips across instead of 6: about a ninth of the triangles, and you cannot tell from 450 m */
 const hwRows = (a, b, lod) => { const ks = []; for (let k = a; k < b; k += lod ? 3 : 1) ks.push(k); ks.push(b); return ks; };
 function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
@@ -447,7 +448,7 @@ function GasBrandSigns() {
   useFrame((_, dt) => {
     tick.current += dt; if (tick.current < 0.5) return; tick.current = 0;
     const p = game.onFoot ? camera.position : game.pos;
-    sites.forEach((s, i) => { const g = refs.current[i]; if (g) g.visible = Math.hypot(s.x - p.x, s.z - p.z) < 900; });
+    sites.forEach((s, i) => { const g = refs.current[i]; if (g) g.visible = Math.hypot(s.x - p.x, s.z - p.z) < DETAIL_RADIUS; });
   });
   return <>{sites.map((s, i) => { if (idx[i] < 0) return null; const m = mats[idx[i] % GAS_BRANDS.length];
     return <group key={i} ref={el => (refs.current[i] = el)} position={[s.x, height(s.x, s.z), s.z]} rotation={[0, s.ry, 0]} visible={false}>

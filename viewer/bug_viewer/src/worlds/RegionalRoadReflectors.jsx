@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
+import { useNearSites } from './drawDistance.js';
 import * as THREE from 'three';
 import { highways, groundHeight } from './county.js';
 import { border } from './border.js';
@@ -7,17 +8,19 @@ import { roadsideReflectors } from './regionalUtilities.js';
 export default function RegionalRoadReflectors() {
   const posts = useRef(), bands = useRef();
   const sites = useMemo(() => roadsideReflectors(highways(), border().waterAt, groundHeight), []);
+  const near = useNearSites(sites);   // only the posts within the draw distance are drawn
   useEffect(() => {
-    if (!sites.length) return;
+    if (!sites.length || !posts.current) return;
     const o = new THREE.Object3D();
-    sites.forEach((p, i) => {
+    posts.current.count = bands.current.count = near.length;
+    near.forEach((k, i) => { const p = sites[k];
       o.position.set(p.x, p.y + 0.55, p.z); o.rotation.set(0, p.h, 0);
       o.scale.set(1, 1, 1); o.updateMatrix(); posts.current.setMatrixAt(i, o.matrix);
       o.position.y = p.y + 0.84; o.updateMatrix(); bands.current.setMatrixAt(i, o.matrix);
     });
     posts.current.instanceMatrix.needsUpdate = true;
     bands.current.instanceMatrix.needsUpdate = true;
-  }, [sites]);
+  }, [sites, near]);
   if (!sites.length) return null;
   return <>
     <instancedMesh ref={posts} args={[null, null, sites.length]} castShadow frustumCulled={false}><boxGeometry args={[0.16, 1.1, 0.12]} /><meshStandardMaterial color="#d9d2bd" roughness={0.95} /></instancedMesh>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useNearSites } from './drawDistance.js';
 import { REAL_PLACES, projectPlace } from '../game/realPlaces.js';
 import { highways, groundHeight } from './county.js';
 import { border } from './border.js';
@@ -34,5 +35,6 @@ export default function RegionalPlaceSigns() {
       return signs;
     });
   }, []);
-  return <>{signs.map(s => <PlaceSign key={s.name + (s.approach ? '-approach' : '')} {...s} />)}</>;
+  const near = useNearSites(useMemo(() => signs.map(s => ({ x: s.pose.x, z: s.pose.z })), [signs]));
+  return <>{near.map(k => signs[k]).map(s => <PlaceSign key={s.name + (s.approach ? '-approach' : '')} {...s} />)}</>;
 }

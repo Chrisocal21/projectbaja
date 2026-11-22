@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useNearSites } from './drawDistance.js';
 import * as THREE from 'three';
 import { highways, groundHeight } from './county.js';
 import { border } from './border.js';
@@ -21,7 +22,8 @@ export default function RegionalCurveWarnings() {
   const sites = useMemo(() => curveWarnings(highways(), border().waterAt, groundHeight), []);
   const maps = useMemo(() => ({ left: warningTexture('left'), right: warningTexture('right') }), []);
   useEffect(() => () => Object.values(maps).forEach(map => map.dispose()), [maps]);
-  return <>{sites.map((p, i) => <group key={i} position={[p.x, p.y, p.z]} rotation={[0, p.h, 0]}>
+  const near = useNearSites(sites);   // only the signs within the draw distance exist
+  return <>{near.map(k => sites[k]).map((p, i) => <group key={near[i]} position={[p.x, p.y, p.z]} rotation={[0, p.h, 0]}>
     <mesh position={[0, 1.35, 0]} castShadow><cylinderGeometry args={[0.045, 0.055, 2.7, 6]} /><meshStandardMaterial color="#817f78" metalness={0.45} roughness={0.7} /></mesh>
     <mesh position={[0, 2.66, 0.02]} castShadow><planeGeometry args={[1.25, 1.25]} /><meshStandardMaterial map={maps[p.turn]} transparent alphaTest={0.05} side={THREE.DoubleSide} roughness={0.78} /></mesh>
   </group>)}</>;
