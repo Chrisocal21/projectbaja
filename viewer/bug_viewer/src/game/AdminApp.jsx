@@ -7,7 +7,14 @@ import { GARAGE_SUPPLIES, itemOf } from './garageSupplies.js';
 import { dropNearPlayer } from './items.js';
 import { raceCourses } from '../worlds/county.js';
 import { presets } from '../catalog/index.js';
-import { adminAddProp } from './home.js';
+import { adminAddProp, BUILD_ITEMS } from './home.js';
+import { JUNK, MEMENTOS, TOOLS } from './items.js';
+import { addProject, nextProjectUid } from './projects.js';
+import { shellBuild } from './cajonParts.js';
+import { VEHICLE_TYPES, switchTo, owned } from './fleet.js';
+import { bodies, defaultBuild, normalize } from '../build.js';
+import { BUG } from '../rules/vehicles.js';
+import { priceOf } from './store.js';
 
 /**
  * Admin (test tool, on the phone): spawn any part on the ground at your feet, free, to try it out. One screen, one tab per kind of part.
@@ -25,26 +32,66 @@ const fullBajaBuild = b => ({
 });
 export default function AdminApp({ onBack }) {
   useGame();
-  const body = game.build?.body || 'classic', cat = catalogFor(body), cajon = cajonCatalog();
+  const [pickedBody, setPickedBody] = useState(null), [q, setQ] = useState('');
+  const body = pickedBody || game.build?.body || 'classic', cat = catalogFor(body), cajon = cajonCatalog();   // the body whose parts the archive lists (change it with the chips under the search box)
   const sections = SECTIONS.filter(sec => cat.part.some(p => sectionOfSlot(p.slot) === sec.id));
-  const tabs = [...sections.map(s => [s.id, s.label]), ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['kits', 'Baja kit + tools'], ['races', 'Races'], ['cheats', 'Cash / time']];
-  const [tab, setTab] = useState(tabs[0][0]), [last, setLast] = useState('');
+  const tabs = [['all', 'Everything'], ...sections.map(s => [s.id, s.label]), ['vehicles', 'Vehicles'], ['shells', 'Body shells'], ['items', 'Items'], ['props', 'Props'], ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['kits', 'Baja kit + tools'], ['races', 'Races'], ['cheats', 'Cash / time']];   // the archive: everything in the game is listed somewhere here, and can be spawned
+  const [tab, setTab] = useState('all'), [last, setLast] = useState('');
   const spawn = (kind, id, label) => {
     if (!game.pos) return say('Walk into the world first.');
     game.home = { ...game.home, adminUsed: true };
     dropNearPlayer(kind, id); save(); setLast(`Spawned: ${label}`);
   };
-  const rows = sections.some(s => s.id === tab) ? cat.part.filter(p => sectionOfSlot(p.slot) === tab).map(p => ({ kind: 'part', id: p.id, label: nameOf('part', p.id, body) }))
-    : tab === 'wheel' ? cat.wheel.map(w => ({ kind: 'wheel', id: w.id, label: nameOf('wheel', w.id, body) }))
-    : tab === 'rim' ? cat.rim.map(r => ({ kind: 'rim', id: r.id, label: nameOf('rim', r.id, body) }))
-    : tab === 'cajon' ? cajon.map(c => ({ kind: 'stock', id: c.id, label: c.name }))
-    : tab === 'supplies' ? GARAGE_SUPPLIES.map(([id, name]) => { const [kind, item] = itemOf(id); return { kind, id: item, label: name }; })
+  const here = () => ({ x: game.pos.x + game.face.x * 7, z: game.pos.z + game.face.z * 7, h: Math.atan2(game.face.x, game.face.z) });
+  const projectOf = (name, def, build) => { addProject({ uid: nextProjectUid(), name, def, build, pose: here() }); };
+  const bugFull = () => normalize({ ...defaultBuild(), stripped: [], hidden: [] }), bugBare = () => normalize({ ...defaultBuild(), stripped: BUG.slots.map(s => s.id), hidden: [] });
+  const act = r => {
+    if (!game.pos) return say('Walk into the world first.');
+    game.home = { ...game.home, adminUsed: true };
+    if (r.act === 'prop') { adminAddProp(r.id, 2); setLast('Placed: ' + r.label); }
+    else if (r.act === 'project') { r.make(); save(); setLast('Parked in the yard ahead of you: ' + r.label); }
+    else if (r.act === 'fleet') { if (owned(r.id)) setLast(r.label + ' is already yours.'); else { game.fleet = { ...game.fleet, [r.id]: { pose: here() } }; save(); setLast('Added to your vehicles, parked ahead of you: ' + r.label); } }
+    else if (r.act === 'switch') { setLast(switchTo(r.id, false) ? 'Now driving ' + r.label : 'Already the active vehicle.'); }
+    else if (r.act === 'mat') { game.mats = { ...game.mats, [r.id]: (game.mats?.[r.id] || 0) + r.n }; save(); setLast('+' + r.n + ' ' + r.id); }
+    else spawn(r.kind, r.id, r.label);
+  };
+  const price = (k, id) => { try { const v = priceOf(k, id); return v ? ' · $' + v : ''; } catch { return ''; } };
+  const partRows = cat.part.map(p => ({ cat: sectionOfSlot(p.slot), kind: 'part', id: p.id, label: nameOf('part', p.id, body), info: 'part · ' + p.slot + price('part', p.id) }));
+  const wheelRows = cat.wheel.map(w => ({ cat: 'wheel', kind: 'wheel', id: w.id, label: nameOf('wheel', w.id, body), info: 'tire set' + price('wheel', w.id) }));
+  const rimRows = cat.rim.map(r => ({ cat: 'rim', kind: 'rim', id: r.id, label: nameOf('rim', r.id, body), info: 'rim' + price('rim', r.id) }));
+  const vehicleRows = [
+    { act: 'project', id: 'bug-full', label: 'Bug: complete, every stock part fitted (work vehicle)', info: 'project vehicle', make: () => projectOf('Complete Bug', 'bug', bugFull()) },
+    { act: 'project', id: 'bug-bare', label: 'Bug: bare shell, everything off (work vehicle)', info: 'project vehicle', make: () => projectOf('Bare Bug shell', 'bug', bugBare()) },
+    { act: 'project', id: 'cajon-shell', label: "El Cajon: shell as Dusty gives it (work vehicle)", info: 'project vehicle', make: () => projectOf("'66 El Cajon", 'cajon', shellBuild()) },
+    { act: 'project', id: 'cajon-full', label: 'El Cajon: complete, every part fitted (work vehicle)', info: 'project vehicle', make: () => projectOf("'66 El Cajon (complete)", 'cajon', { ...shellBuild(), stripped: [], hidden: [] }) },
+    ...Object.values(VEHICLE_TYPES).filter(v => v.id !== 'bug' && v.dims).map(v => ({ act: 'fleet', id: v.id, label: v.name, info: 'vehicle' + (v.price ? ' · $' + v.price : '') + (owned(v.id) ? ' · owned' : ''), kind: 'vehicle' })),
+    ...Object.values(VEHICLE_TYPES).filter(v => owned(v.id) && v.id !== game.active).map(v => ({ act: 'switch', id: v.id, label: 'Switch to ' + v.name, info: 'drive it', kind: 'vehicle' })),
+  ];
+  const shellRows = bodies.map(b => ({ kind: 'shell', id: b.id, label: 'Body shell: ' + (b.name || b.id), info: 'bare shell, ready to build on', cat: 'shell' }));
+  const itemRows = [
+    ...Object.entries(JUNK).map(([id, v]) => ({ kind: 'junk', id, label: v.name, info: 'junk · size ' + v.size })), ...Object.entries(MEMENTOS).map(([id, v]) => ({ kind: 'memento', id, label: v.name, info: 'memento' })),
+    ...Object.entries(TOOLS).map(([id, v]) => ({ kind: 'tool', id, label: v.name, info: 'tool · size ' + v.size })), { kind: 'fab', id: 'shockHoops', label: 'Shock hoops (ready-made)', info: 'fabricated part' },
+    ...GARAGE_SUPPLIES.map(([id, name, cost, kindOf, note]) => { const [kind, item] = itemOf(id); return { kind, id: item, label: name, info: 'supply · ' + (kindOf || '') + (cost ? ' · $' + cost : '') + (note ? ' · ' + note : '') }; }),
+    ...cajon.map(c => ({ kind: 'stock', id: c.id, label: 'El Cajon: ' + c.name, info: 'vehicle part' })),
+    ...[10, 100].map(n => ({ act: 'mat', id: 'scrap', n, label: '+' + n + ' scrap metal', info: 'material' })),
+  ];
+  const propRows = BUILD_ITEMS.map(b => ({ act: 'prop', id: b.id, label: b.name || b.id, info: 'prop' + (b.cat ? ' · ' + b.cat : '') + (b.price ? ' · $' + b.price : '') }));
+  const everything = [...partRows, ...wheelRows, ...rimRows, ...vehicleRows, ...shellRows, ...itemRows, ...propRows];
+  const filtered = list => { const t = q.trim().toLowerCase(); return t ? list.filter(r => (r.label + ' ' + r.id + ' ' + (r.info || '')).toLowerCase().includes(t)) : list; };
+  const rows = tab === 'all' ? filtered(everything) : tab === 'vehicles' ? filtered(vehicleRows) : tab === 'shells' ? filtered(shellRows) : tab === 'items' ? filtered(itemRows) : tab === 'props' ? filtered(propRows)
+    : sections.some(s => s.id === tab) ? filtered(partRows.filter(r => r.cat === tab))
+    : tab === 'wheel' ? filtered(wheelRows)
+    : tab === 'rim' ? filtered(rimRows)
+    : tab === 'cajon' ? filtered(cajon.map(c => ({ kind: 'stock', id: c.id, label: c.name, info: 'El Cajon part' })))
+    : tab === 'supplies' ? filtered(itemRows.filter(r => r.info.startsWith('supply')))
     : [];
   const go = (p, label) => { game.teleportTo = { x: p.x, z: p.z, h: p.h || 0 }; setLast(`Going to ${label}. Close the phone.`); };   // (Walker / the vehicle pick this up next frame)
   const kitBtn = (label, list) => <button key={label} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => { if (!game.pos) return say('Walk into the world first.'); game.home = { ...game.home, adminUsed: true }; const l = list(); l.forEach(([k, id]) => dropNearPlayer(k, id)); save(); setLast('Spawned ' + l.length + ' items at your feet.'); }}>{label}</button>;
   const cheat = (label, fn) => <button key={label} onClick={() => { fn(); setLast(label); }}>{label}</button>;
   return <div className="phone-soon"><h3>Admin</h3>
     <small>Test tool: spawns free parts at your feet. {game.home?.adminUsed ? 'This save has used it.' : ''}</small>
+    <input value={q} onChange={e => setQ(e.target.value)} placeholder={'Search everything (' + everything.length + ' things)…'} style={{ width: '100%', padding: '5px 8px', fontSize: 13, boxSizing: 'border-box' }} />
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}><small>Parts for:</small>{bodies.map(b => <button key={b.id} className={body === b.id ? 'on' : ''} style={{ padding: '1px 6px', fontSize: 11 }} onClick={() => setPickedBody(b.id)}>{b.name || b.id}</button>)}</div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>{tabs.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setTab(k)}>{l}</button>)}</div>
     {tab === 'kits'
       ? <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -71,7 +118,7 @@ export default function AdminApp({ onBack }) {
         {['track', 'jump', 'whoops', 'berms'].map(k => cheat('Go to nearest ' + (k === 'track' ? 'dirt track' : k), () => { const p = offroadPlan(); const me = game.pos; const it = (p?.items || []).filter(i => i.kind === k).sort((u, v) => Math.hypot(u.x - me.x, u.z - me.z) - Math.hypot(v.x - me.x, v.z - me.z))[0]; if (!it) return say('None on this map.'); const s0 = k === 'track' ? -it.S / 2 - 30 : -30, Hd = it.h; go({ x: it.x + Math.sin(Hd) * s0, z: it.z + Math.cos(Hd) * s0, h: Hd }, 'the nearest ' + k); }))}
         {cheat('+10 scrap', () => { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + 10 }; save(); })}
       </div>
-      : <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>{rows.map(r => <button key={r.kind + r.id} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => spawn(r.kind, r.id, r.label)}>{r.label}</button>)}</div>}
+      : <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 360, overflowY: 'auto' }}><small>{rows.length} shown. Click one to spawn it.</small>{rows.slice(0, 300).map((r, i) => <button key={(r.kind || r.act) + r.id + i} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => act(r)}><b>{r.label}</b><br /><small style={{ opacity: 0.7 }}>{r.info}</small></button>)}{rows.length > 300 && <small>…search to narrow {rows.length - 300} more</small>}</div>}
     <small style={{ minHeight: 16 }}>{last}</small>
     <button onClick={onBack}>Back</button></div>;
 }

@@ -264,3 +264,6 @@ Polled every frame; buttons become key presses so every existing system keeps wo
 - Dirt roads (race courses, regional dirt roads and the new trails) also get whoop sections and road jumps centred on their straight stretches (`planRoadFeatures`); the ribbons read the same height so they ride over them. About 440 features in all.
 - Not done: features ON paved roads, more density where the ground is not flat.
 - Controller: the right stick orbits the chase camera while driving.
+
+## Admin as the game archive (Nov 21)
+Phone > Admin is now a searchable archive of everything in the game, each one clickable to spawn: parts (pick which body's parts with the chips; every body), tire sets, rims, Vehicles (work vehicles parked in the yard: complete or bare Bug, El Cajon shell or complete; real vehicles added to your fleet, switch to any owned one), Body shells, Items (junk, mementos, tools, supplies, El Cajon parts, scrap metal), Props (every build item), kits, races/tracks teleports, cash/time/tire pressure/diff. "Everything" searches across all of it, with an info line per entry (kind, slot, price). Spawning marks the save as admin-used. Hide this before a public build.
