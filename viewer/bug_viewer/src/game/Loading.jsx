@@ -21,7 +21,8 @@ export default function LoadingScreen() {
   const tip = useRef(TIPS[Math.floor(Math.random() * TIPS.length)]).current;
   useEffect(() => {
     // Downloads finishing isn't "ready": terrain tiles, roads and shaders keep building for a few seconds and cause long frames.
-    // So also hold the cover until frames have been smooth (no frame over 90 ms) for 1.5 s, or 20 s have passed.
+    // Hold the cover until downloads are idle and frames settle. A slow download
+    // must not expose an empty canvas just because a wall-clock timeout expired.
     let raf = 0, last = performance.now();
     const frame = t => {
       if (t - last > 90) st.current.lastHitch = t;
@@ -33,8 +34,9 @@ export default function LoadingScreen() {
       if (busy) s.lastBusy = now;
       setShow(v => {
         if (!v) return false;   // once the world is up it never comes back: small models streaming in later (a held part, a ghost) just pop in
-        const smooth = now - Math.max(s.lastHitch || 0, s.shownAt) > 1500, timedOut = now - s.shownAt > 20000;
-        if (timedOut || (now - s.lastBusy > 800 && now - s.shownAt > 1400 && smooth)) return false;
+        const smooth = now - Math.max(s.lastHitch || 0, s.shownAt) > 1500;
+        const idle = !busy && now - s.lastBusy > 800 && now - s.shownAt > 1400;
+        if (idle && (smooth || now - s.lastBusy > 12000)) return false;
         return v;
       });
     }, 100);
