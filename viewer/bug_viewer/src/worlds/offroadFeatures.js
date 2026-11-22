@@ -118,6 +118,37 @@ export function planFeatures(roads, okSpot = () => true) {
   return { items, trails };
 }
 
+// ---- right beside the highways ----
+/**
+ * roadside play strips along the paved roads: a whoop strip or a single jump just off the shoulder, running parallel to the road, with a short dirt spur from the road.
+ * They are close and frequent (every 250-500 m) so there is always something to hop on while you travel. roads: [{ kind, pts: [[x, z], ...] }]
+ */
+export function planHighwayFeatures(roads, okSpot = () => true, firstId = 0) {
+  const items = [], trails = [];
+  roads.forEach((road, ri) => {
+    if (!road.pts || road.pts.length < 2 || road.kind === 'ramp' || road.kind === 'dirt') return;
+    const pts = road.pts; let carried = hash(ri, 41) * 300, n = 0;
+    for (let i = 0; i < pts.length - 1 && n < 140; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], len = Math.hypot(bx - ax, bz - az); if (len < 1) continue;
+      const tx = (bx - ax) / len, tz = (bz - az) / len; let at = 0;
+      while (carried + (len - at) >= HWY_SPACING && n < 140) {
+        at += HWY_SPACING - carried; carried = 0;
+        const px = ax + tx * at, pz = az + tz * at, k = ri * 4099 + n * 37 + i, side = hash(k, 2) < 0.5 ? -1 : 1, nx = -tz * side, nz = tx * side;
+        carried = hash(k, 7) * 220; n++;
+        const off = 24 + hash(k, 3) * 18, x = px + nx * off, z = pz + nz * off, h = Math.atan2(tx, tz) + (hash(k, 4) < 0.5 ? 0 : Math.PI), r = hash(k, 1);
+        const it = r < 0.55 ? { kind: 'whoops', x, z, h, L: 45 + hash(k, 5) * 40, W: 12, lam: 7.5 + hash(k, 6) * 2, A: 0.3 + hash(k, 8) * 0.3 }
+          : { kind: 'jump', x, z, h, H: 0.8 + hash(k, 5) * 0.8, W: 9 };
+        if (!footprint(it).every(p => okSpot(p.x, p.z))) continue;
+        it.id = firstId + items.length; it.roadside = true; items.push(it);
+        trails.push({ name: 'Roadside spur', kind: 'dirt', pts: [[px, pz], [x - nx * 7, z - nz * 7]] });   // from just off the shoulder to the strip
+      }
+      carried += len - at;
+    }
+  });
+  return { items, trails };
+}
+const HWY_SPACING = 260;
+
 // ---- the height field ----
 /**
  * index the plan's primitives (dropping any that fail `ok`) and return { heightAt, waterDepthAt, trunksNear, trees, creeks, count }.

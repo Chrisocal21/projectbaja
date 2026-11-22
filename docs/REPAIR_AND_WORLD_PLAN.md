@@ -278,3 +278,6 @@ Phone > Admin is now a searchable archive of everything in the game, each one cl
 
 ## Wear and failure (forgiving first, Nov 21)
 `src/wear.js`: per vehicle (`game.home.wear[id]`) four numbers 0..1: shocks (hard landings, bottoming out), tires (fast rough driving), align (big hits), engine (running hot; wading while hot is ~8x worse). Effects are capped so nothing strands you: damping down to 60%, grip down 18%, power down 25%, a mild steering pull. Clues appear as a message about every 45 s (worst first). Admin > Cash / time: "Service vehicle (reset wear)", "Wear it out (test)" and the numbers. All rates are estimates to tune by feel. Next: a paid service at the garage, repair procedures with tools, wet brakes, more parts that change wear.
+
+## Roadside strips beside the paved highways (Nov 22)
+`planHighwayFeatures` (offroadFeatures.js): every ~370 m along each paved road, a whoop strip (45-85 m) or a single jump just off the shoulder (24-42 m from the centre line), parallel to the road, each with a short dirt spur from the road. About 1,330 planned on the real map (728 whoop strips, 602 jumps) on top of the 447 beside-the-road features; those that land on water, built places or slopes are dropped (1,610 of 1,821 built in total). Spacing is `HWY_SPACING`.

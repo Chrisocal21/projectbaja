@@ -16,7 +16,7 @@ import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 import { buildRaceCourses } from './raceCourses.js';
-import { planFeatures, planRoadFeatures, buildField } from './offroadFeatures.js';
+import { planFeatures, planRoadFeatures, planHighwayFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -268,6 +268,7 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   RACE = buildRaceCourses({ meta: BD.meta, ground: BD, roads: HWJ.roads });   // their dirt legs become real roads, graded and drawn like any other
   const featOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 0.9 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 0.9;   // dry, off the built places, on near-flat ground (under 3.5 degrees)
   FEAT = planFeatures(HWJ.roads, featOk);
+  { const side = planHighwayFeatures(HWJ.roads, featOk, FEAT.items.length); FEAT.items.push(...side.items); FEAT.trails.push(...side.trails); }   // jumps and whoop strips right beside the paved highways
   HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
   const roadOk = (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14);   // never on a paved road
   FEAT.items.push(...planRoadFeatures(HW.roads.filter(r => r.kind === 'dirt'), roadOk, FEAT.items.length));   // whoops and road jumps right on the dirt roads (the ribbons read the same height, so they ride over them)

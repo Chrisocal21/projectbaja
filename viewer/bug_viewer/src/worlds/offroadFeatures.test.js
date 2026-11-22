@@ -67,3 +67,12 @@ test('creeks carve a trench with water in it, hills rise, forests have trees alo
   const here = f.waterDepthAt(m[0], m[1], 0), far = f.waterDepthAt(up[0], up[1], 0);
   assert.ok(far > here && here > 0, 'ford ' + here + ' vs river ' + far);
 });
+
+import { planHighwayFeatures } from './offroadFeatures.js';
+test('highway strips sit just off the paved road, parallel to it, with a short spur each', () => {
+  const hw = { kind: 'major', pts: [[0, 0], [6000, 0]] }, { items, trails } = planHighwayFeatures([hw, { kind: 'dirt', pts: [[0, 500], [4000, 500]] }]);
+  assert.ok(items.length > 12 && trails.length === items.length);
+  for (const it of items) { assert.ok(Math.abs(it.z) >= 20 && Math.abs(it.z) <= 44, 'off ' + it.z); assert.ok(Math.abs(Math.sin(it.h)) > 0.99 || Math.abs(Math.cos(it.h)) < 0.01); assert.ok(it.roadside); }
+  assert.ok(items.some(i => i.kind === 'whoops') && items.some(i => i.kind === 'jump'));
+  assert.ok(items.every(i => i.z < 400), 'none off the dirt road');
+});
