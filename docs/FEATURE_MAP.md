@@ -1,5 +1,7 @@
 # Project: Baja — FEATURE_MAP
 
+> **STATUS (Nov 22):** last updated Nov 8. The SETTLED / PLANNED keys are still the vocabulary; for what is built now see [RESUME_HERE](./RESUME_HERE.md).
+
 Provisional working title. Last updated: November 8, 2026, after the Forge canon (systems table and phases added).
 
 Status key: SETTLED (decided), PLANNED (agreed direction, not started), LATER (explicitly deferred), OPEN (undecided, see OPEN_QUESTIONS).

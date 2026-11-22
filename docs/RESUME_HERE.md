@@ -1,57 +1,40 @@
-# RESUME HERE (written Nov 8, 2026; big-map section added Nov 9)
+# RESUME HERE (rewritten Nov 22, 2026)
 
-Read this first when picking the work back up. Labels: **PROPOSAL** = design guess. Nothing here changes [CANON](./CANON.md).
+Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
 
-## Chris's three must-dos (goal: everything up so progress can be saved)
-1. **Saves that survive updates** (then Clerk + Vercel cloud saves, last).
-2. **Bigger map** with new biomes, expanded in steps behind a glowing hologram wall.
-3. **More biomes over time** (Grassland and Forest Mountain are built).
+## How we work now
+- **One branch: `main`.** Commit and push small, often. Only commit in this repo (`projectbaja`); never in `salvageroad` (it is a read-only reference, merge finished, see [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md)).
+- **Two builders at once: Claude Code and ChatGPT.** Before editing, run `git status`: files that show as modified and are not yours belong to the other builder, so leave them alone. Whenever something is for ChatGPT, add it to [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md) (standing rule).
+- Chris plays and judges how it feels. All physics, wear and world numbers are estimates (labelled in code and docs) to tune by feel.
+- Dev server: `npx vite --port 3001` in `viewer/bug_viewer`. Tests: `npm test` (about 440 pass). Build check: `npx vite build --outDir <tmp> --emptyOutDir`.
 
-## Big map: real border slice (Nov 9) - behind `?realmap`, pushed in 5d57ad6
-- One seamless world from Los Angeles to Cabo (garage in Imperial Valley) on real elevation data, streamed in tiles. Steps 1-5 done; details in [WORLD_MAP](./WORLD_MAP.md). Normal game is unchanged.
-- Step 5 roads: Natural Earth highways, graded and blended into the ground, bypassing the built places. Step 5b/5c: stop signs, lights, dead-end signs, rest areas (6) and gas stations (13); freeway ramps exist but only show with `?realmap&ramps` (normal `?realmap` uses at-grade junctions, see [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md)).
-- Drive tests (steering bot, dev car powered via `game.home.bugFired = true`): diamonds stay within 2.5 m of centre; loops fine at ~25 mph but swing 6.4 m off at ~34 mph (R_LOOP 75 is too tight, try ~100).
-- **Next on the map:** loop radius, road joins/junction polish (backlog), driveways + collision for roadside places, overpasses (needs a bridge system), then step 6: biomes by real area, map screen, teleports, make `?realmap` the default. ChatGPT is handling visuals; perf work is in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
+## Where things stand (Nov 22)
+All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md) (the running record) and [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
 
-## Salvage Road merge and the El Cajon (Nov 21) - uncommitted on branch racer-items-fitglow
-- Only Salvage Road's **vehicle building** came over. Hold-click part mechanic, tire machine, many restorable vehicles (donor Bugs), and the **El Cajon** as a second restorable project (Dusty's gift, **CANON? not locked**). Details: [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md), [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md).
-- **El Cajon is drivable now** (promote a finished project with E; see REPAIR_AND_WORLD_PLAN). **Next:** driving-time perf, then roadside loot is in (Group A step 1); more loot buildings, `?realmap` coast look, dressing from unused assets, cities.  Group B (L lights, Tab for every vehicle, Cajon tire mounts) is in; Group C (supplies ordering) is in; Group D (coast look, dressing) is next.  Build is decorations-only; Walt's place upgrades in stages (U): see REPAIR_AND_WORLD_PLAN.
-- Test hooks: `window.__game`, `__walk`, `__cajon.deliver()`. Controls still unbuilt: L lights, Tab vehicle storage, back seat, crates and tire racks.
+- **Driving:** one rigid-body car (`src/rigid.js`): spring-damper wheels, friction-circle tires, engine with gears and heat, open/LSD/locker diff, tire pressure, handling profiles (`handlingProfiles.js`; the old loose balance is saved as `DRIFT_BASELINE` for a future drift car), long-travel suspension for upgraded builds, wet brakes, wading, river current, deep water drowns the engine. Controller support, speed FOV, eased steering wheel.
+- **Wear and service:** `src/wear.js`: shocks, tires, alignment, engine wear slowly (quarter rate until dialled in); clues while driving, hold T to look the car over or service with the wrench / jack, workbench service, parts that change wear rates.
+- **World features** (`worlds/offroadFeatures.js`, `wildFeatures.js`, `WildScenery.jsx`): whoops, low table-top jumps, berms, dirt tracks, strips beside highways, creek crossings, rivers (flowing look), forest trails, hill climbs, plank bridges, about 9,000 trees. Dust, tire ruts, landing and bottom-out feedback.
+- **Mechanic loop:** tools in hand (wrench, jack), tool-gated removal, hold-click fit/remove, fiberglass panels flat white until painted, the fiberglass front clip, El Cajon as a restorable and drivable second vehicle.
+- **Admin (phone):** a grid of vehicle and tool tiles; spawn a whole vehicle where you stand, parts, items, props, teleport to any city or spot with a vehicle, races, cheats. Archive of everything in the game. Hide it before any public build.
+- **Perf:** draw cap (650 m), terrain streaming in slices, FPS counter (`PerfHud`); Chris sees about 30 FPS on his machine: the next perf pass needs his numbers.
+- **Sound:** a first procedural pass (`src/audio.js`, K mutes, 50% default). Real recordings are better; see the handoff.
+- **Big map (`?realmap`):** real border slice, real highways, junction signs, rest areas, gas stations. See [WORLD_MAP](./WORLD_MAP.md) and [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md). Road crossings, river crossings and driveways into places are ChatGPT's current job (Nov 22).
 
-## Done and pushed
-- 4d: bench, car lift and pegboard are movable, sellable props with tool slots (78c4812).
-- Save steps 1-3: versioned save envelope, old saves upgrade, corrupt/newer saves protected, job, held item and on-foot position saved (471611f).
-- Biomes: Grassland (NW) and Forest Mountain (SE) with a trail and a river crossing, in a data-driven list (ad8ad7c).
-- Crosshair-only interaction (683e911), Stage 4a-4c garage furniture, tire racks.
+## Next (in order, Chris's call)
+1. Test the new handling, suspension and table tops by feel; tune.
+2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. Touches `highways.js` / `county.js`: do it when ChatGPT is not editing them.
+3. Performance on Chris's machine (about 30 FPS): thin trees and roadside strips if needed.
+4. Paint: the unpainted fiberglass has `unpainted: true`, ready for a paint picker.
+5. Older plan (Nov 8, still unverified item by item): see [GAMEPLAN](./GAMEPLAN.md) and [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) (history). Cloud saves (Clerk + Vercel) stay last.
 
-## In flight when we stopped (check git log for what landed)
-- **Real tires** everywhere in the shop, with tread condition.
-- **Biome follow-ups:** trail to a summit lookout, tree and rock colliders, number-key teleports.
-- **Update button:** "Update ready - Save and update" returns to the exact moment (no title screen; a click-to-continue overlay is needed for the mouse), plus Save now, Export/Import save, confirm before New game.
-
-If an agent did not finish, its work may be uncommitted: run `git status` first and check for edits before starting anything new.
-
-## Next, in order
-1. **Hologram boundary wall** (blue-cyan, faint grid, "Area closed for now" is a PROPOSAL text) at the current 6 km edge, built as data so a region can move it. Enlarge the map grid only when the first new region is built.
-2. **Letter as an item** (shelf or wall memento), wall surface (4e), pegboard snaps to walls, true tool outlines on empty slots, floor jack lives on the floor.
-3. **Starting stock:** real garage items only. No new cash, no specialty tools, **no Dusty lore without Chris's approval** (canon: $1,500 locked, "no magic stock").
-4. Save steps 4-6: IndexedDB backups (last 5), slots. Prune old backup keys, keep the newest few.
-5. Stage 4f (retire the B menu for furniture), then the phone and PC (design the app list together first), ordering, arriving vehicles.
-6. **Last:** Clerk login (optional, guest play stays) + Vercel storage for cloud saves, same save file as local.
-
-## Decisions Chris made
-- Pegboard: empty slot shows an outline, tool shows when owned. Finding or buying tools are side quests (PROPOSAL, not designed).
-- Letter becomes a normal item. Floor jack stays on the floor. Pegboard snaps to walls.
-- Backup cannot be written: saving pauses with a warning (my call).
-- Biome picks: map stays inside 6 km until the wall plan, summit trail yes, tree colliders yes, teleports yes, river effects later.
-
-## Open questions for Chris
-- Phone key P; shacks discoverable; is Phase 2+ open; lock cabin/boat into canon; does Al sell trailers.
-- Stale shelf text ("move it with V"); aim radii feel; prices (bench 400, lift 1500, pegboard 60 are placeholders).
-- Wall message wording and colour (cyan is the PROPOSAL).
+## Open questions for Chris (still open as far as we know)
+- Explorer: should unfound places show real names or "???".
+- Is Phase 2+ open; lock cabin/boat into canon; does Al sell trailers; are the El Cajon and Dusty's gift canon (**CANON? not locked**).
+- Prices in the shop are placeholders.
 
 ## Known rough edges
-- River has no splash, drag or sound. Bug is weak on steep climbs.
-- One unexplained reading: `game.onFoot` was false just before a reload in one run (update-button agent was asked to investigate).
-- Pre-existing: duplicate `bench` key in Walker.jsx, stale dev server on :5299 (never restart it), nearly-black truck material.
-- Not browser-tested: bench/pegboard E prompts, many interaction aim zones, storing a rack with Shift+X.
+- Bridges have no solid rails (you can drive off the side); water ripples are cosmetic.
+- Full-lock turns at high speed still roll the Bug and trucks (tall body, not the tires).
+- Terrain mesh is 2.5 m at best, so whoops (7-19 m) look faceted (in the handoff for ChatGPT).
+- Not tested by hand yet: long-travel soak, handling profiles, wet brakes, drowning, bridges, service by hand.
+- Pre-existing: nearly-black truck material.

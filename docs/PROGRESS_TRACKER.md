@@ -1,5 +1,7 @@
 # Project: Baja — PROGRESS_TRACKER
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Which page to trust: [README](./README.md). The percentages and the "Right now" block are from Nov 9; everything since the work on `racer-items-fitglow` is committed and on `main`.
+
 *Updated November 9, 2026. Key: ✅ done, 🟡 in progress, ⬜ not started.*
 
 **Current update, Nov 9:** road completion work is itemized in [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md); the active lag investigation and first fixes are in [PERFORMANCE_WORK](./PERFORMANCE_WORK.md). The percentages and older "Right now" section below are historical and have not been recalculated for the real map.
@@ -87,7 +89,7 @@ Placement stages total: 7 of 13 done = 54%. Garage and furniture row = 4a to 4f:
 
 **Breakpoint: November 7, 2026 (night).** Everything under "Completed" builds (`npx vite build`), passes tests (32/32 then; 38/38 after the November 8 Slice A work, `npm test`) and was checked in a real browser (headless Chromium on the GPU). Items marked *not played* were built and tested but nobody has played them yet. Code is in `viewer/bug_viewer`; it deploys to Vercel from GitHub `main`.
 
-**Not committed yet:** everything since commit `5c019e8` (doors, battery start, loading screen, the 6 km map) is uncommitted on branch `racer-items-fitglow`.
+**Not committed yet:** everything since commit `5c019e8` (doors, battery start, loading screen, the 6 km map) was uncommitted on branch `racer-items-fitglow` at the time (it is committed and on `main` now).
 
 Related docs:
 - [STORY_AND_WORLD](./STORY_AND_WORLD.md): story, map and vehicles.
@@ -205,7 +207,7 @@ Status key: ✅ in code and tested, 🟡 partly there, ❌ missing, ❔ needs a 
 - ❔ Performance feels responsive on the development machine. The FPS target is TBD until profiling.
 
 ### Housekeeping musts (carried over)
-1. **Commit and merge.** All the work since `5c019e8` is uncommitted on `racer-items-fitglow`. It includes about 15 MB of new runtime assets (heightmap, ground textures, `ENV_Desert.glb`). Waiting on your OK.
+1. **Commit and merge.** All the work since `5c019e8` was uncommitted on `racer-items-fitglow` (done: it is on `main`). It includes about 15 MB of new runtime assets (heightmap, ground textures, `ENV_Desert.glb`). Waiting on your OK.
 2. **Purge the truck zips from git history.** It needs a force-push; waiting on your OK.
 3. **Play-test on your machine:**
    - Frame rate on the 6 km map, including shadows from the batched rocks and trees.

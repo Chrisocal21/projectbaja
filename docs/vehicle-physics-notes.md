@@ -1,5 +1,7 @@
 # Vehicle physics notes (from the user's earlier game)
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Which page to trust: [README](./README.md). The sim is no longer the arcade model described here: it is a rigid-body car (`src/rigid.js`, `drivetrain.js`, `handlingProfiles.js`).
+
 Condensed from their full reference. Current sim = `viewer/bug_viewer/src/DriveWorld.jsx` (arcade model, not a rigid-body sim).
 
 ## Where we are vs. the reference

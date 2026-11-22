@@ -1,5 +1,7 @@
 # Project: Baja — ROADMAP (regroup, November 8, 2026)
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Which page to trust: [README](./README.md). Written Nov 8-9: the table of test pages and the half-finished list are out of date (the dev port is now 3001, and the Build Sandbox and Placement Lab stayed on hold).
+
 ## Current focus (Nov 9, 2026)
 
 **Big map (D6) has started:** the real border slice (LA to Cabo) is playable behind `?realmap` (steps 1-5 pushed in 5d57ad6: real terrain, real highways, junction signs, rest areas, gas stations). Step 6 (biomes by area, map screen, teleports, make it the default) is next. See [WORLD_MAP](./WORLD_MAP.md).
@@ -20,7 +22,7 @@ One page that says where everything stands. Written because work had spread acro
 | Build Sandbox (dev tool, build with all pieces, export/import) | `/buildlab.html` | Works. Only the 8 building pieces plus the garage so far. **Chris wants all parts in it.** |
 | Click to pick up (E no longer picks up) | in the main game | Live, not behind a flag. |
 
-Open each flagged page from the dev server (`localhost:5299`). None of these are linked from the game on purpose.
+Open each flagged page from the dev server (the dev server, now `localhost:3001`). None of these are linked from the game on purpose.
 
 ## 2. Done (see [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) for detail)
 Garage start, breaker, letter, Grandma's Bug and restoration, #7 under the tarp, shock hoops quest, odd jobs, trailer fix-up, 6 km county with real terrain and textures, map (M), fleet and '84 truck, fit and detach glow, build mode with materials and the new HUD, upgrades panel (lift, parking, office), index (I), settings and creative mode, placement rules plus lab, like-items clipping, Bug cargo.

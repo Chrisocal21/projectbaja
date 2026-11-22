@@ -1,6 +1,6 @@
 # Real-map road work still open (Nov 9, 2026)
 
-This is the working acceptance list for the road system on `?realmap`. The road and intersection specs Chris supplied are design references; the screenshots and in-game behavior decide whether a connection is finished. Current road changes are uncommitted. See [WORLD_MAP](./WORLD_MAP.md) for the map history and [PERFORMANCE_WORK](./PERFORMANCE_WORK.md) for the current lag work.
+This is the working acceptance list for the road system on `?realmap`. The road and intersection specs Chris supplied are design references; the screenshots and in-game behavior decide whether a connection is finished. ChatGPT is editing the road files (Nov 22: crossings, rivers, driveways): run `git status` and leave modified road files alone. See [WORLD_MAP](./WORLD_MAP.md) for the map history and [PERFORMANCE_WORK](./PERFORMANCE_WORK.md) for the current lag work.
 
 ## Current state
 

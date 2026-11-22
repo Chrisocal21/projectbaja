@@ -1,5 +1,7 @@
 # GAMEPLAN (Nov 8, 2026) - read, add your own lines, then we go top to bottom
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Which page to trust: [README](./README.md). Written Nov 8; the "tokens", "agents" and git-branch lines below are obsolete (work is on `main`).
+
 Sources merged: RESUME_HERE, ROADMAP, PROGRESS_TRACKER notes, your messages. **PROPOSAL** = design guess. Nothing here changes [CANON](./CANON.md). Add items under "CHRIS ADDS" at the bottom.
 
 Goal: **everything up so progress can be saved**, then bigger map and more biomes.
@@ -43,10 +45,10 @@ Goal: **everything up so progress can be saved**, then bigger map and more biome
 - Grandpa's #7 in the garage now uses a Meshy body (rough, PROPOSAL look). Art and models are on hold; making it drivable is parked.
 
 ## 0. Start-of-session checklist (5 min)
-- [ ] `git status`, `git switch racer-items-fitglow`, `git fetch` (compare with `origin/main`, local `main` is stale).
+- ~~`git status`, `git switch racer-items-fitglow`, `git fetch`~~ (obsolete: everything is on `main`; just run `git status`).
 - [ ] Open the live Vercel site once. Confirm it loads.
 - [ ] Decide what to do with branch `wip-unfinished-nov8` (see step A).
-- [ ] Agents use their own vite ports (not 5299/5411/5417/5530/5611). Close them afterward.
+- ~~Agents use their own vite ports (not 5299/5411/5417/5530/5611).~~ (obsolete: the dev server is `npx vite --port 3001`; do not restart one that is running).
 
 ## A. (DONE, merged) Half-built work. Still to PLAY-TEST by hand: fitting a tire on a car, position after Save and update, trunk colliders, summit trail, teleports
 Do one at a time: play-test in a real browser, fix, merge to main, push.
@@ -72,7 +74,7 @@ Do one at a time: play-test in a real browser, fix, merge to main, push.
 14. Wall surface (stage 4e): hang the letter, photos. Pegboard snaps to walls.
 15. **Starting stock:** real garage items only. No new cash ($1,500 locked), no specialty tools, **no Dusty lore without your OK**.
 16. Stage 4f: retire the B menu for furniture. DONE (click furniture to move it; B is now only the shop for new pieces).
-17. Clean up: duplicate `bench` key in Walker.jsx, nearly-black truck material, stale :5299 server.
+17. Clean up: ~~duplicate `bench` key in Walker.jsx~~ (was a false alarm), nearly-black truck material, ~~stale :5299 server~~ (gone).
 
 ## E. Bigger features (design together first)
 18. **Phone replaces the Esc menu** (save, exit, settings, internet, car sales, orders). App list designed together. Key P is a PROPOSAL.

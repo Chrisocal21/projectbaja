@@ -1,5 +1,7 @@
 # Repair gameplay, more parts, and a living world: plan
 
+> **STATUS (Nov 22): CURRENT, but chronological.** Each section is a dated record; when two sections disagree, the later one wins, and the code wins over both. Superseded values are marked with "(superseded: ...)" below. Index of all docs: [README](./README.md).
+
 Written November 21, 2026 from Chris's list: fix parts, replace tires on rims, add parts by hand, more parts all over the world, a cleaner and more realistic desert and west-coast world that feels liveable, more places to pick up parts. Labels: **PROPOSAL** = design guess. **CANON?** = needs Chris's OK. Reads with [MECHANIC_SIM_DESIGN](./MECHANIC_SIM_DESIGN.md), [CONTROLS_AND_STORAGE_PLAN](./CONTROLS_AND_STORAGE_PLAN.md), [WORLD_MAP](./WORLD_MAP.md).
 
 ## Where the El Cajon is right now
@@ -266,6 +268,8 @@ Polled every frame; buttons become key presses so every existing system keeps wo
 - Controller: the right stick orbits the chase camera while driving.
 
 ## Admin as the game archive (Nov 21)
+
+*(Superseded in layout, Nov 22: the tab row became a grid of vehicle and tool tiles with spawn-here buttons; the same things are all still in it. Code: `game/AdminApp.jsx`.)*
 Phone > Admin is now a searchable archive of everything in the game, each one clickable to spawn: parts (pick which body's parts with the chips; every body), tire sets, rims, Vehicles (work vehicles parked in the yard: complete or bare Bug, El Cajon shell or complete; real vehicles added to your fleet, switch to any owned one), Body shells, Items (junk, mementos, tools, supplies, El Cajon parts, scrap metal), Props (every build item), kits, races/tracks teleports, cash/time/tire pressure/diff. "Everything" searches across all of it, with an info line per entry (kind, slot, price). Spawning marks the save as admin-used. Hide this before a public build.
 
 ## Water, trees, hills and forest trails (Nov 21): worlds/wildFeatures.js, WildScenery.jsx
@@ -288,6 +292,8 @@ Phone > Admin is now a searchable archive of everything in the game, each one cl
 - Bridges: about 34 plank bridges (40% of creek-crossing trails, 55% of forest crossings): a flush, dry 4.8 m deck over the creek (`deck` primitive: heightAt returns 0, waterDepthAt 0), drawn as planks and rails by WildScenery's Bridges.
 
 ## Table tops and long-travel suspension (Nov 22)
+
+*(Superseded: the long-travel numbers below were tuned again the same day to stiffness 9,500, damping 5,200, anti-roll 4,500, and the jump ramp slope is now about 0.15; see `rigid.js` `suspensionSpec` and `offroadFeatures.js` `tableLengths`. Another builder is also reshaping tables and whoops: check the tree.)*
 Jumps are now low table tops (`tableLengths`, offroadFeatures.js): a ramp of slope 0.1 up, a flat top, a ramp of slope 0.12 down, no gap and no cliff. Heights are 0.45-1.05 m (was 0.8-2.0), so you fly low and land on the down slope. A fitted upgraded suspension (any `suspension` or `shocks` part) sets `dims.longTravel`: 0.62 m of compression and 0.34 m of droop (stock off-road 0.42 / 0.26), a little softer spring and firmer damping, so landings are soaked instead of bottoming out. Driven at 30-35 m/s over the tallest tables on the real map: stayed upright (up-vector 0.98+), landing speed at most 5 m/s.
 
 ## Handling profiles and the saved drift baseline (Nov 22)

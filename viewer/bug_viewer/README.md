@@ -1,5 +1,7 @@
 # Project: Baja - game viewer
 
+> **STATUS (Nov 22): HISTORY (Nov 7 snapshot).** The asset-lab description below is old. Current state and commands: [RESUME_HERE](../../docs/RESUME_HERE.md); dev server `npx vite --port 3001`, tests `npm test`.
+
 Last updated: November 7, 2026 (night).
 
 ## Current state: the game

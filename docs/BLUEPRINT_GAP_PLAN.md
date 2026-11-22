@@ -1,5 +1,7 @@
 # Blueprint → Project Baja: what we have, what's missing, build order
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [SYSTEMS_BLUEPRINT](./SYSTEMS_BLUEPRINT.md). Which page to trust: [README](./README.md). Statuses are from Nov 7-8. Since then wear, service, paint-ready panels, hand fitting, tool-gated removal and the second vehicle were built.
+
 Maps [SYSTEMS_BLUEPRINT.md](SYSTEMS_BLUEPRINT.md) onto the game. First written at commit `c620978` (2026-11-07); statuses re-checked on 2026-11-07 (night) against the uncommitted work after `5c019e8`.
 Legend: ✅ have it · 🟡 partial / different · ❌ missing. Where a status changed, the old one is noted ("was …").
 

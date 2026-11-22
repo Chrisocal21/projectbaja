@@ -1,5 +1,7 @@
 # Project: Baja — OPEN_QUESTIONS
 
+> **STATUS (Nov 22):** last updated Nov 8. Some questions were answered later in chat (see RESUME_HERE and CANON); treat the list as open unless CANON says otherwise.
+
 Last updated: November 8, 2026. New: the Forge's ten questions (F1–F10) and the places where the [CANON](./CANON.md) and the current build disagree (C1–C9). Answered earlier: camera (both: first person on foot, chase or cab in a vehicle) and first world slice (Baja County). Only undecided items are listed. Settled items live in [FEATURE_MAP](./FEATURE_MAP.md) and CANON.
 
 ## Current blockers

@@ -1,5 +1,7 @@
 # FIRST NEW REGION: PLAN (Nov 8, 2026) - PROPOSAL, nothing built
 
+> **STATUS (Nov 22): HISTORY.** A snapshot, not kept up to date. Current state: [RESUME_HERE](./RESUME_HERE.md), [WORLD_MAP](./WORLD_MAP.md). Which page to trust: [README](./README.md). This was a PROPOSAL for the first new region; the real-border map (`?realmap`) superseded it.
+
 Chris said "whichever makes sense to the expansion". These are my picks. **PROPOSAL** = design guess. No new lore: picks are geography only, names are plain descriptive and changeable. See [CANON](./CANON.md).
 
 ## My picks (change any)

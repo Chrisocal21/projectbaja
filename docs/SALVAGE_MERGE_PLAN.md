@@ -84,7 +84,7 @@ Already equal or better in Baja: slot rules, reason codes, blockers, atomic inst
 ## Progress
 
 - **Step 1, fit feel pass (Nov 21), built, not yet seen in the game.** `game/restPose.js` (+ test): resting poses for loose body parts (doors, fenders, glass, bumpers, steering wheel lie the way they'd be left) and a carry pose (part shrunk to a 0.6 m box, held low-right and tipped). Wired into `game/Items.jsx`. On by default; `?feel=0` restores the old look. The "rebuild hitch" was left alone: the scene only remounts for wheel/engine/shell/steering fits (a physics change), so it needs playing to judge. Tuning numbers (`REST`, `HOLD`) are guesses to adjust by eye.
-- Not committed.
+- Committed (Nov 21-22, on `main`).
 - **Step 3, second restorable vehicle (Nov 21), built and driven in headless Chrome:** the El Cajon via Dusty (CANON? not locked), plus the tire machine, work targets and donor Bugs that it needed. Model ported to `src/cajon/`. See [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md). Not drivable yet. Steps 2 (rust and weathered finish) is partly there: the El Cajon uses Salvage Road's rust shader; the Bug does not. Step 4 (GLB re-group tool) not started.
 
 ## Wrap-up (Nov 22): what is done, what was skipped, and the assets

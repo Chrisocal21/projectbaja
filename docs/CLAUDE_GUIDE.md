@@ -2,13 +2,14 @@
 
 Standing guide for Claude Code working in the Baja repo. Read at the start of every session.
 
-Last synchronized: November 8, 2026, after the Forge canon arrived (CANON.md, phases, Slice A).
+Last synchronized: November 22, 2026. Rules below still apply; the "Current state (November 7)" and "Asset-lab history" sections are older snapshots (see [RESUME_HERE](./RESUME_HERE.md) for now).
 
 ## Roles
 
 - The Forge (Claude.ai) owns scope, game design, milestones, decisions and the living docs: FEATURE_MAP, PROGRESS_TRACKER, OPEN_QUESTIONS, PROJECT_LOG, CLAUDE_GUIDE.
 - Claude Code owns implementation and testing.
-- ChatGPT supports visuals and concept art only.
+- ChatGPT now also writes code (roads, scenery, terrain) beside Claude Code, on the same `main` branch. Coordinate through [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md): run `git status` first, leave the other builder's modified files alone, and add anything ChatGPT needs to that page in the same session (standing rule).
+- Work on `main` only; commit and push small and often. Commit only in this repo: `salvageroad` is a finished, read-only reference.
 - Source-of-truth order: the live repo and Vercel deployment, then the newest verified implementation summary, then the Forge docs.
 
 ## Rules
@@ -51,7 +52,7 @@ Last synchronized: November 8, 2026, after the Forge canon arrived (CANON.md, ph
   - `worlds/Desert.jsx`: rocks, dead trees and shrubs as BatchedMeshes.
   - `worlds/kit.js`: the sparse raster and `boxBlur`.
 - `county.js` loads `/terrain/height.bin` with a top-level `await`, so `vite.config.js` sets the build target to es2022. Keep that.
-- Rules stay pure and tested in `src/rules/*.js` (`npm test`, 38 tests; `rules/atomic.test.js` covers Slice A). Build check: `npx vite build`.
+- Rules stay pure and tested in `src/rules/*.js` (`npm test`, about 440 tests as of Nov 22; `rules/atomic.test.js` covers Slice A). Build check: `npx vite build`.
 - Large source packs never get committed. Export trimmed GLBs and baked textures into `public/` with the scripts in `assets/truck` and `assets/pipeline` (see its README).
   - Git-ignored in this repo: `assets/truck/*.zip` and `assets/plants/`.
   - Kept in sibling folders outside the repo: the Unity and texture libraries in `../supplyline-unity/Assets`, `../supplyline/public/assets/materials` and `../salvageroad/public/textures`.
