@@ -22,6 +22,7 @@ import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.j
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
 import { aimsAt, aimsAtBox, lookDir } from './aim.js';
+import { pad } from './gamepad.js';
 import { carPartAim } from './carAim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
 import { FEEL } from './restPose.js';
 import { carFitReady } from './carSnap.js';
@@ -128,6 +129,7 @@ export default function Walker({ world, sun }) {
   useFrame((_, rawDt) => {
     const s = st.current, dt = Math.min(rawDt, 0.05);
     if (game.paused || game.flyMode) return;
+    if (pad.on && game.onFoot && (pad.lookX || pad.lookY)) { const [kx, ky] = lookScale(); s.yaw -= pad.lookX * dt * 2.6 * kx; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - pad.lookY * dt * 2.0 * ky)); }   // right stick looks
     if (game.teleportTo && game.onFoot) { const t = game.teleportTo; game.teleportTo = null; s.x = t.x; s.z = t.z; s.yaw = t.h + Math.PI; s.y = world.height(t.x, t.z) + 0.3; s.vx = s.vz = 0; }   // Admin > Races: go to a course
     if (game.onFoot) {
       if (!s.on) {   // just stepped out (or the scene was rebuilt): take the saved spot

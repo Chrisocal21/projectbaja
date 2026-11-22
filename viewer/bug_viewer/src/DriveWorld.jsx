@@ -37,6 +37,7 @@ import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
 import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
+import { pad } from './game/gamepad.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
@@ -257,8 +258,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
       camPos.current.set(0, 4, -16);
     }
 
-    const throttle = bugAsleep() ? 0 : (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);   // grandma's Bug won't pull until she's fired once
-    const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
+    const throttle = bugAsleep() ? 0 : Math.max(-1, Math.min(1, (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + pad.throttle));   // grandma's Bug won't pull until she's fired once
+    const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
     st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)) / (1 + psiFx.steerLag));

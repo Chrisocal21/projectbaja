@@ -252,3 +252,6 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 - Differential (open / lsd / locker, `game.home.diff`, Admin > Cash/time): drive force is split by how much each rear wheel can grip. One wheel in the air: open stalls, locker drives (tested).
 - Heat: rises with load, falls with road speed and the fan; warning at 110 C, power derate 120-140 C, damage above 140 C (`engDamage` 0-1, not yet tied to a part's condition). HUD shows gear, rpm and the warning.
 - Next: wire engine damage/stress to part condition (wear and failure), stalling, a real oil level, clutch.
+
+## Controller support (Nov 21): game/gamepad.js
+Polled every frame; buttons become key presses so every existing system keeps working. Driving: RT throttle, LT brake/reverse, left stick analog steer, A handbrake, Y reset/stand up, X in/out, B F, LB lights, RB cab view. On foot: left stick walks, right stick looks, RT/LT = hold left/right click (bolt on / take off), X interact, B F, Y R, D-pad up Tab, D-pad down I, Back map, Start menu, L-stick click run. Click the game once with the mouse first (pointer lock). Menus/inventory still need the mouse.

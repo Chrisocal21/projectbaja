@@ -23,6 +23,7 @@ import {
   defaultBuild, normalize, setBody, setWheels, setRim, rims, setPart, applyPreset, resolve,
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
+import { startGamepad } from './game/gamepad.js';
 import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
 import { applyMachinePlan, held, toolInHand, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
@@ -467,6 +468,7 @@ function Slider({ label, value, min, max, step, unit, digits, disabled, hint, on
 }
 
 const PlacementLab = import.meta.env.DEV && new URLSearchParams(location.search).get('lab') === 'placement' && React.lazy(() => import('./placement/Lab.jsx'));   // test scene, only with ?lab=placement (not even loaded otherwise)
+startGamepad();
 createRoot(document.getElementById('root')).render(PlacementLab ? <Suspense fallback={null}><PlacementLab /></Suspense> : <ClerkProvider afterSignOutUrl="/">
       <CloudAuto />
       <App />
