@@ -24,7 +24,7 @@ export function engineGate(it) {
     if (core) {
       const why = removeBlock(core.parts, it.id);
       if (why) { say(why); return false; }
-      it.cond = core.parts[it.id].c; delete core.parts[it.id];
+      it.cond = core.parts[it.id].c; it.grimy = !!core.parts[it.id].g; delete core.parts[it.id];
     }
     delete it.onEngine; return true;
   }
@@ -51,7 +51,7 @@ export function tickEngineStand(dt) {
       if (t < MOUNT_S) continue;
       timers.delete(m.uid);
       eng.parts = eng.parts || freshParts(); eng.onStand = m.uid; placeAt(eng, { x: m.x, z: m.z, y: 0.5, ry: m.ry || 0 });
-      for (const s of ENGINE_SLOTS) if (eng.parts[s.id]) game.items.push({ uid: uid(), kind: 'epart', id: s.id, loc: 'world', cond: eng.parts[s.id].c, onEngine: eng.uid, ...slotWorld(m, s.id) });
+      for (const s of ENGINE_SLOTS) if (eng.parts[s.id]) game.items.push({ uid: uid(), kind: 'epart', id: s.id, loc: 'world', cond: eng.parts[s.id].c, grimy: !!eng.parts[s.id].g, onEngine: eng.uid, ...slotWorld(m, s.id) });
       say('The engine is on the stand. Take the pieces off one at a time; set them back beside it to refit.'); changed = true; continue;
     }
     const loose = game.items.filter(i => i.kind === 'epart' && !i.onEngine && near(i));
@@ -65,7 +65,7 @@ export function tickEngineStand(dt) {
     const t = (timers.get(m.uid + 'p') || 0) + dt; timers.set(m.uid + 'p', t);
     if (t < FIT_S) continue;
     timers.delete(m.uid + 'p'); timers.delete(m.uid + 'w');
-    core.parts[pick.id] = { c: pick.cond ?? 70 }; pick.onEngine = core.uid; placeAt(pick, slotWorld(m, pick.id));
+    core.parts[pick.id] = { c: pick.cond ?? 70, ...(pick.grimy ? { g: 1 } : {}) }; pick.onEngine = core.uid; placeAt(pick, slotWorld(m, pick.id));
     say(`${slotOf(pick.id).name} fitted.`); changed = true;
   }
   if (changed) commit();

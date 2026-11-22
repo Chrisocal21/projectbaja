@@ -3,10 +3,10 @@
 // on the workbench top gets a service after a few seconds: cleaned and adjusted, up to what a used part can be.
 import { game, save, say } from './store.js';
 import { nearestProp, onBench } from './fixtures.js';
-import { chargeOf, chargeStep, serviceBlock, serviceTo, SERVICE_S } from './benchRules.js';
+import { chargeOf, chargeStep, serviceBlock, serviceTo, SERVICE_S, WASH_S } from './benchRules.js';
 import { slotOf } from './engineRules.js';
 
-export const CHARGER_R = 1.2;
+export const CHARGER_R = 1.2, WASHER_R = 1.2;
 const timers = new Map(), told = new Map();
 let sinceSave = 0;   // charging changes the battery every frame: write the save about every 2 s, not every frame
 const tellOnce = (key, msg) => { if (told.get(key) !== msg) { told.set(key, msg); say(msg); } };
@@ -23,6 +23,16 @@ export function tickBenches(dt) {
       if (!game.home?.power) { tellOnce('p' + m.uid, 'The charger is dead: flip the main breaker in the garage first.'); continue; }
       b.charge = chargeStep(c, dt); told.set('b' + b.uid, 'on'); changed = true;
       if (!timers.has(b.uid)) { say(`Charging: ${Math.round(c * 100)}%. It takes about a minute and a half from empty.`); timers.set(b.uid, 1); }
+    }
+  }
+  for (const m of game.props.filter(p => p.id === 'partsWasher')) {   // grime off, so the real condition can be read
+    for (const it of game.items) {
+      if (it.kind !== 'epart' || !it.grimy || it.onEngine || it.loc !== 'world' || it.x === undefined || Math.hypot(it.x - m.x, it.z - m.z) > WASHER_R) continue;
+      if (!game.home?.power) { tellOnce('p' + m.uid, 'The parts washer pump is dead: flip the main breaker in the garage first.'); continue; }
+      const t = (timers.get('w' + it.uid) || 0) + dt; timers.set('w' + it.uid, t);
+      if (t < WASH_S) continue;
+      timers.delete('w' + it.uid); it.grimy = false; changed = true;
+      say(`${slotOf(it.id)?.name || 'Part'} washed: it is at ${Math.round(it.cond ?? 70)}%.`);
     }
   }
   const bench = nearestProp(game.props, 'workbench', game.pos?.x || 0, game.pos?.z || 0);

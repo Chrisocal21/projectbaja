@@ -19,3 +19,9 @@ test('a service helps a worn piece up to the cap, once, and cannot save a shot o
   assert.match(serviceBlock({ cond: 90 }), /as good as/);
   assert.equal(serviceTo(50), 75); assert.equal(serviceTo(70), CAP);
 });
+import { WASH_S } from './benchRules.js';
+test('a dirty piece cannot be serviced until it is washed', () => {
+  assert.match(serviceBlock({ cond: 50, grimy: true }), /wash it/);
+  assert.equal(serviceBlock({ cond: 50, grimy: false }), '');
+  assert.ok(WASH_S > 0);
+});

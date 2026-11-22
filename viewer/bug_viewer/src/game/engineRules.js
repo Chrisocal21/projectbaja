@@ -20,7 +20,7 @@ const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 /** every piece on, each with a worn-in condition. rng() -> [0,1). An engine with no `parts` field is treated as complete. */
 export function freshParts(rng = Math.random, base = 70) {
   const o = {};
-  for (const s of ENGINE_SLOTS) o[s.id] = { c: Math.round(clamp(base + (rng() - 0.5) * 40)) };
+  for (const s of ENGINE_SLOTS) o[s.id] = { c: Math.round(clamp(base + (rng() - 0.5) * 40)), g: 1 };   // g: grimy, its real condition can't be read until it is washed
   return o;
 }
 /** the pieces that are on the engine (an engine without a parts field is complete) */

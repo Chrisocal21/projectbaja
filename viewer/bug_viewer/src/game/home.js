@@ -83,6 +83,7 @@ const ALL_BUILD_ITEMS = [
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: to move it, aim at it and click" },
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. To move it, aim at it and click (Shift+X stores it, X sells it)' },
   { id: 'toolChest', name: 'Rolling tool chest', price: 260, zone: 'garage', r: 0.5, cat: 'Storage' },
+  { id: 'partsWasher', name: 'Parts washer', price: 120, zone: 'garage', r: 0.5, cat: 'Garage', note: 'Set a dirty part beside it: the pump scrubs the grime off so you can read its real condition. Needs the garage power on.' },
   { id: 'batteryCharger', name: 'Battery charger', price: 90, zone: 'garage', r: 0.4, cat: 'Garage', note: 'Set a battery beside it and it charges (needs the garage power on). Charging never fixes a worn-out battery.' },
   { id: 'engineStand', name: 'Engine stand', price: 140, zone: 'garage', r: 0.5, cat: 'Garage' },
   { id: 'workbench', name: 'Workbench (5.2 m)', price: 400, zone: 'garage', r: 0.5, pickR: 1.5, len: 5.2, cat: 'Garage', note: "Walt's workbench: E to fabricate. To move it, aim at it and click (Shift+X stores it, X sells it)" },

@@ -3,6 +3,7 @@
 // Engine piece: cond 0..100. A workbench service cleans and adjusts it, but only as far as the part allows (CAP), once per piece (item.serviced).
 export const CHARGE_S = 90;        // seconds on the charger from empty to full
 export const FLAT = 0.2;           // a battery below this cannot crank the engine
+export const WASH_S = 5;           // seconds in the parts washer
 export const SERVICE_S = 4;        // seconds on the bench for a service
 export const SERVICE_GAIN = 25;    // condition points a service gives
 export const CAP = 85;             // a serviced piece never gets past this: only a new one is better
@@ -18,6 +19,7 @@ export function batteryCheck(charge) {
 /** may this piece be serviced on the bench? -> '' or the reason */
 export function serviceBlock(it) {
   const c = it?.cond ?? 70;
+  if (it?.grimy) return 'Too dirty to judge: wash it in the parts washer first.';
   if (it?.serviced) return 'That piece has already had its service: only a new one is better.';
   if (c < DEAD) return 'That piece is shot: no cleaning will save it. It needs replacing.';
   if (c >= CAP) return 'That piece is already as good as a used one gets.';
