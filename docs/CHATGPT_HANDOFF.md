@@ -71,3 +71,11 @@ Stage `office3` ($14,000, proposal). Code: worlds/office.js (WING_UP, wingLevel,
 - Basic box art only: please polish the stair, rails, team table, chairs, the race planning board (blank on purpose: do not invent team names or routes), windows, a real door model.
 - Left for later: the balcony over Walt's shop floor, any link from the upstairs room to the old office loft, an upstairs use for the team room (nothing happens there yet).
 
+
+## Visual work on props and junk (Claude, Nov 22)
+ChatGPT may restyle looks now. Rules so we do not collide:
+- Safe: the shapes and colors inside each `case '<prop>'` model in `worlds/Home.jsx` (toolChest, partsBin, partsWasher, batteryCharger, the rest), the `Junk` pile models, and your own world files.
+- Keep the ids, sizes and positions the same: `partsBin`, `toolChest`, `yardRack` hold items; props have a solid circle from their `r` in `BUILD_ITEMS` (game/home.js). A bigger model than its `r` will look like it clips.
+- `ShrinkingPile` in Home.jsx scales a junk pile from 1 down to 0.35 as loads are hauled; keep a pile as one group so that scaling still works.
+- Not yours: Walker.jsx, main.jsx, game/home.js, items.js, bins.js, benches.js and any `*Rules.js`. Ask in this file instead.
+- Home.jsx is shared: make small separate commits and tell Chris when you commit; Claude pulls before touching it and is staying out of it meanwhile.
