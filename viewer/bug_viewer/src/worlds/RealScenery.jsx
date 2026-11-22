@@ -63,8 +63,22 @@ function ocotilloParts() {
   return [{ geometry, material: new THREE.MeshStandardMaterial({ color: '#6b7050', roughness: 1 }), local: new THREE.Matrix4() }];
 }
 
+function agaveParts() {
+  const pieces = [];
+  for (let i = 0; i < 13; i++) {
+    const a = i * Math.PI * 2 / 13, reach = 0.95 + (i % 4) * 0.14;
+    const end = new THREE.Vector3(Math.cos(a) * reach, 0.48 + (i % 3) * 0.16, Math.sin(a) * reach);
+    const start = new THREE.Vector3(0, 0.15, 0), delta = end.clone().sub(start);
+    const leaf = new THREE.ConeGeometry(0.18 + (i % 3) * 0.025, delta.length(), 3);
+    leaf.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.clone().normalize()));
+    leaf.translate(...start.add(end).multiplyScalar(0.5).toArray()); pieces.push(leaf);
+  }
+  const geometry = mergeGeometries(pieces); pieces.forEach(g => g.dispose());
+  return [{ geometry, material: new THREE.MeshStandardMaterial({ color: '#75836e', roughness: 1, side: THREE.DoubleSide }), local: new THREE.Matrix4() }];
+}
+
 /** Sparse, deterministic land cover across the real elevation map. Only the nearby field is instanced. */
-export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ south: 0 }), avoid = () => false }) {
+export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ south: 0 }), roadAt = () => null, avoid = () => false }) {
   const rocks = useGLTF('/models/ENV_Desert.glb').scene;
   const trees = useGLTF('/models/ENV_Trees.glb').scene;
   const { camera } = useThree(), root = useRef(), last = useRef({ x: Infinity, z: Infinity }), pending = useRef(null);
@@ -78,6 +92,7 @@ export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ s
     { name: 'CARDON', parts: cardonParts(), cap: 850 },
     { name: 'BOOJUM', parts: boojumParts(), cap: 850 },
     { name: 'OCOTILLO', parts: ocotilloParts(), cap: 850 },
+    { name: 'AGAVE', parts: agaveParts(), cap: 850 },
   ], [rocks, trees]);
   const meshes = useMemo(() => entries.map(e => e.parts.map(p => {
     const mat = p.material.clone(); mat.side = THREE.DoubleSide; mat.alphaTest = 0.4; mat.transparent = false;
@@ -90,7 +105,7 @@ export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ s
     meshes.flat().forEach(m => group.add(m));
     return () => {
       meshes.flat().forEach(m => { group.remove(m); m.material.dispose(); m.dispose(); });
-      entries.filter(e => ['CARDON', 'BOOJUM', 'OCOTILLO'].includes(e.name)).forEach(e => e.parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); }));
+      entries.filter(e => ['CARDON', 'BOOJUM', 'OCOTILLO', 'AGAVE'].includes(e.name)).forEach(e => e.parts.forEach(p => { p.geometry.dispose(); p.material.dispose(); }));
     };
   }, [meshes, entries]);
   const obj = useMemo(() => new THREE.Object3D(), []), matrix = useMemo(() => new THREE.Matrix4(), []);
@@ -118,15 +133,21 @@ export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ s
       if (['water', 'sand', 'playa', 'asphalt', 'concrete', 'curb'].includes(surface)) continue;
       const dx = (heightAt(x + 8, z) - heightAt(x - 8, z)) / 16;
       const dz = (heightAt(x, z + 8) - heightAt(x, z - 8)) / 16;
-      const slope = Math.hypot(dx, dz), h = heightAt(x, z), r = hash(ix, iz, 47), south = regionAt(x, z).south;
+      const slope = Math.hypot(dx, dz), h = heightAt(x, z), r = hash(ix, iz, 47), region = regionAt(x, z), south = region.south;
+      let besideMex1 = false;
+      if (h < 90 && south > 0.35 && region.coast <= 0.08 && r > 0.72) {
+        const road = roadAt(x, z);
+        besideMex1 = road?.road.name === 'Mex 1' && road.d > road.road.style.half + 9 && road.d < 48;
+      }
       let kind = -1;
       if (slope > 0.32 || surface === 'rock') { if (r < 0.65) kind = r < 0.4 ? 0 : 2; }
+      else if (h < 90 && slope < 0.2 && r > 0.72 && (region.coast > 0.08 || (south > 0.35 && besideMex1))) kind = 9;
       else if (r < 0.16) kind = r < 0.1 ? 0 : 1;
       else if (r < 0.37 && h < 200 && surface !== 'rock') kind = 5;
       else if (south > 0.25 && x < 3000 + z * 0.48 && h < 240 && slope < 0.18 && r > 0.88 && surface !== 'gravel') kind = r > 0.975 ? 8 : r > 0.94 ? 7 : 6;
       else if (south < 0.45 && h < 110 && slope < 0.16 && r > 0.965 && surface !== 'gravel') kind = r > 0.985 ? 3 : 4;
       if (kind < 0 || counts[kind] >= entries[kind].cap) continue;
-      const naturalScale = kind >= 6 ? 0.65 + hash(ix, iz, 59) * 0.65 : kind === 3 || kind === 4 ? 0.75 + hash(ix, iz, 59) * 0.65 : kind === 5 ? 0.65 + hash(ix, iz, 59) * 0.7 : 0.6 + hash(ix, iz, 61) * (kind === 2 ? 1.4 : 1.2);
+      const naturalScale = kind === 9 ? 0.7 + hash(ix, iz, 59) * 0.55 : kind >= 6 ? 0.65 + hash(ix, iz, 59) * 0.65 : kind === 3 || kind === 4 ? 0.75 + hash(ix, iz, 59) * 0.65 : kind === 5 ? 0.65 + hash(ix, iz, 59) * 0.7 : 0.6 + hash(ix, iz, 61) * (kind === 2 ? 1.4 : 1.2);
       const scale = naturalScale * Math.min(1, Math.max(0.01, (RADIUS - distance) / 130));
       obj.position.set(x, h - (kind >= 3 ? 0.1 : 0.16) * scale, z);
       obj.rotation.set(kind >= 3 ? 0 : dz * 0.12, hash(ix, iz, 71) * Math.PI * 2, kind >= 3 ? 0 : -dx * 0.12);

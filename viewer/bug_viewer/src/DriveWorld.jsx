@@ -38,6 +38,7 @@ import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/si
 import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
 import { pad } from './game/gamepad.js';
+import { createDust, dustiness } from './dust.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
@@ -191,6 +192,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const { camera, gl } = useThree();
   const look = useRef({ yaw: 0, pitch: 0.28, dist: 9, drag: false, idle: 0 });
   const s = useRef(null);
+  const dustFx = useMemo(() => createDust(), []), dustAcc = useRef([0, 0, 0, 0]), dustTouch = useRef([true, true, true, true]);
+  useEffect(() => () => dustFx.dispose(), [dustFx]);
   if (!s.current) {
     s.current = spawnState();
     const at = game.keepPose && (game.spawnAt || game.pose);   // a vehicle swap carries its own spawn spot: the car you just left is still writing game.pose every frame until it unmounts
@@ -250,7 +253,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.5;   // 1.5 = base off-road tire grip (was 1.25: more grip, Nov 21); psiFx: tire pressure (physics.json)
-    const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * psiFx.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
+    const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * psiFx.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
       Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
@@ -401,10 +404,26 @@ function Vehicle({ children, hud, dims, race, sun }) {
     { const t0 = performance.now(), dtF = Math.min(rawDt, 0.1), n = Math.min(5, Math.max(1, Math.ceil(dtF / (STEP * 1.2)))), hStep = Math.min(dtF / n, STEP * 1.6); acc.current = 0; for (let i = 0; i < n; i++) simGuarded(hStep); window.__simStat = { n, ms: performance.now() - t0 }; }   // __simStat: physics cost this frame, for the FPS counter
     if (!game.onFoot) { game.pos.x = s.current.x; game.pos.z = s.current.z; }
     game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
+    // dust: puffs behind the tires scaled by speed, sliding and landings, tinted to the ground (dust.js)
+    { const st = s.current, dtD = Math.min(rawDt, 0.1); dustFx.update(dtD);
+      if (st.wheels && st.rb && group.current) {
+        const dust = dustiness(st.sfKey), sp = Math.hypot(st.v, st.lateralV), slide = Math.min(1, (st.slip || 0) / 0.3), rate = dust * (sp > 2 ? Math.min(1, sp / 22) * 16 + slide * 40 : 0);
+        group.current.updateMatrixWorld(true); const c = DUST_C.set(st.sfColor || '#a98c5a').lerp(DUST_W, 0.3), v = st.rb.vel;
+        st.wheels.forEach((w, i) => {
+          const was = dustTouch.current[i]; dustTouch.current[i] = w.touching;
+          if (!w.touching || dust <= 0) { dustAcc.current[i] = 0; return; }
+          const p = group.current.localToWorld(DUST_P.copy(w.hub)); p.y -= 0.3;
+          if (!was) for (let k = 0; k < 7; k++) dustFx.emit(p.x, p.y, p.z, v.x * 0.2 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 1.6, v.z * 0.2 + (Math.random() - 0.5) * 3, c, 0.7, 3.2, 0.5 * Math.min(1, dust), 1.6);   // landing puff
+          dustAcc.current[i] += rate * dtD;
+          while (dustAcc.current[i] >= 1) { dustAcc.current[i] -= 1; const big = 0.5 + Math.min(1, sp / 30) * 0.9 + slide * 0.6;
+            dustFx.emit(p.x + (Math.random() - 0.5) * 0.4, p.y, p.z + (Math.random() - 0.5) * 0.4, v.x * 0.3 + (Math.random() - 0.5) * 1.6, 0.5 + Math.random() * 1.4, v.z * 0.3 + (Math.random() - 0.5) * 1.6, c, 0.5 * big, 2.4 * big + 0.8, Math.min(0.55, 0.24 + 0.25 * dust), 1.1 + Math.min(1, sp / 30) * 0.9); }
+        });
+      } }
   });
 
-  return <group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group>;
+  return <><primitive object={dustFx.points} /><group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group></>;
 }
+const DUST_C = new THREE.Color(), DUST_W = new THREE.Color('#ffffff'), DUST_P = new THREE.Vector3();
 
 const OPEN_WORLD = { id: 'open', obstacles: OBSTACLES, height: terrainHeight, surface: surfaceAt, half: HALF, spawn: { x: 0, z: -8, h: 0 }, gates: GATES, spawns: [], area: () => 'Open desert' };
 const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: TC.HALF_DRIVE, get spawn() { return game.start === 'lot' ? BUG_SPOT : game.start === 'garage' ? GARAGE_DRIVE : { x: 0, z: 0, h: Math.PI / 2 }; }, gates: [], spawns: TC.spawns, area: TC.areaAt, obstacles: SITE_OBSTACLES };

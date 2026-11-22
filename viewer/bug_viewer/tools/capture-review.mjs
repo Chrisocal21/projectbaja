@@ -28,6 +28,8 @@ const reflectors = await send('Runtime.evaluate', { expression: `(async () => { 
 console.log('REFLECTORS', reflectors.result.value);
 const warningSites = await send('Runtime.evaluate', { expression: `(async () => { const c = await import('/src/worlds/county.js'); const b = await import('/src/worlds/border.js'); const w = await import('/src/worlds/roadsideWarnings.js'); const sites = w.curveWarnings(c.highways(), b.border().waterAt, c.groundHeight); return {count:sites.length, roads:[...new Set(sites.map(s => s.road))]}; })()`, awaitPromise: true, returnByValue: true });
 console.log('CURVE WARNINGS', warningSites.result.value);
+const fenceSites = await send('Runtime.evaluate', { expression: `(async () => { const c = await import('/src/worlds/county.js'); const b = await import('/src/worlds/border.js'); const p = await import('/src/game/realPlaces.js'); const f = await import('/src/worlds/roadsideFences.js'); const land = b.border(), names = new Set(['San Quintín','Guerrero Negro','Mulegé','Loreto','San Felipe','Todos Santos']); return f.ranchFenceSites(p.REAL_PLACES.filter(q => names.has(q.name)), q => p.projectPlace(q.lat,q.lon,land.meta), c.highways(), land.waterAt, c.groundHeight).map(q => q.name); })()`, awaitPromise: true, returnByValue: true });
+console.log('RANCH FENCES', fenceSites.result.value);
 const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
 await writeFile(new URL('../dist/review/map-cdp.png', import.meta.url), Buffer.from(shot.data, 'base64'));
 await send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 530, y: 218, deltaX: 0, deltaY: -1200 });

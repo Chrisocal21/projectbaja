@@ -22,6 +22,7 @@ import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
 import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
 import RegionalRoadReflectors from './RegionalRoadReflectors.jsx';
 import RegionalCurveWarnings from './RegionalCurveWarnings.jsx';
+import RegionalRanchFences from './RegionalRanchFences.jsx';
 import Flora from './Flora.jsx';
 import BiomeScene from './biomes/Biomes.jsx';
 import BoundaryWall from './BoundaryWall.jsx';
@@ -690,13 +691,14 @@ export default function CountyScene() {
     {REAL && <RegionalPlaceSigns />}
     {REAL && <RegionalRoadReflectors />}
     {REAL && <RegionalCurveWarnings />}
+    {REAL && <RegionalRanchFences />}
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
     {!REAL && <BiomeScene />}
     <BoundaryWall />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     <React.Suspense fallback={null}><Desert /></React.Suspense>
-    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9)} /></React.Suspense>}
+    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} roadAt={(x, z) => highways().near(x, z)} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9)} /></React.Suspense>}
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}
     <Proving />
     <Sites />
