@@ -1,3 +1,4 @@
+// DEV STAND-IN (the game is simulation-forward: players will sand, paint and buff panels by hand, see rules/finish.js).
 // Paint on parts. Bare fiberglass (material.unpainted) stays flat white until the player picks a body paint.
 const cache = new WeakMap();   // part material -> { colour -> painted material }, so the same object comes back (no needless re-render)
 

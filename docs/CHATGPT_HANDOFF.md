@@ -1,7 +1,7 @@
 # CHATGPT HANDOFF (living page: Claude adds to it every time something is for ChatGPT)
 
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
-Last updated: Nov 22, 2026.
+Last updated: Nov 22, 2026 (simulation-forward rule and paint sim added).
 
 ## Coordination (who edits what)
 - Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder.
@@ -40,7 +40,8 @@ Water (`DriveWorld.jsx`): wading slows and cuts grip, spray, current pushes the 
 2. **More natural bumps.** Whoops are clean sines; real ones vary in spacing, size and crest and get rutted. Add noise without breaking the physics. Another builder already started on whoop phase / amplitude variation (see `offroadFeatures.js` in the tree): check it first.
 3. **Creek banks and water look.** Nicer bank cross-section, wet-dirt colour at the edge, gravel bed. Bridges have no solid rails and nothing visible underneath.
 4. **Engine and driving sounds.** `src/audio.js` is a first procedural pass (engine from rpm, tires, wind, water, landings; K mutes). Real recordings would sound much better: boxer burble, backfire on lift-off, wet-brake squeal, creaks from worn parts, dirt and gravel. Chris may supply samples; wire them in without removing the mute and the 50% default.
-5. **Concept and art help** (Chris's call): paint look for the flat-white fiberglass, trophy-truck-style long-travel suspension look, track and drift-car ideas.
+5. **Concept and art help** (Chris's call): trophy-truck-style long-travel suspension look, track and drift-car ideas.
+6. **Paint-sim look (reference only, no code needed).** Chris wants hands-on grinding, painting, buffing and hosing (no picker). Useful from you: reference images and concept art of each stage on steel and fiberglass: heavy rust, ground bare metal, flat paint, buffed gloss, fresh gelcoat, mud and dust, hose spray and wet look. Claude builds the tools and shaders from `src/rules/finish.js` (`look()` returns colour, roughness, metalness, rust and dirt amounts).
 
 ## Done (recent, for context)
 - Table-top jumps, long-travel suspension (soft spring, firm damping, light anti-roll), handling profiles with a saved drift baseline, tire pressure, diff types, wear and service, Admin redesign and teleport, flat-white fiberglass, fiberglass front clip, chunkier coilovers, terrain streaming fix after teleports.

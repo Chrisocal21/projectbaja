@@ -3,6 +3,7 @@
 Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
 
 ## How we work now
+- **The game is simulation-forward (Chris, Nov 22).** No click-and-choose for anything the player does to a vehicle: tires off rims, grinding rust, painting, buffing, hosing dirt off, fitting parts, servicing are all hands-on jobs with tools. Admin and the build-mode swatches are dev tools and are hidden at launch.
 - **One branch: `main`.** Commit and push small, often. Only commit in this repo (`projectbaja`); never in `salvageroad` (it is a read-only reference, merge finished, see [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md)).
 - **Two builders at once: Claude Code and ChatGPT.** Before editing, run `git status`: files that show as modified and are not yours belong to the other builder, so leave them alone. Whenever something is for ChatGPT, add it to [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md) (standing rule).
 - Chris plays and judges how it feels. All physics, wear and world numbers are estimates (labelled in code and docs) to tune by feel.
@@ -24,7 +25,7 @@ All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAI
 1. Test the new handling, suspension and table tops by feel; tune.
 2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. **Assigned to ChatGPT** (it owns `highways.js`; spec is item 0 in [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md)).
 3. Performance on Chris's machine (about 30 FPS): thin trees and roadside strips if needed.
-4. Paint: the unpainted fiberglass has `unpainted: true`, ready for a paint picker.
+4. **Paint, rust and clean-up as hands-on jobs** (spec: [SYSTEMS_BLUEPRINT](./SYSTEMS_BLUEPRINT.md) section 6). Rules are built and tested (`src/rules/finish.js`: per-panel rust, paint coverage, gloss, dirt; grind, paint, buff, hose, weather, chip). Next: the tools in hand (grinder, spray can, buffer, hose) using hold-click on a panel, per-panel state saved on the vehicle, and the look (rust and dirt masks). Tires off rims comes after. The build-mode paint swatch is only a dev stand-in.
 5. Older plan (Nov 8, still unverified item by item): see [GAMEPLAN](./GAMEPLAN.md) and [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) (history). Cloud saves (Clerk + Vercel) stay last.
 
 ## Open questions for Chris (still open as far as we know)

@@ -278,6 +278,8 @@ Two options per part, which a game can mix:
 
 ## 6. Paint restoration
 
+> **Status (Nov 22):** the rules are built as pure functions in `src/rules/finish.js` (+ tests): grind, paint, buff, hose, weather, chip, `look()`. Fiberglass uses the same chain (sand, paint, buff) and never rusts. Not built yet: tools in hand, per-panel save, shader masks. The game is simulation-forward, so there is never a colour picker for the player: the colour comes from the paint can they hold.
+
 A cosmetic chain for vehicles that are mechanically sound. Each body panel (hood, doors, bumpers, tailgate, roof, wall panels) has its own paint state.
 
 ### 6.1 States
