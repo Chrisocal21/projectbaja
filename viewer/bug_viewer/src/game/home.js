@@ -270,6 +270,12 @@ export function startMove(x, z) {
 }
 /** Stage 4a: stored props live in game.home.stored (saved with home; absent in old saves) */
 export const storedProps = () => storedOf(game.home);
+/** Admin (testing): put a prop down for free, 2 m in front of you. Returns true if it landed inside the garage. */
+export function adminAddProp(id, dist = 2) {
+  const x = game.pos.x + game.face.x * dist, z = game.pos.z + game.face.z * dist;
+  game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry: 0, free: true }];
+  game.propsV = (game.propsV || 0) + 1; save(); return hasInGarage(id);
+}
 /** the bench / pegboard is going away: what lay on it falls to the floor (items.js world items; hung tools become loose tools) */
 function dropFixtureItems(p) {
   const moves = p.id === 'workbench' ? benchDrops(game.items, p) : p.id === 'pegboard' ? pegDrops(game.items, p) : [];
