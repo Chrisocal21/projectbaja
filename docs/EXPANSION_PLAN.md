@@ -71,4 +71,4 @@ Diagram: viewer/bug_viewer/screenshots/office_plan_0_3.png. The office grows int
 - L1 customer office: wing with a customer door at the front, waiting seats, service counter in the widened (3 m) wall doorway, back room with a desk and files.
 - L2 parts counter: the back room becomes a parts room with shelves; parts counter plus supplier desk (faster orders).
 - L3 two-storey block: stair up in the wing; upstairs team room, race planning wall; a balcony through the old office's east wall over Walt's shop floor (3.1 m up).
-- Open: the apartment (living L3) shares the upstairs with the team room, or goes elsewhere. Chris to say.
+- Decided (Chris): the apartment (living L3) does NOT share the upstairs; it goes somewhere else (place to be chosen when living is built). The office plan is otherwise approved.
