@@ -137,7 +137,7 @@ function App() {
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
     game.live = true; game.resume = null; flushSaveNotices();
-    Object.assign(game, { dev: false, onFoot: rs ? rs.onFoot : true, open: new Set(), start: 'garage', walkStart: rs?.onFoot ? { ...rs.walkPose } : cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, buildMode: null });   // fueled is kept from the save
+    Object.assign(game, { dev: false, onFoot: true, open: new Set(), start: 'garage', walkStart: rs?.onFoot ? { ...rs.walkPose } : cont ? besideCar : WALK_START, walkPose: null, pose: saved ? { ...saved } : null, keepPose: !!saved, prompt: '', target: null, buildMode: null });   // fueled is kept from the save
     setPlay({ kind: 'drive', world: 'county' }); setMode('play'); setPanel(null); try { document.documentElement.requestFullscreen?.().catch?.(() => {}); } catch {}
   };
   // the 3D scene is rebuilt when the car changes; keep the mouse captured through it
