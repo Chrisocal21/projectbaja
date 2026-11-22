@@ -30,7 +30,7 @@ import Walker from './game/Walker.jsx';
 import RaceMarkers from './worlds/RaceMarkers.jsx';
 import Items, { Cargo } from './game/Items.jsx';
 import DeliveryTruck from './game/DeliveryTruck.jsx';
-import { lightsUsable } from './game/lights.js';
+import { lightsLit } from './game/lights.js';
 import VehicleCargo from './placement/VehicleCargo.jsx';   // vehicle cargo placement (Stage 3)
 import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
@@ -165,14 +165,20 @@ function Gates({ race }) {
 /** two headlight beams on the front of the vehicle (L). Real lights only while on, so the shader only pays for them then. */
 function Headlights({ dims }) {
   useGame();
-  const on = !!game.lights && lightsUsable().ok;
+  const { head, bar } = lightsLit();
   const fl = dims.mounts?.find(m => m.name === 'FL'), fz = fl ? fl.center[2] : 1.5, dir = fz >= 0 ? 1 : -1, z = fz + dir * 0.9, spread = (dims.track || 1.6) * 0.32;
-  const targets = useMemo(() => [new THREE.Object3D(), new THREE.Object3D()], []);
-  if (!on) return null;
-  return <>{[-1, 1].map((side, i) => <React.Fragment key={side}>
-    <spotLight position={[side * spread, 0.75, z]} target={targets[i]} color="#fff1d0" intensity={300} distance={90} decay={1.4} angle={0.5} penumbra={0.55} />
-    <primitive object={targets[i]} position={[side * spread * 0.6, -0.5, z + dir * 22]} />
-  </React.Fragment>)}</>;
+  const targets = useMemo(() => [0, 1, 2, 3, 4].map(() => new THREE.Object3D()), []);
+  if (!head && !bar) return null;
+  return <>
+    {head && [-1, 1].map((side, i) => <React.Fragment key={side}>
+      <spotLight position={[side * spread, 0.75, z]} target={targets[i]} color="#fff1d0" intensity={300} distance={90} decay={1.4} angle={0.5} penumbra={0.55} />
+      <primitive object={targets[i]} position={[side * spread * 0.6, -0.5, z + dir * 22]} />
+    </React.Fragment>)}
+    {bar && [-1, 0, 1].map((k, i) => <React.Fragment key={'bar' + k}>   {/* the roof light bar: three cool-white beams, higher and longer than the headlights */}
+      <spotLight position={[k * spread * 0.7, 1.5, dir * 0.4]} target={targets[2 + i]} color="#eaf3ff" intensity={420} distance={150} decay={1.3} angle={0.42} penumbra={0.5} />
+      <primitive object={targets[2 + i]} position={[k * spread * 1.6, -1, dir * 45]} />
+    </React.Fragment>)}
+  </>;
 }
 
 function Vehicle({ children, hud, dims, race, sun }) {

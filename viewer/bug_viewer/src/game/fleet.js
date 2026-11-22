@@ -63,7 +63,7 @@ export function switchTo(id, enter = false) {
   const now = game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : null;
   const next = game.fleet[id].pose;
   game.fleet = { ...game.fleet, [game.active]: { ...game.fleet[game.active], pose: now }, [id]: { ...game.fleet[id], pose: null } };
-  game.active = id; game.lights = false;   // lights belong to the vehicle you were in
+  game.active = id; game.lights = 'off';   // lights belong to the vehicle you were in
   game.pose = next; game.spawnAt = next; game.keepPose = true;
   if (game.onFoot && game.walkPose) game.walkStart = { ...game.walkPose };
   game.open = new Set();
