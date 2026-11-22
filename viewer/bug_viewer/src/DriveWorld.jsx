@@ -1,6 +1,6 @@
 import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { activeBuild } from './game/lights.js';
-import { wearMods, FRESH, onLanding, onBottomOut, drive, effects, clues } from './wear.js';
+import { wearMods, FRESH, onLanding, onBottomOut, onHit, drive, effects, clues } from './wear.js';
 import { bugAsleep } from './game/home.js';
 import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -297,14 +297,15 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, brake: wetK }, dt);
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);
     // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
     { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = suspensionSpec(dims).compression;
       st.cool = Math.max(0, (st.cool || 0) - dt);
-      if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onLanding(wr, imp, wmods); thump(imp); st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
+      if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onHit(onLanding(wr, imp, wmods), { imp, corner: (rb.wheels || []).reduce((a, w) => (!a || w.travel > a.travel ? w : a), null)?.name, rock: sf0.key === 'rock', pinch: psiFx.pinch }); thump(imp);   // a hard hit can blow the damper or puncture the tire at that corner
+         st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
       const bottom = rb.travel.some(t => t > full * 0.96);
       if (bottom && !st.cool && !game.onFoot) { WEAR[game.active] = onBottomOut(WEAR[game.active] || wr, wmods); clunk(); st.cool = 0.5; st.bottomT = 1.0; shake.current = Math.max(shake.current, 0.35); game.home = { ...game.home, stress: { ...(game.home.stress || {}), bottomOuts: ((game.home.stress || {}).bottomOuts || 0) + 1 } }; }
       st.impactT = Math.max(0, (st.impactT || 0) - dt); st.bottomT = Math.max(0, (st.bottomT || 0) - dt);

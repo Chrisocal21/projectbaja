@@ -30,3 +30,21 @@ test('hardpack launches hard and controlled (research test 3): faster off the li
   const h = timeTo('hardpack'), c = timeTo('clay'), g = timeTo('gravel'), p = timeTo('pavement');
   assert.ok(h < c && h < g, JSON.stringify({ h, c, g })); assert.ok(h - p < 0.6, JSON.stringify({ h, p }));
 });
+import { createBody, stepBody, readBody } from './rigid.js';
+import { envFor, TEST_DIMS } from './driveMeasure.js';
+import { onHit, effects, FRESH, serviced } from './wear.js';
+const run6 = (e, seconds = 6) => { const b = createBody(TEST_DIMS, { y: 0.3 }); for (let i = 0; i < seconds * 120; i++) stepBody(b, TEST_DIMS, { throttle: 1, brake: false, steer: 0 }, e, 1 / 120); return { x: b.c.x, z: b.c.z, ...readBody(b, {}) }; };
+test('B4: a punctured front tire drags the car to its side and costs speed; fixing it brings the straight line back', () => {
+  const base = envFor('dirt'), w = onHit(FRESH(), { imp: 8, corner: 'FR', rock: true }, () => 0);
+  const fx = effects(w), bad = { ...base, gripC: fx.gripC, rrC: fx.rrC }, fixed = effects(serviced(w, 'tires')), good = { ...base, gripC: fixed.gripC, rrC: fixed.rrC };
+  const a = run6(base), b = run6(bad), c = run6(good);
+  console.log(`straight: x ${a.x.toFixed(2)} speed ${a.v.toFixed(1)} | flat FR: x ${b.x.toFixed(2)} speed ${b.v.toFixed(1)} | fixed: x ${c.x.toFixed(2)} speed ${c.v.toFixed(1)}`);
+  assert.ok(Math.abs(b.x) > Math.abs(a.x) + 0.3, 'the flat should pull the car sideways'); assert.ok(b.v < a.v, 'and slow it');
+  assert.equal(c.x, a.x); assert.equal(c.v, a.v);   // repair undoes it exactly
+});
+test('B4: a blown rear damper at one corner changes how that corner rebounds after a drop', () => {
+  const peak = e => { const b = createBody(TEST_DIMS, { y: 0.45 }); let up = 0; for (let i = 0; i < 4 * 120; i++) { stepBody(b, TEST_DIMS, { throttle: 0, brake: false, steer: 0 }, e, 1 / 120); if (i > 60) up = Math.max(up, Math.abs(b.travel[2] - (b.travel[3] ?? 0))); } return up; };
+  const base = envFor('dirt'), w = onHit(FRESH(), { imp: 14, corner: 'RL' }, () => 0), bad = { ...base, dampC: effects(w).dampC };
+  const a = peak(base), b = peak(bad); console.log(`left/right rear travel difference after a drop: sound ${a.toFixed(3)} | blown RL ${b.toFixed(3)}`);
+  assert.ok(b > a + 0.002, `${b} vs ${a}`);
+});

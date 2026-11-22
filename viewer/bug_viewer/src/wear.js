@@ -27,7 +27,20 @@ export function wearMods(build) {
   if (build) modCache.set(build, m);
   return m;
 }
-export const FRESH = () => ({ shocks: 0, tires: 0, align: 0, engine: 0, side: 1 });
+export const CORNERS = ['FL', 'FR', 'RL', 'RR'];
+export const CORNER_NAME = { FL: 'front-left', FR: 'front-right', RL: 'rear-left', RR: 'rear-right' };
+/** shockC: wear 0..1 of the damper at each corner (a blown one); flat: the corners with a punctured tire */
+export const FRESH = () => ({ shocks: 0, tires: 0, align: 0, engine: 0, side: 1, shockC: { FL: 0, FR: 0, RL: 0, RR: 0 }, flat: {} });
+export const flatCorners = w => CORNERS.filter(c => w.flat?.[c]);
+export const worstShock = w => Math.max(0, ...CORNERS.map(c => w.shockC?.[c] ?? 0));
+/** a hard landing (imp m/s down) may blow the damper at the corner that took it (`corner`), and a hit on rock or a pinch at low pressure may puncture that tire. rng() -> [0,1). Returns a new wear. */
+export function onHit(w, { imp = 0, corner, rock = false, pinch = false }, rng = Math.random) {
+  if (!CORNERS.includes(corner)) return w;
+  const o = { ...w, shockC: { ...(w.shockC || {}) }, flat: { ...(w.flat || {}) } };
+  if (imp > 9 && rng() < Math.min(0.6, (imp - 9) * 0.12 + 0.15)) o.shockC[corner] = Math.min(1, (o.shockC[corner] ?? 0) + 0.5);
+  if (!o.flat[corner] && ((pinch && imp > 3) || (rock && imp > 6 && rng() < 0.4) || (imp > 12 && rng() < 0.25))) o.flat[corner] = true;
+  return o;
+}
 export const WEAR_PARTS = ['shocks', 'tires', 'align', 'engine'];
 
 /** a landing at `imp` m/s downward speed */
@@ -42,13 +55,17 @@ export function drive(w, dt, { speed = 0, rough = 0, hot = false, wading = 0 } =
 }
 /** what the numbers do to the car: multipliers for env (damp, grip, power) and a steering pull (rad) */
 export function effects(w) {
-  return { damp: 1 - 0.4 * w.shocks, grip: 1 - 0.18 * w.tires, power: 1 - 0.25 * w.engine, pull: (w.side || 1) * 0.02 * w.align };
+  const dampC = {}, gripC = {}, rrC = {};
+  for (const c of CORNERS) { const s = w.shockC?.[c] ?? 0; if (s > 0) dampC[c] = 1 - 0.7 * s; if (w.flat?.[c]) { gripC[c] = 0.55; rrC[c] = 4; } }   // per corner: a blown damper rebounds loose, a flat grips less and drags
+  return { damp: 1 - 0.4 * w.shocks, grip: 1 - 0.18 * w.tires, power: 1 - 0.25 * w.engine, pull: (w.side || 1) * 0.02 * w.align, dampC, gripC, rrC };
 }
 const pct = v => Math.round(v * 100);
 /** the clues, worst first: what the driver would notice (never a number you must read; the Admin / garage can show the numbers) */
 export function clues(w, psi = 30) {
   const out = [];
   if (w.shocks > 0.25) out.push([w.shocks, (w.shocks > 0.6 ? 'The suspension is blown: the ride is floaty and bouncy.' : 'The shocks feel soft after those landings.') + (psi >= 28 ? ' (Or is the tire pressure just too high for dirt? Look it over: hold T with empty hands.)' : '')]);
+  for (const c of flatCorners(w)) out.push([1, `The ${CORNER_NAME[c]} tire is flat: the car drags and pulls to that side.`]);
+  for (const c of CORNERS) if ((w.shockC?.[c] ?? 0) >= 0.4) out.push([0.9, `The ${CORNER_NAME[c]} damper is blown: that corner bounces and will not settle.`]);
   if (w.align > 0.2) out.push([w.align, 'The car pulls to one side: something got knocked out of line.']);
   if (w.tires > 0.3) out.push([w.tires, 'The tires are getting slick and worn.']);
   if (w.engine > 0.2) out.push([w.engine, w.engine > 0.6 ? 'The engine is tired and short of power: it has been run hot.' : 'The engine feels a little flat after running hot.']);
@@ -58,6 +75,8 @@ export function clues(w, psi = 30) {
 export function inspect(w, psi = 30) {
   const out = [];
   if (w.shocks > 0.05) out.push(w.shocks > 0.6 ? 'Shocks: leaking and tired, the rebound is gone. Replace or service.' : 'Shocks: a little soft. Service them.');
+  for (const c of flatCorners(w)) out.push(`Tires: the ${CORNER_NAME[c]} tire has a hole. Patch it or replace it.`);
+  for (const c of CORNERS) if ((w.shockC?.[c] ?? 0) >= 0.2) out.push(`Shocks: the ${CORNER_NAME[c]} damper is blown (no rebound control at that corner). Replace or service it.`);
   if (w.align > 0.05) out.push(w.align > 0.4 ? 'Alignment: toe is well out, one side drags.' : 'Alignment: slightly out.');
   if (w.tires > 0.1) out.push(w.tires > 0.6 ? 'Tires: worn smooth.' : 'Tires: wearing, tread getting thin.');
   if (w.engine > 0.05) out.push(w.engine > 0.5 ? 'Engine: heat-stressed, low compression feel. Tune it up.' : 'Engine: a little tired from running hot.');
@@ -68,14 +87,15 @@ export function inspect(w, psi = 30) {
 export const summary = w => WEAR_PARTS.map(p => p + ' ' + pct(w[p]) + '%').join(' · ');
 /** the price of servicing one part (cheap on purpose; nothing to pay when it is fresh) */
 export const PART_NAME = { shocks: 'Shocks', tires: 'Tires', align: 'Alignment', engine: 'Engine tune-up' };
-export const partCost = (w, p) => (w[p] < 0.02 ? 0 : Math.round(8 + 60 * w[p]));
+const eff = (w, p) => (p === 'shocks' ? Math.max(w.shocks, worstShock(w)) : p === 'tires' && flatCorners(w).length ? Math.max(w.tires, 0.4) : w[p]);   // a blown damper or a flat counts as that part being worn
+export const partCost = (w, p) => (eff(w, p) < 0.02 ? 0 : Math.round(8 + 60 * eff(w, p)));
 export const serviceCost = w => WEAR_PARTS.reduce((s, p) => s + partCost(w, p), 0);
-export const serviced = (w, p) => ({ ...w, [p]: 0 });
+export const serviced = (w, p) => ({ ...w, [p]: 0, ...(p === 'shocks' ? { shockC: { FL: 0, FR: 0, RL: 0, RR: 0 } } : p === 'tires' ? { flat: {} } : {}) });   // service puts it all back
 
 /** hand service: the wrench does shocks, alignment and engine tune-ups; the jack does the tires. Returns the worst worn part that tool can fix, or null */
 export const TOOL_JOBS = { wrench: ['shocks', 'align', 'engine'], jack: ['tires'] };
 export const SERVICE_VERB = { shocks: 'Re-seat and re-torque the shocks', align: 'Set the alignment', engine: 'Tune the engine', tires: 'Rotate and re-seat the tires' };
-export const serviceJob = (w, toolId) => { const c = (TOOL_JOBS[toolId] || []).filter(p => partCost(w, p) > 0).sort((a, b) => w[b] - w[a]); return c[0] || null; };
+export const serviceJob = (w, toolId) => { const c = (TOOL_JOBS[toolId] || []).filter(p => partCost(w, p) > 0).sort((a, b) => eff(w, b) - eff(w, a)); return c[0] || null; };
 
 const WEAR_WORD = { shocks: 'shock', tires: 'tire', align: 'alignment', engine: 'engine' };
 /** a short line for the part lists: what a part does to wear ('' when nothing), kind = 'part' | 'wheel' */

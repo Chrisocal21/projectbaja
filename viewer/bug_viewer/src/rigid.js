@@ -76,7 +76,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   for (const o of info) {
     o.preload = M * G * (o.m.name.startsWith('F') ? 0.21 : 0.29);
     const xdot = clamp((o.x - b.xs[o.i]) / dt, -9, 9), frac = Math.max(0, o.x) / cfg.compression;
-    let N = o.preload + cfg.stiffness * o.x * (1 + 6 * frac ** 3) + (xdot > 0 ? cfg.damping * dmp * (0.3 + 2.2 * frac * frac) * xdot : cfg.damping * dmp * 3.2 * xdot);
+    let N = o.preload + cfg.stiffness * o.x * (1 + 6 * frac ** 3) + (xdot > 0 ? cfg.damping * dmp * (env.dampC?.[o.m.name] ?? 1) * (0.3 + 2.2 * frac * frac) * xdot : cfg.damping * dmp * (env.dampC?.[o.m.name] ?? 1) * 3.2 * xdot);   // env.dampC: a worn damper at one corner (wear.js)
     if (o.needed > cfg.compression) N += 160000 * (o.needed - cfg.compression);   // bottomed out: the stop is nearly solid
     o.N = N; b.xs[o.i] = o.x;
   }
@@ -102,7 +102,7 @@ export function stepBody(b, dims, ctl, env, dt) {
       const vc = V().copy(w).cross(tmpB.copy(cp).sub(c)).add(vel);
       const wf = V(0, 0, 1).applyQuaternion(o.wq); wf.addScaledVector(n, -wf.dot(n)).normalize();
       const wl = V().crossVectors(n, wf);
-      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : rcNow);
+      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * (env.gripC?.[m.name] ?? 1) * N * (front ? 1 : rcNow);   // env.gripC: a flat tire grips less
       const sa = vs / Math.max(Math.abs(vl), 0.8);   // tan of the slip angle (floored so it behaves at a standstill)
       let Fy = -cap * Math.tanh(sa / (front ? HP.fs : rsNow));
       Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
@@ -114,7 +114,7 @@ export function stepBody(b, dims, ctl, env, dt) {
       const sgn = clamp(vl / 0.5, -1, 1);
       if (braking) Fx -= sgn * M * 22 * (env.brake ?? 1) * (front ? 0.65 : 0.35) / 2;   // env.brake: wet brakes (fade for a few seconds after a water crossing)
       if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 * (env.brake ?? 1) / 2 : cap * 2 * (env.brake ?? 1));
-      Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * env.rr + (throttle === 0 && !front ? 0.02 : 0)) * N;
+      Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * env.rr * (env.rrC?.[m.name] ?? 1) + (throttle === 0 && !front ? 0.02 : 0)) * N;   // env.rrC: a flat tire drags
       const avail = Math.sqrt(Math.max(0, cap * cap - Fy * Fy));
       Fx = clamp(Fx, -avail, avail);
       push(V().addScaledVector(n, N).addScaledVector(wf, Fx).addScaledVector(wl, Fy), cp);

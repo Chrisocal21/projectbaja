@@ -28,3 +28,27 @@ test('fitted parts slow the wear', () => {
 });
 
 test('wearNote describes what a part does', () => { assert.match(wearNote('part', 'SHOCK_001_Coilover'), /slows shock wear 45%/); assert.match(wearNote('part', 'EXH_Megaphone'), /speeds up engine wear 10%/); assert.equal(wearNote('part', 'nothing'), ''); assert.match(wearNote('wheel', 'tire-tread'), /tire wear 30%/); });
+import { onHit, effects as fx, FRESH as FR, clues as cl, inspect as insp, partCost as pc, serviced as sv, serviceJob as sj, flatCorners as fc } from './wear.js';
+test('a hard landing can blow one damper, and only that corner rebounds loose', () => {
+  const w = onHit(FR(), { imp: 14, corner: 'RL' }, () => 0);
+  assert.ok(w.shockC.RL >= 0.5 && w.shockC.RR === 0);
+  const e = fx(w); assert.ok(e.dampC.RL < 0.7 && e.dampC.RR === undefined);
+  assert.match(insp(w).join(' '), /rear-left damper/);
+});
+test('a rock strike or a low-pressure pinch can puncture a tire: that corner grips less and drags', () => {
+  const w = onHit(FR(), { imp: 8, corner: 'FR', rock: true }, () => 0);
+  assert.deepEqual(fc(w), ['FR']); const e = fx(w); assert.ok(e.gripC.FR < 1 && e.rrC.FR > 1);
+  assert.deepEqual(fc(onHit(FR(), { imp: 4, corner: 'FL', pinch: true }, () => 0.99)), ['FL']);
+  assert.deepEqual(fc(onHit(FR(), { imp: 8, corner: 'FR', rock: true }, () => 0.99)), []);   // unlucky roll: it holds
+  assert.match(cl(w).join(' '), /front-right tire is flat/);
+});
+test('the service wrench and jack put the failures back, and cost something while one is wrong', () => {
+  const w = onHit(onHit(FR(), { imp: 14, corner: 'RR' }, () => 0), { imp: 13, corner: 'FL' }, () => 0);
+  assert.ok(pc(w, 'shocks') > 0 && pc(w, 'tires') > 0); assert.equal(sj(w, 'jack'), 'tires'); assert.equal(sj(w, 'wrench'), 'shocks');
+  const s = sv(sv(w, 'shocks'), 'tires'); assert.equal(pc(s, 'shocks'), 0); assert.equal(pc(s, 'tires'), 0); assert.deepEqual(fc(s), []);
+  assert.deepEqual(fx(s).dampC, {});
+});
+test('an old save with no per-corner numbers still works', () => {
+  const old = { shocks: 0.3, tires: 0.1, align: 0, engine: 0, side: 1 };
+  assert.ok(fx(old).damp < 1); assert.deepEqual(fc(old), []); assert.ok(pc(old, 'shocks') > 0);
+});
