@@ -27,7 +27,7 @@ import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice, inWing, wingLevel } from 
 import { hasStage } from './upgrades.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
-import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule
+import { aimsAt, aimsAtBox, lookDir, wallBlocks } from './aim.js';   // one rule
 import { pad } from './gamepad.js';
 import { FEEL } from './restPose.js';
 import { carFitReady } from './carSnap.js';
@@ -61,7 +61,7 @@ export const promptText = id => {
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
-  if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Click — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
+  if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Press V — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
   if (id === 'tirem') { const p = planAtMachine(); return p ? (p.ok ? `Hold left click — ${p.verb}` : p.why) : ''; }
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
   if (id.startsWith('junk:')) { const j = junkWorld.find(x => x.id === id.slice(5)); return j ? `Press E — Clear out ${j.label}` : ''; }
@@ -126,6 +126,7 @@ const SHOP = SITES.shop, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
 let promptErr = false;
+let wallCache = { src: null, list: [] };
 export default function Walker({ world, sun }) {
   const { camera, gl } = useThree();
   const st = useRef({ x: 0, z: 0, y: 0, yaw: 0, pitch: 0, vx: 0, vz: 0, t: 0, keys: {}, on: false });
@@ -194,8 +195,10 @@ export default function Walker({ world, sun }) {
     let best = null, bd = 1e9;
     const eye = { x: camera.position.x, y: camera.position.y, z: camera.position.z }, look = lookDir(s.yaw, s.pitch);
     // shape = { r, h, dy } vertical post (radius, height, offset above the floor you stand on) or { box:{hx,hz,h,yaw} }. On foot the view ray must pass through it.
+    if (wallCache.src !== world.obstacles) wallCache = { src: world.obstacles, list: world.obstacles.filter(c => c[3] === 99) };   // solid walls only: nothing can be reached through them
     const consider = (id, x, z, r, face, bonus = 1, shape = AIM_DEFAULT) => {
-      const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;   // (cheap distance first: the terrain height below is costly and most targets are far away)
+      const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;
+      if (foot && wallBlocks(eye, x, z, wallCache.list)) return;   // (cheap distance first: the terrain height below is costly and most targets are far away)
       if (foot && world.id === 'county' && s.y > world.height(x, z) + 1.4) return;
       if (foot && !(shape.box ? aimsAtBox(eye, look, { x, z, y: s.y, ...shape.box }, r) : aimsAt(eye, look, { x, z, y: s.y + (shape.dy || 0), h: shape.h, r: shape.r }, r))) return;
       if (d * bonus < bd) { bd = d * bonus; best = id; }
@@ -243,7 +246,7 @@ export default function Walker({ world, sun }) {
     game.onProperty = foot && onProperty(px, pz); game.canBuild = game.onProperty && garageClean();
     if (foot && !best && !game.buildMode && game.canBuild) {   // Stage 4f: furniture is picked up by clicking it, no build menu needed
       const fp = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), px, pz, game.face, 5, { origin: eye, dir: look });
-      if (fp) best = 'furn:' + fp.uid;
+      if (fp) { const q = game.props.find(o => o.uid === fp.uid); if (!q || !wallBlocks(eye, q.x, q.z, wallCache.list)) best = 'furn:' + fp.uid; }
     }
     game.target = best; setPrompt(game.buildMode ? '' : promptText(best));
     } catch (err) { if (!promptErr) { promptErr = true; console.error('[walker] prompt failed (game keeps running):', err); } game.target = null; setPrompt(''); }

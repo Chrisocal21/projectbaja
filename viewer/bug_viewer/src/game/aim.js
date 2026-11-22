@@ -31,3 +31,16 @@ export function aimsAtBox(origin, dir, b, reach = 7) {
   }
   return t0 <= reach + Math.max(b.hx, b.hz);
 }
+
+/** Is a solid wall between the eye and a target at (tx, tz)? walls = obstacle circles [x, z, r, top] with top 99. Samples along the flat line from the eye;
+ *  the last `skip` metres before the target are ignored so a thing standing against a wall on your side can still be reached. */
+export function wallBlocks(origin, tx, tz, walls, skip = 0.15) {
+  const dx = tx - origin.x, dz = tz - origin.z, len = Math.hypot(dx, dz); if (len < 0.3) return false;
+  const steps = Math.ceil(len / 0.2);
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps, d = len * t; if (len - d < skip) break;
+    const x = origin.x + dx * t, z = origin.z + dz * t;
+    for (const w of walls) if (Math.abs(x - w[0]) <= w[2] + 0.05 && Math.abs(z - w[1]) <= w[2] + 0.05 && Math.hypot(x - w[0], z - w[1]) <= w[2] + 0.05) return true;
+  }
+  return false;
+}

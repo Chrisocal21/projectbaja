@@ -36,3 +36,14 @@ test('box yaw: a car turned 90 degrees is long across the view', () => {
   const car = { x: -3, z: 0, y: 0, hx: 0.9, hz: 1.7, h: 1.4, yaw: Math.PI / 2 };
   assert.equal(aimsAtBox({ x: 0, y: 1.0, z: 0.5 }, lookDir(Math.PI / 2, 0), car, 6), true);
 });
+
+import { wallBlocks } from './aim.js';
+test('a wall between you and a thing blocks it; a gap does not', () => {
+  const walls = [[5, -1, 0.15, 99], [5, -0.5, 0.15, 99], [5, 0, 0.15, 99], [5, 0.5, 0.15, 99], [5, 1, 0.15, 99]];
+  assert.equal(wallBlocks({ x: 0, y: 1.7, z: 0 }, 8, 0, walls), true);
+  assert.equal(wallBlocks({ x: 0, y: 1.7, z: 0 }, 4, 0, walls), false);
+  assert.equal(wallBlocks({ x: 0, y: 1.7, z: 3 }, 8, 3, walls), false);
+});
+test('something right against the wall on your side is still reachable', () => {
+  assert.equal(wallBlocks({ x: 0, y: 1.7, z: 0 }, 4.9, 0, [[5, 0, 0.15, 99]]), false);
+});

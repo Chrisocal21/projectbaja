@@ -18,3 +18,13 @@ export function clockDelta(before, after) {
 }
 
 export const etaText = left => (left <= 0.05 ? 'any moment' : left < 1 ? `${Math.max(1, Math.round(left * 60))} min` : `${Math.round(left * 10) / 10} h`);
+
+/** the same thing arriving together is one line: [{ name, n, left }] (left = the soonest of the group). order of first appearance. */
+export function groupOrders(list, nameOf, etaOf) {
+  const out = [], at = {};
+  for (const o of list) {
+    const name = nameOf(o), key = name + '|' + etaOf(o.left);
+    if (at[key] === undefined) { at[key] = out.length; out.push({ name, n: 1, left: o.left }); } else { out[at[key]].n++; out[at[key]].left = Math.min(out[at[key]].left, o.left); }
+  }
+  return out;
+}

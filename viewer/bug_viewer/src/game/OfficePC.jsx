@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { game, useGame, say, catalogFor, priceOf, nameOf } from './store.js';
 import { placeOrder, ordersOnTheWay, orderName } from './orders.js';
 import { VEHICLE_TYPES, FOR_SALE } from './fleet.js';
-import { etaText } from './orderlogic.js';
+import { etaText, groupOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
 import { DEF } from './workshop.js';
 import { missing, missingToDrive, listNames } from '../rules/restore.js';
@@ -50,7 +50,7 @@ function PartsTab() {
       <div><b>Cart</b>
         {cart.length ? cart.map((c, i) => <div key={i} style={row}><span>{nameOf(c.kind, c.id, body)}<small> · ${priceOf(c.kind, c.id)}</small></span><button onClick={() => setCart(x => x.filter((_, j) => j !== i))}>Remove</button></div>) : <p><small>Empty. Add parts from the list.</small></p>}
         {cart.length > 0 && <div style={{ ...row, borderBottom: 'none' }}><b>Total ${total}</b><button className="big" disabled={game.cash < total} onClick={send}>{game.cash < total ? 'Not enough cash' : `Order all (${cart.length})`}</button></div>}
-        {waiting.length > 0 && <div><small>ON THE WAY</small>{waiting.map((o, i) => <div key={i}>{orderName(o, body)}<small> · {etaText(o.left)}</small></div>)}</div>}
+        {waiting.length > 0 && <div><small>ON THE WAY</small>{groupOrders(waiting, o => orderName(o, body), etaText).map((g, i) => <div key={i}>{g.name}{g.n > 1 ? ` ×${g.n}` : ''}<small> · {etaText(g.left)}</small></div>)}</div>}
       </div></div>
   </div>;
 }

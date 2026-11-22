@@ -237,5 +237,26 @@
    },
    "note": "Highway-ish tread: grippy on firm ground only"
   }
+ },
+ {
+  "type": "wheels",
+  "id": "tire-street16",
+  "label": "Street - 16 inch",
+  "kind": "tire",
+  "file": "TIRE_RuggedTread",
+  "baseRadius": 0.475,
+  "halfWidth": 0.154,
+  "rimSize": 16,
+  "grip": {
+   "mu": 0.92,
+   "rr": 0.85,
+   "surf": {
+    "dirt": 0.8,
+    "sand": 0.6,
+    "rock": 0.9,
+    "mud": 0.5
+   },
+   "note": "Road tire for the 16 inch rims: fine on hard ground, poor in sand and mud. PROPOSAL (reuses the Rugged Tread model until a 16 inch tire is modelled)"
+  }
  }
 ]

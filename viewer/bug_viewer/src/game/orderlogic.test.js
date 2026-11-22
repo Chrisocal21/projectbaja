@@ -20,3 +20,9 @@ test('clock delta: forward, across midnight, and ignores big jumps', () => {
   assert.equal(clockDelta(9, 9.25), 0.25); assert.equal(clockDelta(23.5, 0.5), 1); assert.equal(clockDelta(9, 6), 0);
 });
 test('eta text', () => { assert.equal(etaText(0), 'any moment'); assert.equal(etaText(0.5), '30 min'); assert.equal(etaText(2.25), '2.3 h'); });
+
+import { groupOrders } from './orderlogic.js';
+test('identical orders arriving together become one line with a count', () => {
+  const l = [{ left: 3 }, { left: 3 }, { left: 3 }, { left: 1 }, { left: 3 }], g = groupOrders(l, o => (o.left === 1 ? 'Fan belt' : 'Oil'), x => String(x));
+  assert.deepEqual(g, [{ name: 'Oil', n: 4, left: 3 }, { name: 'Fan belt', n: 1, left: 1 }]);
+});

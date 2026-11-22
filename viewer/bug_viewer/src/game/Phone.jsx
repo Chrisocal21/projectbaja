@@ -10,7 +10,7 @@ import { cajonProject } from './cajonGift.js';
 import { SUPPLY_TABS, suppliesIn } from './garageSupplies.js';
 import { placeOrder, ordersOnTheWay, orderName, orderCar, carOnOrder } from './orders.js';
 import { VEHICLE_TYPES, FOR_SALE, owned as ownsCar } from './fleet.js';
-import { etaText } from './orderlogic.js';
+import { etaText, groupOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
 import { LETTER } from './home.js';
 import { jobById, jobCheck, SUPPLIES } from './jobs.js';
@@ -116,14 +116,14 @@ function InternetApp({ onBack }) {
     <div style={{ display: 'flex', gap: 6 }}>{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : []), ...SUPPLY_TABS, ['gear', 'Gear']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     {tab === 'gear' ? <div style={{ width: '100%', textAlign: 'left' }}>{game.home?.printer ? <p>Photo printer: owned.</p> : <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Photo printer<small> · ${PRINTER_PRICE} · prints your posted photos</small></span><button disabled={game.dev || game.cash < PRINTER_PRICE} onClick={buyPrinter}>Buy</button></div>}</div> : <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{rows.map(r => <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{r.label}<small> · ${r.price}{r.note ? ` · ${r.note}` : ''}</small></span><button disabled={game.cash < r.price} onClick={() => placeOrder(r.kind, r.id)}>Order</button></div>)}</div>}
-    {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY</small>{waiting.map((o, i) => <div key={i}>{orderName(o, body)}<small> · {etaText(o.left)}</small></div>)}</div>}
+    {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left', maxHeight: 130, overflow: 'auto' }}><small>ON THE WAY</small>{groupOrders(waiting, o => orderName(o, body), etaText).map((g, i) => <div key={i}>{g.name}{g.n > 1 ? ` ×${g.n}` : ''}<small> · {etaText(g.left)}</small></div>)}</div>}
     <button onClick={onBack}>Back</button></div>;
 }
 
 function OrdersApp({ onBack }) {
   const body = game.build?.body || 'classic', waiting = ordersOnTheWay();
   return <div className="phone-soon"><h3>Orders</h3>
-    {waiting.length ? <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY (arrives at the shop pickup area; see the Map)</small>{waiting.map((o, i) => <div key={i} style={{ padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>{orderName(o, body)}<small> · {etaText(o.left)}</small></div>)}</div>
+    {waiting.length ? <div style={{ width: '100%', textAlign: 'left' }}><small>ON THE WAY (arrives at the shop pickup area; see the Map)</small>{groupOrders(waiting, o => orderName(o, body), etaText).map((g, i) => <div key={i} style={{ padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>{g.name}{g.n > 1 ? ` ×${g.n}` : ''}<small> · {etaText(g.left)}</small></div>)}</div>
       : <p>Nothing on the way. Order parts in Internet.</p>}
     <button onClick={onBack}>Back</button></div>;
 }

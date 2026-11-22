@@ -50,4 +50,17 @@ export function planMachine({ held, nearby = [], hasKit = false, hasAir = false,
   const tire = isRim ? tireOf(good.o) : tireOf(held), rimId = isRim ? held.id : good.o.id, m = mount(rimOf(isRim ? held : good.o), tire);
   return { ok: true, verb, seconds: m.seconds, apply: { held: wheelItemOf(rimId, tire, 0), spawn: [], consume: [good.o.uid], useKit: false } };
 }
+/** the machine's tray: a rim and a tire set down beside it. -> { ok, why?, wheel, consume: [uid, uid], seconds } or null when the tray does not hold one of each.
+ *  tray = loose items (with uid) within reach of the machine. Output is a bare-mounted wheel with no air: inflating it is still a job. */
+export function planTray(tray, sizes) {
+  const rims = tray.filter(i => i.kind === 'rim'), tires = tray.filter(i => i.kind === 'tire');
+  if (!rims.length || !tires.length) return null;
+  let why = '';
+  for (const r of rims) for (const t of tires) {
+    const c = checkMount(rimOfItem(r, sizes), tireOfItem(t, sizes));
+    if (c.ok) return { ok: true, wheel: wheelItemOf(r.id, tireOfItem(t, sizes), 0), consume: [r.uid, t.uid], seconds: HOLD.mount };
+    why = why || c.why;
+  }
+  return { ok: false, why };
+}
 export { HOLD };

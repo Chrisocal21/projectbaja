@@ -58,3 +58,13 @@ test('dismount then mount puts the same tire and rim back together (round trip)'
   const m = planMachine({ held: d.apply.held, nearby: [{ uid: 7, ...d.apply.spawn[0] }], sizes });
   assert.equal(m.apply.held.rim, 'retro'); assert.equal(m.apply.held.tread, 0.37); assert.equal(m.apply.held.set, 'stock');
 });
+
+import { planTray } from './machineRules.js';
+test('a rim and a fitting tire on the tray become a wheel with no air; a wrong size is explained', () => {
+  const sz = { tireSize: s => (s === 'big' ? 17 : 15), rimSize: r => (r === 'retro' ? 15 : 17) };
+  const ok = planTray([{ uid: 1, kind: 'rim', id: 'retro' }, { uid: 2, kind: 'tire', id: 'stock', tread: 0.5 }], sz);
+  assert.equal(ok.ok, true); assert.deepEqual(ok.consume, [1, 2]); assert.equal(ok.wheel.air, 0); assert.equal(ok.wheel.rim, 'retro');
+  const bad = planTray([{ uid: 1, kind: 'rim', id: 'retro' }, { uid: 2, kind: 'tire', id: 'big', tread: 1 }], sz);
+  assert.equal(bad.ok, false); assert.match(bad.why, /rim/);
+  assert.equal(planTray([{ uid: 1, kind: 'rim', id: 'retro' }], sz), null);
+});

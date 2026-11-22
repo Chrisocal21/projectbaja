@@ -30,3 +30,11 @@ test('placeable size follows the wheel set, falls back to the old size', () => {
   assert.equal(placeableIdFor({ kind: 'stock', id: 'wheel', set: 'big' }, 3), 'tire:big');
   assert.deepEqual(GAME_PLACEABLES.tire.footprint, [TIRE_SIZE.dia, TIRE_SIZE.dia]);
 });
+
+import fs from 'node:fs';
+import { rimSizeOf, sizeFromDia } from './wheelAssembly.js';
+test('every rim in the catalog has at least one tire set that fits it', () => {
+  const rims = JSON.parse(fs.readFileSync(new URL('../catalog/rims.json', import.meta.url))), wheels = JSON.parse(fs.readFileSync(new URL('../catalog/wheels.json', import.meta.url)));
+  const tireSizes = new Set(wheels.map(w => w.rimSize || (tireSizeOf(w) ? sizeFromDia(tireSizeOf(w).dia) : null)));
+  for (const r of rims) assert.ok(tireSizes.has(rimSizeOf(r.id)), `no tire fits the ${r.id} rim (${rimSizeOf(r.id)}")`);
+});
