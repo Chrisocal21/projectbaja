@@ -2,7 +2,9 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, useGame } from './store.js';
-import { sizeOf, nameOfItem, held } from './items.js';
+import { sizeOf, nameOfItem, held, toolInHand } from './items.js';
+import ToolModel from './ToolModel.jsx';
+import { UPGRADE_FIT } from '../rules/vehicles.js';
 import { containers } from './loot.js';
 import { height, groundHeight } from '../worlds/county.js';
 /** items with a height (on a bench / shelf) are placed from the site's pad; floor items stand on the floor (garage slab, lot paving...) */
@@ -15,7 +17,7 @@ import ProcEngine from '../Engine.jsx';
 import { useGLTF } from '@react-three/drei';
 import { partById, wheelById, rimById } from '../build.js';
 import { rimGeometry } from '../Rims.jsx';
-import { carFitReady } from './carSnap.js';
+import { carFitReady, carFitPlan } from './carSnap.js';
 import { FEEL, restOf, carryScale, HOLD } from './restPose.js';   // fit feel pass (?feel=0 turns it off)
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
@@ -123,14 +125,32 @@ function Containers() {
   return containers.map((c, i) => <group key={c.id} ref={el => { refs.current[i] = el; }} position={[c.x, c.y, c.z]} rotation={[0, c.wry, 0]}><Container type={c.type} open={!!game.boxes[c.id]?.searched} /></group>);
 }
 
+/** the wrench or the jack, whichever the work needs (both are cheap, so the right one is just switched on) */
+function ToolSwitch({ idRef }) {
+  const [id, setId] = React.useState('wrench'); const ref = React.useRef();
+  useFrame(() => { const want = ref.current?.parent?.userData.id; if (want && want !== id) setId(want); });
+  return <group ref={ref}><ToolModel id={id} /></group>;
+}
+
 /** boxes lying around the world, plus the box in the player's hands */
 export default function Items() {
   useGame();
-  const heldRef = useRef(), { camera } = useThree();
+  const heldRef = useRef(), toolRef = useRef(), toolId = useRef('wrench'), { camera } = useThree();
   const loose = game.items.filter(i => i.loc === 'world'), hand = held();
   useFrame(() => {
+    // the tool in your hand: the one you carry out, or the one this part needs while it snaps onto the car; it turns while the hold bar fills
+    { const t = toolRef.current; if (t) {
+      const tool = toolInHand(), fit = carFitPlan(), kind = fit?.it.kind, need = fit ? (kind === 'wheel' || kind === 'rim' ? 'jack' : (kind === 'part' && UPGRADE_FIT[partById[fit.it.id]?.slot]?.tool) || 'wrench') : game.holdBar ? 'wrench' : null;   // the tool this part needs; any hold-click work shows at least the wrench
+      const id = tool?.id || need; t.visible = game.onFoot && !!id && !game.buildMode;
+      if (t.visible) {
+        if (toolId.current !== id) { toolId.current = id; t.userData.id = id; }
+        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), flat = new THREE.Vector3(fwd.x, 0, fwd.z).normalize(), side = new THREE.Vector3(-flat.z, 0, flat.x);
+        const working = !!game.holdBar, now = performance.now() / 1000, turn = working ? Math.sin(now * 11) * 0.55 : Math.sin(now * 1.4) * 0.03, reach = working ? 0.2 : 0;
+        t.position.copy(camera.position).addScaledVector(flat, 0.62 + reach).addScaledVector(side, 0.14); t.position.y -= 0.2 - (working ? 0.04 : 0); t.scale.setScalar(1.5);
+        t.rotation.order = 'YXZ'; t.rotation.set(-1.05 + (working ? -0.2 : 0), camera.rotation.y + 0.15, turn + (id === 'jack' ? 0 : -0.5));
+      } } }
     const g = heldRef.current; if (!g) return;
-    g.visible = game.onFoot && !!held() && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
+    g.visible = game.onFoot && !!held() && held().kind !== 'tool' && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
     if (!g.visible) return;
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
     if (!FEEL) { g.position.copy(camera.position).addScaledVector(fwd, 0.85).addScaledVector(right, 0.22); g.position.y -= 0.5; g.rotation.set(0, camera.rotation.y, 0); return; }
@@ -145,7 +165,8 @@ export default function Items() {
     {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     <Containers />
-    <group ref={heldRef} visible={false}>{hand && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
+    <group ref={heldRef} visible={false}>{hand && hand.kind !== 'tool' && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
+    <group ref={toolRef} visible={false}><ToolSwitch idRef={toolId} /></group>
   </>;
 }
 

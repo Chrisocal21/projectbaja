@@ -128,7 +128,7 @@ export function toggleCover(id) {
 
 /** which item would E use right now: what's in your hands, else the first pack item that belongs on the car */
 export function fitCandidate(b, zone) {
-  const h = held(); if (h) return { it: h, plan: planFit(h, b, zone) };
+  const h = held(); if (h && h.kind !== 'tool') return { it: h, plan: planFit(h, b, zone) };   // a tool in your hands is not the part: fit from the pack
   for (const it of packItems()) { const plan = planFit(it, b, zone); if (plan.ok || plan.openCover) return { it, plan }; }
   return null;
 }
