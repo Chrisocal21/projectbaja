@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wearMods, inspect, FRESH, onLanding, onBottomOut, drive, effects, clues, serviceCost } from './wear.js';
+import { wearNote, wearMods, inspect, FRESH, onLanding, onBottomOut, drive, effects, clues, serviceCost } from './wear.js';
 
 test('fresh car has no effects and no clues', () => { const e = effects(FRESH()); assert.deepEqual([e.damp, e.grip, e.power, e.pull], [1, 1, 1, 0]); assert.equal(clues(FRESH()).length, 0); });
 test('soft landings do nothing, hard ones wear shocks and align it', () => {
@@ -26,3 +26,5 @@ test('fitted parts slow the wear', () => {
   assert.ok(onLanding(FRESH(), 12, built).shocks < onLanding(FRESH(), 12, stock).shocks);
   assert.deepEqual(wearMods(null), { shocks: 1, tires: 1, align: 1, engine: 1 });
 });
+
+test('wearNote describes what a part does', () => { assert.match(wearNote('part', 'SHOCK_001_Coilover'), /slows shock wear 45%/); assert.match(wearNote('part', 'EXH_Megaphone'), /speeds up engine wear 10%/); assert.equal(wearNote('part', 'nothing'), ''); assert.match(wearNote('wheel', 'tire-tread'), /tire wear 30%/); });

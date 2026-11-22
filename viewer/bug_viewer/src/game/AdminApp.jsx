@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { offroadPlan } from '../worlds/county.js';
 import { teleportPlaces } from './whereAmI.js';
-import { FRESH, summary, clues } from '../wear.js';
+import { FRESH, summary, clues, wearNote } from '../wear.js';
 import { game, useGame, save, say, addCash, catalogFor, nameOf } from './store.js';
 import { SECTIONS, sectionOfSlot } from '../build.js';
 import { cajonCatalog } from './cajonParts.js';
@@ -58,8 +58,8 @@ export default function AdminApp({ onBack }) {
     else spawn(r.kind, r.id, r.label);
   };
   const price = (k, id) => { try { const v = priceOf(k, id); return v ? ' · $' + v : ''; } catch { return ''; } };
-  const partRows = cat.part.map(p => ({ cat: sectionOfSlot(p.slot), kind: 'part', id: p.id, label: nameOf('part', p.id, body), info: 'part · ' + p.slot + price('part', p.id) }));
-  const wheelRows = cat.wheel.map(w => ({ cat: 'wheel', kind: 'wheel', id: w.id, label: nameOf('wheel', w.id, body), info: 'tire set' + price('wheel', w.id) }));
+  const partRows = cat.part.map(p => ({ cat: sectionOfSlot(p.slot), kind: 'part', id: p.id, label: nameOf('part', p.id, body), info: 'part · ' + p.slot + price('part', p.id) + (wearNote('part', p.id) ? ' · ' + wearNote('part', p.id) : '') }));
+  const wheelRows = cat.wheel.map(w => ({ cat: 'wheel', kind: 'wheel', id: w.id, label: nameOf('wheel', w.id, body), info: 'tire set' + price('wheel', w.id) + (wearNote('wheel', w.id) ? ' · ' + wearNote('wheel', w.id) : '') }));
   const rimRows = cat.rim.map(r => ({ cat: 'rim', kind: 'rim', id: r.id, label: nameOf('rim', r.id, body), info: 'rim' + price('rim', r.id) }));
   const vehicleRows = [
     { act: 'project', id: 'bug-full', label: 'Bug: complete, every stock part fitted (work vehicle)', info: 'project vehicle', make: () => projectOf('Complete Bug', 'bug', bugFull()) },

@@ -76,3 +76,10 @@ export const serviced = (w, p) => ({ ...w, [p]: 0 });
 export const TOOL_JOBS = { wrench: ['shocks', 'align', 'engine'], jack: ['tires'] };
 export const SERVICE_VERB = { shocks: 'Re-seat and re-torque the shocks', align: 'Set the alignment', engine: 'Tune the engine', tires: 'Rotate and re-seat the tires' };
 export const serviceJob = (w, toolId) => { const c = (TOOL_JOBS[toolId] || []).filter(p => partCost(w, p) > 0).sort((a, b) => w[b] - w[a]); return c[0] || null; };
+
+const WEAR_WORD = { shocks: 'shock', tires: 'tire', align: 'alignment', engine: 'engine' };
+/** a short line for the part lists: what a part does to wear ('' when nothing), kind = 'part' | 'wheel' */
+export function wearNote(kind, id) {
+  const o = kind === 'wheel' ? WEAR_TIRE_MODS[id] : WEAR_PARTS_MODS[id]; if (!o) return '';
+  return Object.entries(o).filter(([, v]) => v !== 1).map(([k, v]) => (v < 1 ? 'slows ' : 'speeds up ') + WEAR_WORD[k] + ' wear ' + Math.round(Math.abs(1 - v) * 100) + '%').join(', ');
+}
