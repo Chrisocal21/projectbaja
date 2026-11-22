@@ -8,6 +8,8 @@ import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { aimedProp } from './furnish.js';
 // what the crosshair is on comes from the real mesh under it (BuildModel's DetachGlow sets game.look), not from guessed boxes
+/** looking at a seat through the cage tubes: the mesh ray hits the tubes first, so a seat also answers to a plain look-at box */
+const seatAim = (eye, look, pose, y) => { const p = carPartAim(eye, look, pose, y); return p === "seatL" || p === "seatR" ? p : null; };
 const AIM_AP = { hoodPanel: 'hood', engineLid: 'lid', doorL: 'doorL', doorR: 'doorR', seatDriver: 'seatL', seatPassenger: 'seatR' };
 import { buildById } from './home.js';
 import { isPiece } from '../worlds/structures.js';
@@ -19,7 +21,8 @@ import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
-import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
+import { aimsAt, aimsAtBox, lookDir } from './aim.js';
+import { carPartAim } from './carAim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
 import { FEEL } from './restPose.js';
 import { carFitReady } from './carSnap.js';
 import { pickWork } from './workTarget.js';
@@ -208,12 +211,12 @@ export default function Walker({ world, sun }) {
     if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7, { box: { hx: t.width / 2, hz: t.length / 2, h: 1.7, yaw: v.pose.h } }); }
     const W = game.work, wAimed = !!W && aimsAtBox(eye, look, { x: W.pose.x, z: W.pose.z, y: s.y, hx: W.width / 2 + 0.1, hz: W.length / 2, h: 1.7, yaw: W.pose.h }, 4.5);
     if (W && (wAimed || carFitReady()) && (!best || bd > 0.9) && (W.id !== 'bug' || game.owned.has('car:bug') || game.dev)) {
-      game.carPlan = carAction(W.zone, AIM_AP[game.look] || null, W); best = 'car:' + game.carPlan.type;   // work in place on this vehicle (its own parts)
+      game.carPlan = carAction(W.zone, AIM_AP[game.look] || seatAim(eye, look, W.pose, s.y), W); best = 'car:' + game.carPlan.type;   // work in place on this vehicle (its own parts)
     } else if (pose) {
       const bt = activeType(), carAimed = foot && cl?.near && aimsAtBox(eye, look, { x: pose.x, z: pose.z, y: s.y, hx: bt.width / 2 + 0.1, hz: bt.length / 2, h: 1.7, yaw: pose.h }, 4.5);   // the car itself (door/hood/boot zone still comes from where you stand)
       if ((carAimed || carFitReady()) && (!best || bd > 0.9)) {   // holding a part that fits: the car is the target even when the crosshair is on the empty hub
         if (!(game.owned.has('car:bug') || game.dev)) best = 'bug';
-        else { game.carPlan = carAction(cl.zone, activeType().kind === 'build' ? AIM_AP[game.look] || null : null); best = 'car:' + game.carPlan.type; }
+        else { game.carPlan = carAction(cl.zone, activeType().kind === 'build' ? AIM_AP[game.look] || seatAim(eye, look, pose, s.y) : null); best = 'car:' + game.carPlan.type; }
       }
       else if (!foot && bugAsleep()) best = 'crank';
       else if (!foot && !best && Math.abs(game.speed) < 4) best = 'exit';
