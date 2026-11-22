@@ -39,6 +39,7 @@ import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelS
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
 import { pad } from './game/gamepad.js';
 import { createDust, dustiness } from './dust.js';
+import { steerAssist, speedFov } from './handling.js';
 import { createRuts, rutDepth } from './ruts.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
@@ -269,7 +270,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
-    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 11 : 10 - Math.min(3, Math.abs(st.v) * 0.1)) / (1 + psiFx.steerLag));
+    st.steer += (steerIn * maxSteer + (game.onFoot ? 0 : steerAssist(st.lateralV, st.v, steerIn)) - st.steer) * Math.min(1, dt * (steerIn === 0 ? 11 : 10 - Math.min(3, Math.abs(st.v) * 0.1)) / (1 + psiFx.steerLag));
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
@@ -329,8 +330,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (wasFoot.current) { wasFoot.current = false; l.yaw = 0; l.pitch = 0.28; camera.rotation.order = 'XYZ'; camPos.current.copy(camera.position); }
     if (pad.on && (pad.lookX || pad.lookY)) { const [kx, ky] = lookScale(); l.yaw -= pad.lookX * dt * 2.8 * kx; l.yaw = Math.atan2(Math.sin(l.yaw), Math.cos(l.yaw)); l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + pad.lookY * dt * 1.8 * ky)); l.idle = 0; }   // right stick orbits the camera like the mouse
     { l.idle += dt; if (l.idle > 2.5) { l.yaw -= l.yaw * Math.min(1, dt * 2.5); l.pitch += (0.28 - l.pitch) * Math.min(1, dt * 2.5); } }
-    const wantFov = cab.current ? 78 : 60;
-    if (camera.fov !== wantFov) { camera.fov = wantFov; camera.updateProjectionMatrix(); }
+    const wantFov = cab.current ? 78 + Math.min(10, Math.max(0, Math.abs(st.v) - 12) * 0.3) : speedFov(60, st.v);   // wider with speed
+    if (Math.abs(camera.fov - wantFov) > 0.05) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
     if (cab.current) {
       // cab view: head sits at the driver's eye, mouse turns your head, eases back to straight ahead
       l.yaw = Math.max(-2.2, Math.min(2.2, l.yaw)); l.pitch = Math.max(-0.5, Math.min(1.0, l.pitch));
