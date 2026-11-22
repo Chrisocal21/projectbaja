@@ -1,6 +1,7 @@
 // First-person hand tools. Sizes are in metres, with the grip near the origin.
 import React from 'react';
 import * as THREE from 'three';
+import { CANS } from '../finishJobs.js';
 
 const metal = <meshStandardMaterial color="#aeb6ba" metalness={0.88} roughness={0.29} />;
 const edge = <meshStandardMaterial color="#717d81" metalness={0.82} roughness={0.36} />;
@@ -47,6 +48,38 @@ function Jack() {
   </group>;
 }
 
+// Panel finishing tools (simple stand-in shapes, Claude art pass later)
+function Grinder() {
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0.02, 0]} castShadow><cylinderGeometry args={[0.032, 0.032, 0.2, 14]} />{red}</mesh>
+    <mesh position={[0, 0.14, 0]} castShadow><boxGeometry args={[0.07, 0.07, 0.08]} />{metal}</mesh>
+    <mesh position={[0.06, 0.15, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.055, 0.055, 0.006, 20]} />{edge}</mesh>
+    <mesh position={[0, -0.1, 0.06]} rotation={[0.5, 0, 0]} castShadow><cylinderGeometry args={[0.012, 0.012, 0.12, 8]} />{rubber}</mesh>
+  </group>;
+}
+function SprayCan({ id }) {
+  const color = CANS[id]?.[1] || '#888';
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0, 0]} castShadow><cylinderGeometry args={[0.032, 0.032, 0.17, 16]} /><meshStandardMaterial color={color} metalness={0.3} roughness={0.45} /></mesh>
+    <mesh position={[0, 0.1, 0]} castShadow><cylinderGeometry args={[0.02, 0.032, 0.03, 16]} />{metal}</mesh>
+    <mesh position={[0, 0.125, 0]} castShadow><cylinderGeometry args={[0.014, 0.014, 0.025, 10]} />{rubber}</mesh>
+  </group>;
+}
+function Buffer() {
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0.0, 0]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.025, 22]} /><meshStandardMaterial color="#e6d8a0" roughness={0.95} /></mesh>
+    <mesh position={[0, 0.05, 0]} castShadow><cylinderGeometry args={[0.04, 0.05, 0.07, 16]} />{red}</mesh>
+    <mesh position={[0, 0.12, 0]} castShadow><cylinderGeometry args={[0.018, 0.018, 0.1, 10]} />{rubber}</mesh>
+  </group>;
+}
+function HoseNozzle() {
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0.0, 0]} castShadow><cylinderGeometry args={[0.02, 0.02, 0.16, 12]} />{red}</mesh>
+    <mesh position={[0, 0.11, 0]} castShadow><cylinderGeometry args={[0.012, 0.02, 0.06, 12]} />{metal}</mesh>
+    <mesh position={[0, -0.1, 0]} castShadow><cylinderGeometry args={[0.014, 0.014, 0.1, 10]} />{rubber}</mesh>
+  </group>;
+}
+
 function Limb({ from, to, base, tip, material }) {
   const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to), delta = b.clone().sub(a);
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.clone().normalize());
@@ -67,5 +100,6 @@ function Hand({ jack }) {
 
 export default function ToolModel({ id }) {
   const jack = id === 'jack';
-  return <group>{jack ? <Jack /> : <Wrench />}<Hand jack={jack} /></group>;
+  const tool = jack ? <Jack /> : id === 'grinder' ? <Grinder /> : id === 'buffer' ? <Buffer /> : id === 'hose' ? <HoseNozzle /> : CANS[id] ? <SprayCan id={id} /> : <Wrench />;
+  return <group>{tool}<Hand jack={jack} /></group>;
 }

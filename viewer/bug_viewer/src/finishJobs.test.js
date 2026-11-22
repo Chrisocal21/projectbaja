@@ -1,0 +1,39 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { FINISH_TOOLS, CANS, stepJob, getFinish, setFinish, finishMaterial, isFinishTool } from './finishJobs.js';
+import { newPanel, stateName } from './rules/finish.js';
+
+const hold = (tool, panel, seconds, base) => { let p = panel; for (let t = 0; t < seconds; t += 0.1) { const r = stepJob(tool, p, 0.1, base); if (!r.ok) return { ...r, panel: p }; p = r.panel; } return { ok: true, panel: p }; };
+
+test('holding the spray can long enough paints bare fiberglass its own colour; the can is the choice', () => {
+  const r = hold('spray-red', null, 3.5, 'glass');
+  assert.equal(stateName(r.panel), 'painted'); assert.equal(r.panel.color, CANS['spray-red'][1]);
+  assert.equal(finishMaterial(r.panel).color, CANS['spray-red'][1]);
+});
+test('a different can will not paint over a finished coat: grind first', () => {
+  const red = hold('spray-red', null, 3.5, 'glass').panel;
+  assert.match(stepJob('spray-blue', red, 0.1).why, /grind/i);
+  const bare = hold('grinder', red, 5).panel;
+  assert.equal(stepJob('spray-blue', bare, 0.1).ok, true);
+});
+test('buffer needs paint, hose needs dirt, grinder needs rust or paint', () => {
+  assert.equal(stepJob('buffer', null, 0.1).ok, false);
+  assert.equal(stepJob('hose', null, 0.1).ok, false);
+  assert.equal(stepJob('grinder', null, 0.1).ok, false);
+  const done = hold('buffer', hold('spray-white', null, 3.5, 'glass').panel, 5).panel;
+  assert.ok(done.gloss >= 0.99);
+});
+test('rust and dirt change what a panel looks like', () => {
+  const clean = finishMaterial(newPanel('steel'));
+  assert.notEqual(finishMaterial(newPanel('steel', { rust: 1 })).color, clean.color);
+  assert.notEqual(finishMaterial(newPanel('steel', { dirt: 1 })).color, clean.color);
+});
+test('finish state saves per vehicle and panel without touching the old home', () => {
+  const home = { cash: 5 }, p = newPanel('glass', { dirt: 0.5 });
+  const h2 = setFinish(home, 'bug', 'up:hood', p);
+  assert.equal(getFinish(h2, 'bug', 'up:hood').dirt, 0.5); assert.equal(getFinish(h2, 'cajon', 'up:hood'), null); assert.equal(home.finish, undefined);
+  assert.equal(getFinish(setFinish(h2, 'bug', 'up:roof', p), 'bug', 'up:hood').dirt, 0.5);
+});
+test('every finish tool has a name, a time and a rule', () => {
+  for (const [id, t] of Object.entries(FINISH_TOOLS)) { assert.ok(t.name && t.secs > 0 && typeof t.rule === 'function', id); assert.ok(isFinishTool(id)); }
+});

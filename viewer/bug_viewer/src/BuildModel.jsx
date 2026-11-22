@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile, bodyById, partById } from './build.js';
 import { partMaterial } from './paint.js';
+import { getFinish } from './finishJobs.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
 import { applyWeathering, kindForMaterial, LIVERY } from './weather.js';
@@ -392,6 +393,8 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false, 
   if (vehId === 'bug') LIVERY.value = build?.livery ? 1 : 0;
   const common = { wireframe, onSelect, channels: r.channels };
   useGame();
+  const [, setFinishRev] = React.useState(0);   // panel finish changes while you hold the tool: redraw (polled, no store event per tick)
+  useEffect(() => { let seen = game.finishRev || 0; const id = setInterval(() => { if ((game.finishRev || 0) !== seen) { seen = game.finishRev || 0; setFinishRev(seen); } }, 120); return () => clearInterval(id); }, []);
   const shellOff = (build.stripped || []).includes('shell');
   const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w));
   const bareMask = bare.map(w => ({ FL: 'B_FLWheel', FR: 'B_FRWheel', RL: 'B_BLWheel', RR: 'B_BRWheel' })[w]);
@@ -406,7 +409,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false, 
       {r.active.filter(p => !p.attach && !p.engineMod && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
         const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
-        const m = <Model file={f} {...common} channels={pch} material={partMaterial(p, build)} hide={p.hidesWithExhaust && r.active.some(x => x.slot === 'exhaust') ? p.hidesWithExhaust : []} />;
+        const m = <Model file={f} {...common} channels={pch} material={partMaterial(p, build, getFinish(game.home, vehId, 'up:' + p.slot))} hide={p.hidesWithExhaust && r.active.some(x => x.slot === 'exhaust') ? p.hidesWithExhaust : []} />;
         return <group key={p.id} userData={{ upgrade: p.slot }} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.proc ? <ProcPart id={p.proc} r={r} /> : p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.hardware && <ProcPart id={p.hardware} r={r} />}</group>;
       })}
     </group>

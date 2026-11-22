@@ -13,17 +13,17 @@ How a job works (the pattern we already use): aim at the thing, hold the click (
 ## 2. Body and paint (the paint sim)
 | Tool or fixture | Job | Consumes | Status |
 |---|---|---|---|
-| Angle grinder + discs | grind rust and old paint off steel | grinding discs | RULES |
+| Angle grinder + discs | grind rust and old paint off steel | grinding discs | HAVE (hold-click on fiberglass panels; Admin kit; discs not consumed yet) |
 | Wire wheel / brush | light rust, scale, old gasket | wears out | PLANNED |
 | Sanding block, DA sander | scuff fiberglass and primer, feather edges | sandpaper (grits) | PLANNED |
 | Body hammer + dolly, stud puller | knock out dents from crashes | none | PLANNED |
 | Body filler + spreader | fill dents and pits, then sand | filler | PLANNED |
 | Masking tape + paper | two-tone, stripes, protect trim | tape | PLANNED |
-| Primer, spray can or gun | cover bare metal or glass | primer | RULES (paint) |
+| Primer, spray can or gun | cover bare metal or glass | primer | HAVE (5 colour cans, hold-click; cans not used up yet) |
 | Paint (colour cans, mixed) | colour coat; the **can** is how colour is chosen, never a picker | paint | RULES |
 | Clear coat | gloss and protection | clear | PLANNED |
-| Buffer + compound / polish | take flat paint to gloss | polish | RULES |
-| Pressure washer, hose, bucket + sponge | wash dirt and mud off | water | RULES |
+| Buffer + compound / polish | take flat paint to gloss | polish | HAVE (hold-click) |
+| Pressure washer, hose, bucket + sponge | wash dirt and mud off | water | HAVE (hose in hand; nothing makes panels dirty yet) |
 | Wax, detail kit, shop vac | final shine, clean interior | wax | PLANNED |
 | Paint area / booth (yard upgrade) | dust-free painting, better finish | none | PLANNED (fixture) |
 

@@ -7,7 +7,7 @@ export default function HoldBar() {
   const [p, setP] = useState(null);
   useEffect(() => {
     let raf = 0;
-    const tick = () => { const h = game.holdBar; setP(h ? { f: Math.min(1, (performance.now() - h.t0) / h.dur), label: h.label } : null); raf = requestAnimationFrame(tick); };
+    const tick = () => { const h = game.holdBar; setP(h ? { f: h.frac != null ? h.frac : Math.min(1, (performance.now() - h.t0) / h.dur), label: h.label } : null); raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, []);
   if (!p) return null;
