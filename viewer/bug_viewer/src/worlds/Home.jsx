@@ -11,7 +11,6 @@ import { furn, ghostSpot } from '../game/furnish.js';
 import GarageCargo from '../placement/GarageCargo.jsx';
 import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
-import { sizeOf } from '../game/junkRules.js';
 import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
@@ -398,11 +397,6 @@ function ScrapHeap({ seed = 1 }) {
 }
 
 /** one pile of junk (rendered until you clear it) */
-function ShrinkingPile({ j, children }) {   // the pile gets smaller with every load hauled (game/junkRules.js)
-  const ref = useRef();
-  useFrame(() => { if (ref.current) { const s = 0.35 + 0.65 * sizeOf(game.home, j); ref.current.scale.set(s, s, s); } });
-  return <group ref={ref}>{children}</group>;
-}
 function Junk({ kind }) {
   if (kind === 'scrap') return <><B p={[0, 0.3, 0]} s={[2.4, 0.6, 1.4]} c="#6b4a32" m={0.4} r={0.9} rot={[0, 0.3, 0.08]} /><B p={[0.6, 0.75, 0.2]} s={[1.6, 0.08, 1]} c="#7a7d80" m={0.6} rot={[0.4, 0.5, 0.2]} /><Cyl p={[-0.8, 0.8, -0.2]} a={[0.06, 0.06, 2, 6]} c="#4a3a2e" m={0.4} rot={[0, 0, 1.2]} /><B p={[0.2, 0.9, -0.4]} s={[0.9, 0.5, 0.06]} c="#8e5a3a" m={0.4} rot={[0.2, -0.6, 0.5]} /></>;
   if (kind === 'fridge') return <><B p={[0, 0.85, 0]} s={[0.8, 1.7, 0.75]} c="#d9d2bc" m={0.2} r={0.6} rot={[0, 0.4, 0.05]} /><B p={[0.55, 0.75, 0.25]} s={[0.05, 1.4, 0.7]} c="#cfc8b1" rot={[0, 1.2, 0]} /></>;
@@ -589,7 +583,7 @@ export default function Home() {
   const T = useTex();
   return <>
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
-    {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><ShrinkingPile j={j}><Junk kind={j.kind} /></ShrinkingPile></group>)}
+    {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><Junk kind={j.kind} /></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
     {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
     {PLACEMENT && <GarageCargo />}

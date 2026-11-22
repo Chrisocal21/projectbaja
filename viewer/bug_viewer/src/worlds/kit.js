@@ -1,3 +1,4 @@
+import { SURFACE_DATA, STD_ROLL } from '../vehiclePhysics.js';
 // Shared world-building kit (pure JS, no three.js): surfaces, smooth paths and a painted height/surface raster.
 // A world = an analytic base terrain + roads, tracks and pads painted into a raster (blend weight, height, surface id).
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -22,6 +23,10 @@ export const SURFACES = {
   forestFloor: { id: 'forestFloor', name: 'Forest floor', mu: 0.55, rr: 1.6, color: '#566230', gk: 'dirt' },
   water:     { id: 'water', name: 'Sea water', mu: 0.2, rr: 6.0, color: '#2f6f8f', gk: 'sand' },   // PROPOSAL: the coast; heavy drag so a car cannot cruise the sea (boats later)
 };
+for (const [key, color] of [['hardpack', '#ae936e'], ['clay', '#c3a183']]) {
+  const { name, grip, rrCoef } = SURFACE_DATA[key];
+  SURFACES[key] = { id: key, name, color, mu: grip, rr: rrCoef / STD_ROLL };
+}
 for (const [k, v] of Object.entries(SURFACES)) v.key = k;
 export const SURFACE_IDS = ['', ...Object.keys(SURFACES)];
 export const SID = Object.fromEntries(SURFACE_IDS.map((n, i) => [n, i]));

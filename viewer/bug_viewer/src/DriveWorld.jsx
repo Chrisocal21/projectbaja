@@ -56,7 +56,7 @@ export { terrainHeight } from './terrain.js';
 
 // ---------- ground types: grip (mu), rolling resistance multiplier (rr), colour ----------
 // grip and rolling resistance now come from catalog/physics.json (real coefficients; rr here = rrCoef / the sim's standard 0.03)
-const SURF_COLOR = { dirt: '#a98c5a', sand: '#d6bd86', rock: '#7d7568', mud: '#5a4630' };
+const SURF_COLOR = { hardpack: '#ae936e', clay: '#c3a183', dirt: '#a98c5a', sand: '#d6bd86', rock: '#7d7568', mud: '#5a4630' };
 const SURF = Object.fromEntries(Object.keys(SURF_COLOR).map(k => [k, { name: SURFACE_DATA[k].name, mu: SURFACE_DATA[k].grip, rr: SURFACE_DATA[k].rrCoef / STD_ROLL, color: SURF_COLOR[k] }]));
 for (const [k, v] of Object.entries(SURF)) v.key = k;
 export function surfaceAt(x, z) {

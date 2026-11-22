@@ -46,6 +46,7 @@ Water (`DriveWorld.jsx`): wading slows and cuts grip, spray, current pushes the 
 7. **Tool art and recovery references (reference only).** Concept art / photo-style references for the tools in [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md): angle grinder, spray gun and cans, buffer, pressure washer, body hammer and dolly, engine hoist, tow strap, winch, hi-lift jack, traction boards, tow truck and flatbed (old 1960s-80s style), car hauler trailer. Models and code are Claude's job.
 
 ## Done (recent, for context)
+- Real-map graded dirt road centers return hardpack and dry lake flats return clay. Both use the physics catalog grip and rolling resistance.
 - Table-top jumps, long-travel suspension (soft spring, firm damping, light anti-roll), handling profiles with a saved drift baseline, tire pressure, diff types, wear and service, Admin redesign and teleport, flat-white fiberglass, fiberglass front clip, chunkier coilovers, terrain streaming fix after teleports.
 
 ## Garage expansion art (Nov 22, nothing built yet)
@@ -70,7 +71,3 @@ Stage `office3` ($14,000, proposal). Code: worlds/office.js (WING_UP, wingLevel,
 - Basic box art only: please polish the stair, rails, team table, chairs, the race planning board (blank on purpose: do not invent team names or routes), windows, a real door model.
 - Left for later: the balcony over Walt's shop floor, any link from the upstairs room to the old office loft, an upstairs use for the team room (nothing happens there yet).
 
-## New ground types: hardpack and clay (Nov 22, Claude)
-`src/catalog/physics.json` now has two more surfaces next to dirt, gravel, sand, mud, rock and pavement: **hardpack** (grip 0.85, rolling resistance 0.02: a compacted road or wash bed, nearly as good as pavement) and **clay** (grip 0.55, rolling resistance 0.05: dry clay, slippery when it dries out in a sheet). Numbers are estimates; `src/driveMeasure.test.js` measures stopping and launch on each.
-- The physics already works with them. The WORLD does not return them yet: `DriveWorld.jsx` builds its surface list from `SURF_COLOR`, and the ground lookup (`world.surface(x, z)`) only returns the old keys. To use them, add `hardpack` and `clay` colours to `SURF_COLOR` and return them from the surface lookup where it suits (compacted dirt tracks, desert wash beds = hardpack; dry lakebed, wet-season flats = clay). Tires with no entry for a surface fall back to 1.0 (catalog `wheels.json` `grip.surf`), so nothing breaks if you leave them.
-- I did not touch the world files (yours). Do not rename the keys: the tests and tire pressure code read them.

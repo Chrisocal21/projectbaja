@@ -223,7 +223,7 @@ export const badlandReliefAt = (x, z) => badlands?.heightAt(x, z) ?? 0;
 export const reliefAt = (x, z) => { if (REAL) return 0; const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
-  if (REAL) { const hk = HW && HW.surfaceKey(x, z); if (hk) return SURFACES[hk]; const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
+  if (REAL) { const hk = HW && HW.surfaceKey(x, z); if (hk) return hk === 'dirt' ? SURFACES.hardpack : SURFACES[hk]; const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
   else if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
@@ -233,7 +233,7 @@ function baseSurface(x, z) {
     if (relief > 2 && slope > 0.22) return SURFACES.rock;
     if (relief > 4) return SURFACES.redDirt;
   }
-  if (m.lake > 0.55) return SURFACES.playa;
+  if (m.lake > 0.55) return REAL ? SURFACES.clay : SURFACES.playa;
   if (slope > 0.6) return SURFACES.rock;
   if (m.dunes > 0.3) return SURFACES.sand;
   if (m.canyon > 0.3) return slope > 0.32 ? SURFACES.rock : SURFACES.redDirt;
