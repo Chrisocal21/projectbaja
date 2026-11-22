@@ -7,6 +7,7 @@ import { OFFICE } from './office.js';
 import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
 import RoadSigns from './RoadSigns.jsx';
+import MergedStatic from './MergedStatic.jsx';
 import { propertyTexture } from './propertyTextures.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
@@ -409,12 +410,12 @@ export default function Sites() {
   return <>
     <Placed site={SITES.lot}><LotSite /></Placed>
     <Placed site={SITES.garage}><Garage /></Placed>
-    <Placed site={SITES.barn}><Barn /></Placed>
-    <Placed site={SITES.gas}><GasStation /></Placed>
-    <Placed site={SITES.warehouse}><Warehouse /></Placed>
-    <Placed site={SITES.shack1}><Shack /></Placed>
-    <Placed site={SITES.shack2}><Shack /></Placed>
-    <Placed site={SITES.shack3}><Shack /></Placed>
+    <Placed site={SITES.barn}><MergedStatic><Barn /></MergedStatic></Placed>
+    <Placed site={SITES.gas}><MergedStatic><GasStation /></MergedStatic></Placed>
+    <Placed site={SITES.warehouse}><MergedStatic><Warehouse /></MergedStatic></Placed>
+    <Placed site={SITES.shack1}><MergedStatic><Shack /></MergedStatic></Placed>
+    <Placed site={SITES.shack2}><MergedStatic><Shack /></MergedStatic></Placed>
+    <Placed site={SITES.shack3}><MergedStatic><Shack /></MergedStatic></Placed>
     <Furniture />
     <Scenery />
     <RoadSigns />
