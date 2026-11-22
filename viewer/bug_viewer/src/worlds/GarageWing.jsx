@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { OFFICE, STAIRS, LOFT, ANNEX } from './office.js';
+import { OFFICE, STAIRS, LOFT, ANNEX, WING } from './office.js';
 import { signTex } from '../lot/CarLot.jsx';
 import OriginalWall from './OriginalWall.jsx';
 import { game } from '../game/store.js';
-import { upgradeLevel } from '../game/upgrades.js';
+import { upgradeLevel, hasStage } from '../game/upgrades.js';
 
 const Box = ({ p, s, map, color = '#b7a58a', rot }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><meshStandardMaterial map={map} color={color} roughness={0.88} /></mesh>;
 function Label({ text, p, w = 1.8 }) {
@@ -17,7 +17,7 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-10.1, 0.06, 0]} s={[6.8, 0.12, 12.6]} map={floor} color="#fff" />
     {/* west wall: solid, unless the "Office expansion" upgrade has cut a doorway through it (game/upgrades.js, openings.js WALLS.OW) */}
     <OriginalWall which="OW" map={wall} lining={timber} open={game.home?.openings || []} height={H} />
-    {upgradeLevel('office') >= 1 && <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />}
+    {upgradeLevel('office') >= 1 && (hasStage('office1') ? <OfficeWing wall={wall} timber={timber} roof={roof} floor={floor} power={power} /> : <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />)}
     <Box p={[-10.1, H / 2, z0]} s={[6.2, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x0 + entry.x0) / 2, H / 2, z1]} s={[entry.x0 - x0, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x1 + entry.x1) / 2, H / 2, z1]} s={[x1 - entry.x1, H, 0.2]} map={wall} color="#fff" />
@@ -80,6 +80,37 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-11.8, 3.55, -4.9]} s={[1.4, 0.65, 1.6]} map={timber} />
     <Label text="LOFT · ARCHIVE" p={[-11, 4.5, -5.85]} w={2.5} />
     {[[-11, 2.5, 2], [-11, 5.25, -4]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 13 : 0} distance={8} decay={2} />)}
+  </group>;
+}
+
+/** office level 1 (stage 'office1'): the annex grown into a wing the full depth of the office. Customer door at the front, waiting seats,
+ *  a service counter beside the widened doorway, a back room with a desk and files. Basic boxes (ChatGPT polishes). */
+function OfficeWing({ wall, timber, roof, floor, power }) {
+  const { x0, x1, z0, z1, H, door, counter } = WING, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, t = 0.2, d = z1 - z0, glass = '#394848';
+  const cz0 = (counter.z0 + counter.z1) / 2, cl = counter.z1 - counter.z0 + 0.5;
+  return <group>
+    <Box p={[cx, 0.06, cz]} s={[x1 - x0, 0.12, d]} map={floor} color="#fff" />
+    <Box p={[x0, H / 2, cz]} s={[t, H, d + t]} map={wall} color="#fff" />
+    <Box p={[cx, H / 2, z0]} s={[x1 - x0, H, t]} map={wall} color="#fff" />
+    {/* front wall: either side of the customer door, a header over it */}
+    <Box p={[(x0 + door.x0) / 2, H / 2, z1]} s={[door.x0 - x0, H, t]} map={wall} color="#fff" />
+    <Box p={[(x1 + door.x1) / 2, H / 2, z1]} s={[x1 - door.x1, H, t]} map={wall} color="#fff" />
+    <Box p={[(door.x0 + door.x1) / 2, (2.6 + H) / 2, z1]} s={[door.x1 - door.x0, H - 2.6, t]} map={wall} color="#fff" />
+    <Box p={[cx, H + 0.1, cz]} s={[x1 - x0 + 0.3, 0.16, d + 0.3]} map={roof} color="#fff" />
+    <Label text="CUSTOMER OFFICE" p={[(door.x0 + door.x1) / 2, 3.2, z1 + 0.12]} w={2.6} />
+    {[[x0 - 0.02, 1.2], [x0 - 0.02, 4.3]].map(([x, z], i) => <Box key={i} p={[x, 2.2, z]} s={[0.05, 1.2, 1.6]} color={glass} />)}
+    {/* the service counter, beside the widened doorway */}
+    <Box p={[counter.x, 0.55, cz0]} s={[0.8, 1.1, cl]} map={timber} />
+    <Box p={[counter.x, 1.15, cz0]} s={[1.0, 0.1, cl + 0.1]} map={timber} color="#76583c" />
+    {/* waiting area by the front door: two benches and a low table */}
+    {[3.9, 5.1].map(z => <group key={z}><Box p={[x0 + 0.5, 0.25, z]} s={[0.5, 0.5, 1.0]} map={timber} /><Box p={[x0 + 0.3, 0.75, z]} s={[0.08, 0.5, 1.0]} map={timber} color="#76583c" /></group>)}
+    <Box p={[x0 + 1.7, 0.2, 4.5]} s={[0.6, 0.4, 0.9]} map={timber} color="#8a6a44" />
+    {/* back room: a desk and filing cabinets */}
+    <Label text="BACK ROOM" p={[cx, 3.4, z0 + 0.12]} w={2.2} />
+    <Box p={[x0 + 1.0, 0.75, -4.6]} s={[1.0, 0.07, 1.9]} map={timber} color="#a88a5c" />
+    {[-5.5, -3.7].map(z => <Box key={z} p={[x0 + 1.0, 0.36, z]} s={[0.9, 0.72, 0.08]} map={timber} />)}
+    {[-5.4, -4.7].map(z => <Box key={z} p={[x1 - 0.5, 0.7, z]} s={[0.5, 1.4, 0.6]} color="#7a7f78" />)}
+    {[[cx, H - 0.8, -3], [cx, H - 0.8, 3]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 11 : 0} distance={8} decay={2} />)}
   </group>;
 }
 

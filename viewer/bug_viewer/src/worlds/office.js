@@ -25,6 +25,21 @@ export const wingFree = (lx, lz, r = 0) => WING_FREE.some(f => lx >= f.x0 + r &&
 // ---- the "Office expansion" upgrade (game/upgrades.js): a back room through a cut doorway in the office's west wall ----
 // The doorway is openings.js segment 'OW3' (the office west wall's 2 m run at z = 0..2); buying the upgrade opens it.
 export const ANNEX = { x0: -17.2, x1: OFFICE.x0, z0: -1, z1: 3, H: 4.4, doorZ0: 0, doorZ1: 2 };
+// ---- office level 1 (stage 'office1'): the annex grows into a wing the full depth of the office, west of it (docs/EXPANSION_PLAN.md) ----
+// Doorway = openings.js segments OW3 + OW4 (z 0..4). Customer door in the front (z = 6) wall. The service counter stands in the wing, beside the doorway.
+export const WING = { x0: -17.2, x1: OFFICE.x0, z0: -6, z1: 6, H: 4.4, door: { x0: -16.5, x1: -14.5 }, openings: ['OW3', 'OW4'],
+  counter: { x: -14.6, z0: 0.2, z1: 2.0, r: 0.45 } };
+export const officeLevelOf = owned => (owned.has('office1') ? 1 : 0);
+export const inWing = (lx, lz, m = 0) => lx > WING.x0 + m && lx < WING.x1 - m && lz > WING.z0 + m && lz < WING.z1 - m;
+/** collision circles ([lx, lz, r]) for the wing's west, north and front walls (the front has the customer door gap) and the service counter */
+export function wingWallCircles() {
+  const { x0, x1, z0, z1, door, counter } = WING, r = 0.15, step = 0.5, out = [];
+  for (let z = z0; z <= z1 + 1e-9; z += step) out.push([x0, z, r]);
+  for (let x = x0; x <= x1 + 1e-9; x += step) { out.push([x, z0, r]); if (x < door.x0 - 1e-9 || x > door.x1 + 1e-9) out.push([x, z1, r]); }
+  for (let z = counter.z0 + 0.1; z <= counter.z1 + 1e-9; z += 0.5) out.push([counter.x, z, counter.r]);
+  return out;
+}
+
 /** collision circles (garage-local, [lx, lz, r]) for the annex's three solid exterior walls (west, north, south — the fourth side is the doorway through the office wall) */
 export function annexWallCircles() {
   const { x0, x1, z0, z1 } = ANNEX, r = 0.15, step = 0.5, out = [];

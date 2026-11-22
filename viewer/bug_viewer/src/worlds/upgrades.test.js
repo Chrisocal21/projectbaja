@@ -42,7 +42,8 @@ test('nextStage walks a track in order and ends with null', () => {
   assert.equal(nextStage('office', owned).id, 'phoneLine');
   owned.add('phoneLine'); assert.equal(nextStage('office', owned).id, 'annex');
   owned.add('annex'); assert.equal(nextStage('office', owned).id, 'supplierAccount');
-  owned.add('supplierAccount'); assert.equal(nextStage('office', owned), null);
+  owned.add('supplierAccount'); assert.equal(nextStage('office', owned).id, 'office1');
+  owned.add('office1'); assert.equal(nextStage('office', owned), null);
 });
 test('effects: order time, hold speed and pack size step up with the stages', () => {
   assert.deepEqual(effectsOf(new Set()), { orderHours: ORDER_HOURS_BASE, holdScale: 1, packBonus: 0 });

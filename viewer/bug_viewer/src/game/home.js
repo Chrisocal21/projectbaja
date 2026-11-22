@@ -5,7 +5,7 @@ import { creative } from './settings.js';
 import { SITES, PROPERTY, toWorld, height, groundHeight, dynFloors } from '../worlds/county.js';
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
-import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
+import { inOffice, wingFree, annexWallCircles, wingWallCircles, officeLevelOf, WING } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles, extension } from '../worlds/garageLevels.js';
 import { ownedStages } from '../worlds/upgrades.js';
@@ -348,8 +348,9 @@ export function propObstacles() {
   const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0, office = upgradeLevel('office') >= 1;
   const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const extC = extensionWallCircles(garageLevelOf(ownedStages(game.home))).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
-  const annexC = office ? annexWallCircles().map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
-  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office) cache = { v, mv, office, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+  const wing = officeLevelOf(ownedStages(game.home)) >= 1;
+  const annexC = office ? (wing ? wingWallCircles() : annexWallCircles()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
+  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== wing) cache = { v, mv, office, wing, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (it.posts) return localCircles(p, it.posts);   // car lift: just the two posts, the car drives between
@@ -359,12 +360,14 @@ export function propObstacles() {
     return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });
   })] };
   const gl = garageLevelOf(ownedStages(game.home));
-  if (cache.floorsV !== `${v}|${game.props.length}|${gl}`) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
+  const fkey = `${v}|${game.props.length}|${gl}|${wing}`;
+  if (cache.floorsV !== fkey) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
     dynFloors.length = 0;
     const ext = extension(gl);   // the extension's slab (county.js FLOORS only knows Walt's): feet and wheels stand on it, not 12 cm inside it
     if (ext) { const [x0, z0] = toWorld(G, -13.6, ext.z0 - 0.6), [x1, z1] = toWorld(G, 7.6, -6.3); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: G.y + 0.12 }); }
+    if (wing) { const [x0, z0] = toWorld(G, WING.x0, WING.z0), [x1, z1] = toWorld(G, WING.x1, WING.z1); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: G.y + 0.12 }); }   // the wing's floor
     for (const p of game.props) { if (!isPiece(p.id)) continue; const m = homeLocal(p.x, p.z), f = floorRect(p.id, m.lx, m.lz); if (!f) continue; const [x0, z0] = toWorld(G, f.x0, f.z0), [x1, z1] = toWorld(G, f.x1, f.z1); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: height(p.x, p.z) + f.top }); }
-    cache.floorsV = `${v}|${game.props.length}|${gl}`;
+    cache.floorsV = fkey;
   }
   return cache.list;
 }

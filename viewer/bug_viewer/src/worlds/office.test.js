@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles } from './office.js';
+import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles, WING, wingWallCircles, officeLevelOf } from './office.js';
 import { segByKey } from './openings.js';
 
 test('office is attached left, camper and door are right, forecourt stays clear', () => {
@@ -60,4 +60,16 @@ test("the annex's three solid walls block walking, but its doorway (z 0..2, thro
   assert.ok(!crossing(ANNEX.x0, 1), 'the far (west) wall blocks');
   assert.ok(!crossing(ANNEX.x0 + 2, ANNEX.z0), 'the south wall blocks');
   assert.ok(!crossing(ANNEX.x0 + 2, ANNEX.z1), 'the north wall blocks');
+});
+test('office level 1: the wing meets the office wall, its doorway is two openings, and the walls block but the doors and doorway do not', () => {
+  assert.equal(WING.x1, OFFICE.x0);
+  assert.deepEqual(WING.openings, ['OW3', 'OW4']);
+  assert.equal(officeLevelOf(new Set(['office1'])), 1); assert.equal(officeLevelOf(new Set()), 0);
+  const cs = wingWallCircles(), crossing = (x, z) => !cs.some(([cx, cz, r]) => Math.hypot(cx - x, cz - z) < r + 0.3);
+  assert.ok(crossing(-15.5, 3.2), 'the waiting area is clear');
+  assert.ok(crossing(-15.5, WING.z1), 'the customer door is open');
+  assert.ok(!crossing(WING.x0, 2), 'the west wall blocks'); assert.ok(!crossing(-15.5, WING.z0), 'the north wall blocks');
+  assert.ok(!crossing(-17, WING.z1), 'the front wall beside the door blocks');
+  assert.ok(!crossing(WING.counter.x, 1), 'the counter blocks');
+  assert.ok(crossing(-14.6, 3.2) && crossing(OFFICE.x0, 3.2), 'you can still get from the doorway into the wing past the counter');
 });
