@@ -265,3 +265,32 @@
 .phone-soon button:disabled{opacity:.4;cursor:default;transform:none}
 .phone-soon input{font:15px system-ui,-apple-system,sans-serif;color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:9px 12px;outline:none}
 .phone-soon input::placeholder{color:rgba(255,255,255,.45)}
+
+/* Admin on the phone: a grid of big tiles, then clean lists inside each view */
+.adm{align-items:stretch;text-align:left;padding:10px 6px;gap:10px}
+.adm h3{margin:0;font:700 17px system-ui,-apple-system,sans-serif;text-align:center;flex:1}
+.adm-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.adm-head > span{width:64px}
+.adm-back{font:600 14px system-ui,-apple-system,sans-serif;color:#5eb0ff;background:none;border:0;cursor:pointer;padding:4px 0;width:64px;text-align:left}
+.adm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.adm-big{display:flex;flex-direction:column;gap:3px;text-align:left;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 11px;color:#fff;cursor:pointer;min-height:68px;transition:background .12s,transform .08s}
+.adm-big:hover{background:rgba(255,255,255,.16)}.adm-big:active{transform:scale(.97)}
+.adm-big b{font:700 14px/1.15 system-ui,-apple-system,sans-serif}
+.adm-big small{font:11px/1.25 system-ui,-apple-system,sans-serif;opacity:.6}
+.adm-body{display:flex;flex-direction:column;gap:12px;max-height:480px;overflow-y:auto;padding-right:2px}
+.adm-sec{display:flex;flex-direction:column;gap:5px}
+.adm-sec h4{margin:0 0 1px;font:700 11px system-ui,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.55}
+.adm-list{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.adm-row{display:flex;flex-direction:column;gap:1px;text-align:left;background:rgba(255,255,255,.07);border:0;border-radius:10px;padding:8px 10px;color:#fff;cursor:pointer;font-family:system-ui,-apple-system,sans-serif}
+.adm-row:hover{background:rgba(255,255,255,.14)}
+.adm-row b{font:600 13px/1.2 system-ui,-apple-system,sans-serif}
+.adm-row small{font:11px/1.25 system-ui,-apple-system,sans-serif;opacity:.55}
+.adm-static{cursor:default}.adm-static:hover{background:rgba(255,255,255,.07)}
+.adm-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.adm-chip{font:600 12px system-ui,-apple-system,sans-serif;color:#cfe4ff;background:rgba(10,132,255,.16);border:0;border-radius:999px;padding:6px 11px;cursor:pointer}
+.adm-chip:hover{background:rgba(10,132,255,.3)}.adm-chip.on{background:#0a84ff;color:#fff}
+.adm-search{width:100%;box-sizing:border-box;font:14px system-ui,-apple-system,sans-serif}
+.adm-select{width:100%;font:13px system-ui,-apple-system,sans-serif;color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:10px;padding:8px}
+.adm-select option{color:#111}
+.adm-last{min-height:15px;text-align:center;color:#8fd0a0;opacity:.9}
+.adm-body,.adm-list{scrollbar-width:thin;scrollbar-color:#4a5d7c transparent}
