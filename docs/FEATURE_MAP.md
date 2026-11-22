@@ -33,7 +33,7 @@ Every system is CANON as a long-term promise. The last column is when it gets bu
 | World and NPCs | Routines, businesses, opportunities, weather, seasons | Phase 3 | Static towns, no NPC routines |
 | Racing and teams | Local races, class rules, endurance series, team, sponsors, BajaWire | Phase 3 to 5 | Tracks only, no races |
 | Advanced mechanical depth | Engines, electrical, fabrication, certification, dyno, telemetry | Phase 4 | Stepwise engine mods and shock-hoop fabrication (ahead of phase) |
-| Towing, recovery, mobile bases | Trailers, winches, roadside rescue, campers | Phase 3 and 4 | None |
+| Towing, recovery, mobile bases | Trailers, winches, roadside rescue, campers | Phase 3 and 4 | None (design in [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md) section 6) |
 | Terrain change and cleanliness | Tracks, ruts, washouts, dirt effects, detailing | Phase 4 | A wear and dirt shader, a car wash |
 | Living Frontier | Seeded streaming with protected saved changes | Phase 5 | None |
 | Museum, hosted events | Showroom, public events, vendors, staff, sponsors | Phase 5 | None |

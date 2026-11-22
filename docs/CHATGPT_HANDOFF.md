@@ -43,5 +43,7 @@ Water (`DriveWorld.jsx`): wading slows and cuts grip, spray, current pushes the 
 5. **Concept and art help** (Chris's call): trophy-truck-style long-travel suspension look, track and drift-car ideas.
 6. **Paint-sim look (reference only, no code needed).** Chris wants hands-on grinding, painting, buffing and hosing (no picker). Useful from you: reference images and concept art of each stage on steel and fiberglass: heavy rust, ground bare metal, flat paint, buffed gloss, fresh gelcoat, mud and dust, hose spray and wet look. Claude builds the tools and shaders from `src/rules/finish.js` (`look()` returns colour, roughness, metalness, rust and dirt amounts).
 
+7. **Tool art and recovery references (reference only).** Concept art / photo-style references for the tools in [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md): angle grinder, spray gun and cans, buffer, pressure washer, body hammer and dolly, engine hoist, tow strap, winch, hi-lift jack, traction boards, tow truck and flatbed (old 1960s-80s style), car hauler trailer. Models and code are Claude's job.
+
 ## Done (recent, for context)
 - Table-top jumps, long-travel suspension (soft spring, firm damping, light anti-roll), handling profiles with a saved drift baseline, tire pressure, diff types, wear and service, Admin redesign and teleport, flat-white fiberglass, fiberglass front clip, chunkier coilovers, terrain streaming fix after teleports.

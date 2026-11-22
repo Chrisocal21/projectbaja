@@ -9,6 +9,7 @@ Start with [RESUME_HERE](./RESUME_HERE.md). Locked rules: [CANON](./CANON.md).
 |---|---|
 | [RESUME_HERE](./RESUME_HERE.md) | Where we are, how we work, what is next. Read first. |
 | [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md) | Living page for ChatGPT: coordination, open tasks, terrain notes. Rule: Claude adds anything ChatGPT needs here. |
+| [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md) | Checklist of every tool, fixture, consumable and job (paint sim, mechanical, fab, field recovery, towing) with status. |
 | [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md) | The running build record: repair loop, physics, drivetrain, wear, handling, off-road features, water, Admin. |
 | [PERFORMANCE_WORK](./PERFORMANCE_WORK.md) | Lag investigation, draw cap, streaming, FPS counter. |
 | [CLAUDE_GUIDE](./CLAUDE_GUIDE.md) | Standing rules for Claude Code. |

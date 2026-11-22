@@ -129,3 +129,7 @@ These are places where something built before the canon arrived doesn't match it
 22. How should the settled workshop-wear/primer direction be authored and
     baked, and how should missing source textures/materials be replaced?
     Current imports use documented plain/PBR approximations, not final wear art.
+
+## Tools and towing (Nov 22)
+- **T1.** Does Walt's Garage own an old tow or flatbed truck, parked in the yard as a restoration project? (Not in CANON today. PROPOSAL in [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md) section 6; needs Chris to lock it as canon or decline.)
+- **T2.** Does the player have a phone-call tow service as a backup, or is recovery always by hand (strap, winch, own tow truck)? Simulation-forward suggests by hand.
