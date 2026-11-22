@@ -38,11 +38,14 @@ const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
 const SHORE = new THREE.Color('#d6c19f');
 const BASIN = new THREE.Color('#c4b28d'), SOUTH = new THREE.Color('#a46a4b');
 const PAVED = new Set(['asphalt', 'concrete', 'curb']), BIO_GROUND = new Set(['meadow', 'dryGrass', 'forestFloor']);   // biome ground keeps its own colours (no desert mountain tint)
-function tileGeometry(ix, iz, seg) {
+/** time slice for tile building: the generator below gives the frame back whenever this deadline passes (Infinity = run straight through) */
+const BUDGET = { until: Infinity };
+function tileGeometry(ix, iz, seg) { const prev = BUDGET.until; BUDGET.until = Infinity; try { return tileGen(ix, iz, seg).next().value; } finally { BUDGET.until = prev; } }   // all at once (the fixed test world)
+function* tileGen(ix, iz, seg) {   // the same tile, built in slices so streaming never freezes a frame
   const started = perfStart();
   const x0 = -HALF + ix * TILE, z0 = -HALF + iz * TILE, step = TILE / seg, n = seg + 1, P = n + 2;
   const H = new Float32Array(P * P);   // heights on a grid padded by one ring, for normals across tile edges
-  for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) H[j * P + i] = height(x0 + (i - 1) * step, z0 + (j - 1) * step);
+  for (let j = 0; j < P; j++) { for (let i = 0; i < P; i++) H[j * P + i] = height(x0 + (i - 1) * step, z0 + (j - 1) * step); if (performance.now() >= BUDGET.until) yield; }
   const count = n * n + 4 * n, pos = new Float32Array(count * 3), nor = new Float32Array(count * 3), col = new Float32Array(count * 3);
   const w0 = new Float32Array(count * 4), w1 = new Float32Array(count * 4), misc = new Float32Array(count * 2), w = new Float32Array(8);
   const c = new THREE.Color(), r = rnd(ix * 31 + iz * 7 + 3);
@@ -81,7 +84,7 @@ function tileGeometry(ix, iz, seg) {
     c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.01, Math.sin(x * 0.017 - z * 0.013) * 0.04, Math.sin(x * 0.041 + z * 0.036) * 0.03 + (r() - 0.5) * 0.03);
     col.set([c.r, c.g, c.b], k * 3);
   };
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) put(j * n + i, i, j, 0);
+  for (let j = 0; j < n; j++) { for (let i = 0; i < n; i++) put(j * n + i, i, j, 0); if (performance.now() >= BUDGET.until) yield; }
   // skirts: every edge vertex again, 4 m lower, so a fine tile next to a coarse one never shows a crack
   const edges = [[i => [i, 0]], [i => [i, seg]], [j => [0, j]], [j => [seg, j]]];
   edges.forEach(([f], e) => { for (let t = 0; t < n; t++) { const [i, j] = f(t); put(n * n + e * n + t, i, j, 24); } });
@@ -126,29 +129,34 @@ function Terrain() {
 /** ?realmap: the world is the real border slice (40 x 53 km), so tiles are built only near the player and dropped behind (same tiles as above) */
 const R_LO = 4500, R_HI = 430, R_DROP = 5600, LO_REAL = 12;
 function StreamTerrain() {
-  const group = useRef(), { camera } = useThree(), tiles = useRef(new Map());
+  const group = useRef(), { camera } = useThree(), tiles = useRef(new Map()), jobs = useRef([]);
   const mat = useMemo(() => terrainMaterial({ size: HM_SIZE, half: HM_SIZE / 2 }), []);
-  useEffect(() => () => { tiles.current.forEach(t => { t.lo.geometry.dispose(); t.hi?.geometry.dispose(); }); tiles.current.clear(); }, []);
+  useEffect(() => () => { tiles.current.forEach(t => { t.lo?.geometry.dispose(); t.hi?.geometry.dispose(); }); tiles.current.clear(); jobs.current = []; }, []);
   useFrame(() => {
     const started = perfStart();
-    const p = game.onFoot ? camera.position : game.pos, g = group.current, map = tiles.current;
+    const p = game.onFoot ? camera.position : game.pos, g = group.current, map = tiles.current, q = jobs.current;
+    // tile geometry is built in slices of about 4 ms a frame (a fine tile is hundreds of ms in one go: that was the hitch at speed)
+    const t0 = performance.now(); BUDGET.until = t0 + 4;
+    while (q.length && performance.now() < BUDGET.until) { const j = q[0], r = j.gen.next(); if (r.done) { q.shift(); j.done(r.value); } }
+    BUDGET.until = Infinity;
     const viewRadius = Math.min(R_LO, 800 + 3700 * dayPhase(clockHour())); // fog ends at 600 m at night, 4300 m by day
     const cx = Math.floor((p.x + HALF) / TILE), cz = Math.floor((p.z + HALF) / TILE), R = Math.ceil(viewRadius / TILE), ctr = (i, j) => [-HALF + (i + 0.5) * TILE, -HALF + (j + 0.5) * TILE];
-    let built = 0, hiBuilt = false;
-    const t0 = performance.now(), more = () => built < 8 && (built === 0 || performance.now() - t0 < 6);   // a time budget, not a count: eight tiles in one frame was an 80 ms hitch
+    let queued = 0, hiQueued = q.some(j => j.hi);
+    const more = () => q.length + queued < 3;   // keep a short queue: nearest tiles first, new ones only as the old ones finish
+    const order = (t, geo, key, hi) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; if (map.get(key) !== t) { geo.dispose(); return; } g.add(m); if (hi) { t.hi = m; t.hiJob = false; if (t.lo) t.lo.visible = false; } else { t.lo = m; t.loJob = false; if (t.hi) m.visible = false; } };
     for (let ring = 0; ring <= R && more(); ring++) for (let iz = cz - ring; iz <= cz + ring && more(); iz++) for (let ix = cx - ring; ix <= cx + ring && more(); ix++) {
       if (Math.max(Math.abs(ix - cx), Math.abs(iz - cz)) !== ring) continue;
       const [tx, tz] = ctr(ix, iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7); if (d > viewRadius) continue;
       const k = ix + ',' + iz; let t = map.get(k);
-      if (!t) { const lo = new THREE.Mesh(tileGeometry(ix, iz, d < 1500 ? LO : LO_REAL), mat); lo.receiveShadow = true; g.add(lo); map.set(k, t = { ix, iz, lo, hi: null }); built++; }
-      if (!t.hi && !hiBuilt && d < R_HI) { const hi = new THREE.Mesh(tileGeometry(ix, iz, HI), mat); hi.receiveShadow = true; g.add(hi); t.hi = hi; t.lo.visible = false; hiBuilt = true; built += 4; }
+      if (!t) { t = { ix, iz, lo: null, hi: null, loJob: true, hiJob: false }; map.set(k, t); const tt = t; q.push({ gen: tileGen(ix, iz, d < 1500 ? LO : LO_REAL), done: geo => order(tt, geo, k, false) }); queued++; }
+      if (!t.hi && !t.hiJob && !hiQueued && d < R_HI) { t.hiJob = true; hiQueued = true; const tt = t; q.push({ hi: true, gen: tileGen(ix, iz, HI), done: geo => order(tt, geo, k, true) }); queued++; }
     }
-    if (built) { perfEnd('terrain stream frame', started); return; }
+    if (queued) { perfEnd('terrain stream frame', started); return; }
     for (const [k, t] of map) {
       const [tx, tz] = ctr(t.ix, t.iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7);
-      if (t.hi && d > HI_OUT) { g.remove(t.hi); t.hi.geometry.dispose(); t.hi = null; t.lo.visible = true; }
-      if (d > R_DROP) { g.remove(t.lo); t.lo.geometry.dispose(); if (t.hi) { g.remove(t.hi); t.hi.geometry.dispose(); } map.delete(k); continue; }
-      t.lo.visible = d <= viewRadius && !t.hi;
+      if (t.hi && d > HI_OUT) { g.remove(t.hi); t.hi.geometry.dispose(); t.hi = null; if (t.lo) t.lo.visible = true; }
+      if (d > R_DROP) { if (t.lo) { g.remove(t.lo); t.lo.geometry.dispose(); } if (t.hi) { g.remove(t.hi); t.hi.geometry.dispose(); } map.delete(k); continue; }
+      if (t.lo) t.lo.visible = d <= viewRadius && !t.hi;
       if (t.hi) t.hi.visible = d <= viewRadius;
     }
     perfEnd('terrain stream frame', started);

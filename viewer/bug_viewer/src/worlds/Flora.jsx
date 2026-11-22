@@ -22,8 +22,8 @@ function partsOf(scene, name, bright = 1) {
   return out;
 }
 const tmpO = new THREE.Object3D(), tmpM = new THREE.Matrix4(), tmpC = new THREE.Color();
-function writeInstance(mesh, i, part, x, z, s, ry, tint) {
-  tmpO.position.set(x, height(x, z) - 0.05 * s, z); tmpO.rotation.set(0, ry, 0); tmpO.scale.setScalar(s); tmpO.updateMatrix();
+function writeInstance(mesh, i, part, x, z, s, ry, tint, y) {   // y: the ground height if already known (the grass remembers it)
+  tmpO.position.set(x, (y ?? height(x, z)) - 0.05 * s, z); tmpO.rotation.set(0, ry, 0); tmpO.scale.setScalar(s); tmpO.updateMatrix();
   mesh.setMatrixAt(i, tmpM.multiplyMatrices(tmpO.matrix, part.local)); mesh.setColorAt(i, tmpC.set(tint || '#ffffff'));
 }
 
@@ -45,7 +45,7 @@ function Instances({ parts, items, shadows }) {
 
 /** dead grass + grass bushes in a ~75 m field around you, re-grown (deterministically) every few metres you move */
 function GrassField({ scene }) {
-  const group = useRef(), { camera } = useThree(), last = useRef({ x: 1e9, z: 1e9 });
+  const group = useRef(), { camera } = useThree(), last = useRef({ x: 1e9, z: 1e9 }), cache = useRef(new Map());   // cache: each 3.5 m cell is worked out once (it is deterministic), so moving only costs the new strip at the edge
   const cap = Math.ceil((2 * GRASS_R / GRASS_CELL) ** 2);
   const sets = useMemo(() => Object.fromEntries(GRASS_MODELS.map(k => [k, partsOf(scene, k, 1.25).map(p => { const m = new THREE.InstancedMesh(p.geometry, p.material, cap); m.count = 0; m.frustumCulled = false; m.receiveShadow = true; return { m, p }; })])), [scene]);
   useEffect(() => { const g = group.current; Object.values(sets).flat().forEach(({ m }) => g.add(m)); return () => Object.values(sets).flat().forEach(({ m }) => { g.remove(m); m.dispose(); }); }, [sets]);
@@ -53,11 +53,14 @@ function GrassField({ scene }) {
     const px = camera.position.x, pz = camera.position.z;
     if (Math.hypot(px - last.current.x, pz - last.current.z) < GRASS_MOVE) return;
     last.current = { x: px, z: pz };
+    if (cache.current.size > 30000) cache.current.clear();
     const n = Object.fromEntries(GRASS_MODELS.map(k => [k, 0])), c0 = Math.floor((px - GRASS_R) / GRASS_CELL), c1 = Math.floor((px + GRASS_R) / GRASS_CELL), r0 = Math.floor((pz - GRASS_R) / GRASS_CELL), r1 = Math.floor((pz + GRASS_R) / GRASS_CELL);
     for (let ix = c0; ix <= c1; ix++) for (let iz = r0; iz <= r1; iz++) {
-      const g = grassAt(ix, iz, surface); if (!g || Math.hypot(g.x - px, g.z - pz) > GRASS_R) continue;
+      const ck = ix * 100000 + iz; let g = cache.current.get(ck);
+      if (g === undefined) { g = grassAt(ix, iz, surface); if (g) g.y = height(g.x, g.z); cache.current.set(ck, g); }
+      if (!g || Math.hypot(g.x - px, g.z - pz) > GRASS_R) continue;
       const tint = g.dry && g.model.startsWith('BUSH') ? DRY_TINT : null;
-      for (const { m, p } of sets[g.model]) writeInstance(m, n[g.model], p, g.x, g.z, g.s, g.ry, tint);
+      for (const { m, p } of sets[g.model]) writeInstance(m, n[g.model], p, g.x, g.z, g.s, g.ry, tint, g.y);
       n[g.model]++;
     }
     for (const k of GRASS_MODELS) for (const { m } of sets[k]) { m.count = n[k]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }

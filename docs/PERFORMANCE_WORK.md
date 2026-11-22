@@ -39,3 +39,10 @@ Chris reports lag in the game. The immediate focus is frame-time spikes while pl
 - Utility poles + wires, roadside reflectors, curve-warning signs and place signs were drawn for the WHOLE map every frame (instanced with frustum culling off, or one group per sign with shadows). They now draw only within the radius. Roads (was 1300 m) and sites (was 900 m) also use it; scenery (520 m), flora (330 m) and buildings (500 m) were already inside it.
 - Terrain stays out to the fog (up to 4.3 km by day) so the mountains remain visible; the fog now starts nearer (300 m by day) so the cutoff reads as haze. Change `DETAIL_RADIUS` to trade distance for frame rate.
 - Not measured on Chris's machine yet: compare `?perf` draw calls before and after.
+
+## Hitch fix (Nov 21): profiled a drive at 80 mph on ?realmap
+CPU profile of 20 s driving (headless, so absolute times are inflated; the ranking is what matters): ~8.4 s building terrain tiles (`tileGeometry`/`put`, each calling the road-aware surface/height lookups in highways.js), ~5 s regrowing the grass field (`grassAt` for ~1,800 cells every 6 m), physics under 1 s.
+- Terrain tiles are now built by a generator in ~4 ms slices per frame (`tileGen` in County.jsx; a fine tile was hundreds of ms in one frame). The fixed test world still builds tiles in one go.
+- The grass field caches each 3.5 m cell and its ground height, so moving only computes the new strip at the edge (5.0 s -> 0.7 s in the same profile).
+- The FPS counter (game/PerfHud.jsx) now shows avg, 1% low, worst frame, hitches/s, jitter, physics cost and the last hitch, to confirm on real hardware.
+- Still heavy: the per-vertex surface lookup in tiles (`put`), and `pavedSurfaceAt`/`nearAll` in highways.js. Next step if hitches remain: cache the road lookup per tile or lower the fine-tile resolution (HI = 120).
