@@ -1,3 +1,5 @@
+import { matteFinish } from './shopFinishes.js';
+import ShopBoxGeometry from './ShopBoxGeometry.jsx';
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { OFFICE, STAIRS, LOFT, ANNEX, WING, PARTS_ROOM, WING_UP, deskOf } from './office.js';
@@ -6,7 +8,7 @@ import OriginalWall from './OriginalWall.jsx';
 import { game } from '../game/store.js';
 import { upgradeLevel, hasStage } from '../game/upgrades.js';
 
-const Box = ({ p, s, map, color = '#b7a58a', rot }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><meshStandardMaterial map={map} color={color} roughness={0.88} /></mesh>;
+const Box = ({ p, s, map, color = '#b7a58a', rot }) => <mesh position={p} rotation={rot} castShadow receiveShadow><ShopBoxGeometry size={s} /><meshStandardMaterial map={map} color={color} roughness={0.88} roughnessMap={matteFinish} /></mesh>;
 function Label({ text, p, w = 1.8 }) {
   const map = useMemo(() => signTex([[text, 54, '#4d3023']], '#d7c6a1', '#6f5034', '#826343'), [text]);
   return <Box p={p} s={[w, 0.32, 0.035]} map={map} color="#fff" />;
@@ -104,8 +106,17 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     <Box p={[counter.x, 1.15, cz0]} s={[1.0, 0.1, cl + 0.1]} map={timber} color="#76583c" />
     {level >= 2 && <Box p={[counter.x + 0.52, 1.5, cz0]} s={[0.04, 0.6, cl + 0.1]} color="#4b5a58" />}
     {/* waiting area by the front door: two benches and a low table */}
-    {[3.9, 5.1].map(z => <group key={z}><Box p={[x0 + 0.5, 0.25, z]} s={[0.5, 0.5, 1.0]} map={timber} /><Box p={[x0 + 0.3, 0.75, z]} s={[0.08, 0.5, 1.0]} map={timber} color="#76583c" /></group>)}
-    <Box p={[x0 + 1.7, 0.2, 4.5]} s={[0.6, 0.4, 0.9]} map={timber} color="#8a6a44" />
+    {[3.9, 5.1].map(z => <group key={z} position={[x0 + 0.5, 0, z]}>
+      {[-0.35,0.35].map(end => <group key={end}>
+        <Box p={[0,0.09,end]} s={[0.43,0.045,0.045]} color="#555955" />
+        <Box p={[0,0.27,end]} s={[0.045,0.35,0.045]} color="#555955" />
+        <Box p={[-0.19,0.64,end]} s={[0.035,0.56,0.035]} color="#555955" />
+      </group>)}
+      {[-0.17,0,0.17].map(x => <Box key={x} p={[x,0.465,0]} s={[0.155,0.055,1.0]} map={timber} color="#ae8761" />)}
+      {[0.68,0.82].map(y => <Box key={y} p={[-0.17,y,0]} s={[0.045,0.12,1.0]} map={timber} color="#a88360" />)}
+    </group>)}
+    <Box p={[x0 + 1.7, 0.39, 4.5]} s={[0.6, 0.05, 0.9]} map={timber} color="#8a6a44" />
+    {[-0.22,0.22].flatMap(x => [-0.35,0.35].map(z => <Box key={x+':'+z} p={[x0+1.7+x,0.19,4.5+z]} s={[0.045,0.38,0.045]} color="#545652" />))}
     {level >= 2 ? <>
       {/* parts room: shelving along both side walls, a supplier desk beside the parts counter */}
       <Label text="PARTS ROOM" p={[cx, level >= 3 ? 2.6 : 3.4, z0 + 0.12]} w={2.2} />
@@ -121,7 +132,15 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     <Label text="BACK ROOM" p={[cx, 3.4, z0 + 0.12]} w={2.2} />
     <Box p={[x0 + 1.0, 0.75, -4.6]} s={[1.0, 0.07, 1.9]} map={timber} color="#a88a5c" />
     {[-5.5, -3.7].map(z => <Box key={z} p={[x0 + 1.0, 0.36, z]} s={[0.9, 0.72, 0.08]} map={timber} />)}
-    {[-5.4, -4.7].map(z => <Box key={z} p={[x1 - 0.5, 0.7, z]} s={[0.5, 1.4, 0.6]} color="#7a7f78" />)}
+    {[-5.4, -4.7].map(z => <group key={z} position={[x1-0.5,0,z]}>
+      <Box p={[0,0.7,0]} s={[0.5,1.4,0.6]} color="#555e59" />
+      {[0.28,0.72,1.16].map(y => <group key={y}>
+        <Box p={[-0.253,y,0]} s={[0.02,0.421,0.56]} color="#798078" />
+        <Box p={[-0.275,y+0.09,0]} s={[0.02,0.064,0.14]} color="#aea99a" />
+        <Box p={[-0.288,y+0.09,0]} s={[0.008,0.043,0.11]} color="#dfd5ba" />
+        <Box p={[-0.285,y-0.035,0]} s={[0.045,0.032,0.17]} color="#b5b5ac" />
+      </group>)}
+    </group>)}
     </>}
     {level >= 3 && <TeamFloor wall={wall} timber={timber} H={H} power={power} />}
     {[[cx, level >= 3 ? 2.4 : H - 0.8, -3], [cx, level >= 3 ? 2.4 : H - 0.8, 3]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 11 : 0} distance={8} decay={2} />)}
@@ -140,9 +159,12 @@ function TeamFloor({ wall, timber, H, power }) {
     <Box p={[x1, (OFFICE.H + H) / 2, (z0 + z1) / 2]} s={[0.2, H - OFFICE.H, z1 - z0]} map={wall} color="#fff" />
     {/* the stair: 16 treads climbing north, a closed side under it, and a rail along the open side */}
     {Array.from({ length: s.count }, (_, i) => <Box key={i} p={[sx, 0.12 + (i + 0.5) * rise, s.zBottom - (i + 0.5) * run]} s={[w, 0.1, run + 0.02]} map={timber} />)}
-    <Box p={[s.x1 - 0.03, (y + 0.12) / 2 - 0.05, (s.zBottom + s.zTop) / 2]} s={[0.06, y - 0.12, s.zBottom - s.zTop]} color="#4f4538" rot={[0, 0, 0]} />
-    <Box p={[s.x1, y / 2 + 0.55, (s.zBottom + s.zTop) / 2]} s={[0.06, 0.06, Math.hypot(s.zBottom - s.zTop, y - 0.12)]} color="#514536" rot={[Math.atan2(y - 0.12, s.zBottom - s.zTop), 0, 0]} />
-    {[-0.6, -1.7, -2.8, -3.9, -5.0].map(z => <Box key={z} p={[s.x1, 0.12 + (s.zBottom - z) / (s.zBottom - s.zTop) * (y - 0.12) + 0.5, z]} s={[0.05, 1, 0.05]} color="#514536" />)}
+    {[-1, 1].map(side => <Box key={side} p={[sx + side * (w / 2 - 0.04), (y + 0.12) / 2 - 0.09, (s.zBottom + s.zTop) / 2]}
+      s={[0.075, 0.16, Math.hypot(s.zBottom - s.zTop, y - 0.12)]} color="#494d49" rot={[Math.atan2(rise, run), 0, 0]} />)}
+    {[0.48, 0.96].map(h => <Box key={h} p={[s.x1, (y + 0.12) / 2 + h, (s.zBottom + s.zTop) / 2]}
+      s={[0.045, 0.045, Math.hypot(s.zBottom - s.zTop, y - 0.12)]} color="#565b55" rot={[Math.atan2(rise, run), 0, 0]} />)}
+    {[0, 0.25, 0.5, 0.75, 1].map(t => <Box key={t} p={[s.x1, 0.12 + t * (y - 0.12) + 0.48, s.zBottom + t * (s.zTop - s.zBottom)]}
+      s={[0.045, 0.96, 0.045]} color="#565b55" />)}
     {/* the open floor edge: a rail along the south side */}
     <Box p={[(f.x0 + f.x1) / 2, y + 0.95, f.z1]} s={[f.x1 - f.x0, 0.06, 0.06]} color="#514536" />
     {[f.x0 + 0.1, (f.x0 + f.x1) / 2, f.x1 - 0.1].map(x => <Box key={x} p={[x, y + 0.5, f.z1]} s={[0.05, 1, 0.05]} color="#514536" />)}
@@ -155,7 +177,15 @@ function TeamFloor({ wall, timber, H, power }) {
     {/* the team table with chairs */}
     <Box p={[tb.x, y + 0.74, tz]} s={[0.9, 0.07, tb.z1 - tb.z0]} map={timber} color="#a88a5c" />
     {[tb.z0 + 0.1, tb.z1 - 0.1].map(z => [-0.35, 0.35].map(dx => <Box key={`${z}${dx}`} p={[tb.x + dx, y + 0.37, z]} s={[0.08, 0.74, 0.08]} map={timber} />))}
-    {[-3.8, -3.2, -2.6].map(z => [tb.x - 0.75, tb.x + 0.75].map(x => <Box key={`${z}${x}`} p={[x, y + 0.25, z]} s={[0.42, 0.5, 0.42]} map={timber} color="#76583c" />))}
+    {[-3.8, -3.2, -2.6].map(z => [-1, 1].map(side =>
+      <group key={z + '/' + side} position={[tb.x + side * 0.75, y, z]}>
+        <Box p={[0, 0.46, 0]} s={[0.42, 0.075, 0.42]} color="#586359" />
+        <Box p={[side * 0.19, 0.75, 0]} s={[0.055, 0.22, 0.41]} map={timber} color="#98754f" />
+        {[-0.165, 0.165].map(dz => <React.Fragment key={dz}>
+          <Box p={[side * 0.17, 0.38, dz]} s={[0.028, 0.76, 0.028]} color="#464d4b" />
+          <Box p={[-side * 0.17, 0.22, dz]} s={[0.028, 0.44, 0.028]} color="#464d4b" />
+        </React.Fragment>)}
+      </group>))}
     {/* the race planning wall, on the old office's wall: a framed cork board with paper and route strips pinned on (blank: no names or routes yet) */}
     {(() => { const bz = (board.z0 + board.z1) / 2, bl = board.z1 - board.z0, fx = board.x + 0.0, face = board.x - 0.035; return <>
       <Box p={[fx, y + 1.6, bz]} s={[0.05, 1.7, bl + 0.16]} map={timber} color="#4f3a26" />

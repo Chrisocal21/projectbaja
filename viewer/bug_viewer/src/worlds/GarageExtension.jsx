@@ -1,3 +1,5 @@
+import { brushedFinish, matteFinish } from './shopFinishes.js';
+import ShopBoxGeometry from './ShopBoxGeometry.jsx';
 // The garage grown backward (worlds/garageLevels.js), drawn by the look rules in docs/EXPANSION_PLAN.md:
 //   new steel, not Walt's rust (clean ribbed panels outside, white liner inside, grey kick plate) / a real ceiling with steel beams, not a black void /
 //   roll-up doors where the layout puts them (raised, so cars can drive in) / lights that light the room when the power is on /
@@ -9,7 +11,7 @@ import { extension, baysAt, levelData, wallFaces, BAY, DOOR_H } from './garageLe
 import { canvasTex, rnd } from '../lot/CarLot.jsx';
 
 const Box = ({ p, s, color = '#fff', map, metal = 0, rough = 0.9, emissive, ei = 2.2, cast = true }) => <mesh position={p} castShadow={cast} receiveShadow>
-  <boxGeometry args={s} /><meshStandardMaterial color={color} map={map} metalness={metal} roughness={rough} emissive={emissive} emissiveIntensity={emissive ? ei : 0} /></mesh>;
+  <ShopBoxGeometry size={s} /><meshStandardMaterial color={color} map={map} metalness={metal} roughness={rough} roughnessMap={metal > 0.55 ? brushedFinish : matteFinish} emissive={emissive} emissiveIntensity={emissive ? ei : 0} /></mesh>;
 const Decal = ({ p, s, color, map, rz = 0 }) => <mesh position={p} rotation={[-Math.PI / 2, 0, rz]}><planeGeometry args={s} />
   <meshStandardMaterial color={color} map={map} transparent={!!map} roughness={0.7} polygonOffset polygonOffsetFactor={-4} depthWrite={!map} /></mesh>;
 
@@ -17,6 +19,13 @@ const Decal = ({ p, s, color, map, rz = 0 }) => <mesh position={p} rotation={[-M
 const steelTex = (base, seed) => canvasTex(256, 256, (g, w, h) => {
   const r = rnd(seed); g.fillStyle = base; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 16; i++) { const x = (i * w) / 16, gr = g.createLinearGradient(x, 0, x + w / 16, 0); gr.addColorStop(0, 'rgba(255,255,255,0.18)'); gr.addColorStop(0.2, 'rgba(0,0,0,0.16)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.05)'); gr.addColorStop(1, 'rgba(255,255,255,0.12)'); g.fillStyle = gr; g.fillRect(x, 0, w / 16, h); }
+  // Fasteners sit on the same rib crests at each girt; a narrow highlight
+  // beside each washer keeps them legible in the shaded doorway.
+  for (const y of [18, 126, 237]) for (let x = 4; x < w; x += 32) {
+    g.fillStyle = 'rgba(53,56,54,0.52)'; g.fillRect(x, y, 2, 2);
+    g.fillStyle = 'rgba(245,244,229,0.72)'; g.fillRect(x, y, 1, 1);
+    g.fillStyle = 'rgba(102,97,79,0.12)'; g.fillRect(x, y + 2, 1, 3 + r() * 5);
+  }
   for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(60,60,55,${r() * 0.05})`; g.fillRect(r() * w, r() * h, 1 + r() * 3, 1 + r() * 10); }
   const gr = g.createLinearGradient(0, h * 0.9, 0, h); gr.addColorStop(0, 'rgba(120,100,70,0)'); gr.addColorStop(1, 'rgba(120,100,70,0.25)'); g.fillStyle = gr; g.fillRect(0, h * 0.9, w, h * 0.1);
 }, [1, 1]);

@@ -1,3 +1,6 @@
+import { brushedFinish, matteFinish } from './shopFinishes.js';
+import ShopBoxGeometry from './ShopBoxGeometry.jsx';
+import { Wrench, Jack } from '../game/ToolModel.jsx';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import MergedStatic from './MergedStatic.jsx';
 import * as THREE from 'three';
@@ -32,8 +35,8 @@ import { applyWeathering } from '../weather.js';
 
 /** Grandpa's place around the garage: his trailer, windmill and tank, his old race car, the junk you clear, customers' cars, and everything you build. */
 const G = SITES.garage;
-const M = ({ c = '#fff', r = 0.85, m = 0, e, ei = 0, map, t, o = 1, side }) => <meshStandardMaterial color={c} roughness={r} metalness={m} emissive={e} emissiveIntensity={ei} map={map} transparent={t} opacity={o} side={side} />;
-const B = ({ p, s, c, r, m, rot, map, cast = true }) => <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><boxGeometry args={s} /><M c={c} r={r} m={m} map={map} /></mesh>;
+const M = ({ c = '#fff', r = 0.85, m = 0, e, ei = 0, map, t, o = 1, side }) => <meshStandardMaterial color={c} roughness={r} roughnessMap={m > 0.55 ? brushedFinish : matteFinish} metalness={m} emissive={e} emissiveIntensity={ei} map={map} transparent={t} opacity={o} side={side} />;
+const B = ({ p, s, c, r, m, rot, map, cast = true }) => <mesh position={p} rotation={rot} castShadow={cast} receiveShadow><ShopBoxGeometry size={s} /><M c={c} r={r} m={m} map={map} /></mesh>;
 const Cyl = ({ p, a, c, r, m, rot, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} r={r} m={m} map={map} /></mesh>;
 /** a straight tube between two points */
 function Tube({ a, b, r = 0.025, c = '#2b2e31', m = 0.5, map }) {
@@ -413,7 +416,7 @@ function Junk({ kind }) {
 }
 
 /** things the player has built on the property (build mode). The same models become the placement hologram. */
-const P = ({ p, s, c = '#fff', rot, map, m = 0, r = 0.8 }) => <mesh position={p} rotation={rot} castShadow receiveShadow><boxGeometry args={s} /><M c={c} map={map} m={m} r={r} /></mesh>;
+const P = ({ p, s, c = '#fff', rot, map, m = 0, r = 0.8 }) => <mesh position={p} rotation={rot} castShadow receiveShadow><ShopBoxGeometry size={s} /><M c={c} map={map} m={m} r={r} /></mesh>;
 const C = ({ p, a, c = '#fff', rot, m = 0, r = 0.8, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} m={m} r={r} map={map} /></mesh>;
 /** Stage 4d: Walt's workbench, two-post lift and pegboard as props (the same shapes the fixed garage used to draw) */
 const Arm = ({ a, b, w = 0.1 }) => { const dx = b[0] - a[0], dz = b[2] - a[2]; return <P p={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} s={[Math.hypot(dx, dz), 0.07, w]} c="#e8b43a" m={0.4} r={0.5} rot={[0, Math.atan2(-dz, dx), 0]} />; };
@@ -444,13 +447,21 @@ function BenchModel({ T }) {
       <P p={[x, 0.54, 0.425]} s={[0.42, 0.035, 0.025]} c="#b8b6a9" m={0.55} r={0.55} />
     </group>)}
     <P p={[0, 0.11, -0.02]} s={[4.7, 0.055, 0.8]} c="#444341" m={0.35} r={0.85} />
-    <P p={[-1.9, 1.01, 0.22]} s={[0.42, 0.05, 0.3]} c="#55473a" map={T.oldWood} r={0.95} rot={[0, 0.2, 0]} />
+    {/* Cast vise at the end of the bench, with replaceable jaws and sliding spindle handle. */}
+    <group position={[-2.13, 0.98, 0.23]}>
+      <C p={[0, 0.03, 0]} a={[0.14, 0.17, 0.06, 24]} c="#464f51" m={0.56} />
+      <P p={[0, 0.12, 0]} s={[0.21, 0.16, 0.29]} c="#455c63" m={0.43} />
+      {[-0.09, 0.09].map(z => <group key={z}>
+        <P p={[0, 0.22, z]} s={[0.24, 0.12, 0.07]} c="#455c63" m={0.45} />
+        <P p={[0, 0.26, z * 0.65]} s={[0.245, 0.047, 0.014]} c="#b3aea0" m={0.82} r={0.36} />
+      </group>)}
+      <C p={[0, 0.14, 0.19]} a={[0.025, 0.025, 0.16, 12]} rot={[Math.PI / 2, 0, 0]} c="#888b88" m={0.8} />
+      <C p={[0.045, 0.14, 0.25]} a={[0.012, 0.012, 0.24, 10]} rot={[0, 0, 1.32]} c="#b7bab4" m={0.8} />
+    </group>
   </>;
 }
 /** a tool on its hook: a wrench is a bar with a ring, the floor jack a little red block with a handle */
-const PegTool = ({ tool }) => tool === 'jack'
-  ? <group><P p={[0, 0, 0]} s={[0.5, 0.18, 0.1]} c="#b8302a" m={0.4} r={0.5} /><P p={[0.3, -0.2, 0]} s={[0.04, 0.4, 0.04]} c="#c9ccd0" m={0.7} r={0.35} /></group>
-  : <group><P p={[0, -0.12, 0]} s={[0.04, 0.4, 0.02]} c="#c9ccd0" m={0.7} r={0.35} /><mesh position={[0, 0.1, 0]}><torusGeometry args={[0.05, 0.016, 6, 14]} /><M c="#c9ccd0" m={0.8} r={0.3} /></mesh></group>;
+const PegTool = ({ tool }) => tool === 'jack' ? <Jack /> : <Wrench />;
 /** empty wrench slot: the wrench's own outline (shaft box + ring) drawn as thin pale lines */
 const OUT = (() => { const pts = [], box = [[-0.03, -0.34], [0.03, -0.34], [0.03, 0.1], [-0.03, 0.1], [-0.03, -0.34]], r = 0.075;
   for (let i = 0; i < 4; i++) pts.push(new THREE.Vector3(...box[i], 0), new THREE.Vector3(...box[i + 1], 0));
@@ -497,6 +508,11 @@ export function PropModel({ id, T, mat, uid }) {
     case 'carLift': return <CarLiftModel />;
     case 'pegboard': return <PegboardModel uid={uid} />;
     case 'tireChanger': return <>
+      {[-0.23, 0, 0.23].map(x => <group key={x} position={[x,0.105,0.45]}>
+        <P p={[0,0,0]} s={[0.15,0.045,0.18]} rot={[-0.22,0,0]} c="#292e30" />
+        {[0,0.045,0.09].map(z => <P key={z} p={[0,0.028,z-0.035]} s={[0.12,0.008,0.009]} c="#656662" />)}
+      </group>)}
+
       <P p={[0, 0.4, 0]} s={[0.95, 0.8, 0.85]} c="#2d6a9f" m={0.3} r={0.5} />
       <C p={[0, 0.83, 0.05]} a={[0.4, 0.4, 0.06, 24]} c="#9aa0a6" m={0.6} r={0.4} />
       {[0, 1, 2, 3].map(i => <P key={i} p={[Math.cos(i * Math.PI / 2 + 0.7) * 0.33, 0.9, 0.05 + Math.sin(i * Math.PI / 2 + 0.7) * 0.33]} s={[0.08, 0.08, 0.08]} c="#555" m={0.5} />)}
@@ -525,11 +541,31 @@ export function PropModel({ id, T, mat, uid }) {
     case 'toolChest': return <><P p={[0, 0.55, 0]} s={[1.2, 0.95, 0.55]} c="#b3261e" map={T.red} m={0.4} r={0.45} />{[0.2, 0.38, 0.56, 0.74, 0.9].map(y => <React.Fragment key={y}><P p={[0, y, 0.28]} s={[1.12, 0.012, 0.012]} c="#4a1410" /><P p={[0, y + 0.06, 0.29]} s={[0.5, 0.025, 0.025]} c="#d8d8d8" m={0.8} r={0.3} /></React.Fragment>)}<P p={[0, 1.1, 0]} s={[1.0, 0.22, 0.5]} c="#c22d24" map={T.red} m={0.4} r={0.45} />{[-0.5, 0.5].flatMap(x => [-0.22, 0.22].map(z => <C key={x + '' + z} p={[x, 0.05, z]} a={[0.05, 0.05, 0.04, 10]} c="#222" rot={[Math.PI / 2, 0, 0]} />))}</>;
     case 'lift': return <>{[-1.55, 1.55].map(x => <React.Fragment key={x}><P p={[x, 1.9, 0]} s={[0.32, 3.8, 0.42]} c="#c8372b" map={T.red} m={0.3} r={0.5} /><P p={[x, 0.03, 0]} s={[0.7, 0.06, 0.7]} c="#555" m={0.5} /><P p={[x * 0.62, 0.45, 0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? 0.45 : -0.45, 0]} /><P p={[x * 0.62, 0.45, -0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? -0.45 : 0.45, 0]} /></React.Fragment>)}<P p={[0, 3.85, 0]} s={[3.5, 0.18, 0.28]} c="#c8372b" map={T.red} m={0.3} /><P p={[1.55, 1.5, 0.25]} s={[0.25, 0.35, 0.12]} c="#2b2b2b" /></>;
     case 'partsBin': return <><P p={[0, 0.2, 0]} s={[0.6, 0.4, 0.4]} c="#3c6e8f" m={0.3} r={0.6} /><P p={[0, 0.4, 0.2]} s={[0.62, 0.04, 0.03]} c="#26465c" /><P p={[0, 0.26, 0.205]} s={[0.3, 0.1, 0.01]} c="#e8e2d2" /></>;
-    case 'partsWasher': return <><P p={[0, 0.5, 0]} s={[0.9, 0.08, 0.6]} c="#4a4f55" m={0.5} /><P p={[0, 0.25, 0]} s={[0.84, 0.5, 0.54]} c="#2f6b8a" m={0.3} r={0.5} /><P p={[0, 0.56, 0]} s={[0.76, 0.06, 0.48]} c="#1c2226" />{[-0.4, 0.4].map(x => <P key={x} p={[x, 0.9, -0.24]} s={[0.04, 0.7, 0.04]} c="#4a4f55" m={0.5} />)}<P p={[0, 1.22, -0.24]} s={[0.84, 0.05, 0.1]} c="#4a4f55" m={0.5} /><C p={[0.2, 0.95, 0.0]} a={[0.015, 0.015, 0.5, 6]} c="#cfd4d8" m={0.7} rot={[0.5, 0, 0]} /></>;
-    case 'batteryCharger': return <><P p={[0, 0.45, 0]} s={[0.5, 0.9, 0.35]} c="#c8372b" m={0.3} r={0.5} /><P p={[0, 0.7, 0.18]} s={[0.36, 0.2, 0.02]} c="#222" /><mesh position={[0, 0.7, 0.195]}><planeGeometry args={[0.24, 0.1]} /><meshStandardMaterial color="#123" emissive="#3ad07a" emissiveIntensity={0.6} /></mesh>{[-0.12, 0.12].map(x => <C key={x} p={[x, 0.95, 0]} a={[0.03, 0.03, 0.08, 8]} c="#d8d8d8" m={0.7} />)}<P p={[0, 0.05, 0.1]} s={[0.56, 0.1, 0.5]} c="#333" m={0.5} /></>;
-    case 'engineStand': return <><P p={[0, 0.06, 0]} s={[1, 0.08, 0.1]} c="#c8372b" /><P p={[0, 0.06, 0]} s={[0.1, 0.08, 0.8]} c="#c8372b" /><C p={[0, 0.5, 0]} a={[0.05, 0.05, 0.9, 8]} c="#c8372b" /><P p={[0.25, 0.92, 0]} s={[0.4, 0.1, 0.1]} c="#c8372b" /><C p={[0.46, 0.92, 0]} a={[0.16, 0.16, 0.03, 16]} c="#666" m={0.6} rot={[0, 0, Math.PI / 2]} /></>;
-    case 'welder': return <><P p={[0, 0.5, 0]} s={[0.5, 0.45, 0.75]} c="#1f5fae" m={0.3} r={0.5} /><P p={[0, 0.74, 0.39]} s={[0.4, 0.28, 0.02]} c="#222" /><C p={[0.1, 0.8, 0.41]} a={[0.04, 0.04, 0.02, 12]} c="#ddd" m={0.6} rot={[Math.PI / 2, 0, 0]} /><C p={[0, 1.05, -0.2]} a={[0.11, 0.11, 0.6, 14]} c="#3f6b3a" m={0.4} r={0.4} /><P p={[0, 0.22, 0]} s={[0.55, 0.06, 0.85]} c="#333" m={0.5} />{[-0.22, 0.22].map(x => <C key={x} p={[x, 0.12, -0.3]} a={[0.12, 0.12, 0.05, 14]} c="#222" rot={[0, 0, Math.PI / 2]} />)}<mesh position={[0.3, 0.55, 0.2]} rotation={[0.4, 0, 0.9]}><torusGeometry args={[0.18, 0.015, 6, 16]} /><M c="#222" /></mesh></>;
-    case 'bender': return <><P p={[0, 0.45, 0]} s={[0.25, 0.9, 0.25]} c="#3a3d40" m={0.5} /><P p={[0, 0.03, 0]} s={[0.8, 0.06, 0.8]} c="#555" m={0.5} /><C p={[0, 0.95, 0]} a={[0.2, 0.2, 0.08, 20]} c="#d9962f" m={0.5} r={0.4} /><C p={[0.5, 0.98, 0]} a={[0.03, 0.03, 1.1, 8]} c="#3a3d40" m={0.6} rot={[0, 0, Math.PI / 2]} /><C p={[-0.3, 1.0, 0.15]} a={[0.02, 0.02, 0.9, 8]} c="#cfcfcf" m={0.7} rot={[Math.PI / 2, 0, 0.2]} /></>;
+    case 'partsWasher': return <>
+      <P p={[0, 0.88, -0.27]} s={[0.84, 0.63, 0.035]} c="#446576" map={T.red} m={0.38} />
+      {[-0.41, 0.41].map(x => <P key={x} p={[x, 0.61, 0]} s={[0.055, 0.14, 0.58]} c="#466572" m={0.5} />)}
+      <P p={[0, 0.61, 0.27]} s={[0.86, 0.14, 0.045]} c="#466572" m={0.45} />
+      {Array.from({ length: 11 }, (_, i) => <C key={i} p={[-0.32+i*0.064, 0.61, 0]} a={[0.006, 0.006, 0.43, 6]} rot={[Math.PI/2,0,0]} c="#96948c" m={0.75} />)}
+<P p={[0, 0.5, 0]} s={[0.9, 0.08, 0.6]} c="#4a4f55" m={0.5} /><P p={[0, 0.25, 0]} s={[0.84, 0.5, 0.54]} c="#2f6b8a" m={0.3} r={0.5} /><P p={[0, 0.56, 0]} s={[0.76, 0.06, 0.48]} c="#1c2226" />{[-0.4, 0.4].map(x => <P key={x} p={[x, 0.9, -0.24]} s={[0.04, 0.7, 0.04]} c="#4a4f55" m={0.5} />)}<P p={[0, 1.22, -0.24]} s={[0.84, 0.05, 0.1]} c="#4a4f55" m={0.5} /><C p={[0.2, 0.95, 0.0]} a={[0.015, 0.015, 0.5, 6]} c="#cfd4d8" m={0.7} rot={[0.5, 0, 0]} /></>;
+    case 'batteryCharger': return <>
+      {Array.from({length:7},(_,i) => <P key={i} p={[0,0.28+i*0.039,0.178]} s={[0.34,0.012,0.012]} c="#372f2b" />)}
+      {[-1,1].map(side => <group key={side} position={[side*0.255,0.55,0]}>
+        <mesh rotation={[0,Math.PI/2,0]} scale={[0.73,1.5,1]}><torusGeometry args={[0.13,0.012,7,28]} /><M c="#282b2b" /></mesh>
+        <P p={[side*0.014,-0.12,0.074]} s={[0.038,0.13,0.042]} rot={[0.18,0,0]} c={side>0?'#85392d':'#343738'} />
+      </group>)}
+<P p={[0, 0.45, 0]} s={[0.5, 0.9, 0.35]} c="#c8372b" m={0.3} r={0.5} /><P p={[0, 0.7, 0.18]} s={[0.36, 0.2, 0.02]} c="#222" /><mesh position={[0, 0.7, 0.195]}><planeGeometry args={[0.24, 0.1]} /><meshStandardMaterial color="#123" emissive="#3ad07a" emissiveIntensity={0.6} /></mesh>{[-0.12, 0.12].map(x => <C key={x} p={[x, 0.95, 0]} a={[0.03, 0.03, 0.08, 8]} c="#d8d8d8" m={0.7} />)}<P p={[0, 0.05, 0.1]} s={[0.56, 0.1, 0.5]} c="#333" m={0.5} /></>;
+    case 'engineStand': return <>
+      {[-0.43,0.43].map(x => <C key={x} p={[x,0.057,0]} a={[0.055,0.055,0.055,12]} rot={[Math.PI/2,0,0]} c="#252828" />)}
+      <P p={[0.05,0.4,0.19]} s={[0.064,0.75,0.064]} rot={[-0.48,0,0]} c="#923e32" m={0.4} />
+<P p={[0, 0.06, 0]} s={[1, 0.08, 0.1]} c="#c8372b" /><P p={[0, 0.06, 0]} s={[0.1, 0.08, 0.8]} c="#c8372b" /><C p={[0, 0.5, 0]} a={[0.05, 0.05, 0.9, 8]} c="#c8372b" /><P p={[0.25, 0.92, 0]} s={[0.4, 0.1, 0.1]} c="#c8372b" /><C p={[0.46, 0.92, 0]} a={[0.16, 0.16, 0.03, 16]} c="#666" m={0.6} rot={[0, 0, Math.PI / 2]} /></>;
+    case 'welder': return <>
+      {Array.from({length:6},(_,i) => <P key={i} p={[0,0.33+i*0.045,0.377]} s={[0.34,0.014,0.009]} c="#1e3038" />)}
+      <C p={[0,1.39,-0.2]} a={[0.032,0.057,0.09,12]} c="#a68a50" m={0.65} />
+<P p={[0, 0.5, 0]} s={[0.5, 0.45, 0.75]} c="#1f5fae" m={0.3} r={0.5} /><P p={[0, 0.74, 0.39]} s={[0.4, 0.28, 0.02]} c="#222" /><C p={[0.1, 0.8, 0.41]} a={[0.04, 0.04, 0.02, 12]} c="#ddd" m={0.6} rot={[Math.PI / 2, 0, 0]} /><C p={[0, 1.05, -0.2]} a={[0.11, 0.11, 0.6, 14]} c="#3f6b3a" m={0.4} r={0.4} /><P p={[0, 0.22, 0]} s={[0.55, 0.06, 0.85]} c="#333" m={0.5} />{[-0.22, 0.22].map(x => <C key={x} p={[x, 0.12, -0.3]} a={[0.12, 0.12, 0.05, 14]} c="#222" rot={[0, 0, Math.PI / 2]} />)}<mesh position={[0.3, 0.55, 0.2]} rotation={[0.4, 0, 0.9]}><torusGeometry args={[0.18, 0.015, 6, 16]} /><M c="#222" /></mesh></>;
+    case 'bender': return <>
+      {[-0.31,0.31].flatMap(x => [-0.31,0.31].map(z => <C key={x+':'+z} p={[x,0.074,z]} a={[0.029,0.029,0.028,6]} c="#96948c" m={0.77} />))}
+      <C p={[0.93,0.98,0]} a={[0.042,0.042,0.24,12]} rot={[0,0,Math.PI/2]} c="#232728" />
+<P p={[0, 0.45, 0]} s={[0.25, 0.9, 0.25]} c="#3a3d40" m={0.5} /><P p={[0, 0.03, 0]} s={[0.8, 0.06, 0.8]} c="#555" m={0.5} /><C p={[0, 0.95, 0]} a={[0.2, 0.2, 0.08, 20]} c="#d9962f" m={0.5} r={0.4} /><C p={[0.5, 0.98, 0]} a={[0.03, 0.03, 1.1, 8]} c="#3a3d40" m={0.6} rot={[0, 0, Math.PI / 2]} /><C p={[-0.3, 1.0, 0.15]} a={[0.02, 0.02, 0.9, 8]} c="#cfcfcf" m={0.7} rot={[Math.PI / 2, 0, 0.2]} /></>;
     case 'computer': return <><P p={[0, 0.74, 0]} s={[1.6, 0.05, 0.8]} map={T.newWood} />{[-0.7, 0.7].map(x => <P key={x} p={[x, 0.37, 0]} s={[0.06, 0.74, 0.7]} c="#5b4630" />)}<P p={[0.1, 1.0, -0.1]} s={[0.5, 0.42, 0.42]} c="#d8d2bc" /><mesh position={[0.1, 1.0, 0.115]}><planeGeometry args={[0.38, 0.29]} /><meshStandardMaterial color="#123" emissive="#3ad07a" emissiveIntensity={0.5} /></mesh><P p={[-0.35, 0.79, 0.12]} s={[0.45, 0.035, 0.16]} c="#d8d2bc" /><C p={[0.6, 0.83, 0.15]} a={[0.04, 0.04, 0.12, 10]} c="#f2f2e8" /><P p={[0, 0.45, 0.6]} s={[0.5, 0.06, 0.45]} c="#2b2b2b" /><C p={[0, 0.22, 0.6]} a={[0.03, 0.03, 0.44, 6]} c="#555" m={0.5} /></>;
     case 'couch': return <><P p={[0, 0.22, 0]} s={[2, 0.3, 0.85]} c="#6b5a3a" /><P p={[0, 0.65, -0.35]} s={[2, 0.6, 0.18]} c="#6b5a3a" />{[-0.48, 0.48].map(x => <P key={x} p={[x, 0.44, 0.04]} s={[0.92, 0.14, 0.72]} c="#7a6844" />)}{[-0.95, 0.95].map(x => <P key={x} p={[x, 0.5, 0]} s={[0.16, 0.5, 0.85]} c="#5a4a30" />)}<P p={[0.6, 0.46, 0.1]} s={[0.3, 0.02, 0.25]} c="#c8a46a" rot={[0, 0.4, 0]} /></>;
     case 'neon': return <><P p={[0, 1.6, 0]} s={[1.4, 0.55, 0.06]} c="#1a1010" /><mesh position={[0, 1.6, 0.04]}><planeGeometry args={[1.2, 0.4]} /><meshStandardMaterial color="#ff4a6a" emissive="#ff2a5a" emissiveIntensity={2.4} /></mesh><C p={[0, 0.65, 0]} a={[0.04, 0.04, 1.3, 6]} c="#555" /></>;

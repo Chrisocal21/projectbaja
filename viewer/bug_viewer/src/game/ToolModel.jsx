@@ -1,12 +1,13 @@
+import { brushedFinish, matteFinish } from '../worlds/shopFinishes.js';
 // First-person hand tools. Sizes are in metres, with the grip near the origin.
 import React from 'react';
 import * as THREE from 'three';
 import { CANS } from '../finishJobs.js';
 
-const metal = <meshStandardMaterial color="#aeb6ba" metalness={0.88} roughness={0.29} />;
-const edge = <meshStandardMaterial color="#717d81" metalness={0.82} roughness={0.36} />;
-const rubber = <meshStandardMaterial color="#25292b" roughness={0.84} />;
-const red = <meshStandardMaterial color="#a93228" metalness={0.42} roughness={0.52} />;
+const metal = <meshStandardMaterial color="#aeb6ba" roughnessMap={brushedFinish} metalness={0.88} roughness={0.29} />;
+const edge = <meshStandardMaterial color="#717d81" roughnessMap={brushedFinish} metalness={0.82} roughness={0.36} />;
+const rubber = <meshStandardMaterial color="#25292b" roughnessMap={matteFinish} roughness={0.84} />;
+const red = <meshStandardMaterial color="#a93228" roughnessMap={matteFinish} metalness={0.42} roughness={0.52} />;
 const skin = <meshStandardMaterial color="#a9785b" roughness={0.92} />;
 const sleeve = <meshStandardMaterial color="#474e4b" roughness={0.98} />;
 
@@ -25,7 +26,7 @@ const shank = (() => {
 })();
 const forged = { depth: 0.013, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2, steps: 1 };
 
-function Wrench() {
+export function Wrench() {
   return <group rotation={[0, 0, -0.12]}>
     <mesh position={[0, 0, -0.0065]} castShadow><extrudeGeometry args={[shank, forged]} />{metal}</mesh>
     <mesh position={[0, 0, -0.0065]} castShadow><extrudeGeometry args={[jaw, forged]} />{metal}</mesh>
@@ -35,7 +36,7 @@ function Wrench() {
   </group>;
 }
 
-function Jack() {
+export function Jack() {
   return <group position={[-0.12, -0.03, -0.05]}>
     <mesh position={[0, -0.055, 0]} castShadow><boxGeometry args={[0.22, 0.07, 0.46]} />{red}</mesh>
     <mesh position={[0, -0.015, -0.08]} castShadow><boxGeometry args={[0.13, 0.075, 0.25]} />{red}</mesh>
