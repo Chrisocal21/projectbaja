@@ -97,9 +97,9 @@ export function stepBody(b, dims, ctl, env, dt) {
       const vc = V().copy(w).cross(tmpB.copy(cp).sub(c)).add(vel);
       const wf = V(0, 0, 1).applyQuaternion(o.wq); wf.addScaledVector(n, -wf.dot(n)).normalize();
       const wl = V().crossVectors(n, wf);
-      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : 1.1);
+      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : (env.rc ?? 0.95));
       const sa = vs / Math.max(Math.abs(vl), 0.8);   // tan of the slip angle (floored so it behaves at a standstill)
-      let Fy = -cap * Math.tanh(sa / (front ? 0.2 : 0.26));
+      let Fy = -cap * Math.tanh(sa / (front ? (env.fs ?? 0.14) : (env.rs ?? 0.14)));
       Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
       // longitudinal: engine (rear wheels), brakes (front-biased), handbrake (rear locks), rolling resistance
       let Fx = 0;

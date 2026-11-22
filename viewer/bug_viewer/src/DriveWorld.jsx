@@ -41,7 +41,7 @@ import { pad } from './game/gamepad.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
-const STEER_FADE = 0.035;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
+const STEER_FADE = 0.026;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
 const YAW_DAMP = 0.3;       // was 0.12: more yaw damping = fewer wobbles when you turn and let go
 const HALF = WORLD / 2 - 6;  // drivable limit
 export { terrainHeight } from './terrain.js';
@@ -249,7 +249,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
-    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip; psiFx: tire pressure (physics.json)
+    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.5;   // 1.5 = base off-road tire grip (was 1.25: more grip, Nov 21); psiFx: tire pressure (physics.json)
     const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * psiFx.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
@@ -262,7 +262,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
-    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)) / (1 + psiFx.steerLag));
+    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 11 : 10 - Math.min(3, Math.abs(st.v) * 0.1)) / (1 + psiFx.steerLag));
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;

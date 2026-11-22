@@ -41,7 +41,7 @@ test('a heavier car accelerates slower (engine force is fixed)', () => {
   assert.ok(heavy.v < light.v, JSON.stringify([light.v, heavy.v]));
 });
 test('side-slope tip angle: the caged (higher CG) car tips at a lower slope than the stock one', () => {
-  const tipSlope = extra => { for (let slope = 0.2; slope < 1.6; slope += 0.05) {
+  const tipSlope = extra => { for (let slope = 0.2; slope < 1.6; slope += 0.02) {
     const d = { ...dims, ...extra }, b = createBody(d, { v: 0 }), env = { height: x => x * slope, mu: 5, rr: 1, ACC: 11, MAXV: 40, DRG: 0.01 };
     for (let i = 0; i < 6 * 120; i++) stepBody(b, d, { throttle: 0, brake: true, steer: 0 }, env, 1 / 120);
     if (readBody(b).upY < 0.8) return slope; } return 9; };

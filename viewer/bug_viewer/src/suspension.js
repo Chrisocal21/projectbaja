@@ -11,9 +11,9 @@ export function suspensionConfig(dims) {
   return {
     compression: dims.offroad ? 0.42 : 0.15,   // long-travel offroad suspension: landings are absorbed by springs, not by a hard stop
     droop: dims.offroad ? 0.26 : 0.14,
-    stiffness: dims.offroad ? 17000 : 34000,
+    stiffness: dims.offroad ? 12000 : 34000,
     damping: dims.offroad ? 3400 : 3000,
-    antiRoll: dims.offroad ? 14000 : 18000,
+    antiRoll: dims.offroad ? 17000 : 18000,
   };
 }
 
