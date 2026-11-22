@@ -227,7 +227,7 @@ export function placeProp(id, x, z, ry, mat) {
   }
   const m = item.struct ? (mat || DEFAULT_MAT) : undefined, price = item.struct ? piecePrice(id, m) : item.price;
   const free = creative(); if (!free) addCash(-price, `Built: ${item.name}`);
-  game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : {}) }];
+  game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry, ...(m ? { mat: m } : {}), ...(free ? { free: true } : { paid: price }) }];
   game.propsV = (game.propsV || 0) + 1; save(); say(`Built: ${item.name}${m ? `, ${matName(m).toLowerCase()}` : ''} (${free ? 'creative: free' : `−$${price}`})`); return true;
 }
 /** nearest cut doorway to a world point: { key, d } or null */

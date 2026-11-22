@@ -26,3 +26,7 @@ test('unstore never collides with an existing uid', () => {
 test('old save without home.stored reads as empty', () => {
   assert.deepEqual(storedOf({ cleared: [] }), []); assert.deepEqual(storedOf(undefined), []);
 });
+
+test('a refund is what you paid, even if the price has changed since; old props fall back to the price', () => {
+  assert.equal(refundOf({ paid: 90 }, 140), 90); assert.equal(refundOf({}, 140), 140); assert.equal(refundOf({ free: true, paid: 90 }, 140), 0); assert.equal(refundOf({ paid: 0 }, 140), 0);
+});

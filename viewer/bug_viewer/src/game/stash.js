@@ -1,7 +1,7 @@
 // Pure helpers for selling / storing garage props (Stage 4a). home.js wraps these with game state, cash and placement rules.
 export const storedOf = home => home?.stored || [];
 /** 100% back (canon #024); props built in creative mode (free:true) refund nothing */
-export const refundOf = (p, price) => (p.free ? 0 : Math.round(price));
+export const refundOf = (p, price) => (p.free ? 0 : typeof p.paid === 'number' ? p.paid : Math.round(price));   // what you PAID comes back (p.paid), so a later price change never changes a refund; old props with no record fall back to today's price
 /** which starter-fixture version is already seeded: sold fixtures are never re-seeded because fixturesV stays at 2 */
 export const seededV = home => home.fixturesV ?? (home.fixtures ? 1 : 0);
 export function storeMove(props, stored, uid) {
