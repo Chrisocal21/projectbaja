@@ -200,7 +200,7 @@ const ROAD_LOOK = {
 };
 
 /** ?realmap: the real highways (county.js highways()), drawn in 400 m pieces only near the player; two shared materials */
-const HW_VIEW = 1800, HW_PIECE = 100;
+const HW_VIEW = 1300, HW_PIECE = 100;   // roads vanish with the rest of the scenery, not at the horizon
 /** far pieces (lod 1) use every 3rd point and 2 strips across instead of 6: about a ninth of the triangles, and you cannot tell from 450 m */
 const hwRows = (a, b, lod) => { const ks = []; for (let k = a; k < b; k += lod ? 3 : 1) ks.push(k); ks.push(b); return ks; };
 function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
@@ -279,11 +279,11 @@ function HighwayRibbons({ connections }) {
     tick.current += dt; if (tick.current < 0.2) return; tick.current = 0;
     const started = perfStart();
     const p = game.onFoot ? camera.position : game.pos, g = group.current, map = pieces.current; let built = 0;
-    const view = Math.min(HW_VIEW, 750 + 1050 * dayPhase(clockHour()));
+    const view = Math.min(HW_VIEW, 600 + 700 * dayPhase(clockHour()));
     for (const s of list) {
       const d = Math.hypot(s.cx - p.x, s.cz - p.z) - s.rad, have = map.get(s.key);
-      const lod = d > 450 ? 1 : 0;   // far: coarse road, no shoulder strip (a piece is rebuilt in detail when you get within 350 m)
-      if (have && have.userData.lod && d < 350 && built < 6) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); built++; }
+      const lod = d > 380 ? 1 : 0;   // far: coarse road, no shoulder strip (a piece is rebuilt in detail when you get within 350 m)
+      if (have && have.userData.lod && d < 300 && built < 6) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); built++; }
       if (d < view && !map.has(s.key) && built < 6) {
         const piece = new THREE.Group(); piece.userData.lod = lod;
         if (!lod) { const shoulder = new THREE.Mesh(hwShoulderGeometry(s, H), mats.shoulder); shoulder.receiveShadow = true; shoulder.renderOrder = -1; piece.add(shoulder); }
@@ -291,7 +291,7 @@ function HighwayRibbons({ connections }) {
         road.receiveShadow = true; road.renderOrder = (s.r.kind === 'major' ? 4 : s.r.kind === 'secondary' ? 3 : s.r.kind === 'ramp' ? 2 : 1) + (1 - s.r.index / H.roads.length); piece.add(road);
         g.add(piece); map.set(s.key, piece); built++;
       }
-      else if (d > view + 400 && have) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); }
+      else if (d > view + 150 && have) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); }
     }
     if (built === 6) tick.current = 0.2;   // more to build: come straight back next frame
     perfEnd('road stream frame', started);
@@ -304,6 +304,15 @@ function HighwayJunctionSurfaces({ connections }) {
   const chunks = useMemo(() => {
     const groups = new Map();
     for (const node of connections.junctions) {
+/** shows its children only while the player is within r metres of a grid cell ('ix,iz' of `size` m): far junctions cost no draw calls */
+function NearGate({ cell, size, r, children }) {
+  const g = useRef(), { camera } = useThree(), tick = useRef(0), [ix, iz] = cell.split(',').map(Number), cx = (ix + 0.5) * size, cz = (iz + 0.5) * size;
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 0.3 || !g.current) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos; g.current.visible = Math.hypot(p.x - cx, p.z - cz) < r + size * 0.71;
+  });
+  return <group ref={g}>{children}</group>;
+}
       const key = `${Math.floor(node.center.x / 800)},${Math.floor(node.center.z / 800)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(node);
@@ -370,11 +379,11 @@ function HighwayJunctionSurfaces({ connections }) {
     }
     material.map?.dispose(); material.dispose(); mouthMaterial.map?.dispose(); mouthMaterial.dispose(); shoulderMaterial.map?.dispose(); shoulderMaterial.dispose();
   }, [chunks, material, mouthMaterial, shoulderMaterial]);
-  return <>{chunks.map(({ key, geometry, mouthGeometry, mouthShoulderGeometry }) => <React.Fragment key={key}>
+  return <>{chunks.map(({ key, geometry, mouthGeometry, mouthShoulderGeometry }) => <NearGate key={key} cell={key} size={800} r={1500}>
     {mouthShoulderGeometry.index.count > 0 && <mesh geometry={mouthShoulderGeometry} material={shoulderMaterial} renderOrder={-2} receiveShadow />}
     {mouthGeometry.index.count > 0 && <mesh geometry={mouthGeometry} material={mouthMaterial} renderOrder={0} receiveShadow />}
     {geometry.index.count > 0 && <mesh geometry={geometry} material={material} renderOrder={3} receiveShadow />}
-  </React.Fragment>)}</>;
+  </NearGate>)}</>;
 }
 
 /** ?realmap: STOP signs, street lights and dead-end signs at the real junctions (worlds/junctions.js); all instanced, one draw call per part */
