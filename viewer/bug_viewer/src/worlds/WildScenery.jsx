@@ -46,19 +46,37 @@ function Trees() {
 /** one translucent ribbon per creek, at the water level the creek's own points carry */
 function Water() {
   const group = useRef(), { camera } = useThree(), tick = useRef(0);
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4d7f93', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.68, depthWrite: false, side: THREE.DoubleSide }), []);
+  const uTime = useRef({ value: 0 });
+  const mat = useMemo(() => {   // flowing water: moving ripple streaks along the creek, foam at the banks (all in the shader; the geometry carries across / along coordinates)
+    const m = new THREE.MeshStandardMaterial({ color: '#4d7f93', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.68, depthWrite: false, side: THREE.DoubleSide });
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uTime = uTime.current;
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', 'attribute vec2 aFlow;\nvarying vec2 vFlow;\n#include <common>').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFlow = aFlow;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', 'uniform float uTime;\nvarying vec2 vFlow;\n#include <common>').replace('#include <color_fragment>', `#include <color_fragment>
+        float xa = vFlow.x * 6.0, ya = vFlow.y;
+        float r1 = sin(ya * 0.9 - uTime * 2.4 + sin(xa * 1.7 + uTime * 0.7) * 1.4) * 0.5 + 0.5;
+        float r2 = sin(ya * 2.3 - uTime * 3.6 + xa * 2.9) * 0.5 + 0.5;
+        float streak = smoothstep(0.62, 0.9, r1 * r2);
+        float foam = smoothstep(0.78, 0.98, abs(vFlow.x)) * (0.55 + 0.45 * sin(ya * 1.3 - uTime * 2.0));
+        diffuseColor.rgb = mix(diffuseColor.rgb * 0.92, vec3(0.82, 0.93, 0.98), clamp(streak * 0.5 + foam * 0.7, 0.0, 0.85));
+        diffuseColor.a = min(1.0, diffuseColor.a + streak * 0.18 + foam * 0.25);`);
+    };
+    return m;
+  }, []);
   const meshes = useMemo(() => wildCreeks().map(c => {
-    const pos = [], idx = [], n = c.pts.length, half = c.hw * 1.9;
+    const pos = [], idx = [], flow = [], n = c.pts.length, half = c.hw * 1.9; let along = 0;
     c.pts.forEach((q, i) => {
       const a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, px = -dz / l, pz = dx / l;
-      pos.push(q[0] + px * half, q[2] + 0.02, q[1] + pz * half, q[0] - px * half, q[2] + 0.02, q[1] - pz * half);
+      if (i) along += Math.hypot(q[0] - c.pts[i - 1][0], q[1] - c.pts[i - 1][1]);
+      pos.push(q[0] + px * half, q[2] + 0.02, q[1] + pz * half, q[0] - px * half, q[2] + 0.02, q[1] - pz * half); flow.push(1, along, -1, along);
       if (i) { const k = (i - 1) * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
     });
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
     const m = new THREE.Mesh(g, mat); m.renderOrder = 3; m.visible = false; m.userData.c = c.pts[Math.floor(n / 2)]; m.userData.r = g.boundingSphere.radius; return m;
   }), [mat]);
   useEffect(() => { const g = group.current; meshes.forEach(m => g.add(m)); return () => { meshes.forEach(m => { g.remove(m); m.geometry.dispose(); }); mat.dispose(); }; }, [meshes, mat]);
   useFrame((_, dt) => {
+    uTime.current.value += dt;
     if ((tick.current += dt) < 0.4) return; tick.current = 0;
     const p = game.onFoot ? camera.position : game.pos;
     for (const m of meshes) { const c = m.userData.c; m.visible = Math.hypot(c[0] - p.x, c[1] - p.z) < WATER_SEEN + m.userData.r; }
