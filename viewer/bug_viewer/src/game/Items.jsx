@@ -144,10 +144,13 @@ export default function Items() {
       const id = tool?.id || need; t.visible = game.onFoot && !!id && !game.buildMode;
       if (t.visible) {
         if (toolId.current !== id) { toolId.current = id; t.userData.id = id; }
-        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion), flat = new THREE.Vector3(fwd.x, 0, fwd.z).normalize(), side = new THREE.Vector3(-flat.z, 0, flat.x);
-        const working = !!game.holdBar, now = performance.now() / 1000, turn = working ? Math.sin(now * 11) * 0.55 : Math.sin(now * 1.4) * 0.03, reach = working ? 0.2 : 0;
-        t.position.copy(camera.position).addScaledVector(flat, 0.62 + reach).addScaledVector(side, 0.14); t.position.y -= 0.2 - (working ? 0.04 : 0); t.scale.setScalar(1.5);
-        t.rotation.order = 'YXZ'; t.rotation.set(-1.05 + (working ? -0.2 : 0), camera.rotation.y + 0.15, turn + (id === 'jack' ? 0 : -0.5));
+        const working = !!game.holdBar, now = performance.now() / 1000;
+        const turn = working ? Math.sin(now * 11) * 0.3 : Math.sin(now * 1.4) * 0.025;
+        const offset = id === 'jack' ? new THREE.Vector3(0.4, -0.31, -0.72) : new THREE.Vector3(0.34, -0.27, -0.72);
+        if (working) offset.z -= 0.13;
+        t.position.copy(camera.position).add(offset.applyQuaternion(camera.quaternion));
+        t.quaternion.copy(camera.quaternion); t.rotateX(-0.18); t.rotateY(-0.12); t.rotateZ(-0.33 + turn);
+        t.scale.setScalar(id === 'jack' ? 1.25 : 1.75);
       } } }
     const g = heldRef.current; if (!g) return;
     g.visible = game.onFoot && !!held() && held().kind !== 'tool' && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
