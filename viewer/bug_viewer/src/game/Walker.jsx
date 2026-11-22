@@ -142,7 +142,7 @@ export default function Walker({ world, sun }) {
     const s = st.current, dt = Math.min(rawDt, 0.05);
     if (game.paused || game.flyMode) return;
     if (pad.on && game.onFoot && (pad.lookX || pad.lookY)) { const [kx, ky] = lookScale(); s.yaw -= pad.lookX * dt * 2.6 * kx; s.pitch = Math.max(-1.3, Math.min(1.3, s.pitch - pad.lookY * dt * 2.0 * ky)); }   // right stick looks
-    if (game.teleportTo && game.onFoot) { const t = game.teleportTo; game.teleportTo = null; s.x = t.x; s.z = t.z; s.yaw = t.h + Math.PI; s.y = world.height(t.x, t.z) + 0.3; s.vx = s.vz = 0; }   // Admin > Races: go to a course
+    if (game.teleportTo && game.onFoot) { const t = game.teleportTo; game.teleportTo = null; s.x = t.x; s.z = t.z; if (!t.keepYaw) s.yaw = t.h + Math.PI; s.y = world.height(t.x, t.z) + 0.3; s.vx = s.vz = 0; }   // Admin > Races: go to a course
     if (game.onFoot) {
       if (!s.on) {   // just stepped out (or the scene was rebuilt): take the saved spot
         s.on = true; s.vx = s.vz = 0; s.pitch = 0;
