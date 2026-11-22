@@ -4,11 +4,11 @@ import { ENGINE_SLOTS, freshParts, removeBlock, fitBlock, missingOf, weakest, pa
 
 test('a fresh engine has every piece with a condition', () => {
   const p = freshParts(() => 0.5);
-  assert.equal(Object.keys(p).length, ENGINE_SLOTS.length);
-  assert.ok(Object.values(p).every(x => x.c >= 0 && x.c <= 100));
+  assert.equal(Object.keys(p).filter(k => k !== 't1').length, ENGINE_SLOTS.length);
+  assert.ok(ENGINE_SLOTS.every(s => p[s.id].c >= 0 && p[s.id].c <= 100));
   assert.deepEqual(missingOf(p), []);
 });
-test('an old engine with no parts field counts as complete', () => { assert.equal(Object.keys(partsOf({})).length, ENGINE_SLOTS.length); assert.equal(engineTag({}), ''); });
+test('an old engine with no parts field counts as complete', () => { assert.equal(Object.keys(partsOf({})).filter(k => k !== 't1').length, ENGINE_SLOTS.length); assert.equal(engineTag({}), ''); });
 test('the carburetor stays until the air cleaner is off', () => {
   const p = freshParts(() => 0.5);
   assert.match(removeBlock(p, 'carb'), /air cleaner/);
@@ -57,4 +57,21 @@ test('the engine check slots into startCheck after the battery and before the fu
   assert.match(startCheck({ battery: true, litres: 0, engine: bad }).why, /coil/);
   assert.match(startCheck({ battery: false, litres: 5, engine: bad }).why, /battery/);
   assert.match(startCheck({ battery: true, litres: 0, engine: { ok: true } }).why, /dry/);
+});
+import { upgradeParts, hasT1, T1_IDS } from './engineRules.js';
+test('Tier 1: the manifold sits under the carburetor, and the oil filter, valve covers and manifold are needed to start', () => {
+  const p = freshParts(() => 0.5); assert.equal(hasT1(p), true); assert.equal(T1_IDS.length, 4);
+  assert.match(removeBlock(p, 'intakeManifold'), /carburetor is in the way/);
+  delete p.airCleaner; delete p.carb; assert.equal(removeBlock(p, 'intakeManifold'), ''); delete p.intakeManifold;
+  assert.match(fitBlock(p, 'airCleaner'), /Fit the carburetor first/);
+  for (const [id, re] of [['intakeManifold', /intake manifold/], ['oilFilter', /oil filter/], ['valveCoverL', /left valve cover/], ['valveCoverR', /right valve cover/]]) {
+    const q = freshParts(() => 0.5); delete q[id]; assert.match(engineStartCheck(q).why, re);
+    const r = freshParts(() => 0.5); r[id].c = DEAD - 1; assert.match(engineStartCheck(r).why, re);
+  }
+});
+test('an engine from before Tier 1 still starts and is not shown missing pieces; the stand fits them', () => {
+  const old = { airCleaner: { c: 60 }, carb: { c: 60 }, coil: { c: 60 }, distributor: { c: 60 }, plugs: { c: 60 }, starter: { c: 60 }, fanBelt: { c: 60 }, alternator: { c: 60 }, exhaust: { c: 60 } };
+  assert.equal(engineStartCheck(old).ok, true); assert.deepEqual(missingOf(old), []);
+  const up = upgradeParts(old, () => 0.5); assert.equal(hasT1(up), true); assert.ok(T1_IDS.every(id => up[id].c > 0)); assert.equal(up.carb.c, 60);
+  assert.equal(upgradeParts(up), up);
 });

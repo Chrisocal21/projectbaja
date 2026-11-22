@@ -3,7 +3,7 @@
 // Data: core item { kind:'stock', id:'engine', onStand: standUid, parts: { slot: { c } } }; piece item { kind:'epart', id: slot, cond, onEngine: coreUid }.
 import { game, save, say } from './store.js';
 import { allocUid } from './saveFormat.js';
-import { ENGINE_SLOTS, slotOf, freshParts, removeBlock, fitBlock } from './engineRules.js';
+import { ENGINE_SLOTS, slotOf, freshParts, upgradeParts, removeBlock, fitBlock } from './engineRules.js';
 
 export const STAND_R = 1.5, MOUNT_S = 1.5, FIT_S = 1.0;
 const timers = new Map();
@@ -50,7 +50,7 @@ export function tickEngineStand(dt) {
       const t = (timers.get(m.uid) || 0) + dt; timers.set(m.uid, t);
       if (t < MOUNT_S) continue;
       timers.delete(m.uid);
-      eng.parts = eng.parts || freshParts(); eng.onStand = m.uid; placeAt(eng, { x: m.x, z: m.z, y: 0.5, ry: m.ry || 0 });
+      eng.parts = upgradeParts(eng.parts || freshParts()); eng.onStand = m.uid; placeAt(eng, { x: m.x, z: m.z, y: 0.5, ry: m.ry || 0 });
       for (const s of ENGINE_SLOTS) if (eng.parts[s.id]) game.items.push({ uid: uid(), kind: 'epart', id: s.id, loc: 'world', cond: eng.parts[s.id].c, grimy: !!eng.parts[s.id].g, onEngine: eng.uid, ...slotWorld(m, s.id) });
       say('The engine is on the stand. Take the pieces off one at a time; set them back beside it to refit.'); changed = true; continue;
     }

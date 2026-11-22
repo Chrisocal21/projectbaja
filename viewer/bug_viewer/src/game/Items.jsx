@@ -101,9 +101,10 @@ function StockItem({ id }) {
 
 /** a loose engine piece: a plain shape in its own colour (stand-in until real models exist) */
 function EnginePiece({ id }) {
-  const s = slotOf(id), c = s?.color || '#888', round = ['coil', 'distributor', 'alternator', 'starter', 'plugs'].includes(id);
+  const s = slotOf(id), c = s?.color || '#888', round = ['coil', 'distributor', 'alternator', 'starter', 'plugs', 'oilFilter'].includes(id);
   return round
     ? <mesh position={[0, 0.07, 0]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.16, 12]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.6} /></mesh>
+    : id === 'valveCoverL' || id === 'valveCoverR' ? <mesh position={[0, 0.04, 0]} castShadow><boxGeometry args={[0.38, 0.08, 0.14]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.7} /></mesh>
     : id === 'exhaust' ? <mesh position={[0, 0.07, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.05, 0.05, 0.5, 10]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.7} /></mesh>
     : id === 'fanBelt' ? <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.1, 0.012, 6, 16]} /><meshStandardMaterial color={c} roughness={0.9} /></mesh>
     : <mesh position={[0, 0.07, 0]} castShadow><boxGeometry args={[0.2, 0.14, 0.2]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.7} /></mesh>;

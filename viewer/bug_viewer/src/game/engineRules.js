@@ -13,7 +13,21 @@ export const ENGINE_SLOTS = [
   { id: 'alternator', name: 'Alternator', blockedBy: ['fanBelt'], at: [0.4, 0.86, -0.06], color: '#55595e' },
   { id: 'starter', name: 'Starter motor', blockedBy: [], at: [-0.36, 0.7, 0.18], color: '#3b4046' },
   { id: 'exhaust', name: 'Exhaust', blockedBy: [], at: [-0.1, 0.62, -0.36], color: '#7b6a55' },
+  // Tier 1 (standard workshop): the intake, the valve covers and the oil filter. Head gaskets and timing need the heads off: later.
+  { id: 'intakeManifold', name: 'Intake manifold', blockedBy: ['carb'], at: [0, 0.98, 0], color: '#8a8f94', tier: 1 },
+  { id: 'valveCoverL', name: 'Left valve cover', blockedBy: [], at: [-0.52, 0.8, -0.08], color: '#9a9488', tier: 1 },
+  { id: 'valveCoverR', name: 'Right valve cover', blockedBy: [], at: [0.58, 0.68, 0.1], color: '#9a9488', tier: 1 },
+  { id: 'oilFilter', name: 'Oil filter', blockedBy: [], at: [-0.3, 0.55, 0.3], color: '#2d5a8c', tier: 1 },
 ];
+/** an engine from before Tier 1 has no parts.t1 flag: it counts as having them (nothing is missing) until it goes on the stand, which fits them */
+export const hasT1 = parts => !!parts?.t1;
+export const T1_IDS = ENGINE_SLOTS.filter(s => s.tier === 1).map(s => s.id);
+export function upgradeParts(parts, rng = Math.random, base = 70) {
+  if (hasT1(parts)) return parts;
+  const o = { ...parts, t1: true };
+  for (const id of T1_IDS) o[id] = { c: Math.round(clamp(base + (rng() - 0.5) * 40)), g: 1 };
+  return o;
+}
 export const slotOf = id => ENGINE_SLOTS.find(s => s.id === id);
 const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 
@@ -21,6 +35,7 @@ const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 export function freshParts(rng = Math.random, base = 70) {
   const o = {};
   for (const s of ENGINE_SLOTS) o[s.id] = { c: Math.round(clamp(base + (rng() - 0.5) * 40)), g: 1 };   // g: grimy, its real condition can't be read until it is washed
+  o.t1 = true;
   return o;
 }
 /** the pieces that are on the engine (an engine without a parts field is complete) */
@@ -42,7 +57,7 @@ export function fitBlock(parts, slotId) {
   return b ? `The ${slotOf(b).name.toLowerCase()} is in the way: take it off first.` : '';
 }
 /** the pieces still missing, as names */
-export const missingOf = parts => ENGINE_SLOTS.filter(s => !parts?.[s.id]).map(s => s.name);
+export const missingOf = parts => ENGINE_SLOTS.filter(s => !parts?.[s.id] && !(s.tier === 1 && !hasT1(parts))).map(s => s.name);
 /** worst piece first: what to look at when it will not run. -> { id, name, c } | null */
 export function weakest(parts) {
   const on = ENGINE_SLOTS.filter(s => parts?.[s.id]).map(s => ({ id: s.id, name: s.name, c: parts[s.id].c }));
@@ -56,11 +71,16 @@ const NEEDS = [
   ['coil', 'There is no ignition coil on the engine: no spark.', 'The ignition coil is shot (%): no spark.'],
   ['distributor', 'There is no distributor on the engine: no spark gets to the plugs.', 'The distributor is shot (%): the spark goes nowhere.'],
   ['plugs', 'There are no spark plugs in the engine: no spark.', 'The spark plugs are fouled (%): they will not fire.'],
+  ['intakeManifold', 'There is no intake manifold: the carburetor has nothing to sit on and no air gets in.', 'The intake manifold is cracked (%): it sucks air and will not idle.', 1],
+  ['oilFilter', 'There is no oil filter: the oil would pump straight onto the floor.', 'The oil filter is clogged (%): the engine would starve for oil.', 1],
+  ['valveCoverL', 'The left valve cover is off: oil would spray everywhere.', 'The left valve cover is cracked (%): it pours oil.', 1],
+  ['valveCoverR', 'The right valve cover is off: oil would spray everywhere.', 'The right valve cover is cracked (%): it pours oil.', 1],
 ];
 /** can this engine start? parts: the engine's pieces (undefined = a complete engine). -> { ok, why } and the why names the piece */
 export function engineStartCheck(parts) {
   if (!parts) return { ok: true, why: '' };
-  for (const [id, missing, shot] of NEEDS) {
+  for (const [id, missing, shot, tier] of NEEDS) {
+    if (tier === 1 && !hasT1(parts)) continue;   // an engine from before Tier 1: its pieces get fitted when it goes on the stand
     if (!parts[id]) return { ok: false, why: missing };
     if (parts[id].c < DEAD) return { ok: false, why: shot.replace('%', Math.round(parts[id].c) + '%') };
   }
