@@ -212,11 +212,12 @@ export function createSuspensionVisual(mounts, lift = 0, coilovers = true) {
   const dark = new THREE.MeshStandardMaterial({ color: '#303438', metalness: 0.7, roughness: 0.45 });
   const chrome = new THREE.MeshStandardMaterial({ color: '#c4c8ce', metalness: 0.9, roughness: 0.22 });
   const red = new THREE.MeshStandardMaterial({ color: '#c83a25', metalness: 0.4, roughness: 0.4 });
+  const thick = coilovers ? 1.5 : 1, coilR = coilovers ? 0.085 : 0.062;   // the coilover kit has chunkier shocks, springs and arms: the wheels' long stroke reads from the side
   const points = Array.from({ length: 145 }, (_, i) => {
     const t = i / 144, a = t * Math.PI * 16;
-    return new THREE.Vector3(Math.cos(a) * 0.062, t, Math.sin(a) * 0.062);
+    return new THREE.Vector3(Math.cos(a) * coilR, t, Math.sin(a) * coilR);
   });
-  const springGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 144, 0.009, 6);
+  const springGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 144, coilovers ? 0.0135 : 0.009, 6);
   const makeTube = material => { const mesh = new THREE.Mesh(tube, material); root.add(mesh); return mesh; };
   const wheels = mounts.map(mount => {
     const anchors = suspensionAnchors(mount, lift);
@@ -238,7 +239,7 @@ export function createSuspensionVisual(mounts, lift = 0, coilovers = true) {
       return link;
     });
     const knuckle = makeTube(dark); knuckle.name = `${mount.name}_Knuckle`;
-    return { mount, anchors, shock, body, rod, spring, lowerEye, upperEye, links, knuckle, bodyLength: 0.22 };
+    return { mount, anchors, shock, body, rod, spring, lowerEye, upperEye, links, knuckle, bodyLength: 0.22, thick };
   });
   const front = mounts.find(m => m.name === 'FL');
   for (const dy of [-0.12, 0.07]) {
@@ -265,14 +266,14 @@ export function updateSuspensionVisual(root, hubs) {
     w.shock.position.copy(lower);
     w.shock.quaternion.setFromUnitVectors(UP, delta.normalize());
     const bodyLength = Math.min(w.bodyLength, length * 0.65);
-    w.body.position.y = length - bodyLength / 2; w.body.scale.set(0.036, bodyLength, 0.036);
-    w.rod.position.y = (length - bodyLength) / 2; w.rod.scale.set(0.015, length - bodyLength, 0.015);
+    w.body.position.y = length - bodyLength / 2; w.body.scale.set(0.036 * w.thick, bodyLength, 0.036 * w.thick);
+    w.rod.position.y = (length - bodyLength) / 2; w.rod.scale.set(0.015 * w.thick, length - bodyLength, 0.015 * w.thick);
     w.spring.position.y = 0.05; w.spring.scale.y = Math.max(0.01, length - 0.1);
     w.upperEye.position.y = length;
     w.links.forEach((link, i) => connect(link, w.anchors.pivots[i],
-      hub.clone().add(new THREE.Vector3(-inboard, i ? -0.1 : 0.05, 0)), i && w.mount.name.startsWith('R') ? 0.018 : 0.025));
+      hub.clone().add(new THREE.Vector3(-inboard, i ? -0.1 : 0.05, 0)), (i && w.mount.name.startsWith('R') ? 0.018 : 0.025) * w.thick));
     connect(w.knuckle, hub.clone().add(new THREE.Vector3(-inboard, -0.1, 0)),
-      hub.clone().add(new THREE.Vector3(-inboard, 0.05, 0)), 0.038);
+      hub.clone().add(new THREE.Vector3(-inboard, 0.05, 0)), 0.038 * w.thick);
   }
 }
 

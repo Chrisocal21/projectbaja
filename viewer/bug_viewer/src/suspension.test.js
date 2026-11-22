@@ -131,7 +131,7 @@ test('shock eyes, telescoping rod and suspension arms align at bump and droop wi
         const hub = hubs.find(h => h.name === w.mount.name).hub;
         near(w.lowerEye.getWorldPosition(new THREE.Vector3()).distanceTo(hub.clone().add(w.anchors.lowerOffset)), 0);
         assert.ok(Math.abs(w.anchors.lowerOffset.x) - (w.mount.halfWidth ?? 0.14) >= 0.08, 'spring must clear tire shoulder');
-        near(w.body.scale.x, 0.036); near(w.rod.scale.x, 0.015); near(w.spring.scale.x, 1);
+        near(w.body.scale.x, 0.036 * w.thick); near(w.rod.scale.x, 0.015 * w.thick); near(w.spring.scale.x, 1);
         near(w.body.position.y - w.body.scale.y / 2, w.rod.position.y + w.rod.scale.y / 2);
         w.links.forEach((link, i) => {
           const endpoint = new THREE.Vector3(0, -0.5, 0).applyMatrix4(link.matrixWorld);
