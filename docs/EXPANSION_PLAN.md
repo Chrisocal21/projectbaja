@@ -65,3 +65,10 @@ Plan diagram: viewer/bug_viewer/screenshots/garage_plan_0_3.png.
 Built: levels 1-3 to the rules above. L1: 2 new bays with back doors. L2: 4 new bays with back doors, epoxy. L3: 4 bays on a drive aisle, big east door, 3 car racks x 3 tiers (9 cars). Lifts snap to bay spots. Pegboard moves to the bench wall when the back wall opens.
 Decided: level 3 keeps 6 floor bays plus 9 rack spots for now (growing west past the office can be a later step). Cars reach the back doors around the east side, between the shop and the camper.
 Not yet: Walt's workbench still stands where it was (free-standing, move it by hand); doors are always open (no open/close); doorway through the office's back wall; benches/storage for the new floor.
+
+## Office levels plan (PROPOSED Nov 22, waiting for Chris to approve)
+Diagram: viewer/bug_viewer/screenshots/office_plan_0_3.png. The office grows into a new wing 4 m x 12 m west of the old office (x -17.2..-13.2, z -6..6; the existing annex stage lives inside it). It does not touch the garage extension (that starts at z -6.6, further west is the L3 west drive).
+- L1 customer office: wing with a customer door at the front, waiting seats, service counter in the widened (3 m) wall doorway, back room with a desk and files.
+- L2 parts counter: the back room becomes a parts room with shelves; parts counter plus supplier desk (faster orders).
+- L3 two-storey block: stair up in the wing; upstairs team room, race planning wall; a balcony through the old office's east wall over Walt's shop floor (3.1 m up).
+- Open: the apartment (living L3) shares the upstairs with the team room, or goes elsewhere. Chris to say.
