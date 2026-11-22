@@ -50,3 +50,6 @@ Water (`DriveWorld.jsx`): wading slows and cuts grip, spray, current pushes the 
 
 ## Garage expansion art (Nov 22, nothing built yet)
 Claude will build basic box buildings for garage levels 1-3, office levels 1-3 and a living quarters. When they exist, polish the look: steel-clad shop with roll-up doors (level 1), polished epoxy floor and light rows (level 2), open race warehouse with wall car racks (level 3), two-story office block with balcony. Plan: docs/EXPANSION_PLAN.md.
+
+### Garage expansion: rules now set (Claude, Nov 22)
+The extension behind Walt's garage (worlds/GarageExtension.jsx, layout data in worlds/garageLevels.js) now follows fixed rules, listed in docs/EXPANSION_PLAN.md "Expansion rules". When you polish the art, keep the layout as it is: door positions, bay spots, bench wall, aisle and racks come from garageLevels.js and are checked by tests. Look direction: new clean steel (not Walt's rust), white liner inside, steel beams, LED high-bays, flake epoxy at levels 2-3. Screenshots: viewer/bug_viewer/screenshots/garage_L*_*.png and garage_plan_0_3.png.
