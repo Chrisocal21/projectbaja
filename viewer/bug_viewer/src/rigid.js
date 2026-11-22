@@ -2,6 +2,7 @@
 // and a body shell that rests on the ground when the wheels cannot. Nothing is faked per axis (no separate pitch / roll angles), so a car that leaves
 // the ground tumbles like a car, lands on whatever hits first, slides to a stop on its side or roof, and cannot spin forever or stick in a pose.
 // Pure (no React): runs in node for the tests. Axes in body space: +x = the car's left, +y = up, +z = forward. The body origin sits on the ground between the tires.
+import { createEngine, stepEngine, splitDrive } from './drivetrain.js';
 import * as THREE from 'three';
 import { wheelSteerAngle } from './suspension.js';
 
@@ -80,6 +81,10 @@ export function stepBody(b, dims, ctl, env, dt) {
   }
   // ---- tires: spring load pushes along the ground normal; friction acts in the ground plane inside one friction circle ----
   let contacts = 0, slipMax = 0, loadSum = 0;
+  // drivetrain: engine + gearbox + heat (drivetrain.js), then the differential splits the drive force over the two rear wheels by how much each can grip
+  const eng = b.eng ??= createEngine(), driven = info.filter(o => o.m.name.startsWith('R')), rearR = driven[0]?.m.radius ?? 0.38;
+  const Ftot = stepEngine(eng, ctl, speed, rearR, env.MAXV, MASS * ACC, dt), capOf = o => o.touching ? mu * clamp(o.N, 0, 90000) * 1.1 : 0, Fd = {};
+  if (Ftot > 0 && driven.length === 2) { const [a, c2] = splitDrive(Ftot, capOf(driven[0]), capOf(driven[1]), env.diff); Fd[driven[0].m.name] = a; Fd[driven[1].m.name] = c2; }
   b.wheels = info.map(o => {
     const { m } = o;
     const hubW = o.nominal.clone().addScaledVector(up, o.touching ? o.x : -cfg.droop);
@@ -99,7 +104,7 @@ export function stepBody(b, dims, ctl, env, dt) {
       // longitudinal: engine (rear wheels), brakes (front-biased), handbrake (rear locks), rolling resistance
       let Fx = 0;
       const throttle = ctl.throttle, braking = throttle < 0 && speed > 0.5;
-      if (!front && throttle > 0) Fx += MASS * ACC * Math.max(0, 1 - (speed / env.MAXV) ** 2) * throttle / 2;
+      if (!front && throttle > 0) Fx += Fd[m.name] || 0;
       if (!front && throttle < 0 && !braking) Fx -= MASS * ACC * 0.45 * (speed > -9 ? 1 : 0) / 2;
       const sgn = clamp(vl / 0.5, -1, 1);
       if (braking) Fx -= sgn * M * 22 * (front ? 0.65 : 0.35) / 2;
@@ -161,6 +166,7 @@ export function readBody(b, out = {}) {
   const q = b.q, fwd = V(0, 0, 1).applyQuaternion(q), left = V(1, 0, 0).applyQuaternion(q), up = V(0, 1, 0).applyQuaternion(q);
   const o = bodyOrigin(b, V());
   out.x = o.x; out.y = o.y; out.z = o.z;
+  if (b.eng) { out.gear = b.eng.gear; out.rpm = b.eng.rpm; out.engTemp = b.eng.temp; out.engHot = b.eng.hot; out.engDamage = b.eng.damage; out.engDerate = b.eng.derate; }
   if (Math.hypot(fwd.x, fwd.z) > 0.25) out.h = Math.atan2(fwd.x, fwd.z);
   const sh = Math.sin(out.h || 0), ch = Math.cos(out.h || 0);
   out.v = b.vel.x * sh + b.vel.z * ch; out.lateralV = b.vel.x * ch - b.vel.z * sh;

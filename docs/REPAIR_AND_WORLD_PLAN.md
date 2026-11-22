@@ -246,3 +246,9 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 - Surfaces now use real grip and rolling-resistance coefficients (sand bogs at street pressure; aired down it floats). Tire pressure is `game.home.tirePsi` (Admin > Cash/time buttons for now; real UI is Chris's call).
 - Taking parts off now needs a tool in hand (`toolInHand()` in game/items.js), like a build hammer; empty hands open doors and sit.
 - Not done yet: engine torque curve/gears/diff, heat, stress/failure, diagnosis/tune-up/torque-spec procedures (lesson-plan Steps 5-8).
+
+## Drivetrain pass (Nov 21): torque curve, gears, differential, heat (drivetrain.js)
+- Engine torque curve, 5 auto gears, final drive solved from the vehicle's top speed, tire radius acts as gearing (data in catalog/physics.json `engine`). Thrust is scaled so the default car keeps its old pace (0-60 about 5.6 s); the curve and gears shape it.
+- Differential (open / lsd / locker, `game.home.diff`, Admin > Cash/time): drive force is split by how much each rear wheel can grip. One wheel in the air: open stalls, locker drives (tested).
+- Heat: rises with load, falls with road speed and the fan; warning at 110 C, power derate 120-140 C, damage above 140 C (`engDamage` 0-1, not yet tied to a part's condition). HUD shows gear, rpm and the warning.
+- Next: wire engine damage/stress to part condition (wear and failure), stalling, a real oil level, clutch.

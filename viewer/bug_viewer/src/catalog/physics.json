@@ -2,37 +2,205 @@
   "_note": "Real-world inputs for the drive sim. Every number is an [estimate] (typical range from general knowledge, from docs/realism lesson plan) until someone checks it against a named source (Gillespie, Milliken, Bentley/Haynes) and re-tags it verified. SI units: kg, m, N. Tire pressure in psi.",
   "vehicle": {
     "bug": {
-      "baseMassKg": 820, "baseCgHeightM": 0.5, "baseFrontFraction": 0.42,
+      "baseMassKg": 820,
+      "baseCgHeightM": 0.5,
+      "baseFrontFraction": 0.42,
       "_source": "[estimate] stock air-cooled Bug-class curb mass 750-850 kg, CG ~0.5 m, ~40/60 front/rear split. baseFrontFraction is how far from the rear axle toward the front axle the CG sits (0.42 = 42% of wheelbase)",
       "partMass": {
-        "rollCage":    { "kg": 55, "y": 0.95, "z": -0.1 },
-        "roofRack":    { "kg": 14, "y": 1.5,  "z": -0.1 },
-        "roofLights":  { "kg": 6,  "y": 1.55, "z": 0.1 },
-        "rearCarrier": { "kg": 38, "y": 0.85, "z": -1.9 },
-        "frontBumper": { "kg": 18, "y": 0.45, "z": 2.0 },
-        "rearBumper":  { "kg": 22, "y": 0.5,  "z": -2.0 },
-        "fenderTubes": { "kg": 16, "y": 0.6,  "z": 0 },
-        "rockers":     { "kg": 14, "y": 0.3,  "z": 0 },
-        "skid":        { "kg": 12, "y": 0.2,  "z": 0.3 },
-        "suspension":  { "kg": 20, "y": 0.4,  "z": 0 },
-        "shocks":      { "kg": 12, "y": 0.5,  "z": 0 },
-        "frontLights": { "kg": 5,  "y": 0.6,  "z": 2.0 },
-        "rearLights":  { "kg": 4,  "y": 0.9,  "z": -2.0 }
+        "rollCage": {
+          "kg": 55,
+          "y": 0.95,
+          "z": -0.1
+        },
+        "roofRack": {
+          "kg": 14,
+          "y": 1.5,
+          "z": -0.1
+        },
+        "roofLights": {
+          "kg": 6,
+          "y": 1.55,
+          "z": 0.1
+        },
+        "rearCarrier": {
+          "kg": 38,
+          "y": 0.85,
+          "z": -1.9
+        },
+        "frontBumper": {
+          "kg": 18,
+          "y": 0.45,
+          "z": 2
+        },
+        "rearBumper": {
+          "kg": 22,
+          "y": 0.5,
+          "z": -2
+        },
+        "fenderTubes": {
+          "kg": 16,
+          "y": 0.6,
+          "z": 0
+        },
+        "rockers": {
+          "kg": 14,
+          "y": 0.3,
+          "z": 0
+        },
+        "skid": {
+          "kg": 12,
+          "y": 0.2,
+          "z": 0.3
+        },
+        "suspension": {
+          "kg": 20,
+          "y": 0.4,
+          "z": 0
+        },
+        "shocks": {
+          "kg": 12,
+          "y": 0.5,
+          "z": 0
+        },
+        "frontLights": {
+          "kg": 5,
+          "y": 0.6,
+          "z": 2
+        },
+        "rearLights": {
+          "kg": 4,
+          "y": 0.9,
+          "z": -2
+        }
       }
     }
   },
   "surfaces": {
     "_source": "[estimate] grip = peak friction coefficient, rrCoef = rolling resistance coefficient (force = rrCoef x load). Ranges from the realism lesson plan. 'pavement' and 'gravel' are listed for the planned roads and trails; the current world draws dirt, sand, rock and mud.",
-    "pavement": { "name": "Pavement",    "grip": 0.95, "rrCoef": 0.013, "soft": 0 },
-    "dirt":     { "name": "Packed dirt", "grip": 0.72, "rrCoef": 0.03,  "soft": 0.2 },
-    "gravel":   { "name": "Gravel",      "grip": 0.5,  "rrCoef": 0.07,  "soft": 0.4 },
-    "sand":     { "name": "Loose sand",  "grip": 0.45, "rrCoef": 0.2,   "soft": 1 },
-    "mud":      { "name": "Mud",         "grip": 0.3,  "rrCoef": 0.12,  "soft": 0.8 },
-    "rock":     { "name": "Rock",        "grip": 0.8,  "rrCoef": 0.04,  "soft": 0 }
+    "pavement": {
+      "name": "Pavement",
+      "grip": 0.95,
+      "rrCoef": 0.013,
+      "soft": 0
+    },
+    "dirt": {
+      "name": "Packed dirt",
+      "grip": 0.72,
+      "rrCoef": 0.03,
+      "soft": 0.2
+    },
+    "gravel": {
+      "name": "Gravel",
+      "grip": 0.5,
+      "rrCoef": 0.07,
+      "soft": 0.4
+    },
+    "sand": {
+      "name": "Loose sand",
+      "grip": 0.45,
+      "rrCoef": 0.2,
+      "soft": 1
+    },
+    "mud": {
+      "name": "Mud",
+      "grip": 0.3,
+      "rrCoef": 0.12,
+      "soft": 0.8
+    },
+    "rock": {
+      "name": "Rock",
+      "grip": 0.8,
+      "rrCoef": 0.04,
+      "soft": 0
+    }
   },
   "tire": {
     "_source": "[estimate] street 28-32 psi, sand/rock driving 12-20 psi. Lower pressure widens the contact patch: floats on soft ground (less rolling resistance, more grip), but costs steering response on hard ground and risks pinch flats on rock.",
-    "streetPsi": 30, "minPsi": 10, "maxPsi": 40,
-    "softGripGain": 0.5, "softRrCut": 0.55, "hardGripLoss": 0.2, "steerLagPerPsi": 0.012, "pinchBelowPsi": 16
+    "streetPsi": 30,
+    "minPsi": 10,
+    "maxPsi": 40,
+    "softGripGain": 0.5,
+    "softRrCut": 0.55,
+    "hardGripLoss": 0.2,
+    "steerLagPerPsi": 0.012,
+    "pinchBelowPsi": 16
+  },
+  "engine": {
+    "_source": "[estimate] Air-cooled flat-four character: modest torque, flat mid-range. torqueCurve is normalised (1 = peak) as [rpm, fraction]. Gear ratios are Baja-style (trade top speed for pull); final drive is solved so top gear reaches the vehicle top speed at redline on the reference tire. Heat: air-cooled, so cooling depends on airflow (road speed) plus the fan. Thresholds in deg C.",
+    "torqueCurve": [
+      [
+        800,
+        0.45
+      ],
+      [
+        1500,
+        0.7
+      ],
+      [
+        2500,
+        0.9
+      ],
+      [
+        3500,
+        1
+      ],
+      [
+        4500,
+        0.95
+      ],
+      [
+        5500,
+        0.78
+      ],
+      [
+        6200,
+        0.5
+      ]
+    ],
+    "idleRpm": 900,
+    "redlineRpm": 5600,
+    "launchRpm": 2500,
+    "gears": [
+      3.3,
+      2.2,
+      1.6,
+      1.22,
+      0.95
+    ],
+    "refTireRadius": 0.38,
+    "shiftSeconds": 0.12,
+    "thrustScale": 1.35,
+    "heat": {
+      "ambient": 30,
+      "start": 70,
+      "idleHeat": 0.5,
+      "loadHeat": 3,
+      "fanCool": 0.012,
+      "airCool": 0.0016,
+      "warnC": 110,
+      "derateStartC": 120,
+      "derateFullC": 140,
+      "derateTo": 0.4,
+      "damageAboveC": 140,
+      "damagePerSecond": 0.01
+    }
+  },
+  "diff": {
+    "_source": "[estimate] open: torque limited by the weaker wheel; lsd: strong wheel can take up to biasRatio x the weak wheel plus a preload; locker: both wheels driven, each limited only by its own grip.",
+    "default": "open",
+    "types": {
+      "open": {
+        "biasRatio": 1,
+        "preload": 0
+      },
+      "lsd": {
+        "biasRatio": 2.5,
+        "preload": 0.08
+      },
+      "locker": {
+        "biasRatio": 1000000000,
+        "preload": 1
+      }
+    }
   }
 }

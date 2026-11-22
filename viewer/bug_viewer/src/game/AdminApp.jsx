@@ -66,6 +66,7 @@ export default function AdminApp({ onBack }) {
         {cheat('+$1,000', () => addCash(1000, 'Admin'))}{cheat('+$10,000', () => addCash(10000, 'Admin'))}
         {cheat('Time: morning', () => { game.clock = 7; })}{cheat('Time: noon', () => { game.clock = 12; })}{cheat('Time: night', () => { game.clock = 22; })}
         {[12, 16, 20, 30, 36].map(p => cheat('Tires ' + p + ' psi' + ((game.home?.tirePsi ?? 30) === p ? ' ✓' : ''), () => { game.home = { ...game.home, tirePsi: p }; say('Tire pressure ' + p + ' psi (street 30, sand/rock 12-20). Takes effect on the next frame.'); }))}
+        {['open', 'lsd', 'locker'].map(d => cheat('Diff: ' + d + ((game.home?.diff ?? 'open') === d ? ' ✓' : ''), () => { game.home = { ...game.home, diff: d }; say('Rear differential: ' + d + ' (open sends power to the wheel with least grip; a locker drives both).'); }))}
         {cheat('+10 scrap', () => { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + 10 }; save(); })}
       </div>
       : <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>{rows.map(r => <button key={r.kind + r.id} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => spawn(r.kind, r.id, r.label)}>{r.label}</button>)}</div>}

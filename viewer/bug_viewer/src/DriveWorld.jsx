@@ -265,7 +265,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer }, { height: world.height, mu: sf.mu, rr: sf.rr, ACC, MAXV, DRG }, dt);
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer }, { height: world.height, mu: sf.mu, rr: sf.rr, ACC, MAXV, DRG, diff: game.home?.diff }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     readBody(rb, st);
     const fx = Math.sin(st.h), fz = Math.cos(st.h), rx = fz, rz = -fx, ox = st.x, oz = st.z, ov = st.v;
@@ -353,7 +353,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
