@@ -66,6 +66,7 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
         const ch = !wheel && channels.find(c => c.re.test(m.name || 'unnamed'));
         m.color.copy(material?.color ? new THREE.Color(material.color) : ch ? new THREE.Color(ch.color) : m.userData.baseColor);
         if (material) { if (material.metalness != null) m.metalness = material.metalness; if (material.roughness != null) m.roughness = material.roughness; }
+        if (material?.unpainted && (m.map || m.vertexColors)) { m.map = null; m.vertexColors = false; m.needsUpdate = true; }   // bare fiberglass: flat colour, whatever the model was textured with
         if (!material && !wheel) applyWeathering(m, kindForMaterial(m.name || ''), o, clone);
         else if (material?.weave) applyWeathering(m, 'carbon', o, clone);
       });
