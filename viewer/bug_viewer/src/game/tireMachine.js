@@ -31,6 +31,7 @@ export function planAtMachine() {
 export const TRAY_R = 1.5;   // a rim and a tire set down within this of the machine are the tray
 let tray = { key: '', t: 0, warned: '' };
 /** the machine works on its own: set a rim and a tire down beside it and, after a few seconds, a wheel is put together (air 0). Called every frame. */
+import { noPowerWhy } from './powerRules.js';
 export function tickTray(dt) {
   if (game.dev || game.paused) return;
   const machines = game.props.filter(p => p.id === 'tireChanger'); if (!machines.length) return;
@@ -39,6 +40,8 @@ export function tickTray(dt) {
     const plan = items.length >= 2 ? planTray(items, sizes) : null;
     if (!plan) { if (tray.key.startsWith(m.uid + ':')) tray = { key: '', t: 0, warned: tray.warned }; continue; }
     if (!plan.ok) { if (tray.warned !== plan.why) { tray.warned = plan.why; say('Tire machine: ' + plan.why); } continue; }
+    if (!game.home?.power) { const w = noPowerWhy(false, 'tire machine'); if (!game.home?.tripped && tray.warned !== w) { tray.warned = w; say(w); } continue; }
+    game.draw = { ...(game.draw || {}), tireChanger: ((game.draw || {}).tireChanger || 0) + 1 };   // working: it draws current (powerRules.js)
     const key = m.uid + ':' + plan.consume.join(',');
     if (tray.key !== key) { tray = { key, t: 0, warned: '' }; say('Tire machine: mounting the tire…'); }
     tray.t += dt;

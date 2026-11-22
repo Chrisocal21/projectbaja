@@ -46,6 +46,7 @@ export function clearJunk(id) {
   save();
 }
 export function flipBreaker() {
+  if (!game.home.power && game.home.tripped) { game.home = { ...game.home, power: true, tripped: false }; save(); say('*clunk* You reset the breaker. The lights come back. Run fewer machines at once.'); return; }
   if (game.home.power) { say('The lights are on. Grandpa wired this panel himself — best not to touch it again.'); return; }
   game.home = { ...game.home, power: true }; save(); say('*clunk* ... the old fluorescent tubes flicker on. The lights inside are just lights: flip the OPEN switch by the roller door when you want customers.');
 }

@@ -52,7 +52,7 @@ Status key: [ ] not started, [x] done, [~] partly there.
 
 ### C. World, property, business (research/PROJECT_BAJA_WORLD_PROPERTY_BUSINESS)
 1. [~] Customer jobs with real completion checks (flat wheel done).
-2. [ ] Garage power: breaker, load limit, equipment says why it will not run.
+2. [x] Garage power: the tire machine, battery charger and parts washer draw 12, 8 and 10 amps while they work; the old panel takes 24, so any two are fine and three at once trip the breaker (power goes out, the message names the machines, flip the breaker panel to reset). A machine with no power says why. Not yet: a panel upgrade to raise the limit, more machines on the list (welder, compressor, lights).
 3. [ ] Cleaning zones with visible, saved change.
 4. [ ] Storage: shelves and bins that remember what is in them.
 5. [ ] Quotes, ledger of money in and out, repeat customers and reputation.

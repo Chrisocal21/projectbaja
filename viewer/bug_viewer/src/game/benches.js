@@ -5,6 +5,7 @@ import { game, save, say } from './store.js';
 import { nearestProp, onBench } from './fixtures.js';
 import { chargeOf, chargeStep, serviceBlock, serviceTo, SERVICE_S, WASH_S } from './benchRules.js';
 import { slotOf } from './engineRules.js';
+import { tripWhy, noPowerWhy } from './powerRules.js';
 
 export const CHARGER_R = 1.2, WASHER_R = 1.2;
 const timers = new Map(), told = new Map();
@@ -14,13 +15,15 @@ const tellOnce = (key, msg) => { if (told.get(key) !== msg) { told.set(key, msg)
 export function tickBenches(dt) {
   if (game.dev || game.paused) return;
   let changed = false;
+  const active = { ...(game.draw || {}) }; game.draw = {};   // what the machines worked this frame (the tire machine reported first)
   const chargers = game.props.filter(p => p.id === 'batteryCharger');
   for (const m of chargers) {
     const bats = game.items.filter(i => i.kind === 'stock' && i.id === 'battery' && i.loc === 'world' && i.x !== undefined && Math.hypot(i.x - m.x, i.z - m.z) <= CHARGER_R);
     for (const b of bats) {
       const c = chargeOf(b);
       if (c >= 1) { if (b.charge !== undefined && b.charge < 1) b.charge = 1; if (told.get('b' + b.uid) === 'on') { told.set('b' + b.uid, 'full'); say('The battery is fully charged.'); changed = true; } continue; }
-      if (!game.home?.power) { tellOnce('p' + m.uid, 'The charger is dead: flip the main breaker in the garage first.'); continue; }
+      if (!game.home?.power) { if (!game.home?.tripped) tellOnce('p' + m.uid, noPowerWhy(false, 'charger')); continue; }   // a tripped breaker already said why
+      active.batteryCharger = (active.batteryCharger || 0) + 1;
       b.charge = chargeStep(c, dt); told.set('b' + b.uid, 'on'); changed = true;
       if (!timers.has(b.uid)) { say(`Charging: ${Math.round(c * 100)}%. It takes about a minute and a half from empty.`); timers.set(b.uid, 1); }
     }
@@ -28,7 +31,8 @@ export function tickBenches(dt) {
   for (const m of game.props.filter(p => p.id === 'partsWasher')) {   // grime off, so the real condition can be read
     for (const it of game.items) {
       if (it.kind !== 'epart' || !it.grimy || it.onEngine || it.loc !== 'world' || it.x === undefined || Math.hypot(it.x - m.x, it.z - m.z) > WASHER_R) continue;
-      if (!game.home?.power) { tellOnce('p' + m.uid, 'The parts washer pump is dead: flip the main breaker in the garage first.'); continue; }
+      if (!game.home?.power) { if (!game.home?.tripped) tellOnce('p' + m.uid, noPowerWhy(false, 'parts washer')); continue; }
+      active.partsWasher = (active.partsWasher || 0) + 1;
       const t = (timers.get('w' + it.uid) || 0) + dt; timers.set('w' + it.uid, t);
       if (t < WASH_S) continue;
       timers.delete('w' + it.uid); it.grimy = false; changed = true;
@@ -48,6 +52,8 @@ export function tickBenches(dt) {
       say(`${slotOf(it.id)?.name || 'Part'} serviced: ${before}% to ${it.cond}%.`);
     }
   }
+  const trip = game.home?.power ? tripWhy(active) : '';
+  if (trip) { game.home = { ...game.home, power: false, tripped: true }; save(); say(trip); return; }   // the breaker trips: everything stops until it is reset
   sinceSave += dt;
   if (changed && (sinceSave > 2 || told.size && [...told.values()].includes('full'))) { sinceSave = 0; for (const [k, v] of told) if (v === 'full') told.set(k, 'done'); game.items = [...game.items]; save(); }
 }
