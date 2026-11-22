@@ -80,6 +80,21 @@ function HoseNozzle() {
   </group>;
 }
 
+function Gauge() {
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[0.04, 0.04, 0.03, 20]} />{metal}</mesh>
+    <mesh position={[0, 0.04, 0.016]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.032, 0.032, 0.004, 20]} /><meshStandardMaterial color="#f1efe6" roughness={0.6} /></mesh>
+    <mesh position={[0, -0.04, 0]} castShadow><cylinderGeometry args={[0.012, 0.014, 0.1, 10]} />{edge}</mesh>
+  </group>;
+}
+function AirChuck() {
+  return <group rotation={[0, 0, -0.1]}>
+    <mesh position={[0, 0.0, 0]} castShadow><cylinderGeometry args={[0.018, 0.018, 0.14, 12]} />{red}</mesh>
+    <mesh position={[0, 0.09, 0]} castShadow><cylinderGeometry args={[0.012, 0.016, 0.05, 12]} />{metal}</mesh>
+    <mesh position={[0, -0.1, 0]} castShadow><cylinderGeometry args={[0.012, 0.012, 0.1, 10]} />{rubber}</mesh>
+  </group>;
+}
+
 function Limb({ from, to, base, tip, material }) {
   const a = new THREE.Vector3(...from), b = new THREE.Vector3(...to), delta = b.clone().sub(a);
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.clone().normalize());
@@ -100,6 +115,6 @@ function Hand({ jack }) {
 
 export default function ToolModel({ id }) {
   const jack = id === 'jack';
-  const tool = jack ? <Jack /> : id === 'grinder' ? <Grinder /> : id === 'buffer' ? <Buffer /> : id === 'hose' ? <HoseNozzle /> : CANS[id] ? <SprayCan id={id} /> : <Wrench />;
+  const tool = jack ? <Jack /> : id === 'grinder' ? <Grinder /> : id === 'buffer' ? <Buffer /> : id === 'hose' ? <HoseNozzle /> : id === 'gauge' ? <Gauge /> : id === 'airchuck' ? <AirChuck /> : CANS[id] ? <SprayCan id={id} /> : <Wrench />;
   return <group>{tool}<Hand jack={jack} /></group>;
 }
