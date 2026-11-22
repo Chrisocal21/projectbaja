@@ -82,7 +82,7 @@ export function footprint(it) {
 
 // ---- planning: spots beside the roads ----
 /** roads: [{ kind, pts: [[x, z], ...] }]; returns { items: [...], trails: [{ name, kind: 'dirt', pts }] } */
-export function planFeatures(roads, okSpot = () => true) {
+export function planFeatures(roads, okSpot = () => true, okWild = okSpot) {   // okWild: the (looser) ground test for the trail kinds, which can climb and wind over some slope
   const items = [], trails = [];
   roads.forEach((road, ri) => {
     if (!road.pts || road.pts.length < 2 || road.kind === 'ramp') return;
@@ -100,9 +100,9 @@ export function planFeatures(roads, okSpot = () => true) {
         else if (r < 0.44) it = { kind: 'jump', x, z, h: along, H: 1.0 + hash(k, 5) * 1.0, W: 9 };
         else if (r < 0.56) it = { kind: 'berms', x, z, h: along, R: 24 + hash(k, 5) * 14, B: 1.0 + hash(k, 6) * 0.7 };
         else if (r < 0.66) { const far = 90 + hash(k, 8) * 200; it = { kind: 'whoops', x: px + nx * far, z: pz + nz * far, h: along + Math.PI / 2, L: 60 + hash(k, 5) * 60, W: 13, lam: 8, A: 0.35 + hash(k, 6) * 0.3 }; }
-        else if (r >= 0.72) { wild = planWild(r < 0.8 ? 'ford' : r < 0.87 ? 'climb' : r < 0.94 ? 'forest' : 'river', px, pz, nx, nz, tx, tz, k); it = wild.item; }
+        else if (r >= 0.72) { wild = planWild(r < 0.78 ? 'ford' : r < 0.84 ? 'climb' : r < 0.95 ? 'forest' : 'river', px, pz, nx, nz, tx, tz, k); it = wild.item; }
         else { const far = 220 + hash(k, 8) * 260; it = { kind: 'track', x: px + nx * far, z: pz + nz * far, h: along + (hash(k, 9) - 0.5) * 1.2, S: 90 + hash(k, 5) * 50, R: 24 + hash(k, 6) * 6, B: 1.3 + hash(k, 7) * 0.5, lam: 8, A: 0.45 + hash(k, 10) * 0.25, H: 1.2 + hash(k, 11) * 0.6 }; }
-        if (!it || !footprint(it).every(p => okSpot(p.x, p.z))) continue;
+        if (!it || !footprint(it).every(p => (wild && !p.creek ? okWild : okSpot)(p.x, p.z))) continue;
         if (wild) { items.push(Object.assign(it, { id: items.length })); trails.push(wild.trail); continue; }
         it.id = items.length;
         items.push(it);
@@ -154,12 +154,12 @@ const HWY_SPACING = 260;
  * index the plan's primitives (dropping any that fail `ok`) and return { heightAt, waterDepthAt, trunksNear, trees, creeks, count }.
  * baseH(x, z) = the ground height without any feature (creek water levels are set from it); only needed for creeks.
  */
-export function buildField(items, ok = () => true, baseH = () => 0) {
+export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok) {
   const C = FEATURE.cell, cells = new Map(), trees = [], creeks = []; let count = 0;
   for (const it of items) {
-    if (!footprint(it).every(p => ok(p.x, p.z))) continue;
+    if (!footprint(it).every(p => (WILD_KINDS.includes(it.kind) && !p.creek ? okWild : ok)(p.x, p.z))) continue;
     count++;
-    if (WILD_KINDS.includes(it.kind)) { trees.push(...wildTrees(it, ok)); creeks.push(...creekMeshes(it, baseH)); }
+    if (WILD_KINDS.includes(it.kind)) { trees.push(...wildTrees(it, okWild)); creeks.push(...creekMeshes(it, baseH)); }
     for (const p of primitivesOf(it, baseH)) {
       const c0 = Math.floor((p.x - p.rad) / C), c1 = Math.floor((p.x + p.rad) / C), r0 = Math.floor((p.z - p.rad) / C), r1 = Math.floor((p.z + p.rad) / C);
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const k = r * 100003 + c; let l = cells.get(k); if (!l) cells.set(k, l = []); l.push(p); }

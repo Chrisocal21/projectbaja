@@ -64,7 +64,7 @@ export function planWild(kind, px, pz, nx, nz, tx, tz, k) {
 export function wildFootprint(it) {
   const pts = [], L = pathLen(it.path);
   for (let s = 40; s <= L; s += 60) { const p = along(it.path, s); pts.push({ x: p.x, z: p.z }); }
-  for (const c of it.creeks) if (it.kind !== 'river') for (const q of c.pts) pts.push({ x: q[0], z: q[1] });
+  for (const c of it.creeks) if (it.kind !== 'river') for (const q of c.pts) pts.push({ x: q[0], z: q[1], creek: true });   // creek points keep the strict flat-ground test
   if (it.hill) pts.push({ x: it.hill.x, z: it.hill.z }, { x: it.hill.x + it.hill.R * 0.6, z: it.hill.z }, { x: it.hill.x - it.hill.R * 0.6, z: it.hill.z });
   return pts;
 }
