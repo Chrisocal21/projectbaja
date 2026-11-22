@@ -22,7 +22,7 @@ All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAI
 
 ## Next (in order, Chris's call)
 1. Test the new handling, suspension and table tops by feel; tune.
-2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. Touches `highways.js` / `county.js`: do it when ChatGPT is not editing them.
+2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. **Assigned to ChatGPT** (it owns `highways.js`; spec is item 0 in [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md)).
 3. Performance on Chris's machine (about 30 FPS): thin trees and roadside strips if needed.
 4. Paint: the unpainted fiberglass has `unpainted: true`, ready for a paint picker.
 5. Older plan (Nov 8, still unverified item by item): see [GAMEPLAN](./GAMEPLAN.md) and [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) (history). Cloud saves (Clerk + Vercel) stay last.
