@@ -255,3 +255,11 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 
 ## Controller support (Nov 21): game/gamepad.js
 Polled every frame; buttons become key presses so every existing system keeps working. Driving: RT throttle, LT brake/reverse, left stick analog steer, A handbrake, Y reset/stand up, X in/out, B F, LB lights, RB cab view. On foot: left stick walks, right stick looks, RT/LT = hold left/right click (bolt on / take off), X interact, B F, Y R, D-pad up Tab, D-pad down I, Back map, Start menu, L-stick click run. Click the game once with the mouse first (pointer lock). Menus/inventory still need the mouse.
+
+## Off-road features (Nov 21): whoops, jumps, berms, mini tracks (worlds/offroadFeatures.js)
+- Placed deterministically beside the real roads (`planFeatures`), on flat dry ground only, never on a paved road or built site (`buildField`). About 320 on the real map: whoop sections (8 m rhythm, 0.4-0.75 m), table-top jumps (ramp, lip, gap, landing mound), banked berm turns (an S of two), and small tracks (oval with banked ends, a whoop straight, a jump). About 120 short dirt trails branch off the main roads to them (added to the dirt-road list, graded and drawn like the other dirt roads).
+- They are heights added to the ground (`height` in county.js), so the car, terrain mesh, grass and walking all agree. The fine terrain mesh (2.5 m grid, within 430 m) shows them; far tiles don't.
+- Admin > Cash/time: "Go to nearest dirt track / jump / whoops / berms".
+- Tuning knobs: `FEATURE.spacing` (450 m between spots along a road), shapes at the top of the file, flatness limit `featOk` in county.js.
+- Not done: features ON the road itself (paved roads and dirt-road ribbons follow their own graded height), dust/tire-track decals, more density where the ground isn't flat.
+- Controller: the right stick orbits the chase camera while driving.

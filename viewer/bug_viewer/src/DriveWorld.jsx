@@ -312,6 +312,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const l = look.current;
     if (game.onFoot) { wasFoot.current = true; } else {
     if (wasFoot.current) { wasFoot.current = false; l.yaw = 0; l.pitch = 0.28; camera.rotation.order = 'XYZ'; camPos.current.copy(camera.position); }
+    if (pad.on && (pad.lookX || pad.lookY)) { const [kx, ky] = lookScale(); l.yaw -= pad.lookX * dt * 2.8 * kx; l.yaw = Math.atan2(Math.sin(l.yaw), Math.cos(l.yaw)); l.pitch = Math.max(-0.1, Math.min(1.3, l.pitch + pad.lookY * dt * 1.8 * ky)); l.idle = 0; }   // right stick orbits the camera like the mouse
     { l.idle += dt; if (l.idle > 2.5) { l.yaw -= l.yaw * Math.min(1, dt * 2.5); l.pitch += (0.28 - l.pitch) * Math.min(1, dt * 2.5); } }
     const wantFov = cab.current ? 78 : 60;
     if (camera.fov !== wantFov) { camera.fov = wantFov; camera.updateProjectionMatrix(); }

@@ -52,6 +52,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   const cfg = suspensionSpec(dims), { q, c, vel, w, shape } = b, mounts = dims.mounts, hf = env.height;
   const M = shape.mass;   // this car's mass (from its fitted parts); engine force and air drag stay fixed so a heavier car is slower
   const up = V(0, 1, 0).applyQuaternion(q), fwdB = V(0, 0, 1).applyQuaternion(q);
+  { const under = hf(c.x, c.z); if (c.y < under - 1.2) { c.y = under + 0.7; vel.y = Math.max(0, vel.y * 0); vel.multiplyScalar(0.5); w.set(0, 0, 0); } }   // somehow below the ground (a teleport, a map change): set it back on top, gently, instead of letting the springs throw it
   const origin = bodyOrigin(b, V());
   const F = V(0, -M * G, 0), T = V();
   const push = (f, p) => { F.add(f); T.add(tmpD.copy(p).sub(c).cross(f)); };

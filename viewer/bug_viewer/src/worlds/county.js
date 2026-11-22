@@ -16,6 +16,7 @@ import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 import { buildRaceCourses } from './raceCourses.js';
+import { planFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -36,7 +37,7 @@ const HMB = boxBlur(HM, HN, 9);
 const BD = REAL ? await loadBorder() : null;
 /** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
 const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
-let HW = null, JN = null, RACE = null;
+let HW = null, JN = null, RACE = null, FEAT = null, FIELD = null;   // FEAT/FIELD: whoops, jumps, berms and mini tracks beside the roads (offroadFeatures.js)
 export const highways = () => HW;
 /** ?realmap: the race courses (worlds/raceCourses.js): SCORE routes that mix dirt with the highways, and MDR dirt loops. [{ id, series, name, kind, start, finish, line, dirtLength, ... }] */
 export const raceCourses = () => RACE?.courses || [];
@@ -265,7 +266,10 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const ramps = showRamps ? jn.ramps.filter(r => clear({ x: r.pts[0][0], z: r.pts[0][1] }) && clear({ x: r.pts[r.pts.length - 1][0], z: r.pts[r.pts.length - 1][1] })) : [];
   JN = { ...visualJunctions, ramps, furniture: visualJunctions.furniture.filter(f => clear(f)) };
   RACE = buildRaceCourses({ meta: BD.meta, ground: BD, roads: HWJ.roads });   // their dirt legs become real roads, graded and drawn like any other
-  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads], realBase, { water: BD.waterAt, avoid: keep });
+  const featOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 0.9 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 0.9;   // dry, off the built places, on near-flat ground (under 3.5 degrees)
+  FEAT = planFeatures(HWJ.roads, featOk);
+  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
+  FIELD = buildField(FEAT.items, (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14));   // never on a paved road
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
@@ -330,7 +334,12 @@ export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI 
 
 // ---------------- public lookups ----------------
 const localHeight = R.heightAt(base), localSurface = R.surfaceAt(baseSurface);
-export const height = REAL ? (x, z) => HW.pavedAt(x, z, 3) ? HW.blend(x, z, localHeight(x, z)) : localHeight(x, z) : localHeight;
+const groundOnly = REAL ? (x, z) => HW.pavedAt(x, z, 3) ? HW.blend(x, z, localHeight(x, z)) : localHeight(x, z) : localHeight;
+const bumps = FIELD ? FIELD.heightAt : null;
+/** the ground you drive on: the land and roads, plus the whoops, jumps and berms laid on it */
+export const height = bumps ? (x, z) => groundOnly(x, z) + bumps(x, z) : groundOnly;
+export const offroadFeatureCount = FIELD ? FIELD.count : 0;
+export const offroadPlan = () => FEAT;   // test / map hook
 export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };
 BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
 export const isRoad = REAL ? (x, z) => R.isRoad(x, z) || HW.isNear(x, z, 3) : R.isRoad;
