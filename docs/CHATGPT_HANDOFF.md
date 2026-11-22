@@ -62,3 +62,10 @@ Stage `office1` ("Customer office", needs the annex): `worlds/office.js` WING (x
 
 ## Office level 2 (Nov 22, Claude)
 Stage `office2` ("Parts counter", needs office1): `worlds/office.js` PARTS_ROOM (shelving along both back-room walls, supplier desk beside the counter); `OfficeWing` in GarageWing.jsx swaps the back room's desk and files for shelves with part boxes, adds a screen over the counter. Collision via `wingWallCircles(2)`. Order speed is unchanged (supplier account still sets it). Polish: real shelving, counter window, supplier desk props, signs.
+
+## Office level 3 (team room) - Nov 22
+Stage `office3` ($14,000, proposal). Code: worlds/office.js (WING_UP, wingLevel, deskOf), worlds/GarageWing.jsx (TeamFloor), game/Walker.jsx (stair and floor walking), game/home.js (circle top/bottom).
+- The wing grows to 6.6 m tall with a second floor at 3.12 m (same height as the old office loft). The stair is 16 boxes up the west wall; the west shelving is not drawn at level 3.
+- Collision circles may now be `[x, z, r, top, bottom]`: `top` = walkers above it pass over, `bottom` = walkers below it pass under (used for the upstairs table).
+- Basic box art only: please polish the stair, rails, team table, chairs, the race planning board (blank on purpose: do not invent team names or routes), windows, a real door model.
+- Left for later: the balcony over Walt's shop floor, any link from the upstairs room to the old office loft, an upstairs use for the team room (nothing happens there yet).

@@ -23,7 +23,8 @@ import { jobById } from './jobs.js';
 import { STANDS } from './stock.js';
 import { standText } from './standActions.js';
 import { toWorld as toW } from '../worlds/county.js';
-import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
+import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice, inWing, wingLevel } from '../worlds/office.js';
+import { hasStage } from './upgrades.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
 import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule
@@ -157,7 +158,7 @@ export default function Walker({ world, sun }) {
       s.x += s.vx * dt; s.z += s.vz * dt;
       const car = game.pose;
       for (let pass = 0; pass < 2; pass++) {
-        for (const [cx, cz, r, top] of world.trunks ? [...world.obstacles, ...world.trunks(s.x, s.z)] : world.obstacles) { if (Number.isFinite(top) && top !== 99 && s.y >= top - 0.05) continue; const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
+        for (const [cx, cz, r, top, bottom] of world.trunks ? [...world.obstacles, ...world.trunks(s.x, s.z)] : world.obstacles) { if (Number.isFinite(top) && top !== 99 && s.y >= top - 0.05) continue; if (bottom != null && s.y < bottom) continue; const dx = s.x - cx, dz = s.z - cz, rr = r + 0.3; if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue; const d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
         if (car) for (const o of (activeType().length > 4.5 ? [-1.9, -0.65, 0.65, 1.9] : [-1.3, 0, 1.3])) { const cx = car.x + Math.sin(car.h) * o, cz = car.z + Math.cos(car.h) * o, dx = s.x - cx, dz = s.z - cz, rr = 1.3 + 0.3, d = Math.hypot(dx, dz); if (d < rr && d > 1e-4) { s.x += dx / d * (rr - d); s.z += dz / d * (rr - d); } }
       }
       { const bd = world.bounds || { x0: -world.half, x1: world.half, z0: -world.half, z1: world.half }; s.x = Math.max(bd.x0, Math.min(bd.x1, s.x)); s.z = Math.max(bd.z0, Math.min(bd.z1, s.z)); }
@@ -169,9 +170,13 @@ export default function Walker({ world, sun }) {
           || level > 2.6 && before.lz <= LOFT.z1 && next.lz > LOFT.z1 && (next.lx < STAIRS.x0 || next.lx > STAIRS.x1);
         const target = walkingLevel(next.lx, next.lz, level);
         if (rail || inOffice(next.lx, next.lz) && target > Math.max(0.12, level) + 0.4) { s.x = oldX; s.z = oldZ; s.vx = 0; s.vz = 0; }
+        // the wing's second floor (stage office3): the stair and upstairs floor; a step too high or a drop off the edge is a wall
+        const up = hasStage('office3');
+        if (up && inWing(next.lx, next.lz)) { const t = wingLevel(next.lx, next.lz, level); if (t > Math.max(0.12, level) + 0.4 || t < level - 0.5) { s.x = oldX; s.z = oldZ; s.vx = 0; s.vz = 0; } }
         const at = homeLocal(s.x, s.z);
         floor = world.height(s.x, s.z);
         if (inOffice(at.lx, at.lz)) floor = Math.max(floor, SITES.garage.y + walkingLevel(at.lx, at.lz, level));
+        if (up && inWing(at.lx, at.lz)) floor = Math.max(floor, SITES.garage.y + wingLevel(at.lx, at.lz, level));
       }
       s.y += (floor - s.y) * Math.min(1, dt * 16);
       s.t += Math.hypot(s.vx, s.vz) * dt * 2.1;

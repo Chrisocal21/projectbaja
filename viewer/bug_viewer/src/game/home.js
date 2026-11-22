@@ -349,7 +349,7 @@ export function propObstacles() {
   const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const extC = extensionWallCircles(garageLevelOf(ownedStages(game.home))).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const ol = officeLevelOf(ownedStages(game.home)), wing = ol >= 1;
-  const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
+  const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r, top = 99, bottom]) => { const [wx, wz] = toWorld(G, cx, cz); return bottom == null ? [wx, wz, r, top] : [wx, wz, r, top, bottom]; }) : [];
   if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== ol) cache = { v, mv, office, wing: ol, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;

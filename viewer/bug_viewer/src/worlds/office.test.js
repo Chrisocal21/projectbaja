@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles, WING, wingWallCircles, officeLevelOf, PARTS_ROOM } from './office.js';
+import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles, WING, wingWallCircles, officeLevelOf, PARTS_ROOM, WING_UP, wingLevel, inWing } from './office.js';
 import { segByKey } from './openings.js';
 
 test('office is attached left, camper and door are right, forecourt stays clear', () => {
@@ -79,4 +79,19 @@ test('office level 2: shelving and the supplier desk block, but the way from the
   assert.ok(!crossing(PARTS_ROOM.shelves[0].x, -3), 'the west shelves block'); assert.ok(!crossing(PARTS_ROOM.desk.x, 1), 'the supplier desk blocks');
   assert.ok(crossing(-15.2, -3), 'the middle of the parts room is clear'); assert.ok(crossing(-15.5, 4) && crossing(-14.6, 3.2), 'doorway to front door still open');
   assert.ok(wingWallCircles(1).length < cs.length, 'level 1 has no shelves');
+});
+test('office level 3: a stair climbs the west wall to a second floor; you cannot be lifted onto it from below', () => {
+  assert.equal(officeLevelOf(new Set(['office1', 'office2', 'office3'])), 3);
+  const { stair: s, floor: f, y } = WING_UP, mid = (s.x0 + s.x1) / 2;
+  assert.equal(wingLevel(mid, s.zBottom + 0.3), 0.12, 'ground at the foot of the stair');
+  assert.ok(Math.abs(wingLevel(mid, s.zTop + 0.01) - y) < 0.2, 'the top step meets the upstairs floor');
+  let last = 0.12; for (let z = s.zBottom; z >= s.zTop; z -= 0.05) { const h = wingLevel(mid, z); assert.ok(h >= last - 1e-9 && h - last < 0.25, 'steps only rise, in small steps'); last = h; }
+  const inFloor = [(f.x0 + f.x1) / 2, (f.z0 + f.z1) / 2];
+  assert.equal(wingLevel(...inFloor, 0.12), 0.12, 'under the upstairs floor you stay on the ground'); assert.equal(wingLevel(...inFloor, y), y);
+  assert.ok(inWing(...inFloor) && inWing(mid, s.zTop));
+  const cs = wingWallCircles(3);
+  assert.ok(cs.filter(c => c[4] == null && c[3] === 2.7 && c[0] < s.x1 + 0.5 && c[1] < 1.4 && c[1] > s.zTop).length === 0, "nothing stands at the stair foot");
+  assert.ok(!cs.some(c => c[4] == null && Math.abs(c[0] - PARTS_ROOM.shelves[0].x) < 0.01 && c[3] === 2.7), 'the west shelving is gone');
+  assert.ok(cs.some(c => c[4] === 2.6), 'the team table only bites upstairs');
+  assert.ok(wingWallCircles(2).every(c => c[4] == null), 'before level 3 nothing is upstairs');
 });

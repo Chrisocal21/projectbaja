@@ -29,19 +29,45 @@ export const ANNEX = { x0: -17.2, x1: OFFICE.x0, z0: -1, z1: 3, H: 4.4, doorZ0: 
 // Doorway = openings.js segments OW3 + OW4 (z 0..4). Customer door in the front (z = 6) wall. The service counter stands in the wing, beside the doorway.
 export const WING = { x0: -17.2, x1: OFFICE.x0, z0: -6, z1: 6, H: 4.4, door: { x0: -16.5, x1: -14.5 }, openings: ['OW3', 'OW4'],
   counter: { x: -14.6, z0: 0.2, z1: 2.0, r: 0.45 } };
-export const officeLevelOf = owned => (owned.has('office2') ? 2 : owned.has('office1') ? 1 : 0);
+export const officeLevelOf = owned => (owned.has('office3') ? 3 : owned.has('office2') ? 2 : owned.has('office1') ? 1 : 0);
+// level 3: the wing gets a second floor (the team room). A stair climbs north along the west wall (it replaces the west shelving),
+// the upstairs floor sits at the old office's loft height, and the race planning wall hangs on the east wall. PROPOSAL layout.
+export const WING_UP = {
+  y: 3.12, H: 6.6,
+  stair: { x0: -17.05, x1: -15.9, zBottom: -0.4, zTop: -5.4, count: 16 },
+  floor: { x0: -15.9, x1: OFFICE.x0 - 0.1, z0: -5.95, z1: -0.4 },
+  landing: { x0: -17.1, x1: -15.9, z0: -5.95, z1: -5.4 },
+  table: { x: -14.6, z0: -4.3, z1: -2.1 },
+  board: { x: OFFICE.x0 - 0.15, z0: -5.0, z1: -1.4 },
+};
+/** the floor height (above the garage slab) a walker at (lx, lz) stands on in the wing: the stair, then the upstairs floor, otherwise the ground floor.
+ *  `previous` is the height they were at, so someone under the upstairs floor is not lifted onto it. */
+export function wingLevel(lx, lz, previous = 0.12) {
+  const { stair: s, floor: f, landing: l, y } = WING_UP;
+  if (lx >= s.x0 && lx <= s.x1 && lz <= s.zBottom && lz >= s.zTop)
+    return 0.12 + Math.min(s.count, Math.ceil((s.zBottom - lz) / (s.zBottom - s.zTop) * s.count)) / s.count * (y - 0.12);
+  if (previous > 2.6) for (const r of [f, l]) if (lx >= r.x0 && lx <= r.x1 && lz >= r.z0 && lz <= r.z1) return y;
+  return 0.12;
+}
 // level 2: parts shelving along the back room's west and east walls, and the supplier desk beside the counter
 export const PARTS_ROOM = { shelves: [{ x: -16.75, z0: -5.6, z1: -1.4 }, { x: -13.65, z0: -5.6, z1: -1.4 }], desk: { x: -16.5, z0: 0.4, z1: 2.2 } };
+/** the supplier desk: at level 3 it slides south so the foot of the stair stays clear */
+export const deskOf = level => (level >= 3 ? { ...PARTS_ROOM.desk, z0: 1.4, z1: 3.0 } : PARTS_ROOM.desk);
 export const inWing = (lx, lz, m = 0) => lx > WING.x0 + m && lx < WING.x1 - m && lz > WING.z0 + m && lz < WING.z1 - m;
 /** collision circles ([lx, lz, r]) for the wing's west, north and front walls (the front has the customer door gap) and the service counter */
 export function wingWallCircles(level = 1) {
-  const { x0, x1, z0, z1, door, counter } = WING, r = 0.15, step = 0.5, out = [];
-  for (let z = z0; z <= z1 + 1e-9; z += step) out.push([x0, z, r]);
-  for (let x = x0; x <= x1 + 1e-9; x += step) { out.push([x, z0, r]); if (x < door.x0 - 1e-9 || x > door.x1 + 1e-9) out.push([x, z1, r]); }
-  for (let z = counter.z0 + 0.1; z <= counter.z1 + 1e-9; z += 0.5) out.push([counter.x, z, counter.r]);
+  const { x0, x1, z0, z1, door, counter } = WING, r = 0.15, step = 0.5, out = [], FLOOR = 2.7;
+  // [lx, lz, r, top, bottom]: walls reach all the way up (top 99); things standing on the ground floor stop at FLOOR so the second floor is clear of them
+  for (let z = z0; z <= z1 + 1e-9; z += step) out.push([x0, z, r, 99]);
+  for (let x = x0; x <= x1 + 1e-9; x += step) { out.push([x, z0, r, 99]); if (x < door.x0 - 1e-9 || x > door.x1 + 1e-9) out.push([x, z1, r, 99]); }
+  for (let z = counter.z0 + 0.1; z <= counter.z1 + 1e-9; z += 0.5) out.push([counter.x, z, counter.r, FLOOR]);
   if (level >= 2) {
-    for (const sh of PARTS_ROOM.shelves) for (let z = sh.z0; z <= sh.z1 + 1e-9; z += 0.6) out.push([sh.x, z, 0.3]);
-    for (let z = PARTS_ROOM.desk.z0; z <= PARTS_ROOM.desk.z1 + 1e-9; z += 0.6) out.push([PARTS_ROOM.desk.x, z, 0.35]);
+    PARTS_ROOM.shelves.forEach((sh, i) => { if (level >= 3 && i === 0) return; for (let z = sh.z0; z <= sh.z1 + 1e-9; z += 0.6) out.push([sh.x, z, 0.3, FLOOR]); });   // level 3: the west shelving makes way for the stair
+    const dk = deskOf(level); for (let z = dk.z0; z <= dk.z1 + 1e-9; z += 0.6) out.push([dk.x, z, 0.35, FLOOR]);
+  }
+  if (level >= 3) {
+    const tb = WING_UP.table;
+    for (let z = tb.z0; z <= tb.z1 + 1e-9; z += 0.5) out.push([tb.x, z, 0.5, 99, 2.6]);   // the team table upstairs: only bites when you stand on the second floor
   }
   return out;
 }

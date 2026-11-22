@@ -32,6 +32,7 @@ export const STAGES = [
   // the office grows into a wing west of the old office (worlds/office.js WING; docs/EXPANSION_PLAN.md); price is PROPOSAL
   L('office', 'office1', 'Customer office (level 1)', 3500, 'A new wing: customer door, waiting seats, a service counter in a widened doorway, and the back room.', { needs: ['supplierAccount'] }),
   L('office', 'office2', 'Parts counter (level 2)', 6500, 'The back room becomes a parts room with shelving, and the service counter becomes a parts counter with a supplier desk beside it.', { needs: ['office1'] }),
+  L('office', 'office3', 'Team room (level 3)', 14000, 'The wing grows a second floor: a stair, the team room and a race planning wall. The west shelving makes way for the stair.', { needs: ['office2'] }),
   // Camper (older stages keep home.trailer; they unlock in the order you would fix a trailer up)
   L('camper', 'camper-roof', 'Patch the roof', 250, 'Stops the leaks. Then you can sleep here (skips ahead to the next customer).', { store: { key: 'trailer', name: 'roof' } }),
   L('camper', 'camper-porch', 'Build a porch', 220, 'Wooden deck and steps.', { needs: ['camper-roof'], store: { key: 'trailer', name: 'porch' } }),

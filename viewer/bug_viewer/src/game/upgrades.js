@@ -26,7 +26,7 @@ export function buyStage(id) {
   if (id === 'annex') home.openings = [...new Set([...(home.openings || []), ANNEX_DOOR])];
   if (id === 'office1') home.openings = [...new Set([...(home.openings || []), ...WING.openings])];   // the doorway widens to 4 m
   game.home = home;
-  if (id === 'annex' || id === 'office1' || id === 'office2' || /^garage[123]$/.test(id)) game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
+  if (id === 'annex' || id === 'office1' || id === 'office2' || id === 'office3' || /^garage[123]$/.test(id)) game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
   if (/^garage[123]$/.test(id)) import('./home.js').then(m => m.ensureWallItemsOnWalls());   // the old back wall opens: its pegboard moves to the bench wall
   save(); say(`Upgrade: ${s.name}${free ? ' (creative: free)' : ` (−$${s.price})`}`);
   return true;
