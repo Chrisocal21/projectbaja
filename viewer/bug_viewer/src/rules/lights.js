@@ -14,7 +14,7 @@ export function lightsCheck(defId, build) {
 
 // ---- light modes (L cycles): headlights, and with a light bar fitted, the bar too ----
 /** a roof light bar is fitted when the build has one in its lightBar slot */
-export const hasLightBar = build => !!build?.parts?.lightBar;
+export const hasLightBar = build => !!(build?.parts?.lightBar || build?.parts?.roofLights);
 export const LIGHT_MODES = { off: 'off', head: 'Headlights', both: 'Headlights and light bar', bar: 'Light bar' };
 /** the modes you can cycle through: off, headlights, and (with a bar) headlights + bar and bar alone */
 export const modesFor = bar => (bar ? ['off', 'head', 'both', 'bar'] : ['off', 'head']);

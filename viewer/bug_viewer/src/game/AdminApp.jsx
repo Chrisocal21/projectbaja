@@ -12,6 +12,16 @@ import { adminAddProp } from './home.js';
  * Admin (test tool, on the phone): spawn any part on the ground at your feet, free, to try it out. One screen, one tab per kind of part.
  * Nothing here is part of the real game: the first spawn marks the save (home.adminUsed) so it is honest about it.
  */
+/** the whole Baja Bug of the concept art in one build: carbon panels, tube bumpers and cage, roll cage, roof rack with four round lights, shocks, big tires */
+const fullBajaBuild = b => ({
+  ...b, body: 'classic-stage2', wheels: 'tire-deep', stripped: [], hidden: [],
+  parts: {
+    fenders: 'CARBON_FendersCut', hood: 'CARBON_Hood', rearDeck: 'CARBON_RearDeck', frontBumper: 'PART_002_FrontTubeBumper', rearBumper: 'PART_003_RearEngineCage',
+    rockers: 'PART_011_RockerGuards', rollCage: 'ROLL_Cage', roofRack: 'ACC_RoofRack', roofLights: 'ROOF_RoundLights', rearCarrier: 'ACC_SpareCarrier',
+    suspension: 'PART_006_TrailShockSet', shocks: 'SHOCK_001_Coilover', skid: 'GUARD_SkidPlate', mudFlaps: 'GUARD_MudFlaps', exhaust: 'EXH_Megaphone',
+    frontLights: 'LIGHT_BumperPods', rearLights: 'LIGHT_RearBar', engineCarb: 'EMOD_DualWeber', engineBore: 'EMOD_Bore1776', engineCooling: 'EMOD_Doghouse',
+  },
+});
 export default function AdminApp({ onBack }) {
   useGame();
   const body = game.build?.body || 'classic', cat = catalogFor(body), cajon = cajonCatalog();
@@ -38,6 +48,7 @@ export default function AdminApp({ onBack }) {
     {tab === 'kits'
       ? <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <small>Everything needed to turn the Bug into a Baja Bug. Items land on the ground at your feet (pick them up, then fit them with hold-click).</small>
+        <button style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px', fontWeight: 700 }} onClick={() => { if (!game.adminSetBuild) return say('Not available here.'); game.home = { ...game.home, adminUsed: true }; game.adminSetBuild(fullBajaBuild(game.build)); setLast('Fitted a complete Baja Bug (carbon panels, cage, roof lights, tube bumpers, shocks, big tires).'); }}>FIT a complete Baja Bug right now (no spawning)</button>
         {kitBtn('Every part in the catalog (' + cat.part.length + ')', () => cat.part.map(p => ['part', p.id]))}
         {presets.filter(p => p.build.parts && Object.keys(p.build.parts).length).map(p => kitBtn('Parts of the "' + p.label + '" build', () => Object.values(p.build.parts).map(id => ['part', id])))}
         {kitBtn('Big tires and beadlock rims (every wheel set and rim)', () => [...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id])])}

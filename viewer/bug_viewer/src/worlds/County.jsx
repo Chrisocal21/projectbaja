@@ -610,6 +610,19 @@ function Proving() {
   </>;
 }
 
+/** the county's own roads and trails (ROADS, TRAILS, the circuit): each is one mesh that was drawn all the time, so a road 2 km away showed on the horizon. Same range as the highway pieces. */
+function FarGate({ path, children }) {
+  const g = useRef(), { camera } = useThree(), tick = useRef(1);
+  const box = useMemo(() => { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of path.pts) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); } return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, r: Math.hypot(x1 - x0, z1 - z0) / 2 }; }, [path]);
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 0.5 || !g.current) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos, view = Math.min(HW_VIEW, 600 + 700 * dayPhase(clockHour()));
+    g.current.visible = Math.hypot(p.x - box.cx, p.z - box.cz) - box.r < view;
+  });
+  return <group ref={g}>{children}</group>;
+}
+const GRibbon = props => <FarGate path={props.path}><Ribbon {...props} /></FarGate>;
+
 export default function CountyScene() {
   const { camera } = useThree();
   // Continuous paved ribbons own crossings. Trimming them for inferred junctions
@@ -619,7 +632,7 @@ export default function CountyScene() {
   return <>
     {/* sky, fog, sun and the day/night cycle are DriveWorld.jsx's DayNightSky, so the drive and on-foot cameras share one clock */}
     {REAL ? <><StreamTerrain /><WaterSheet bit={1} y={SEA_Y} color="#2f7fa0" /><WaterSheet bit={2} y={border().lakeY} color="#4f8f9a" /></> : <Terrain />}
-    {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind], dirt = r.kind === 'dirt' || r.kind === 'gravel'; return <Ribbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} hide={dirt ? p => pavedRoadAt(p.x, p.z, ROAD_HALF[r.kind] + 1) : null} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
+    {ROADS.map((r, i) => { const look = ROAD_LOOK[r.kind], dirt = r.kind === 'dirt' || r.kind === 'gravel'; return <GRibbon key={'r' + i} path={r.path} half={ROAD_HALF[r.kind]} heightFn={height} {...look} hide={dirt ? p => pavedRoadAt(p.x, p.z, ROAD_HALF[r.kind] + 1) : null} lift={0.014 + (r.kind === 'highway' ? 0.004 : 0)} />; })}
     {REAL && <HighwayRibbons connections={roadConnections} />}
     {roadConnections && <HighwayJunctionSurfaces connections={roadConnections} />}
     {REAL && <HighwayFurniture />}
@@ -627,11 +640,11 @@ export default function CountyScene() {
     {REAL && <GasBrandSigns />}
     {REAL && <RoadsideWrecks />}
     {REAL && <RoadsideDriveways />}
-    {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}
-    <Ribbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />
-    <Ribbon path={pitLane} half={4.6} tile={9.2} makeTexture={pitTex} detail={{ grain: 0.2, bump: 0.3, macro: 0.08 }} step={1} lift={0.012} segs={2} heightFn={height} />
-    <Ribbon path={dirtStrip} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 6)} />
-    <Ribbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965) || pavedRoadAt(p.x, p.z, 6); }} />
+    {TRAILS.map((t, i) => <GRibbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}
+    <GRibbon path={circuit} half={7.5} tile={24} makeTexture={circuitTex} detail={{ grain: 0.2, bump: 0.35, macro: 0.1 }} heightFn={height} />
+    <GRibbon path={pitLane} half={4.6} tile={9.2} makeTexture={pitTex} detail={{ grain: 0.2, bump: 0.3, macro: 0.08 }} step={1} lift={0.012} segs={2} heightFn={height} />
+    <GRibbon path={dirtStrip} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 6)} />
+    <GRibbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965) || pavedRoadAt(p.x, p.z, 6); }} />
     <Poles />
     {REAL && <RegionalUtilityPoles />}
     {REAL && <RegionalPlaceSigns />}

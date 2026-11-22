@@ -230,6 +230,7 @@ function App() {
   const setColor = c => { const colors = { ...build.colors }; if (c) colors[activeChannel.id] = c; else delete colors[activeChannel.id]; setBuild({ ...build, colors }); };
   const togglePiece = id => setBuild({ ...build, hidden: build.hidden.includes(id) ? build.hidden.filter(h => h !== id) : [...build.hidden, id] });
   const update = next => { setBuild(next); setSelected(null); };
+  game.adminSetBuild = next => update(normalize(next));   // Admin (testing): fit a whole build at once
   useEffect(() => { const f = () => setFs(!!document.fullscreenElement); document.addEventListener('fullscreenchange', f); return () => document.removeEventListener('fullscreenchange', f); }, []);
   useEffect(() => {   // driving into a region exit (game/regions.js): switch to that region's world; DriveWorld places the car
     const f = e => { const r = regionById(e.detail?.to); if (!r) return; game.region = r.id; if (!game.dev && !r.dev) game.home = { ...game.home, region: r.id }; setPlay(p => ({ ...p, world: r.world })); };

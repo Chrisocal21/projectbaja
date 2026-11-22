@@ -23,3 +23,5 @@ test('which lights each mode turns on, and the bar is detected from the build', 
   assert.ok(headOn('head') && headOn('both') && !headOn('bar') && !headOn('off')); assert.ok(barOn('bar') && barOn('both') && !barOn('head'));
   assert.ok(hasLightBar({ parts: { lightBar: 'ACC_LightBar' } })); assert.ok(!hasLightBar({ parts: {} })); assert.ok(!hasLightBar(null));
 });
+
+test('the roof pods count as a light bar too', () => { assert.ok(hasLightBar({ parts: { roofLights: 'ROOF_RoundLights' } })); });

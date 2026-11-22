@@ -7,8 +7,8 @@ export const SECTIONS = [
   { id: 'exhaust', label: 'Exhaust', slots: ['exhaust'] },
   { id: 'body', label: 'Body panels', slots: ['fenders', 'hood', 'rearDeck'] },
   { id: 'roof', label: 'Roof & racks', slots: ['roofRack', 'roofGear', 'antenna'] },
-  { id: 'lights', label: 'Lights', slots: ['lightBar', 'frontLights', 'rearLights'] },
-  { id: 'bumpers', label: 'Bumpers & cage', slots: ['frontBumper', 'rearBumper', 'rockers', 'rearCarrier'] },
+  { id: 'lights', label: 'Lights', slots: ['lightBar', 'roofLights', 'frontLights', 'rearLights'] },
+  { id: 'bumpers', label: 'Bumpers & cage', slots: ['frontBumper', 'rearBumper', 'rollCage', 'rockers', 'rearCarrier'] },
   { id: 'guards', label: 'Underbody & guards', slots: ['skid', 'mudFlaps'] },
   { id: 'suspension', label: 'Suspension', slots: ['suspension', 'shocks'] },
 ];

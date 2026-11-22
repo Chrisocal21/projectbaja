@@ -638,5 +638,154 @@
   },
   "price": 160,
   "note": "Keeps a hot motor alive in the desert."
+ },
+ {
+  "type": "part",
+  "id": "CARBON_Hood",
+  "label": "Carbon fiber nose",
+  "slot": "hood",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_008_ShortenedFrontHood"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Hood_Front",
+    "B_Body_Nose_Front",
+    "B_FrontBumper",
+    "B_HoodTrim",
+    "B_HoodHandle",
+    "B_HoodLogo"
+   ]
+  },
+  "material": {
+   "color": "#16181b",
+   "metalness": 0.5,
+   "roughness": 0.28
+  },
+  "price": 520
+ },
+ {
+  "type": "part",
+  "id": "CARBON_FendersCut",
+  "label": "Carbon fiber high-cut fenders",
+  "slot": "fenders",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_007_CutBajaFenders"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Fender_",
+    "B_HeadlightGlass",
+    "B_HeadlightTrim",
+    "B_TurnSignal",
+    "B_Tailights"
+   ]
+  },
+  "material": {
+   "color": "#16181b",
+   "metalness": 0.5,
+   "roughness": 0.28
+  },
+  "price": 780
+ },
+ {
+  "type": "part",
+  "id": "CARBON_FendersWide",
+  "label": "Carbon fiber wide fenders",
+  "slot": "fenders",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_010_FiberglassWideFenders"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Fender_",
+    "B_HeadlightGlass",
+    "B_HeadlightTrim",
+    "B_TurnSignal",
+    "B_Tailights"
+   ]
+  },
+  "material": {
+   "color": "#16181b",
+   "metalness": 0.5,
+   "roughness": 0.28
+  },
+  "price": 820
+ },
+ {
+  "type": "part",
+  "id": "CARBON_RearDeck",
+  "label": "Carbon fiber open rear deck",
+  "slot": "rearDeck",
+  "category": "Body",
+  "bodies": {
+   "classic-stage2": "STAGE2_PART_009_RearEngineOpening"
+  },
+  "families": [
+   "classic"
+  ],
+  "hides": {
+   "*": [
+    "B_Body_Engine_Lid_Rear",
+    "B_Body_Tail_Rear",
+    "B_BackBumper",
+    "B_BackTrim",
+    "B_BackHandle",
+    "B_LicensePlate"
+   ]
+  },
+  "material": {
+   "color": "#16181b",
+   "metalness": 0.5,
+   "roughness": 0.28
+  },
+  "price": 460
+ },
+ {
+  "type": "part",
+  "id": "ROLL_Cage",
+  "label": "Full roll cage (tube)",
+  "slot": "rollCage",
+  "category": "Protection",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "ROLL_Cage",
+  "price": 900
+ },
+ {
+  "type": "part",
+  "id": "ROOF_RoundLights",
+  "label": "Roof light pods (4 round)",
+  "slot": "roofLights",
+  "category": "Lighting",
+  "bodies": {
+   "classic": "proc",
+   "classic-stage2": "proc"
+  },
+  "families": [
+   "classic"
+  ],
+  "proc": "ROOF_RoundLights",
+  "requires": {
+   "roofRack": "ACC_RoofRack"
+  },
+  "price": 340
  }
 ]

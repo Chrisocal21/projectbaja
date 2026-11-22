@@ -159,5 +159,19 @@
   "label": "Cooling",
   "category": "Mechanical",
   "order": 9.4
+ },
+ {
+  "type": "slot",
+  "id": "rollCage",
+  "label": "Roll cage",
+  "category": "Protection",
+  "order": 12
+ },
+ {
+  "type": "slot",
+  "id": "roofLights",
+  "label": "Roof light pods",
+  "category": "Lighting",
+  "order": 16.5
  }
 ]
