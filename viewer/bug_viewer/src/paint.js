@@ -1,6 +1,7 @@
 // DEV STAND-IN (the game is simulation-forward: players will sand, paint and buff panels by hand, see rules/finish.js).
 import { finishMaterial } from './finishJobs.js';
 const byPanel = new WeakMap();   // a panel state object -> its material (same object back until the panel changes)
+export const panelMaterial = panel => finishOf({}, panel);
 const finishOf = (m, panel) => { let out = byPanel.get(panel); if (!out) byPanel.set(panel, out = { ...m, ...finishMaterial(panel) }); return out; };
 // Paint on parts. Bare fiberglass (material.unpainted) stays flat white until the player picks a body paint.
 const cache = new WeakMap();   // part material -> { colour -> painted material }, so the same object comes back (no needless re-render)

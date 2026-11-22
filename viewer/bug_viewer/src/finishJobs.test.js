@@ -37,3 +37,18 @@ test('finish state saves per vehicle and panel without touching the old home', (
 test('every finish tool has a name, a time and a rule', () => {
   for (const [id, t] of Object.entries(FINISH_TOOLS)) { assert.ok(t.name && t.secs > 0 && typeof t.rule === 'function', id); assert.ok(isFinishTool(id)); }
 });
+
+import { isBodyPanelSlot, bodySeed, eligiblePanels, weatherHome, dirtyVehicle } from './finishJobs.js';
+test('body panels are steel, start painted, rust only after grinding and waiting; driving makes them dirty', () => {
+  assert.ok(isBodyPanelSlot('doorL') && isBodyPanelSlot('fenderRR') && !isBodyPanelSlot('engine') && !isBodyPanelSlot('windshield'));
+  const painted = bodySeed('#729ba6'); assert.equal(stateName(painted), 'buffed' === stateName(painted) ? 'buffed' : 'painted');
+  const ground = hold('grinder', painted, 5).panel; assert.equal(stateName(ground), 'ground');
+  const home = { finish: { bug: { doorL: ground, hoodPanel: painted } } };
+  const later = weatherHome(home, 20);
+  assert.ok(later.finish.bug.doorL.rust > 0.2); assert.ok(later.finish.bug.hoodPanel.rust < later.finish.bug.doorL.rust / 4);
+  assert.equal(weatherHome({}, 5).finish, undefined);
+  const parts = { shell: { material: { unpainted: true } } };
+  const el = eligiblePanels({ parts: { hood: 'shell' }, stripped: ['doorR'] }, parts, '#fff');
+  assert.ok(el.some(([k]) => k === 'up:hood') && !el.some(([k]) => k === 'doorR') && el.some(([k]) => k === 'doorL'));
+  const d = dirtyVehicle({}, 'bug', el, 0.2); assert.equal(d.finish.bug.doorL.dirt, 0.2); assert.equal(stepJob('hose', d.finish.bug.doorL, 0.1).ok, true);
+});

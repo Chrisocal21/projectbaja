@@ -11,7 +11,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile, bodyById, partById } from './build.js';
-import { partMaterial } from './paint.js';
+import { partMaterial, panelMaterial } from './paint.js';
 import { getFinish } from './finishJobs.js';
 import { rimGeometry } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
@@ -42,7 +42,7 @@ function inspectSelection(e, onSelect, asset) {
 }
 
 /** One GLB. `mask` hides meshes by name prefix (only when isBase), `paint` recolours matching materials. */
-function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null, opens = [], only = null }) {
+function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false, channels = [], wheelDy = 0, material = null, opens = [], only = null, finish = null, rr = null }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   const clone = useMemo(() => {
     const c = scene.clone(true);
@@ -67,13 +67,15 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
         if (!m.userData.baseColor) m.userData.baseColor = m.color.clone();
         const ch = !wheel && channels.find(c => c.re.test(m.name || 'unnamed'));
         m.color.copy(material?.color ? new THREE.Color(material.color) : ch ? new THREE.Color(ch.color) : m.userData.baseColor);
+        const fin = finish && rr && isBase && !wheel && /paint|FadedBlue|Fiberglass/i.test(m.name || '') && finish[slotForMesh(o, rr)];   // a body panel the player has worked on
+        if (fin) { const pm = panelMaterial(fin); m.color.set(pm.color); m.metalness = pm.metalness; m.roughness = pm.roughness; }
         if (material) { if (material.metalness != null) m.metalness = material.metalness; if (material.roughness != null) m.roughness = material.roughness; }
         if (material?.unpainted && (m.map || m.vertexColors)) { m.map = null; m.vertexColors = false; m.needsUpdate = true; }   // bare fiberglass: flat colour, whatever the model was textured with
         if (!material && !wheel) applyWeathering(m, kindForMaterial(m.name || ''), o, clone);
         else if (material?.weave) applyWeathering(m, 'carbon', o, clone);
       });
     });
-  }, [clone, maskKey, wireframe, isBase, channels, material]);
+  }, [clone, maskKey, wireframe, isBase, channels, material, finish]);
   // open lids (engine lid, front hood): swing the matching meshes about a hinge on the lid's top edge
   const opensKey = opens.map(o => o.piece).join('|');
   useEffect(() => {

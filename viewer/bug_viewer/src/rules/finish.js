@@ -40,6 +40,7 @@ export function paint(panel, work, color) {
   if (!color) return no(panel, 'You need a can of paint.');
   if (isRusted(panel)) return no(panel, 'Grind the rust off first.');
   if (panel.coverage > 0 && panel.color && panel.color !== color && panel.coverage >= 0.999) return no(panel, 'Grind the old colour off first.');
+  if (panel.coverage >= 0.999 && panel.color === color) return no(panel, 'Already painted that colour.');
   const sum = clamp01(panel.coverage + work), coverage = sum >= 0.999 ? 1 : sum;   // snap, so ten small passes make a whole coat
   return done(panel, { coverage, color, gloss: RULES.flatGloss, bare: false });
 }

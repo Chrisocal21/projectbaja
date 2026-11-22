@@ -23,7 +23,7 @@ How a job works (the pattern we already use): aim at the thing, hold the click (
 | Paint (colour cans, mixed) | colour coat; the **can** is how colour is chosen, never a picker | paint | RULES |
 | Clear coat | gloss and protection | clear | PLANNED |
 | Buffer + compound / polish | take flat paint to gloss | polish | HAVE (hold-click) |
-| Pressure washer, hose, bucket + sponge | wash dirt and mud off | water | HAVE (hose in hand; nothing makes panels dirty yet) |
+| Pressure washer, hose, bucket + sponge | wash dirt and mud off | water | HAVE (hose / power sprayer; driving makes panels dirty) |
 | Wax, detail kit, shop vac | final shine, clean interior | wax | PLANNED |
 | Paint area / booth (yard upgrade) | dust-free painting, better finish | none | PLANNED (fixture) |
 

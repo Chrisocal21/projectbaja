@@ -1,12 +1,12 @@
 // Hold-click panel finishing: which tool does which rule, how long a whole job takes, and the saved per-panel state.
 // Pure (no game store, no renderer) so it is testable; game/finishWork.js runs it on the held mouse button.
-import { newPanel, grind, paint, buff, hose, look } from './rules/finish.js';
+import { newPanel, grind, paint, buff, hose, look, weather, splash } from './rules/finish.js';
 
 /** secs = seconds of holding for one whole job (a full coat, all the rust off). PROPOSAL: tune by feel. */
 export const FINISH_TOOLS = {
   grinder: { name: 'Angle grinder', size: 1, verb: 'Grinding', secs: 4, rule: grind },
   buffer: { name: 'Buffer', size: 1, verb: 'Buffing', secs: 4, rule: buff },
-  hose: { name: 'Pressure hose', size: 1, verb: 'Washing', secs: 3, rule: hose },
+  hose: { name: 'Hose / power sprayer', size: 1, verb: 'Washing', secs: 3, rule: hose },
 };
 /** Spray cans: one tool per colour (the can you hold is how you choose; there is no picker). */
 export const CANS = { 'spray-white': ['White spray paint', '#f2f2ee'], 'spray-red': ['Red spray paint', '#b3261e'], 'spray-blue': ['Blue spray paint', '#2a5d9f'], 'spray-black': ['Black spray paint', '#1b1c1e'], 'spray-yellow': ['Yellow spray paint', '#e0b21c'] };
@@ -37,4 +37,32 @@ export function finishMaterial(panel) {
   let color = mix(l.color, RUST, Math.min(1, l.rust));
   color = mix(color, DIRT, Math.min(0.7, l.dirt * 0.7));
   return { color, roughness: Math.min(1, l.roughness + l.rust * 0.2 + l.dirt * 0.2), metalness: l.metalness * (1 - l.rust) };
+}
+
+/** Steel body panels you can finish: doors, hood, engine lid, fenders (slot ids from rules/vehicles.js). */
+export const isBodyPanelSlot = id => /^(engineLid|hoodPanel|door[LR]|fender[FR][LR])$/.test(id || '');
+/** A body panel nobody has touched: the car's paint, a little worn. Rust stays hidden under a full coat. */
+export const bodySeed = colour => newPanel('steel', { coverage: 1, color: colour || '#729ba6', gloss: 0.45, bare: false });
+
+/** The finish key and starting state for every panel on a build: body panels (steel, seeded) and unpainted fiberglass parts. */
+export function eligiblePanels(build, partById, bodyColour) {
+  const out = [];
+  for (const slot of Object.keys(build?.parts || {})) if (partById[build.parts[slot]]?.material?.unpainted) out.push(['up:' + slot, () => newPanel('glass')]);
+  for (const id of ['engineLid', 'hoodPanel', 'doorL', 'doorR', 'fenderFL', 'fenderFR', 'fenderRL', 'fenderRR']) if (!(build?.stripped || []).includes(id)) out.push([id, () => bodySeed(bodyColour)]);
+  return out;
+}
+
+/** Time passes: every saved panel on every vehicle weathers (bare steel rusts, paint slows it). Returns the same home if nothing changed. */
+export function weatherHome(home, hours, exposure = 1) {
+  if (!home?.finish || hours <= 0) return home;
+  const finish = {};
+  for (const [v, panels] of Object.entries(home.finish)) { finish[v] = {}; for (const [k, p] of Object.entries(panels)) finish[v][k] = weather(p, hours, exposure); }
+  return { ...home, finish };
+}
+
+/** Driving kicks dirt up on every panel of the vehicle (seeding untouched ones so there is something to wash). */
+export function dirtyVehicle(home, vehId, eligible, amount) {
+  const have = home?.finish?.[vehId] || {}, next = { ...have };
+  for (const [key, seed] of eligible) next[key] = splash(have[key] || seed(), amount);
+  return { ...home, finish: { ...(home?.finish || {}), [vehId]: next } };
 }
