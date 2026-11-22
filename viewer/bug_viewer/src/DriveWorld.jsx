@@ -396,11 +396,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
         camera.position.copy(camPos.current); look.current.yaw = 0; look.current.pitch = 0.28;
       }
     }
-    acc.current += Math.min(rawDt, 0.1);
-    for (let n = 0; acc.current >= STEP && n < 5; n++) { simGuarded(STEP); acc.current -= STEP; }
+    // every frame advances the physics by exactly its own time, in 1-5 equal sub-steps of at most 1.2/120 s: no leftover time, so the car and camera move smoothly at any refresh rate (a fixed 120 Hz step against a 144 Hz screen made them judder)
+    { const dtF = Math.min(rawDt, 0.1), n = Math.min(5, Math.max(1, Math.ceil(dtF / (STEP * 1.2)))), hStep = Math.min(dtF / n, STEP * 1.6); acc.current = 0; for (let i = 0; i < n; i++) simGuarded(hStep); }
     if (!game.onFoot) { game.pos.x = s.current.x; game.pos.z = s.current.z; }
     game.pose = { x: s.current.x, z: s.current.z, h: s.current.h };
-    if (acc.current > STEP * 5) acc.current = 0;
   });
 
   return <group ref={group}>{children}<Headlights dims={dims} /><Cargo />{world.id === 'county' && <VehicleCargo veh={game.active} host={PLACEMENT} />}</group>;
