@@ -48,3 +48,9 @@ test('B4: a blown rear damper at one corner changes how that corner rebounds aft
   const a = peak(base), b = peak(bad); console.log(`left/right rear travel difference after a drop: sound ${a.toFixed(3)} | blown RL ${b.toFixed(3)}`);
   assert.ok(b > a + 0.002, `${b} vs ${a}`);
 });
+import { tireRadiusRun } from './driveMeasure.js';
+test('B5 / DRV-011: taller tires are a taller gear: higher top speed, slower launch (same gears)', () => {
+  const small = tireRadiusRun(0.30), std = tireRadiusRun(0.38), big = tireRadiusRun(0.50);
+  console.log([small, std, big].map((x, i) => `${[0.30, 0.38, 0.50][i]} m: 0-15 ${x.t15.toFixed(2)} s, top ${x.top.toFixed(1)} m/s`).join(' | '));
+  assert.ok(std.top > small.top, 'a stock tire should out-run a tiny one'); assert.ok(big.t15 > std.t15, 'a very tall tire should launch slower');
+});

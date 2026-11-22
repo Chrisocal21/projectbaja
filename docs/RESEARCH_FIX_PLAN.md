@@ -48,7 +48,7 @@ Status key: [ ] not started, [x] done, [~] partly there.
 2. [x] Installed tire changes grip you can measure: src/driveMeasure.js plus tests, table in [DRIVING_AUDIT](./DRIVING_AUDIT.md). Finding: stock tires cannot leave sand or mud (needs a limp floor, Chris to decide how hard).
 3. [~] Surfaces: hardpack and clay added to the physics data and measured (stopping and launch differ by surface, tests pass). The WORLD does not return them yet; asked ChatGPT in CHATGPT_HANDOFF.md.
 4. [x] Per-corner blown damper and punctured tire (wear.js onHit: a hard landing may blow the damper at the corner that took it, a rock strike or low-pressure pinch may puncture that tire). A flat drags the car to its side (measured 3.7 m off line in 6 s) and grips less; a blown damper rebounds loose at that corner only; the wrench and jack service puts them back exactly (tested). Clues and the hold-T look-over name the corner. Not checked by feel yet; a flat does not yet show on the wheel model or sag the ride height.
-5. [ ] Gearing and tire size trade-off; towing and recovery later.
+5. [~] Gearing and tire size trade-off: already in the drivetrain, now measured and tested (DRIVING_AUDIT). Still to do: a swappable final-drive part, cargo and towing.
 
 ### C. World, property, business (research/PROJECT_BAJA_WORLD_PROPERTY_BUSINESS)
 1. [~] Customer jobs with real completion checks (flat wheel done).

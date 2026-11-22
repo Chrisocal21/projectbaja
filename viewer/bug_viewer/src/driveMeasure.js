@@ -29,3 +29,10 @@ export function timeTo(surface, opts = {}, v1 = 15) {
   for (let i = 0; i < 20 * 120; i++) { stepBody(b, TEST_DIMS, { throttle: 1, brake: false, steer: 0 }, env, STEP); if (readBody(b, {}).v >= v1) return (i + 1) * STEP; }
   return Infinity;
 }
+/** the test car on wheels of radius r (metres): taller tires act as a taller gear (drivetrain.js). -> { t15, top } seconds to 15 m/s and the best speed in 40 s on dirt */
+export function tireRadiusRun(r) {
+  const d = { ...TEST_DIMS, mounts: TEST_DIMS.mounts.map(m => ({ ...m, radius: r, center: [m.center[0], r, m.center[2]] })) }, e = envFor('dirt'), b = createBody(d, { y: 0.3 });
+  let t15 = Infinity, top = 0;
+  for (let i = 0; i < 40 * 120; i++) { stepBody(b, d, { throttle: 1, brake: false, steer: 0 }, e, STEP); const v = readBody(b, {}).v; top = Math.max(top, v); if (v >= 15 && t15 === Infinity) t15 = i * STEP; }
+  return { t15, top };
+}
