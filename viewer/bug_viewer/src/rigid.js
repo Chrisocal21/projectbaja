@@ -15,7 +15,8 @@ const clamp = THREE.MathUtils.clamp;
 export function suspensionSpec(dims) {
   return {
     compression: dims.longTravel ? 0.62 : dims.offroad ? 0.42 : 0.15, droop: dims.longTravel ? 0.34 : dims.offroad ? 0.26 : 0.14,   // longTravel: an upgraded suspension (coilovers / trail shocks) has far more stroke to soak landings
-    stiffness: dims.longTravel ? 15000 : dims.offroad ? 17000 : 34000, damping: dims.longTravel ? 3900 : dims.offroad ? 3400 : 3000, antiRoll: dims.offroad ? 14000 : 18000,
+    stiffness: dims.longTravel ? 9500 : dims.offroad ? 17000 : 34000, damping: dims.longTravel ? 5200 : dims.offroad ? 3400 : 3000, antiRoll: dims.longTravel ? 4500 : dims.offroad ? 14000 : 18000,   /* tuned on whoop runs (susp experiments): soft springs with firm damping leave the body quiet while the wheels work */
+    ...(dims.suspension || {}),   // per-vehicle overrides (tuning and tests)
   };
 }
 
