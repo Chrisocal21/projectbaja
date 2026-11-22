@@ -97,11 +97,14 @@ function JobsApp({ onBack }) {
 const clockText = h => { const m = Math.round((h % 24) * 60), hh = Math.floor(m / 60) % 24, mm = m % 60; return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`; };
 /** the Money app (real, PROPOSAL layout): balance plus the last 30 changes (game.home.cashLog, written by store.js addCash) */
 import { standing, repOf, REGULAR_AT } from './repRules.js';
+import { ledgerTotals, orderLine } from './workRules.js';
 function MoneyApp({ onBack }) {
   const log = [...(game.home?.cashLog || [])].reverse();
   return <div className="phone-soon"><h3>Money</h3>
     <p style={{ fontSize: 30, fontWeight: 700 }}>${game.cash}</p>
     <p style={{ margin: 0, opacity: 0.8 }}>Standing: {standing(repOf(game.home))} ({repOf(game.home)}) · {Object.values(game.home?.regulars || {}).filter(v => v >= REGULAR_AT).length} regulars</p>
+    {(game.home?.workLog || []).length ? <p style={{ margin: 0, opacity: 0.8, fontSize: 12 }}>Work orders: {ledgerTotals(game.home.workLog).jobs} done, ${ledgerTotals(game.home.workLog).pay}{ledgerTotals(game.home.workLog).best ? ` · best customer ${ledgerTotals(game.home.workLog).best}` : ''}</p> : null}
+    {(game.home?.workLog || []).slice(-4).reverse().map((o, i) => <p key={i} style={{ margin: 0, fontSize: 12, opacity: 0.7, textAlign: 'left' }}>{orderLine(o)} <small>· {clockText(o.t)}</small></p>)}
     {log.length ? <div style={{ width: '100%', maxHeight: 260, overflow: 'auto', textAlign: 'left' }}>{log.map((e, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{e.why}<small> · {clockText(e.t)}</small></span><b style={{ color: e.d > 0 ? '#7fd88a' : '#e88a80' }}>{e.d > 0 ? '+' : '-'}${Math.abs(e.d)}</b></div>)}</div>
       : <p>No activity yet. Sales, jobs, purchases and bills show up here.</p>}

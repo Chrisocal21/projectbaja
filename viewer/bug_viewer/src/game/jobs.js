@@ -5,14 +5,15 @@ import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { pickStall, stallsFor } from '../worlds/lot.js';
 import { homeLocal, isOpen, hasInGarage } from './home.js';
-import { spawnItem } from './items.js';
+import { spawnItem, nameOfItem } from './items.js';
+import { makeOrder, addOrder } from './workRules.js';
 import { custWheel, isCustWheel, custWheelReady } from './custJobs.js';
 import { standingVehicles } from './fleet.js';
 import { upgradeLevel } from './upgrades.js';
 import { payFor, gapScale, afterJob } from './repRules.js';
 
 import { SUPPLIES } from './garageSupplies.js';
-import { standFor, stockOf, takeStock } from './stock.js';
+import { standFor, stockOf, takeStock, standById } from './stock.js';
 export { SUPPLIES };   // (the data lives in garageSupplies.js so ordering can share it)
 /** Dusty's corner store, in shelf order: [what, name, price, note]. 'supply:*' rows come from SUPPLIES. */
 export const STORE_ITEMS = [
@@ -75,7 +76,8 @@ export function doJob() {
   if (c.item) game.items = game.items.filter(i => i !== c.item);
   else if (c.stand) game.home = takeStock(game.home, c.stand).home;
   const pay = payFor(j.pay, game.home, j.who), a = afterJob(game.home, j.who);
+  const used = c.item ? nameOfItem(c.item) : c.stand ? standById[c.stand]?.name : j.need.tool ? `your ${j.need.tool}` : '';   // for the work order
   addCash(pay, `Job: ${j.who}`);
-  game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id, rep: a.rep, regulars: a.regulars };
+  game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id, rep: a.rep, regulars: a.regulars, workLog: addOrder(game.home.workLog, makeOrder(j, used, pay, game.clock)) };
   game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${pay})${pay > j.pay ? ' Good word gets around: a little extra.' : ''}${a.note ? ' ' + a.note : ''}`);
 }
