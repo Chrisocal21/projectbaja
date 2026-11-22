@@ -9,7 +9,11 @@ import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { aimedProp } from './furnish.js';
 // what the crosshair is on comes from the real mesh under it (BuildModel's DetachGlow sets game.look), not from guessed boxes
 /** looking at a seat through the cage tubes: the mesh ray hits the tubes first, so a seat also answers to a plain look-at box */
-const seatAim = (eye, look, pose, y) => { const p = carPartAim(eye, look, pose, y); return p === "seatL" || p === "seatR" ? p : null; };
+const seatAim = (eye, look, pose, y) => {   // two roomy boxes over each seat (floor to roof, with a cage and lift in the way)
+  const c = Math.cos(pose.h), sn = Math.sin(pose.h);
+  for (const [id, lx] of [['seatL', 0.4], ['seatR', -0.4]]) if (aimsAtBox(eye, look, { x: pose.x + c * lx - sn * 0.1, z: pose.z - sn * lx - c * 0.1, y: y + 0.1, hx: 0.5, hz: 0.75, h: 1.9, yaw: pose.h }, 4.5)) return id;
+  return null;
+};
 const AIM_AP = { hoodPanel: 'hood', engineLid: 'lid', doorL: 'doorL', doorR: 'doorR', seatDriver: 'seatL', seatPassenger: 'seatR' };
 import { buildById } from './home.js';
 import { isPiece } from '../worlds/structures.js';
@@ -21,9 +25,8 @@ import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
 import { sunDirection } from '../worlds/clock.js';
 import { clockHour, SUN_FOLLOW } from './clock.js';
-import { aimsAt, aimsAtBox, lookDir } from './aim.js';
+import { aimsAt, aimsAtBox, lookDir } from './aim.js';   // one rule
 import { pad } from './gamepad.js';
-import { carPartAim } from './carAim.js';   // one rule for prompt, E and click: the crosshair must be on the thing
 import { FEEL } from './restPose.js';
 import { carFitReady } from './carSnap.js';
 import { pickWork } from './workTarget.js';
