@@ -1,6 +1,6 @@
 // Procedural sound (Web Audio, no sample files): engine from rpm and throttle, tire and gravel noise from speed and slip, wind, water, landing thumps, bottom-out clunks.
 // All numbers are first guesses to tune by ear. The audio context can only start after a click or key press, so it starts on the first one. K mutes.
-let ctx = null, master = null, eng = null, nz = null, muted = false, vol = 0.8;
+let ctx = null, master = null, eng = null, nz = null, muted = false, vol = 0.5;   // default 50%
 try { muted = localStorage.getItem('baja-mute') === '1'; } catch {}
 
 /** engine firing frequency (Hz) for a 4-cylinder four-stroke: two firings per crank turn */
