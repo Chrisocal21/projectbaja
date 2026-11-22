@@ -44,6 +44,7 @@ import { createDust, dustiness } from './dust.js';
 import { updateAudio, thump, clunk } from './audio.js';
 import { steerAssist, speedFov, steerStep, steerRate } from './handling.js';
 import { createRuts, rutDepth } from './ruts.js';
+import { BUGGY } from './handlingProfiles.js';
 import { createBody, stepBody, readBody, uprightBody, suspensionSpec } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
@@ -128,7 +129,7 @@ function Scenery() {
 
 // ---------- vehicle ----------
 export const DEFAULT_DIMS = {
-  wheelbase: 2.38, track: 1.5, cabEye: [0.31, 1.32, -0.15], lift: 0, bellyHeight: 0.28, offroad: true,
+  wheelbase: 2.38, track: 1.5, cabEye: [0.31, 1.32, -0.15], lift: 0, bellyHeight: 0.28, offroad: true, handling: BUGGY,
   mounts: ['FL', 'FR', 'RL', 'RR'].map(name => ({
     name, radius: 0.38, center: [name.endsWith('L') ? 0.75 : -0.75, 0.38, name.startsWith('F') ? 1.19 : -1.19],
   })),

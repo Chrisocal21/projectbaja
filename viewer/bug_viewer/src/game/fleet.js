@@ -3,16 +3,17 @@
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { LOT_SPOTS } from '../lot/CarLot.jsx';
+import { OFFROAD_TRUCK } from '../handlingProfiles.js';
 
 export const TRUCK_DIMS = {
-  wheelbase: 3.22, track: 1.92, cabEye: [-0.4, 1.68, 0.12], lift: 0, bellyHeight: 0.36, offroad: true,
+  wheelbase: 3.22, track: 1.92, cabEye: [-0.4, 1.68, 0.12], lift: 0, bellyHeight: 0.36, offroad: true, handling: OFFROAD_TRUCK,
   topSpeed: 38, accelMul: 0.85, tire: { mu: 1.05, rr: 1, surf: {} },
   mounts: [['FL', 0.96, 1.61], ['FR', -0.96, 1.61], ['RL', 0.94, -1.61], ['RR', -0.94, -1.61]].map(([name, x, z]) => ({ name, radius: 0.51, center: [x, 0.513, z], halfWidth: 0.14 })),
 };
 
 /** the El Cajon (rules/vehicles.js CAJON: hubs at x +-0.9, z 1.8 / -1.3, radius 0.38). Driver sits on the left (+x) like the Bug. PROPOSAL numbers: a 1960s coupe-utility, heavier and slower than the Bug, a little less grip. */
 export const CAJON_DIMS = {
-  wheelbase: 3.1, track: 1.8, cabEye: [0.4, 1.55, -0.05], lift: 0, bellyHeight: 0.34, offroad: true,
+  wheelbase: 3.1, track: 1.8, cabEye: [0.4, 1.55, -0.05], lift: 0, bellyHeight: 0.34, offroad: true, handling: OFFROAD_TRUCK,
   topSpeed: 31, accelMul: 0.75, tire: { mu: 1.0, rr: 1, surf: {} },
   mounts: [['FL', 0.9, 1.8], ['FR', -0.9, 1.8], ['RL', 0.9, -1.3], ['RR', -0.9, -1.3]].map(([name, x, z]) => ({ name, radius: 0.38, center: [x, 0.38, z], halfWidth: 0.12 })),
 };

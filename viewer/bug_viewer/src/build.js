@@ -1,4 +1,5 @@
 import { slots, bodies, wheelSets, parts, presets, rims } from './catalog/index.js';
+import { BUGGY } from './handlingProfiles.js';
 import { massModel } from './vehiclePhysics.js';
 
 export { slots, bodies, wheelSets, parts, presets, rims };
@@ -116,7 +117,7 @@ export function resolve(build) {
       ...(massDims(build, fl.center[2] - rl.center[2])),
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
       offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks'),
-      longTravel: active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
+      longTravel: active.some(p => p.slot === 'suspension' || p.slot === 'shocks'), handling: BUGGY },
   };
 }
 

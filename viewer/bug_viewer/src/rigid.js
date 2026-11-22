@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { wheelSteerAngle } from './suspension.js';
 
 export const MASS = 1000, HEAVY = 1.35, G = 9.81 * HEAVY;   // HEAVY: the car falls and presses on its tires 35% harder than real gravity, so it feels planted (acceleration is unchanged: engine force is fixed)
+import { DRIFT_BASELINE } from './handlingProfiles.js';
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const Q = () => new THREE.Quaternion();
 const UP = V(0, 1, 0);
@@ -58,6 +59,8 @@ export function stepBody(b, dims, ctl, env, dt) {
   const F = V(0, -M * G, 0), T = V();
   const push = (f, p) => { F.add(f); T.add(tmpD.copy(p).sub(c).cross(f)); };
   const vcar = vel.x * fwdB.x + vel.z * fwdB.z, fl = Math.hypot(fwdB.x, fwdB.z) || 1, speed = vcar / fl;   // forward speed along the heading
+  const HP = { ...DRIFT_BASELINE, ...(dims.handling || {}), ...(env.fs != null ? { fs: env.fs } : {}), ...(env.rs != null ? { rs: env.rs } : {}), ...(env.rc != null ? { rc: env.rc } : {}) };   // the tyre balance (handlingProfiles.js); env.* still overrides for tests
+  const kHi = THREE.MathUtils.smoothstep(Math.abs(b.vel.dot(V(0, 0, 1).applyQuaternion(b.q))), 12, 35), rcNow = HP.rc + (HP.rcHigh - HP.rc) * kHi, rsNow = HP.rs + (HP.rsHigh - HP.rs) * kHi;   // more rear grip and bite at very high speed
   const mu = env.mu, ACC = env.ACC * 0.75, dmp = env.damp ?? 1;   // env.damp: worn shocks (wear.js)
 
   // ---- wheel kinematics: where the ground is under each tire, and how far that squeezes the spring ----
@@ -99,9 +102,9 @@ export function stepBody(b, dims, ctl, env, dt) {
       const vc = V().copy(w).cross(tmpB.copy(cp).sub(c)).add(vel);
       const wf = V(0, 0, 1).applyQuaternion(o.wq); wf.addScaledVector(n, -wf.dot(n)).normalize();
       const wl = V().crossVectors(n, wf);
-      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : (env.rc ?? 0.95));
+      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : rcNow);
       const sa = vs / Math.max(Math.abs(vl), 0.8);   // tan of the slip angle (floored so it behaves at a standstill)
-      let Fy = -cap * Math.tanh(sa / (front ? (env.fs ?? 0.14) : (env.rs ?? 0.14)));
+      let Fy = -cap * Math.tanh(sa / (front ? HP.fs : rsNow));
       Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
       // longitudinal: engine (rear wheels), brakes (front-biased), handbrake (rear locks), rolling resistance
       let Fx = 0;
