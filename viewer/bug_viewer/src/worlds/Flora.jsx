@@ -27,12 +27,16 @@ function writeInstance(mesh, i, part, x, z, s, ry, tint) {
   mesh.setMatrixAt(i, tmpM.multiplyMatrices(tmpO.matrix, part.local)); mesh.setColorAt(i, tmpC.set(tint || '#ffffff'));
 }
 
-/** a fixed set of instances (trees, shade plants); `items` = [[x, z, scale, ry, tint?], ...] */
+/** a fixed set of instances (trees, shade plants); `items` = [[x, z, scale, ry, tint?], ...]
+ *  Split into ~500 m chunks, each its own InstancedMesh with its own bounding sphere: one mesh for the whole map was never culled, so every tree
+ *  (6,600 triangles each) was drawn, and drawn again into the shadow map, wherever you looked. */
+const CHUNK = 500;
 function Instances({ parts, items, shadows }) {
   const group = useRef();
-  const meshes = useMemo(() => parts.map(p => { const m = new THREE.InstancedMesh(p.geometry, p.material, items.length); m.castShadow = shadows; m.receiveShadow = true; return m; }), [parts, items]);
+  const chunks = useMemo(() => { const by = new Map(); for (const it of items) { const k = Math.floor(it[0] / CHUNK) + ',' + Math.floor(it[1] / CHUNK); if (!by.has(k)) by.set(k, []); by.get(k).push(it); } return [...by.values()]; }, [items]);
+  const meshes = useMemo(() => chunks.flatMap(list => parts.map((p, k) => { const m = new THREE.InstancedMesh(p.geometry, p.material, list.length); m.castShadow = shadows; m.receiveShadow = true; m.userData = { list, k }; return m; })), [parts, chunks, shadows]);
   useEffect(() => {
-    meshes.forEach((mesh, k) => { items.forEach(([x, z, s, ry, tint], i) => writeInstance(mesh, i, parts[k], x, z, s, ry, tint)); mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; mesh.computeBoundingSphere(); });
+    meshes.forEach(mesh => { const { list, k } = mesh.userData; list.forEach(([x, z, s, ry, tint], i) => writeInstance(mesh, i, parts[k], x, z, s, ry, tint)); mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; mesh.computeBoundingSphere(); });
     const g = group.current; meshes.forEach(m => g.add(m));
     return () => meshes.forEach(m => { g.remove(m); m.dispose(); });
   }, [meshes]);
