@@ -13,6 +13,8 @@ import { buildById } from './home.js';
 import { isPiece } from '../worlds/structures.js';
 import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
 import { jobById } from './jobs.js';
+import { STANDS } from './stock.js';
+import { standText } from './standActions.js';
 import { toWorld as toW } from '../worlds/county.js';
 import { CAMPER, walkingLevel, STAIRS, LOFT, inOffice } from '../worlds/office.js';
 import { sunDirection } from '../worlds/clock.js';
@@ -40,6 +42,7 @@ const PROMPTS = {
 export const promptText = id => {
   if (id === 'racecar') return raceCarStage() === 0 ? 'Press E — Pull the tarp halfway back' : 'Press E — Pull the tarp off completely';
   if (!id) return '';
+  if (id.startsWith('stand:')) return standText(id.slice(6));
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id === 'openSwitch') return game.home?.open ? 'Press E — Turn the OPEN light off (close up)' : 'Press E — Turn the OPEN light on (open for business)';
   if (id === 'crank') return game.cranking ? 'Cranking…' : `Press E — Turn the key${game.crankTries ? ' again' : ''}  ·  G — Get out`;
@@ -184,6 +187,7 @@ export default function Walker({ world, sun }) {
       consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1, AIM_TARGET[t.id]);
     }
     if (!nearPump) game.fueled = false;
+    if (foot) for (const st of STANDS) { const [sx, sz] = toW(SITES.garage, st.lx, st.lz); consider('stand:' + st.id, sx, sz, 3.0, false, 0.7, { r: 0.55, h: 1.7 }); }   // Walt's supply stands
     if (foot) { const pc = nearestProp(game.props, 'computer', px, pz); if (pc) consider('pc', pc.x, pc.z, 2.2, false, 0.9, { r: 1.1, h: 1.2 }); }
     if (foot && held()) { const tm = machineNear(); if (tm && planAtMachine()) consider('tirem', tm.x, tm.z, 2.8, false, 0.8, { r: 1.0, h: 1.6 }); }   // a wheel, rim or tire in hand, at the tire machine
     if (foot) { const pb = nearestProp(game.props, 'pegboard', px, pz); if (pb) consider('peg', pb.x, pb.z, 4.5, false, 0.9, { box: { hx: PEG.w / 2, hz: 0.6, y: s.y + PEG.y - PEG.h / 2, h: PEG.h, yaw: pb.ry || 0 } }); }

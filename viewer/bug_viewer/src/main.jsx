@@ -27,6 +27,8 @@ import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, inter
 import { applyMachinePlan, held, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { toggleLights } from './game/lights.js';
+import { useStand } from './game/standActions.js';
+import { sellItem } from './game/sell.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
@@ -212,6 +214,7 @@ function App() {
     else if (id === 'trailer') setPanel('trailer');
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));
     else if (id === 'bench') setPanel('fab');
+    else if (id.startsWith('stand:')) useStand(id.slice(6));
     else if (id === 'peg') pegInteract();
     else if (id === 'pc') { if (!game.home?.power && !game.dev) say('The PC is dead. The power is off: flip the main breaker first.'); else setPanel('pc'); }
     else interact(id);
@@ -424,7 +427,7 @@ function App() {
     {panel?.startsWith('box:') && <ContainerPanel id={panel.slice(4)} onClose={resume} />}
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
-    {panel === 'store' && <StorePanel onBuy={storeBuy} onClose={resume} />}
+    {panel === 'store' && <StorePanel onBuy={storeBuy} onSell={sellItem} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 

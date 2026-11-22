@@ -179,7 +179,7 @@ export function boxAtShop(kind, id) {
 /** new game: stock the garage, then hide parts and cash around the map */
 /** hide cash, scrap and parts in these containers and loose-part spots (a random roll; the garage's starter stock is fixed). `add` puts one item into game.items. */
 function stockPlaces(cs, ss, bodyId, add) {
-  const cat = catalogFor(bodyId || 'classic'), pool = [...cat.part.map(p => ['part', p.id]), ...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id]), ['stock', 'battery'], ['stock', 'headlights'], ['stock', 'seatPassenger'], ['tool', 'jack']];
+  const cat = catalogFor(bodyId || 'classic'), pool = [...Object.keys(SUPPLIES).flatMap(id => [['supply', id], ['supply', id]]), ...cat.part.map(p => ['part', p.id]), ...cat.wheel.map(w => ['wheel', w.id]), ...cat.rim.map(r => ['rim', r.id]), ['stock', 'battery'], ['stock', 'headlights'], ['stock', 'seatPassenger'], ['tool', 'jack']];
   const pick = max => { const ok = pool.filter(([k, id]) => sizeOf(k, id) <= max); return ok[Math.floor(Math.random() * ok.length)]; };
   const rint = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
   for (const c of cs) {

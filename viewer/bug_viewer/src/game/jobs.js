@@ -9,6 +9,7 @@ import { standingVehicles } from './fleet.js';
 import { upgradeLevel } from './upgrades.js';
 
 import { SUPPLIES } from './garageSupplies.js';
+import { standFor, stockOf, takeStock } from './stock.js';
 export { SUPPLIES };   // (the data lives in garageSupplies.js so ordering can share it)
 /** Dusty's corner store, in shelf order: [what, name, price, note]. 'supply:*' rows come from SUPPLIES. */
 export const STORE_ITEMS = [
@@ -53,6 +54,8 @@ export function tickJobs(dt) {
 export function jobCheck(j) {
   if (j.need.tool) return game.items.some(i => i.kind === 'tool' && i.id === j.need.tool && (i.loc === 'pack' || i.loc === 'hand')) ? { ok: true } : { ok: false, why: `You need a ${j.need.tool}.` };
   const it = game.items.find(i => i.kind === j.need.kind && i.id === j.need.id && (i.loc === 'hand' || i.loc === 'pack'));
+  const st = standFor(j.need.kind, j.need.id);   // Walt's stand has one too: no need to carry it
+  if (!it && st && stockOf(game.home, st.id) > 0) return { ok: true, stand: st.id };
   const what = j.need.kind === 'supply' ? SUPPLIES[j.need.id].name : 'a car battery';
   return it ? { ok: true, item: it } : { ok: false, why: `You need ${what.toLowerCase().startsWith('a ') ? what : `a ${what.toLowerCase()}`} — Dusty's store has them.` };
 }
@@ -60,6 +63,7 @@ export function doJob() {
   const j = game.job && jobById[game.job.id]; if (!j) return;
   const c = jobCheck(j); if (!c.ok) return say(c.why);
   if (c.item) game.items = game.items.filter(i => i !== c.item);
+  else if (c.stand) game.home = takeStock(game.home, c.stand).home;
   addCash(j.pay, `Job: ${j.who}`);
   game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id };
   game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${j.pay})`);

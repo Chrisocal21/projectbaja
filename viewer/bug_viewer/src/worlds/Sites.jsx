@@ -8,6 +8,7 @@ import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
 import RoadSigns from './RoadSigns.jsx';
 import MergedStatic from './MergedStatic.jsx';
+import SupplyStands from './SupplyStands.jsx';
 import { propertyTexture } from './propertyTextures.js';
 import { furniture } from '../game/loot.js';
 import LotSite, { canvasTex, signTex, asphaltTex, rnd } from '../lot/CarLot.jsx';
@@ -409,7 +410,7 @@ export function Mesas({ d0 = 470, dr = 120, sc = 1, n = 16 }) {
 export default function Sites() {
   return <>
     <Placed site={SITES.lot}><LotSite /></Placed>
-    <Placed site={SITES.garage}><Garage /></Placed>
+    <Placed site={SITES.garage}><Garage /><SupplyStands /></Placed>
     <Placed site={SITES.barn}><MergedStatic><Barn /></MergedStatic></Placed>
     <Placed site={SITES.gas}><MergedStatic><GasStation /></MergedStatic></Placed>
     <Placed site={SITES.warehouse}><MergedStatic><Warehouse /></MergedStatic></Placed>
