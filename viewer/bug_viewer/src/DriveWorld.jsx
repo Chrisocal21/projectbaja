@@ -39,7 +39,7 @@ import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelS
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
 import { pad } from './game/gamepad.js';
 import { createDust, dustiness } from './dust.js';
-import { steerAssist, speedFov } from './handling.js';
+import { steerAssist, speedFov, steerStep, steerRate } from './handling.js';
 import { createRuts, rutDepth } from './ruts.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
@@ -270,7 +270,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
-    st.steer += (steerIn * maxSteer + (game.onFoot ? 0 : steerAssist(st.lateralV, st.v, steerIn)) - st.steer) * Math.min(1, dt * (steerIn === 0 ? 11 : 10 - Math.min(3, Math.abs(st.v) * 0.1)) / (1 + psiFx.steerLag));
+    st.aid = (st.aid || 0) + ((game.onFoot ? 0 : steerAssist(st.lateralV, st.v, steerIn)) - (st.aid || 0)) * Math.min(1, dt * 3.5);   // the catch-a-slide help, smoothed so it can't ring against the car
+    st.steer = steerStep(st.steer, steerIn * maxSteer + st.aid, dt, steerRate(steerIn !== 0, st.v, pad.on && !game.onFoot && Math.abs(pad.steer) > 0, psiFx.steerLag));   // hands on the wheel: limited turning rate, eased, no overshoot
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;

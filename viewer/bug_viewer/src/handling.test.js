@@ -26,3 +26,20 @@ test('the help vanishes when you steer hard, so full lock still slides', () => {
   assert.equal(steerAssist(6, 2, 0), 0);   // not at a crawl
 });
 test('field of view widens with speed, capped', () => { assert.ok(speedFov(60, 0) === 60 && speedFov(60, 40) > 70 && speedFov(60, 90) < 76); });
+
+import { steerStep, steerRate } from './handling.js';
+test('the wheel eases to its target without overshooting, and lets go without wobbling left and right', () => {
+  let s = 0; for (let i = 0; i < 400; i++) { const n = steerStep(s, 0.5, 1 / 120, 1.5); assert.ok(n >= s && n <= 0.5 + 1e-12); s = n; }
+  assert.ok(Math.abs(s - 0.5) < 1e-3);
+  // drive: hold left, then let go, with the assist on; the wheel may cross centre at most once
+  const b = createBody(dims, { v: 18 }); let st = 0, aid = 0, crossings = 0, prev = 0;
+  for (let i = 0; i < 9 * 120; i++) {
+    const t = i / 120, r = readBody(b), inp = t < 1.5 ? 1 : 0, maxS = 0.7 / (1 + Math.abs(r.v) * 0.026), dt = 1 / 120;
+    aid += (steerAssist(r.lateralV, r.v, inp) - aid) * Math.min(1, dt * 3.5);
+    st = steerStep(st, inp * maxS + aid, dt, steerRate(inp !== 0, r.v, false, 0));
+    stepBody(b, dims, { throttle: 0.2, brake: false, steer: st }, env, dt);
+    if (t > 1.6 && Math.sign(st) !== 0 && Math.sign(prev) !== 0 && Math.sign(st) !== Math.sign(prev) && Math.abs(st) > 0.004) crossings++;
+    if (Math.abs(st) > 0.004) prev = st;
+  }
+  assert.ok(crossings <= 1, 'wheel swung through centre ' + crossings + ' times');
+});
