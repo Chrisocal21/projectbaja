@@ -21,6 +21,10 @@ export const STAGES = [
   L('garage', 'airTools', 'Air tools', 900, 'An air line and impact wrenches: parts come off and go on 30% faster.', { effect: 'holdScale' }),
   L('garage', 'lift2', 'Second car lift', 2200, 'A second two-post lift, bolted down beside the first: two cars up at once.', { store: { key: 'upgrades', name: 'lift2', level: 1 } }),
   L('garage', 'proTools', 'Pro tool wall', 2400, 'A full set of pro tools: half the time at the car.', { needs: ['airTools', 'lift2'], effect: 'holdScale' }),
+  // the garage itself grows backward (worlds/garageLevels.js); prices are PROPOSAL
+  L('garage', 'garage1', 'Working shop (level 1)', 6000, 'The back wall comes down: a steel-framed extension with 4 bays and a bench wall.', { needs: ['lift2'] }),
+  L('garage', 'garage2', 'Pro shop (level 2)', 15000, 'Epoxy floor, bright light rows, 6 bays.', { needs: ['garage1', 'proTools'] }),
+  L('garage', 'garage3', 'Race warehouse (level 3)', 38000, 'The full race-team floor: 10 bays and wall racks for whole cars.', { needs: ['garage2'] }),
   // Office
   L('office', 'phoneLine', 'Business phone line', 500, 'A real line and a supplier contact: orders arrive in 2 hours, not 3.', { effect: 'orderHours' }),
   L('office', 'annex', 'Office back room', 1600, 'A back room off the office, through a cut doorway in its west wall: more floor to work with.', { needs: ['phoneLine'], store: { key: 'upgrades', name: 'office', level: 1 } }),

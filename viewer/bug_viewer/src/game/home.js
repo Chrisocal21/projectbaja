@@ -7,6 +7,8 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
+import { garageLevelOf, inExtension } from '../worlds/garageLevels.js';
+import { ownedStages } from '../worlds/upgrades.js';
 import { upgradeLevel, stageWhy } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
 import { allocUid } from './saveFormat.js';
@@ -121,7 +123,7 @@ export function bindHotbar(i, id, mat) {
 /** garage-local coordinates of a world point */
 export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos(G.rot), s = Math.sin(G.rot); return { lx: dx * c - dz * s, lz: dx * s + dz * c }; }
 /** inside the garage building or its attached office (m > 0 shrinks the box, m < 0 grows it) */
-const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m);
+const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m) || inExtension(garageLevelOf(ownedStages(game.home)), lx, lz, m);
 export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return Math.abs(lx) < PROPERTY.w / 2 && Math.abs(lz - 8) < PROPERTY.d / 2 + 6; };
 /** can this item go here? → '' or why not */
 /** why a building piece can't go here ('' = it can). x, z, ry are world values (the snapped ones); the rules run in garage-local metres. */
