@@ -6,6 +6,7 @@ Last updated: Nov 22, 2026.
 ## Coordination (who edits what)
 - Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder.
 - **ChatGPT is editing now (Nov 22, until about 2:05 pm): road crossings, river crossings and driveways into places.** These files are in play: `src/worlds/county.js`, `County.jsx`, `highways.js`, `regionalRoads.js` (+ test), `offroadFeatures.js` (+ test), `RealScenery.jsx`, `WildScenery.jsx`, `testcenter.js`, `badlands.js`, `sceneryGeometry.js`, `src/game/WestCoastMap.jsx`, `src/rigid.test.js`. **Claude stays out of them until ChatGPT commits.**
+- **Waiting on ChatGPT's commit:** Claude will edit `highways.js` (`blend()` and the dirt road style) to sink ordinary dirt roads a little below the paved roads' grade (a shallow cut, jumps at paved crossings are fine and realistic), only on straight, flat stretches: not on bump sections, jumps or turns. Please commit your road changes (or tell Chris) so Claude can start; do not also implement this.
 - Claude works on: vehicle and part art (`public/models`, `catalog/parts.json`, `BuildModel.jsx`, `suspension.js`), physics and handling (`rigid.js`, `drivetrain.js`, `handlingProfiles.js`, `wear.js`), the phone / Admin UI, HUD, docs.
 - Commit small. Run `npm test` and `npx vite build --outDir <tmp> --emptyOutDir` before pushing. Never commit in `salvageroad`.
 
