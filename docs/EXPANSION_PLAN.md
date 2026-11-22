@@ -44,7 +44,23 @@ Basic box buildings with correct doors and bay markers. ChatGPT polishes later (
 ## Open
 - Living quarters design (rec above). Customer pile-up default: starts at level 1.
 
+## Expansion rules (Chris, Nov 22: "give it rules")
+Layout rules, checked by tests (worlds/garageLevels.js layoutProblems):
+1. Every bay is inside the building and overlaps nothing (other bays, bench wall, aisle, racks).
+2. A car can drive into every bay without crossing another bay: its own roll-up door, or a drive aisle with a roll-up door.
+3. Doors sit on an outside wall, fit its span, never overlap.
+4. Always a bench wall (solid, 6 m or more, no bays): west wall behind the office. Wall items whose wall is removed move there.
+5. Car racks are reachable from the aisle.
+Look rules (worlds/GarageExtension.jsx):
+- New steel, not Walt's rust: clean panels outside, white liner and grey kick plate inside.
+- A real white ceiling with steel beams and columns, not a dark void.
+- Roll-up doors where the layout says (raised, bump posts, concrete apron outside).
+- Lights that light the room when the power is on.
+- One slab with the old shop: fresh concrete (level 1) or flake epoxy (2-3); painted, numbered bays (number at the end the car drives in from).
+- Level 3 is taller (6.4 m) for 3-high car racks; marked drive aisle to one big east door.
+Plan diagram: viewer/bug_viewer/screenshots/garage_plan_0_3.png.
+
 ## Status (Nov 22)
-Built: levels 1-3 as basic boxes (viewer/bug_viewer/src/worlds/GarageExtension.jsx): back wall opens, side and back walls, roof, light rows, yellow bay lines, epoxy floor at level 2-3, wall racks at level 3. Screenshots in viewer/bug_viewer/screenshots/garage_L*.png.
-Done: lifts lock onto the nearest bay spot when placed (game/home.js snapLiftWorld).
-Not yet: benches for the new bays, a doorway through the office's back wall, outside look of the extension, Walt's bench and pegboard sit in the opened back wall until moved by hand.
+Built: levels 1-3 to the rules above. L1: 2 new bays with back doors. L2: 4 new bays with back doors, epoxy. L3: 4 bays on a drive aisle, big east door, 3 car racks x 3 tiers (9 cars). Lifts snap to bay spots. Pegboard moves to the bench wall when the back wall opens.
+Decided: level 3 keeps 6 floor bays plus 9 rack spots for now (growing west past the office can be a later step). Cars reach the back doors around the east side, between the shop and the camper.
+Not yet: Walt's workbench still stands where it was (free-standing, move it by hand); doors are always open (no open/close); doorway through the office's back wall; benches/storage for the new floor.

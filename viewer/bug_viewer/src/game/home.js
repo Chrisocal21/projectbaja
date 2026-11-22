@@ -159,9 +159,23 @@ function cutWhy(item, x, z) {
   if (!s) return "Aim at the garage's right wall or its back wall.";
   return openWhy(s, foundationsLocal(), openingKeys()) || (!creative() && game.cash < item.price ? `Not enough cash ($${item.price}).` : '');
 }
+/** the garage level this save has (0 = Walt's shop, worlds/garageLevels.js) */
+export const garageLevel = () => garageLevelOf(ownedStages(game.home));
+/** a wall item (the pegboard) whose wall is gone (the back wall opens at garage level 1) moves to the bench wall on the extension's west side */
+export function ensureWallItemsOnWalls() {
+  const level = garageLevel(); let moved = 0;
+  game.props = game.props.map(p => {
+    const item = buildById[p.id]; if (!item?.wallMount) return p;
+    const opt = { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, level }, here = wallSnap(G, p.x, p.z, { ...opt, reach: WALL_MOUNT.offset + 0.1 });
+    if (here) return p;
+    const [bx, bz] = toWorld(G, -12.6, -10), s = wallSnap(G, bx, bz, { ...opt, reach: 3 }); if (!s) return p;
+    moved++; return { ...p, x: s.x, z: s.z, ry: s.ry };
+  });
+  if (moved) { game.propsV = (game.propsV || 0) + 1; save(); say("Walt's pegboard went up on the new bench wall (the old back wall is open now)."); }
+}
 /** a lift snaps to the nearest bay spot within reach of where you aim (worlds/garageLevels.js) → { x, z, ry } in world terms, or null */
 export function snapLiftWorld(x, z) {
-  const l = homeLocal(x, z), b = nearestBay(garageLevelOf(ownedStages(game.home)), l.lx, l.lz, 3.5, true); if (!b) return null;
+  const l = homeLocal(x, z), b = nearestBay(garageLevel(), l.lx, l.lz, 3.5, true); if (!b) return null;
   const [wx, wz] = toWorld(G, b.x, b.z); return { x: wx, z: wz, ry: G.rot + b.ry };
 }
 /** wall-mounted furniture (the pegboard) stands this far off the wall and snaps to the nearest one within `reach` of where you aim */
@@ -178,7 +192,7 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   const inG = insideGarage(lx, lz, item.wallMount ? 0 : 0.5), wall = insideGarage(lx, lz, -0.6) && !inG;
   if (wall) return 'Too close to the garage wall.';
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
-  if (item.wallMount && !wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, reach: WALL_MOUNT.offset + 0.1 })) return 'That mounts on a garage wall: aim at one.';
+  if (item.wallMount && !wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, reach: WALL_MOUNT.offset + 0.1, level: garageLevel() })) return 'That mounts on a garage wall: aim at one.';
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
   if (inG && item.zone !== 'yard' && !item.carBay && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';

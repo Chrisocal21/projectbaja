@@ -28,3 +28,8 @@ test('rotated garage: positions rotate with it', () => {
   const R = { x: 10, z: 20, rot: Math.PI / 2, y: 0 }, s = wallSpot(R, 10, 20);
   assert.equal(s, null);
 });
+test('level 1+: the old back wall is open, the pegboard goes on the extension walls', () => {
+  assert.equal(wallSnap(G, 2, -5.6, { offset: 0.15, along: 2.7, reach: 3, level: 1 })?.wall !== 'back' || wallSnap(G, 2, -5.6, { offset: 0.15, along: 2.7, reach: 3, level: 1 }).z < -13, true);
+  const s = wallSnap(G, -12.6, -10, { offset: 0.15, along: 2.7, reach: 3, level: 1 }); assert.equal(s.wall, 'west'); assert.ok(near(s.x, -13.05)); assert.equal(s.ry, Math.PI / 2);
+  assert.equal(wallSnap(G, 0.8, -13.6, { level: 2 }), null, 'not across a roll-up door');
+});

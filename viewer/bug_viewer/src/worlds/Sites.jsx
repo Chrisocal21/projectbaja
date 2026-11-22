@@ -182,7 +182,7 @@ function Garage() {
     {[-2.05, 2.05].map(x => <mesh key={x} position={[x, 0.122, 0.6]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.1, 8]} /><meshStandardMaterial color="#d9b23a" roughness={0.8} /></mesh>)}
     {/* walls: corrugated outside, plywood lining up to 1.3 m inside */}
     <OriginalWall which="B" map={wallBack} lining={ply} open={cuts} /><OriginalWall which="R" map={wallSide} lining={ply} open={cuts} />
-    <GarageExtension level={gLevel} wallSide={wallSide} wallBack={wallBack} roof={roof} floor={floor} />
+    <GarageExtension level={gLevel} power={power} />
     {/* left wall: reception doorway */}
     <Box p={[-w, H / 2, (-d + OFFICE.inner.z0) / 2]} s={[t, H, OFFICE.inner.z0 + d]} color="#fff" map={wallSide} />
     <Box p={[-w, H / 2, (d + OFFICE.inner.z1) / 2]} s={[t, H, d - OFFICE.inner.z1]} color="#fff" map={wallSide} />

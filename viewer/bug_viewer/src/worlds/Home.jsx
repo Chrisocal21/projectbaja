@@ -11,7 +11,7 @@ import { furn, ghostSpot } from '../game/furnish.js';
 import GarageCargo from '../placement/GarageCargo.jsx';
 import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
-import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
+import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
 import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
@@ -555,7 +555,7 @@ function Ghost({ T }) {
     else if (item.struct) { const sn = snapWorld(item, camera.position.x + game.face.x * 4.5, camera.position.z + game.face.z * 4.5); x = sn.x; z = sn.z; ry = sn.ry; }   // building pieces snap to the 2 m grid and turn to the nearest edge
     else { const d = 4 + (item.len || 0) * 0.5; furn.cx = camera.position.x; furn.cz = camera.position.z; { const dv = camera.getWorldDirection(new THREE.Vector3()); furn.aim = { origin: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, dir: { x: dv.x, y: dv.y, z: dv.z } }; } ({ x, z } = ghostSpot(camera.position.x, camera.position.z, game.face, d, furn.shift)); }   // Stage 4b: free by default, Shift = 0.5 m grid
     if (item.carBay) { const bs = snapLiftWorld(x, z); if (bs) { x = bs.x; z = bs.z; ry = bs.ry; } }   // the lift locks onto the nearest bay spot
-    if (item.wallMount) { const ws = wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2 }); if (ws) { x = ws.x; z = ws.z; ry = ws.ry; } }   // the pegboard snaps flush to the nearest garage wall
+    if (item.wallMount) { const ws = wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, level: garageLevel() }); if (ws) { x = ws.x; z = ws.z; ry = ws.ry; } }   // the pegboard snaps flush to the nearest garage wall
     const why = placeWhy(item, x, z, !!game.buildMode.moving, ry, game.buildMode.mat);
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, item.struct || item.cut ? height(x, z) : groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);

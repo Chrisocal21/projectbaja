@@ -14,7 +14,8 @@ import { VEHICLES } from '../rules/vehicles.js';
 import { defOf } from './projects.js';
 import { withTread, tireSizeOf } from './tires.js';
 import { wallSpot } from './wallhang.js';
-import { effects } from './upgrades.js';
+import { effects, owned } from './upgrades.js';
+import { garageLevelOf } from '../worlds/garageLevels.js';
 import { registerTireSizes } from '../placement/gameItems.js';
 import { wheelSets } from '../catalog/index.js';
 registerTireSizes(Object.fromEntries(wheelSets.map(w => [w.id, tireSizeOf(w)])));   // loose tires are as big as their wheel set
@@ -118,7 +119,7 @@ export const dropHeld = () => dropItem();
 /** G with a keepsake in your hands, standing at a garage wall: hang it there (game/wallhang.js). Returns false if nothing was hung (then G just drops it). */
 export function hangHeld() {
   const it = held(); if (!it || it.kind !== 'memento' || !game.onFoot) return false;
-  const s = wallSpot(SITES.garage, game.pos.x, game.pos.z); if (!s) return false;
+  const s = wallSpot(SITES.garage, game.pos.x, game.pos.z, garageLevelOf(owned())); if (!s) return false;
   at(it); Object.assign(it, { loc: 'world', x: s.x, z: s.z, y: s.y, ry: s.ry, wall: true }); commit(); say(`Hung ${nameOfItem(it)} on the ${s.wall} wall (click to take it down)`); return true;
 }
 /** move a pack item into your hands (to install it), swapping what you hold back into the pack if it fits */

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GARAGE_LEVELS, levelData, extension, inExtension, garageLevelOf, baysAt, nearestBay, bayOf, freeBays, BAY } from './garageLevels.js';
+import { GARAGE_LEVELS, levelData, extension, inExtension, garageLevelOf, baysAt, nearestBay, bayOf, freeBays, BAY, layoutProblems, extensionWallCircles, wallFaces } from './garageLevels.js';
 import { STAGES, ownedStages, stageById } from './upgrades.js';
 
-test('bays grow 1, 4, 6, 10 and never overlap', () => {
-  assert.deepEqual(GARAGE_LEVELS.map(l => l.bays.length), [1, 4, 6, 10]);
+test('floor bays grow 1, 4, 6, 6 (+9 rack spots at level 3) and never overlap', () => {
+  assert.deepEqual(GARAGE_LEVELS.map(l => l.bays.length), [1, 4, 6, 6]);
   for (const l of GARAGE_LEVELS) for (const a of l.bays) for (const b of l.bays) if (a !== b)
     assert.ok(Math.abs(a.x - b.x) >= BAY.w - 1e-9 || Math.abs(a.z - b.z) >= BAY.d - 1e-9, `${l.level}: ${a.id} overlaps ${b.id}`);
 });
@@ -29,11 +29,25 @@ test('garage level comes from the stages owned, and the stages chain', () => {
 test('nearest bay, bay of a car, free bays', () => {
   assert.equal(nearestBay(1, 0.3, -0.2).id, 'B0');
   assert.equal(nearestBay(0, 4.6, -0.5), null);
-  assert.equal(bayOf(3, -3.2, -17.5).id, 'S1');
+  assert.equal(bayOf(3, -3.2, -10.5).id, 'R2');
   assert.equal(freeBays(1, [{ x: 0, z: -0.5 }]).length, 3);
 });
 
 test('nearestBay liftOnly: a lift aimed near a bay snaps to it, far away it does not', () => {
-  assert.equal(nearestBay(3, -7.0, -10.0, 3.5, true).id, 'R2');
+  assert.equal(nearestBay(3, -7.0, -10.0, 3.5, true).id, 'R1');
   assert.equal(nearestBay(3, 30, 30, 3.5, true), null);
+});
+
+test('THE RULES: every level passes (bays reachable by a car, doors fit, bench wall, racks on the aisle)', () => {
+  for (const l of GARAGE_LEVELS) assert.deepEqual(layoutProblems(l.level), [], `level ${l.level}`);
+  assert.equal(GARAGE_LEVELS[3].racks.reduce((n, k) => n + k.tiers, 0), 9);
+});
+test('roll-up doors leave a gap in the wall collision', () => {
+  const back = extensionWallCircles(2).filter(([, z]) => z === -14);
+  assert.ok(!back.some(([x]) => Math.abs(x - 0.8) < 1.5), 'door D3 at x 0.8 is open');
+  assert.ok(back.some(([x]) => Math.abs(x + 12) < 0.3), 'solid wall behind the bench wall');
+});
+test('wall faces: the old back wall is gone once the shop grows, the new back and west walls take wall items', () => {
+  assert.deepEqual(wallFaces(0).map(w => w.id), ['back', 'front', 'left', 'right']);
+  const f = wallFaces(1); assert.equal(f.find(w => w.id === 'back').at, -14); assert.ok(f.some(w => w.id === 'west'));
 });

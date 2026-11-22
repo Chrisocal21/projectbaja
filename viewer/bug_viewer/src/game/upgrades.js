@@ -25,6 +25,7 @@ export function buyStage(id) {
   if (id === 'annex') home.openings = [...new Set([...(home.openings || []), ANNEX_DOOR])];
   game.home = home;
   if (id === 'annex' || /^garage[123]$/.test(id)) game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
+  if (/^garage[123]$/.test(id)) import('./home.js').then(m => m.ensureWallItemsOnWalls());   // the old back wall opens: its pegboard moves to the bench wall
   save(); say(`Upgrade: ${s.name}${free ? ' (creative: free)' : ` (−$${s.price})`}`);
   return true;
 }
