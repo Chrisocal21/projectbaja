@@ -276,7 +276,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (wade > 0.05) st.wetT = 7; else if (st.wetT > 0) { st.wetT -= dt; if (st.wetT <= 0) say('The brakes have dried out and bite again.'); }   // wet brakes: weak for a few seconds after a crossing (fades back in)
     const wetK = st.wetT > 0 ? 1 - 0.6 * Math.min(1, st.wetT / 3) : 1;
     const throttle0 = bugAsleep() ? 0 : Math.max(-1, Math.min(1, (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + pad.throttle));   // grandma's Bug won't pull until she's fired once
-    const throttle = throttle0; st.thr = throttle;
+    st.deep = wade > 0.7 ? (st.deep || 0) + dt : Math.max(0, (st.deep || 0) - dt * 0.5);   // deep water: the engine drowns after a moment, then restarts when you are out and it has dried (a few seconds)
+    if (st.deep > 1.2 && !(st.drown > 0) && !game.onFoot) { st.drown = 4; const W0 = game.home.wear[game.active]; if (W0) W0.engine = Math.min(1, W0.engine + 0.03); say('Water in the intake: the engine drowned. Get out of the deep water and give it a few seconds.'); }
+    if (st.drown > 0 && wade < 0.5) st.drown -= dt;
+    const throttle = st.drown > 0 ? 0 : throttle0; st.thr = throttle;
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
@@ -287,6 +290,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const rb = st.rb;
     stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
+    if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);
     // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
     { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = dims.offroad ? 0.42 : 0.15;
@@ -384,7 +388,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
     { const st = s.current; updateAudio({ on: !game.onFoot && !game.paused && !game.travelling, rpm: st.rpm, throttle: st.thr || 0, speed: st.v, slip: Math.min(1, st.slip || 0), loose: dustiness(st.sfKey), air: st.air, wade: st.wade || 0 }); }
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.drown > 0 ? ' · ENGINE DROWNED' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);
@@ -468,7 +472,7 @@ const TEST_WORLD = { id: 'test', height: TC.height, surface: TC.surface, half: T
 const vehicleCircles = (pose, len) => { const n = len > 4.5 ? 4 : 3, out = []; for (let k = 0; k < n; k++) { const o = (k / (n - 1) - 0.5) * (len - 2.2); out.push([pose.x + Math.sin(pose.h) * o, pose.z + Math.cos(pose.h) * o, 1.2, CO.height(pose.x, pose.z) + 1.6]); } return out; };
 let obsCache = { key: '', list: [] };
 const COUNTY_WORLD = {
-  id: 'county', trunks: (x, z) => { const a = TRUNKS.near(x, z), b = CO.wildTrunksNear(x, z); return b.length ? [...a, ...b] : a; }, waterDepth: CO.waterDepthAt, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
+  id: 'county', trunks: (x, z) => { const a = TRUNKS.near(x, z), b = CO.wildTrunksNear(x, z); return b.length ? [...a, ...b] : a; }, waterDepth: CO.waterDepthAt, waterFlow: CO.waterFlowAt, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { game } from '../game/store.js';
-import { height, wildTrees, wildCreeks } from './county.js';
+import { height, wildTrees, wildCreeks, wildDecks } from './county.js';
 
 // The creeks, rivers and forests of the off-road features (offroadFeatures.js / wildFeatures.js): a water surface per creek and low-poly trees in chunks.
 // Both are drawn only near you (the water only where the fine terrain shows the trench).
@@ -84,4 +84,26 @@ function Water() {
   return <group ref={group} />;
 }
 
-export default function WildScenery() { return <><Water /><Trees /></>; }
+/** plank bridges over the creek crossings: the ground is flush across them (the creek bed under the deck does not count), so these are the planks and rails you see */
+function Bridges() {
+  const group = useRef(), { camera } = useThree(), tick = useRef(0);
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }), []);
+  const meshes = useMemo(() => wildDecks().map(d => {
+    const parts = [], box = (w, h, l, x, y, z, hex) => { const g = new THREE.BoxGeometry(w, h, l); g.translate(x, y, z); parts.push(colored(g, hex)); };
+    const L = d.L - 2, W = d.W;
+    box(W, 0.22, L, 0, 0.06, 0, '#7a5c3a');   // the planks (a hand above the ground)
+    for (let s = -L / 2 + 0.3; s < L / 2; s += 1.1) box(W - 0.2, 0.03, 0.04, 0, 0.18, s, '#5a4128');   // plank gaps
+    for (const side of [-1, 1]) { box(0.14, 0.12, L, side * (W / 2 - 0.08), 0.95, 0, '#6b4e30'); box(0.1, 0.1, L, side * (W / 2 - 0.08), 0.55, 0, '#6b4e30'); for (let s = -L / 2 + 0.4; s <= L / 2; s += 2.6) box(0.16, 1.05, 0.16, side * (W / 2 - 0.08), 0.5, s, '#5a4128'); }
+    const g = mergeGeometries(parts.map(p => p.toNonIndexed())), m = new THREE.Mesh(g, mat);
+    m.position.set(d.x, height(d.x, d.z) + 0.12, d.z); m.rotation.y = d.h; m.visible = false; m.userData.d = d; return m;
+  }), [mat]);
+  useEffect(() => { const g = group.current; meshes.forEach(m => g.add(m)); return () => { meshes.forEach(m => { g.remove(m); m.geometry.dispose(); }); mat.dispose(); }; }, [meshes, mat]);
+  useFrame((_, dt) => {
+    if ((tick.current += dt) < 0.5) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos;
+    for (const m of meshes) { const d = m.userData.d; m.visible = Math.hypot(d.x - p.x, d.z - p.z) < 420; }
+  });
+  return <group ref={group} />;
+}
+
+export default function WildScenery() { return <><Water /><Trees /><Bridges /></>; }

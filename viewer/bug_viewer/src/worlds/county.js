@@ -348,6 +348,9 @@ export const offroadFeatureCount = FIELD ? FIELD.count : 0;
 export const waterDepthAt = FIELD ? (x, z) => FIELD.waterDepthAt(x, z, groundOnly(x, z)) : () => 0;
 export const wildTrees = () => FIELD?.trees || [];
 export const wildCreeks = () => FIELD?.creeks || [];
+export const wildDecks = () => FIELD?.decks || [];
+/** the current at (x, z) while in water: { x, z, k } or null (dry land, bridges) */
+export const waterFlowAt = FIELD ? (x, z) => (FIELD.waterDepthAt(x, z, groundOnly(x, z)) > 0.05 ? FIELD.flowAt(x, z) : null) : () => null;
 export const wildTrunksNear = FIELD ? FIELD.trunksNear : () => [];
 export const offroadPlan = () => FEAT;   // test / map hook
 export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (FIELD && waterDepthAt(x, z) > 0.05) return SURFACES.mud; /* a creek bed is wet mud */ if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };

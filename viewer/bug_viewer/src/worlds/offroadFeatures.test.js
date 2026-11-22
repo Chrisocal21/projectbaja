@@ -51,7 +51,7 @@ test('creeks carve a trench with water in it, hills rise, forests have trees alo
   const base = () => 0, f = buildField(items, () => true, base);
   assert.ok(f.creeks.length >= 3 && f.trees.length > 100, JSON.stringify([f.creeks.length, f.trees.length]));
   // a creek: dig below the banks, with water over the bed at its centre and none well away from it
-  const ford = items.find(i => i.kind === 'ford'), c = ford.creeks[0], mid = c.pts[1];
+  const ford = items.find(i => i.kind === 'ford' && !i.creeks[0].deck), c = ford.creeks[0], mid = c.pts[1];
   const bed = f.heightAt(mid[0], mid[1]); assert.ok(bed < -0.3, 'bed ' + bed);
   assert.ok(f.waterDepthAt(mid[0], mid[1], 0) > 0.15, 'water ' + f.waterDepthAt(mid[0], mid[1], 0));
   assert.equal(f.waterDepthAt(mid[0] + 300, mid[1] + 300, 0), 0);
@@ -75,4 +75,16 @@ test('highway strips sit just off the paved road, parallel to it, with a short s
   for (const it of items) { assert.ok(Math.abs(it.z) >= 20 && Math.abs(it.z) <= 44, 'off ' + it.z); assert.ok(Math.abs(Math.sin(it.h)) > 0.99 || Math.abs(Math.cos(it.h)) < 0.01); assert.ok(it.roadside); }
   assert.ok(items.some(i => i.kind === 'whoops') && items.some(i => i.kind === 'jump'));
   assert.ok(items.every(i => i.z < 400), 'none off the dirt road');
+});
+
+test('a bridge deck is flush and dry over the creek, the creek is still deep beside it, and the current runs along the creek', () => {
+  const { items } = planFeatures([road, { kind: 'major', pts: [[0, 3000], [6000, 3000]] }, { kind: 'secondary', pts: [[0, -4000], [9000, -4000]] }]);
+  const f = buildField(items, () => true, () => 0), br = items.find(i => i.creeks?.some(c => c.deck)); assert.ok(br, 'some crossing has a bridge');
+  const d = br.creeks.find(c => c.deck).deck, mid = br.creeks.find(c => c.deck).pts[1];
+  assert.equal(f.heightAt(d.x, d.z), 0); assert.equal(f.waterDepthAt(d.x, d.z, 0), 0);
+  assert.equal(f.decks.length >= 1, true);
+  // well off the deck, along the creek, it is carved and wet
+  const c = br.creeks.find(c => c.deck), a = c.pts[0], b = c.pts[2], q = [(a[0] + mid[0]) / 2, (a[1] + mid[1]) / 2];
+  const wet = f.waterDepthAt(q[0], q[1], 0); if (wet > 0.05) { const fl = f.flowAt(q[0], q[1]); assert.ok(fl && Math.abs(Math.hypot(fl.x, fl.z) - 1) < 1e-6 && fl.k > 0.2); }
+  assert.equal(f.flowAt(-9999, -9999), null); void b;
 });

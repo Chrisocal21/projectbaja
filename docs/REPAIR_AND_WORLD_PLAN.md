@@ -281,3 +281,8 @@ Phone > Admin is now a searchable archive of everything in the game, each one cl
 
 ## Roadside strips beside the paved highways (Nov 22)
 `planHighwayFeatures` (offroadFeatures.js): every ~370 m along each paved road, a whoop strip (45-85 m) or a single jump just off the shoulder (24-42 m from the centre line), parallel to the road, each with a short dirt spur from the road. About 1,330 planned on the real map (728 whoop strips, 602 jumps) on top of the 447 beside-the-road features; those that land on water, built places or slopes are dropped (1,610 of 1,821 built in total). Spacing is `HWY_SPACING`.
+
+## Current, drowning and bridges (Nov 22)
+- Current: `flowOf`/`flowAt` (wildFeatures / offroadFeatures): in a creek or river the car is pushed downstream, up to ~1.6 m/s^2 in a river (strength k: creeks 0.3-0.6, rivers ~1), scaled by depth.
+- Deep water: wading deeper than 0.7 m for 1.2 s drowns the engine (power cut, HUD "ENGINE DROWNED", a little engine wear); it clears 4 s after the water is under 0.5 m. Only the deep river stretches get there.
+- Bridges: about 34 plank bridges (40% of creek-crossing trails, 55% of forest crossings): a flush, dry 4.8 m deck over the creek (`deck` primitive: heightAt returns 0, waterDepthAt 0), drawn as planks and rails by WildScenery's Bridges.

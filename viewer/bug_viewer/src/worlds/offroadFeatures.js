@@ -6,7 +6,7 @@
 // on a paved road, in water or on a built site, and indexes the rest so heightAt(x, z) is a cheap lookup (0 almost everywhere).
 // Heading convention is the game's: angle 0 faces +z, positive turns toward +x.
 
-import { planWild, wildFootprint, wildPrimitives, evalWild, waterOver, creekMeshes, wildTrees, WILD_KINDS } from './wildFeatures.js';
+import { planWild, wildFootprint, wildPrimitives, evalWild, waterOver, creekMeshes, wildTrees, inDeck, flowOf, WILD_KINDS } from './wildFeatures.js';
 
 const hash = (a, b, c = 0) => { let h = (a * 374761393 + b * 668265263 + c * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -42,6 +42,7 @@ function berm(f, dx, dz) {
 }
 /** evaluate one primitive at world (x, z) */
 function evalPrim(p, x, z) {
+  if (p.type === 'deck') return 0;
   if (p.type === 'seg' || p.type === 'hill') return evalWild(p, x, z);
   const dx = x - p.x, dz = z - p.z;
   if (p.type === 'berm') return berm(p, dx, dz);
@@ -155,12 +156,13 @@ const HWY_SPACING = 260;
  * baseH(x, z) = the ground height without any feature (creek water levels are set from it); only needed for creeks.
  */
 export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok) {
-  const C = FEATURE.cell, cells = new Map(), trees = [], creeks = []; let count = 0;
+  const C = FEATURE.cell, cells = new Map(), trees = [], creeks = [], decks = []; let count = 0;
   for (const it of items) {
     if (!footprint(it).every(p => (WILD_KINDS.includes(it.kind) && !p.creek ? okWild : ok)(p.x, p.z))) continue;
     count++;
     if (WILD_KINDS.includes(it.kind)) { trees.push(...wildTrees(it, okWild)); creeks.push(...creekMeshes(it, baseH)); }
     for (const p of primitivesOf(it, baseH)) {
+      if (p.type === 'deck') decks.push(p);
       const c0 = Math.floor((p.x - p.rad) / C), c1 = Math.floor((p.x + p.rad) / C), r0 = Math.floor((p.z - p.rad) / C), r1 = Math.floor((p.z + p.rad) / C);
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { const k = r * 100003 + c; let l = cells.get(k); if (!l) cells.set(k, l = []); l.push(p); }
     }
@@ -168,19 +170,26 @@ export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok)
   const heightAt = (x, z) => {
     const l = cells.get(Math.floor(z / C) * 100003 + Math.floor(x / C)); if (!l) return 0;
     let up = 0, down = 0;
-    for (let i = 0; i < l.length; i++) { const p = l[i]; if (Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; const v = evalPrim(p, x, z); if (v > up) up = v; else if (v < down) down = v; }
+    for (let i = 0; i < l.length; i++) { const p = l[i]; if (Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; if (p.type === 'deck') { if (inDeck(p, x, z)) return 0; continue; } const v = evalPrim(p, x, z); if (v > up) up = v; else if (v < down) down = v; }   // a bridge deck is flush with the banks: the creek bed under it does not count
     return up + down;
   };
   /** metres of water over the ground at (x, z) (0 = dry); base = the ground height there without features */
   const waterDepthAt = (x, z, base) => {
     const l = cells.get(Math.floor(z / C) * 100003 + Math.floor(x / C)); if (!l) return 0;
+    for (let i = 0; i < l.length; i++) { const p = l[i]; if (p.type === 'deck' && Math.abs(x - p.x) <= p.rad && Math.abs(z - p.z) <= p.rad && inDeck(p, x, z)) return 0; }   // dry on the bridge
     let w = 0; for (let i = 0; i < l.length; i++) { const p = l[i]; if (p.type !== 'seg' || Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; w = Math.max(w, waterOver(p, x, z, base)); }
     return w > 0.03 ? w : 0;
   };
   // trunks: a grid over the trees so the car only checks the few near it
   const TC = 48, tcells = new Map(); trees.forEach((t, i) => { const k = Math.floor(t[1] / TC) * 100003 + Math.floor(t[0] / TC); let l = tcells.get(k); if (!l) tcells.set(k, l = []); l.push(i); });
   const trunksNear = (x, z) => { const out = [], cx = Math.floor(x / TC), cz = Math.floor(z / TC); for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const l = tcells.get((cz + dz) * 100003 + cx + dx); if (l) for (const i of l) { const t = trees[i]; if (Math.abs(t[0] - x) < 12 && Math.abs(t[1] - z) < 12) out.push([t[0], t[1], 0.3 * t[2], 999]); } } return out; };
-  return { heightAt, waterDepthAt, trunksNear, trees, creeks, count };
+  /** the current at (x, z): { x, z, k } (unit direction and strength 0..1) or null; only in water, never on a bridge */
+  const flowAt = (x, z) => {
+    const l = cells.get(Math.floor(z / C) * 100003 + Math.floor(x / C)); if (!l) return null;
+    let best = null; for (let i = 0; i < l.length; i++) { const p = l[i]; if (p.type !== 'seg' || Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; const f = flowOf(p, x, z); if (f && (!best || f.k > best.k)) best = f; }
+    return best;
+  };
+  return { heightAt, waterDepthAt, flowAt, trunksNear, trees, creeks, decks, count };
 }
 
 // ---- on the dirt roads themselves ----

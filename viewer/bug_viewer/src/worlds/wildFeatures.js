@@ -24,6 +24,10 @@ const along = (path, s) => {   // the point and heading `s` metres along a polyl
   return { x: path[0][0], z: path[0][1], tx: 0, tz: 1 };
 };
 const pathLen = path => path.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - path[i - 1][0], p[1] - path[i - 1][1]) : 0), 0);
+/** a plank bridge where the trail crosses at `s`: centre and the trail's heading */
+const deckAt = (path, s) => { const c = along(path, s); return { x: c.x, z: c.z, h: Math.atan2(c.tx, c.tz) }; };
+/** is (x, z) on a bridge deck (a strip 4.8 m wide along the trail across the creek)? */
+export const inDeck = (d, x, z) => { const dx = x - d.x, dz = z - d.z, sn = Math.sin(d.h), cs = Math.cos(d.h), s = dx * sn + dz * cs, t = dx * cs - dz * sn; return Math.abs(s) < d.L / 2 && Math.abs(t) < d.W / 2; };
 /** a creek across a trail at `s`: three points either side, a slight bend, `len` m long */
 function creekAcross(path, s, len, k) {
   const c = along(path, s), px = -c.tz, pz = c.tx, bend = (hash(k, 93) - 0.5) * 9;
@@ -36,11 +40,11 @@ export function planWild(kind, px, pz, nx, nz, tx, tz, k) {
   let path, creeks = [], hill = null, shallow = null;
   if (kind === 'ford') {
     path = windingPath(px, pz, out, 150 + hash(k, 1) * 110, 14, k);
-    creeks = [{ pts: creekAcross(path, pathLen(path) * 0.55, 46, k), hw: 3.2 + hash(k, 2) * 2, D: 0.6 + hash(k, 3) * 0.35, shallow: null }];
+    creeks = [{ pts: creekAcross(path, pathLen(path) * 0.55, 46, k), hw: 3.2 + hash(k, 2) * 2, D: 0.6 + hash(k, 3) * 0.35, shallow: null, deck: hash(k, 31) < 0.4 ? deckAt(path, pathLen(path) * 0.55) : null }];
   } else if (kind === 'forest') {
     path = windingPath(px, pz, out, 340 + hash(k, 1) * 190, 22, k);
     const L = pathLen(path), at = hash(k, 4) < 0.5 ? [0.38] : [0.3, 0.7];
-    creeks = at.map((f, i) => ({ pts: creekAcross(path, L * f, 40, k + i), hw: 2.6 + hash(k, 5 + i) * 1.6, D: 0.5 + hash(k, 7 + i) * 0.3, shallow: null }));
+    creeks = at.map((f, i) => ({ pts: creekAcross(path, L * f, 40, k + i), hw: 2.6 + hash(k, 5 + i) * 1.6, D: 0.5 + hash(k, 7 + i) * 0.3, shallow: null, deck: hash(k, 32 + i) < 0.55 ? deckAt(path, L * f) : null }));
   } else if (kind === 'climb') {
     const R = 62 + hash(k, 1) * 26, H = 9 + hash(k, 2) * 7, off = 90 + R * 0.5;
     hill = { x: px + nx * off, z: pz + nz * off, H, R };
@@ -78,6 +82,7 @@ export function wildPrimitives(it, baseH) {
   it.creeks.forEach(c => {
     const pts = c.pts, lv = pts.map(q => baseH(q[0], q[1]));
     const kAt = depthFactor(c);
+    if (c.deck) out.push({ type: 'deck', x: c.deck.x, z: c.deck.z, h: c.deck.h, W: 4.8, L: c.hw * 2.6 * 2 + 4, rad: c.hw * 2.6 + 6 });
     let acc = 0;
     for (let i = 0; i < pts.length - 1; i++) {
       const [ax, az] = pts[i], [bx, bz] = pts[i + 1], l = Math.hypot(bx - ax, bz - az), Da = c.D * kAt(acc), Db = c.D * kAt(acc + l);
@@ -97,6 +102,13 @@ export function evalWild(p, x, z) {
   if (p.type === 'hill') { const r = Math.hypot(x - p.x, z - p.z); if (r >= p.R) return 0; return p.H * (1 - smooth(0, 1, r / p.R)) * (1 + 0.1 * Math.sin(x * 0.07 + z * 0.05)); }
   const { d, t } = segNear(p, x, z); if (d > p.hw * 2.6) return 0;
   return -(p.Da + (p.Db - p.Da) * t) * (1 - smooth(p.hw * 0.4, p.hw * 2.6, d));
+}
+/** the current at (x, z) over a creek segment: the direction it flows and a strength 0..1 (rivers flow harder than creeks), or null when not in the channel */
+export function flowOf(p, x, z) {
+  if (p.type !== 'seg') return null;
+  const { d } = segNear(p, x, z); if (d > p.hw * 1.3) return null;
+  const dx = p.bx - p.ax, dz = p.bz - p.az, l = Math.hypot(dx, dz) || 1;
+  return { x: dx / l, z: dz / l, k: 0.3 + 0.7 * smooth(4, 7.5, p.hw) };
 }
 /** how deep the water is at (x, z) over a creek segment, given the ground height without features (0 = dry) */
 export function waterOver(p, x, z, baseH) {
