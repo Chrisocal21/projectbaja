@@ -121,6 +121,7 @@ export default function Walker({ world, sun }) {
   useFrame((_, rawDt) => {
     const s = st.current, dt = Math.min(rawDt, 0.05);
     if (game.paused || game.flyMode) return;
+    if (game.teleportTo && game.onFoot) { const t = game.teleportTo; game.teleportTo = null; s.x = t.x; s.z = t.z; s.yaw = t.h + Math.PI; s.y = world.height(t.x, t.z) + 0.3; s.vx = s.vz = 0; }   // Admin > Races: go to a course
     if (game.onFoot) {
       if (!s.on) {   // just stepped out (or the scene was rebuilt): take the saved spot
         s.on = true; s.vx = s.vz = 0; s.pitch = 0;

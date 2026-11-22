@@ -26,6 +26,7 @@ import BuildModel from './BuildModel.jsx';
 import CajonModel, { CajonCar } from './cajon/CajonModel.jsx';
 import { defOf } from './game/projects.js';
 import Walker from './game/Walker.jsx';
+import RaceMarkers from './worlds/RaceMarkers.jsx';
 import Items, { Cargo } from './game/Items.jsx';
 import DeliveryTruck from './game/DeliveryTruck.jsx';
 import { lightsUsable } from './game/lights.js';
@@ -423,6 +424,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const acc = useRef(0);
   useFrame((_, rawDt) => {
     if (!rig.current || game.paused) return;
+    if (game.teleportTo && !game.onFoot) { const t = game.teleportTo; game.teleportTo = null; Object.assign(s.current, spawnState(), { x: t.x, z: t.z, h: t.h, y: world.height(t.x, t.z) + 0.5, v: 0 }); camPos.current.set(t.x - Math.sin(t.h) * 10, 4, t.z - Math.cos(t.h) * 10); }   // Admin > Races: go to a course
     if (game.flyMode) {
       const f = fly.current, dt = Math.min(rawDt, 0.05);
       if (!f.active) {
@@ -533,6 +535,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     <GameObjects kind={world.id} height={world.height} bodyId={bodyId} />
     <Vehicle key={vehKey} hud={hud} dims={dims} race={race} sun={sun}>{children}</Vehicle>
     {world.id === 'county' && <Walker world={world} sun={sun} />}
+    {world.id === 'county' && CO.raceCourses().length > 0 && <RaceMarkers />}
     {world.id === 'county' && <Items />}{world.id === 'county' && <DeliveryTruck />}
     {world.id === 'county' && <Fleet />}
     <PerfHud />

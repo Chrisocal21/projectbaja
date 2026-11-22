@@ -4,6 +4,7 @@ import { SECTIONS, sectionOfSlot } from '../build.js';
 import { cajonCatalog } from './cajonParts.js';
 import { GARAGE_SUPPLIES, itemOf } from './garageSupplies.js';
 import { dropNearPlayer } from './items.js';
+import { raceCourses } from '../worlds/county.js';
 
 /**
  * Admin (test tool, on the phone): spawn any part on the ground at your feet, free, to try it out. One screen, one tab per kind of part.
@@ -13,7 +14,7 @@ export default function AdminApp({ onBack }) {
   useGame();
   const body = game.build?.body || 'classic', cat = catalogFor(body), cajon = cajonCatalog();
   const sections = SECTIONS.filter(sec => cat.part.some(p => sectionOfSlot(p.slot) === sec.id));
-  const tabs = [...sections.map(s => [s.id, s.label]), ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['cheats', 'Cash / time']];
+  const tabs = [...sections.map(s => [s.id, s.label]), ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['races', 'Races'], ['cheats', 'Cash / time']];
   const [tab, setTab] = useState(tabs[0][0]), [last, setLast] = useState('');
   const spawn = (kind, id, label) => {
     if (!game.pos) return say('Walk into the world first.');
@@ -26,11 +27,16 @@ export default function AdminApp({ onBack }) {
     : tab === 'cajon' ? cajon.map(c => ({ kind: 'stock', id: c.id, label: c.name }))
     : tab === 'supplies' ? GARAGE_SUPPLIES.map(([id, name]) => { const [kind, item] = itemOf(id); return { kind, id: item, label: name }; })
     : [];
+  const go = (p, label) => { game.teleportTo = { x: p.x, z: p.z, h: p.h || 0 }; setLast(`Going to ${label}. Close the phone.`); };   // (Walker / the vehicle pick this up next frame)
   const cheat = (label, fn) => <button key={label} onClick={() => { fn(); setLast(label); }}>{label}</button>;
   return <div className="phone-soon"><h3>Admin</h3>
     <small>Test tool: spawns free parts at your feet. {game.home?.adminUsed ? 'This save has used it.' : ''}</small>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}>{tabs.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} style={{ padding: '3px 7px', fontSize: 12 }} onClick={() => setTab(k)}>{l}</button>)}</div>
-    {tab === 'cheats'
+    {tab === 'races'
+      ? <div style={{ width: '100%', textAlign: 'left', fontSize: 12 }}>{raceCourses().length ? raceCourses().map(c => <div key={c.id} style={{ padding: '4px 0', borderBottom: '1px solid #ffffff18' }}>
+        <b>{c.name}</b> <small>{c.series} · {c.kind === 'loop' ? 'loop' : 'point to point'} · {(c.dirtLength / 1000).toFixed(1)} km dirt{c.pavedLength > 0 ? ` · ${(c.pavedLength / 1000).toFixed(1)} km paved` : ''}</small>
+        <div style={{ display: 'flex', gap: 6, marginTop: 3 }}><button style={{ fontSize: 12, padding: '2px 8px' }} onClick={() => go(c.start, `${c.name} start`)}>Go to start</button>{c.kind === 'point' && <button style={{ fontSize: 12, padding: '2px 8px' }} onClick={() => go({ ...c.finish, h: c.start.h }, `${c.name} finish`)}>Go to finish</button>}</div></div>) : <small>No race courses on this map (they are on the real map).</small>}</div>
+    : tab === 'cheats'
       ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
         {cheat('+$1,000', () => addCash(1000, 'Admin'))}{cheat('+$10,000', () => addCash(10000, 'Admin'))}
         {cheat('Time: morning', () => { game.clock = 7; })}{cheat('Time: noon', () => { game.clock = 12; })}{cheat('Time: night', () => { game.clock = 22; })}

@@ -15,6 +15,7 @@ import { regionalDirtRoads } from './regionalRoads.js';
 import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
+import { buildRaceCourses } from './raceCourses.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -35,8 +36,10 @@ const HMB = boxBlur(HM, HN, 9);
 const BD = REAL ? await loadBorder() : null;
 /** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
 const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
-let HW = null, JN = null;
+let HW = null, JN = null, RACE = null;
 export const highways = () => HW;
+/** ?realmap: the race courses (worlds/raceCourses.js): SCORE routes that mix dirt with the highways, and MDR dirt loops. [{ id, series, name, kind, start, finish, line, dirtLength, ... }] */
+export const raceCourses = () => RACE?.courses || [];
 /** ?realmap: ramps and signs at the real junctions ({ ramps, furniture, junctions, deadEnds }) */
 export const junctions = () => JN;   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
@@ -261,7 +264,8 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const visualJunctions = showRamps ? jn : buildJunctions(HWJ.roads, BD.bounds, { atGrade: true });
   const ramps = showRamps ? jn.ramps.filter(r => clear({ x: r.pts[0][0], z: r.pts[0][1] }) && clear({ x: r.pts[r.pts.length - 1][0], z: r.pts[r.pts.length - 1][1] })) : [];
   JN = { ...visualJunctions, ramps, furniture: visualJunctions.furniture.filter(f => clear(f)) };
-  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep)], realBase, { water: BD.waterAt, avoid: keep });
+  RACE = buildRaceCourses({ meta: BD.meta, ground: BD, roads: HWJ.roads });   // their dirt legs become real roads, graded and drawn like any other
+  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads], realBase, { water: BD.waterAt, avoid: keep });
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
