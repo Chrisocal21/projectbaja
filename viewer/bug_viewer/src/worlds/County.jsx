@@ -16,6 +16,7 @@ import { Ribbon, tex, rnd, blotches, dots, crack, wrapDraw, blurred, circuitTex,
 import Sites, { Mesas } from './Sites.jsx';
 import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
+import { GAS_BRANDS, gasIndexes } from './brands.js';
 import Home from './Home.jsx';
 import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
 import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
@@ -439,6 +440,21 @@ function RoadsidePlaces() {
   }, [sites]);
   return <instancedMesh ref={mesh} args={[null, null, Math.max(1, n)]} frustumCulled={false} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.8} /></instancedMesh>;
 }
+/** the brand on every highway gas station (worlds/brands.js: two knock-offs, never Dusty's): a pole sign by the road and a sign on the store front; drawn only within 900 m */
+function GasBrandSigns() {
+  const sites = useMemo(() => junctions().roadside.sites, []), idx = useMemo(() => gasIndexes(sites), [sites]), { camera } = useThree(), refs = useRef([]), tick = useRef(0);
+  const mats = useMemo(() => GAS_BRANDS.map(b => new THREE.MeshStandardMaterial({ map: signTex([[b.name, 104, b.fg], [b.sub, 34, b.accent]], b.bg, b.fg, b.accent), roughness: 0.6 })), []);
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 0.5) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos;
+    sites.forEach((s, i) => { const g = refs.current[i]; if (g) g.visible = Math.hypot(s.x - p.x, s.z - p.z) < 900; });
+  });
+  return <>{sites.map((s, i) => { if (idx[i] < 0) return null; const m = mats[idx[i] % GAS_BRANDS.length];
+    return <group key={i} ref={el => (refs.current[i] = el)} position={[s.x, height(s.x, s.z), s.z]} rotation={[0, s.ry, 0]} visible={false}>
+      <mesh position={[-14, 9.4, 14.2]} material={m}><planeGeometry args={[3, 1.5]} /></mesh>
+      <mesh position={[0, 2.6, -7.95]} material={m}><planeGeometry args={[6, 3]} /></mesh>
+    </group>; })}</>;
+}
 // ---------------- dressing wrecks at the roadside stops (the Salvage Road blockout pickup and step van; game/roadsideLoot.js sceneryWrecks) ----------------
 /** one model's ~100 parts baked into a single upright mesh (the files are Z-up with vertex colours): one draw call per wreck */
 function useMergedWreck(file) {
@@ -608,6 +624,7 @@ export default function CountyScene() {
     {roadConnections && <HighwayJunctionSurfaces connections={roadConnections} />}
     {REAL && <HighwayFurniture />}
     {REAL && <RoadsidePlaces />}
+    {REAL && <GasBrandSigns />}
     {REAL && <RoadsideWrecks />}
     {REAL && <RoadsideDriveways />}
     {TRAILS.map((t, i) => <Ribbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}

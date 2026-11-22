@@ -1,8 +1,9 @@
-// Selling to Dusty: the runtime side of game/selling.js. Only what you are carrying (hands and pack) can be sold; the money moves in one save.
+// Selling to Dusty or to the Salvage & Surplus warehouse: the runtime side of game/market.js. Only what you are carrying (hands and pack) can be sold.
+// Each sale moves that buyer's shelf (game.home.market), which moves his next price; the shelf empties with game time (see passTime in orders.js).
 import { game, say, save, addCash, priceOf } from './store.js';
 import { SUPPLIES, supplyPrice } from './garageSupplies.js';
 import { nameOfItem } from './items.js';
-import { sellValue } from './selling.js';
+import { BUYERS, offer, recordSale } from './market.js';
 
 const basePrice = it => {
   try {
@@ -13,10 +14,13 @@ const basePrice = it => {
   } catch {}
   return 0;
 };
-/** what you are carrying that Dusty will buy: [{ it, value }] */
-export const sellable = () => game.items.filter(i => i.loc === 'hand' || i.loc === 'pack').map(it => ({ it, value: sellValue(it, basePrice(it)) })).filter(r => r.value > 0);
-export function sellItem(uid) {
-  const r = sellable().find(x => x.it.uid === uid); if (!r) return say("Dusty won't take that.");
+export const gameHours = () => game.marketHours || 0;
+/** what you are carrying that this buyer will take: [{ it, value, word }] */
+export const sellable = (buyer = 'dusty') => game.items.filter(i => i.loc === 'hand' || i.loc === 'pack')
+  .map(it => { const o = offer(it, basePrice(it), buyer, game.home?.market, gameHours()); return { it, value: o.price, word: o.word }; }).filter(r => r.value > 0);
+export function sellItem(uid, buyer = 'dusty') {
+  const r = sellable(buyer).find(x => x.it.uid === uid); if (!r) return say(`${BUYERS[buyer]?.short || 'They'} won't take that.`);
   game.items = game.items.filter(i => i !== r.it);
-  addCash(r.value, `Sold to Dusty: ${nameOfItem(r.it)}`); save(); say(`Sold ${nameOfItem(r.it)} to Dusty (+$${r.value}).`);
+  game.home = { ...game.home, market: recordSale(game.home?.market, r.it, buyer, gameHours()) };
+  addCash(r.value, `Sold to ${BUYERS[buyer].short}: ${nameOfItem(r.it)}`); save(); say(`Sold ${nameOfItem(r.it)} to ${BUYERS[buyer].short} (+$${r.value}).`);
 }

@@ -43,6 +43,7 @@ export const promptText = id => {
   if (id === 'racecar') return raceCarStage() === 0 ? 'Press E — Pull the tarp halfway back' : 'Press E — Pull the tarp off completely';
   if (!id) return '';
   if (id.startsWith('stand:')) return standText(id.slice(6));
+  if (id === 'warehouse') return 'Press E — Salvage & Surplus: sell scrap, tires and parts';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id === 'openSwitch') return game.home?.open ? 'Press E — Turn the OPEN light off (close up)' : 'Press E — Turn the OPEN light on (open for business)';
   if (id === 'crank') return game.cranking ? 'Cranking…' : `Press E — Turn the key${game.crankTries ? ' again' : ''}  ·  G — Get out`;
@@ -187,6 +188,7 @@ export default function Walker({ world, sun }) {
       consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1, AIM_TARGET[t.id]);
     }
     if (!nearPump) game.fueled = false;
+    if (foot) { const [wx, wz] = toW(SITES.warehouse, -9.4, 0); consider('warehouse', wx, wz, 3.2, false, 0.8, { r: 0.9, h: 1.5 }); }   // the scrap buyer's counter
     if (foot) for (const st of STANDS) { const [sx, sz] = toW(SITES.garage, st.lx, st.lz); consider('stand:' + st.id, sx, sz, 3.0, false, 0.7, { r: 0.55, h: 1.7 }); }   // Walt's supply stands
     if (foot) { const pc = nearestProp(game.props, 'computer', px, pz); if (pc) consider('pc', pc.x, pc.z, 2.2, false, 0.9, { r: 1.1, h: 1.2 }); }
     if (foot && held()) { const tm = machineNear(); if (tm && planAtMachine()) consider('tirem', tm.x, tm.z, 2.8, false, 0.8, { r: 1.0, h: 1.6 }); }   // a wheel, rim or tire in hand, at the tire machine

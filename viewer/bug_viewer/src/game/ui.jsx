@@ -3,6 +3,7 @@ import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js
 import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
 import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
 import { sellable } from './sell.js';
+import { BUYERS } from './market.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas, trailerWhy } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, packCap, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone, vehiclesNear } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
@@ -174,14 +175,14 @@ export function ShellPanel({ uid, onFit, onScrap, onClose }) {
 }
 
 /** Dusty's corner store */
-export function StorePanel({ onBuy, onSell, onClose }) {
+export function StorePanel({ onBuy, onSell, onClose, buyer = 'dusty' }) {
   useGame();
-  const sells = sellable();
+  const sells = sellable(buyer), yard = buyer !== 'dusty';
   const row = (what, label, price, note) => <div key={what} className="inv-row"><span>{label}<small>{note}</small></span><span className="inv-btns"><button disabled={game.cash < price} onClick={() => onBuy(what, price)}>${price}</button></span></div>;
-  return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>DUSTY'S CORNER STORE</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
-    {STORE_ITEMS.map(r => row(...r))}
-    <div className="inv-sec">SELL TO DUSTY <span>{sells.length ? 'what you are carrying' : 'nothing you are carrying interests him'}</span></div>
-    {sells.map(({ it, value }) => <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}</span><span className="inv-btns"><button onClick={() => onSell(it.uid)}>Sell ${value}</button></span></div>)}
+  return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>{yard ? BUYERS[buyer].name.toUpperCase() : "DUSTY'S CORNER STORE"}</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
+    {!yard && STORE_ITEMS.map(r => row(...r))}
+    <div className="inv-sec">SELL TO {BUYERS[buyer].short.toUpperCase()} <span>{sells.length ? 'what you are carrying · prices follow how much they already hold' : 'nothing you are carrying interests them'}</span></div>
+    {sells.map(({ it, value, word }) => <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{word}</small></span><span className="inv-btns"><button onClick={() => onSell(it.uid, buyer)}>Sell ${value}</button></span></div>)}
     <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;
 }
 

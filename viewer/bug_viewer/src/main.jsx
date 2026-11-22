@@ -202,6 +202,7 @@ function App() {
     else if (id === 'car:drive') { const uid = game.carPlan?.uid; if (promoteCajon(uid)) worldInteract('veh:cajon'); }
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
+    else if (id === 'warehouse') setPanel('warehouse');
     else if (id === 'store') { dustyVisit(); setPanel('store'); }   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)
     else if (id.startsWith('veh:')) { const v = id.slice(4), drive = vehicleType(v).kind === 'truck'; game.rebuilding = true; switchTo(v, drive); if (drive) interact('enter'); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 1200); }
     else if (id === 'dealer') setPanel('dealer');
@@ -428,6 +429,7 @@ function App() {
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
     {panel === 'store' && <StorePanel onBuy={storeBuy} onSell={sellItem} onClose={resume} />}
+    {panel === 'warehouse' && <StorePanel buyer="warehouse" onSell={sellItem} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
 
