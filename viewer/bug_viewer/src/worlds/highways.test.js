@@ -82,6 +82,16 @@ test('pavement owns a dirt-road crossing in surface and grade', () => {
   assert.ok(Math.abs(H.blend(0, 0, 2) - paved.blend(0, 0, 2)) < 0.01);
 });
 
+test('a regional dirt branch meets the final paved alignment', () => {
+  const H = makeHighways([
+    { name: 'Main', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'Dirt road', kind: 'dirt', pts: [[40, 120], [40, 600]] },
+  ], () => 0);
+  const dirt = H.roads.find(r => r.kind === 'dirt');
+  assert.ok(H.crossingDistance(dirt.pts[0].x, dirt.pts[0].z, dirt) < 1);
+  assert.equal(H.surfaceKey(dirt.pts[0].x, dirt.pts[0].z), 'asphalt');
+});
+
 test('a mapped mountain road grades through a ridge without a sheer fill', () => {
   const ground = (x) => 100 - 96 * Math.max(0, Math.min(1, (x + 500) / 900)) ** 0.5;
   const H = makeHighways([{ name: 'Mex 2D', kind: 'major', pts: [[-500, 0], [400, 0]] }], ground);

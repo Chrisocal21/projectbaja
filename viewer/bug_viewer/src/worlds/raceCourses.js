@@ -45,6 +45,34 @@ export function nearestOnRoads(p, roads, maxD = 5000) {
   return best;
 }
 
+/** Follow one mapped paved road between two course waypoints, including its bends. */
+export function pavedLeg(a, b, roads, maxD = 4000) {
+  const project = (p, pts) => {
+    let best = null;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[i + 1], dx = bx - ax, dz = bz - az;
+      const t = Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.z - az) * dz) / (dx * dx + dz * dz || 1)));
+      const x = ax + dx * t, z = az + dz * t, d = hyp(x - p.x, z - p.z);
+      if (!best || d < best.d) best = { x, z, d, i };
+    }
+    return best;
+  };
+  let chosen = null;
+  for (const road of roads) {
+    if (road.pts.length < 2) continue;
+    const start = project(a, road.pts), end = project(b, road.pts);
+    if (start.d > maxD || end.d > maxD) continue;
+    const score = start.d + end.d;
+    if (!chosen || score < chosen.score) chosen = { road, start, end, score };
+  }
+  if (!chosen) return null;
+  const { road, start, end } = chosen, path = [[start.x, start.z]];
+  if (start.i < end.i) for (let i = start.i + 1; i <= end.i; i++) path.push(road.pts[i]);
+  else if (start.i > end.i) for (let i = start.i; i > end.i; i--) path.push(road.pts[i]);
+  path.push([end.x, end.z]);
+  return path;
+}
+
 /** a tiny binary min-heap on item.f */
 class Heap {
   constructor() { this.a = []; }
@@ -128,19 +156,31 @@ export function buildRaceCourses(env, courses = RACE_COURSES) {
     const list = c.kind === 'loop' && c.series === 'MDR' ? [...c.pts, [c.pts[0][0], c.pts[0][1], 'D']] : c.pts;   // an MDR loop closes itself
     const raw = list.map(([lat, lon, mode]) => ({ ...projectPlace(lat, lon, meta), mode: mode || null })), sp = c.spread || 1, o0 = raw[0];
     const wp = raw.map(q => ({ ...q, x: o0.x + (q.x - o0.x) * sp, z: o0.z + (q.z - o0.z) * sp }));
-    const line = [[wp[0].x, wp[0].z]]; let dirt = 0, pavedLen = 0;
-    wp.slice(1).forEach((q, k) => {
-      const a = wp[k], leg = q.mode;
+    const line = [[wp[0].x, wp[0].z]], firstDirt = dirtRoads.length; let dirt = 0, pavedLen = 0, complete = true;
+    for (let k = 0; k < wp.length - 1; k++) {
+      const a = wp[k], q = wp[k + 1], leg = q.mode;
       if (leg === 'D') {
         const sa = (list[k][2] === 'P' || (k === 0 && c.series === 'SCORE')) ? nearestOnRoads(a, paved, 4000) : null, sb = nearestOnRoads(q, paved, 4000);   // a dirt leg that starts or ends at a paved stretch joins the real road
         const from = sa ? { x: sa.x, z: sa.z } : a, to = (c.series === 'SCORE' && (list[k + 2]?.[2] === 'P' || k + 1 === list.length - 1)) && sb ? { x: sb.x, z: sb.z } : q;
         const route = routeEasy(ground, from, to);
-        if (route && route.length > 1) { dirtRoads.push({ name: `${c.name} (dirt)`, kind: 'dirt', course: c.id, pts: route }); line.push(...route.slice(1)); dirt += route.reduce((s, p, i) => (i ? s + hyp(p[0] - route[i - 1][0], p[1] - route[i - 1][1]) : 0), 0); return; }
+        if (!route || route.length < 2) { complete = false; break; }
+        dirtRoads.push({ name: `${c.name} (dirt)`, kind: 'dirt', course: c.id, pts: route });
+        if (k === 0) line[0] = route[0];
+        else if (hyp(line.at(-1)[0] - route[0][0], line.at(-1)[1] - route[0][1]) > 1) line.push(route[0]);
+        line.push(...route.slice(1));
+        dirt += route.reduce((s, p, i) => (i ? s + hyp(p[0] - route[i - 1][0], p[1] - route[i - 1][1]) : 0), 0);
+        continue;
       }
-      pavedLen += hyp(q.x - a.x, q.z - a.z); line.push([q.x, q.z]);   // paved leg (or a leg with no way through): drawn as the straight line
-    });
+      const route = paved.length ? pavedLeg(a, q, paved) : [[a.x, a.z], [q.x, q.z]];
+      if (!route) { complete = false; break; }
+      if (k === 0) line[0] = route[0];
+      else if (hyp(line.at(-1)[0] - route[0][0], line.at(-1)[1] - route[0][1]) > 1) line.push(route[0]);
+      line.push(...route.slice(1));
+      pavedLen += route.reduce((s, p, i) => (i ? s + hyp(p[0] - route[i - 1][0], p[1] - route[i - 1][1]) : 0), 0);
+    }
+    if (!complete) { dirtRoads.length = firstDirt; continue; }
     const [s0, s1] = [line[0], line[Math.min(3, line.length - 1)]];
-    out.push({ ...c, pts: wp, line, start: { x: wp[0].x, z: wp[0].z, h: Math.atan2(s1[0] - s0[0], s1[1] - s0[1]) }, finish: c.kind === 'point' ? { x: wp.at(-1).x, z: wp.at(-1).z } : { x: wp[0].x, z: wp[0].z }, dirtLength: dirt, pavedLength: pavedLen });
+    out.push({ ...c, pts: wp, line, start: { x: s0[0], z: s0[1], h: Math.atan2(s1[0] - s0[0], s1[1] - s0[1]) }, finish: { x: line.at(-1)[0], z: line.at(-1)[1] }, dirtLength: dirt, pavedLength: pavedLen });
   }
   return { courses: out, dirtRoads };
 }

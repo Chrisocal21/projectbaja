@@ -27,16 +27,20 @@ function backdrop() {
       const z = BOX.z0 + (py + 0.5) / HEIGHT * (BOX.z1 - BOX.z0);
       const h = land.heightAt(x, z), water = land.waterAt(x, z) != null;
       const slope = clamp((land.heightAt(x - 75, z - 75) - land.heightAt(x + 75, z + 75)) / 100, -1, 1);
-      const noise = Math.sin(px * 1.93 + py * 3.87) * Math.sin(px * 3.17 - py * 1.41) * 7;
+      const noise = Math.sin(px * 1.93 + py * 3.87) * Math.sin(px * 3.17 - py * 1.41) * 3;
       const k = (py * WIDTH + px) * 4;
-      if (water) { const depth = clamp(-h / 300, 0, 1); d[k] = 11 + noise * 0.2; d[k + 1] = 45 - depth * 16 + noise * 0.3; d[k + 2] = 61 - depth * 17 + noise * 0.4; }
-      else { const high = clamp(h / 360, 0, 1), light = slope * 24 + noise; d[k] = 82 + high * 29 + light; d[k + 1] = 77 + high * 21 + light; d[k + 2] = 56 + high * 13 + light; }
+      if (water) { const depth = clamp(-h / 300, 0, 1); d[k] = 139 - depth * 13 + noise * 0.3; d[k + 1] = 169 - depth * 12 + noise * 0.3; d[k + 2] = 174 - depth * 10 + noise * 0.3; }
+      else { const high = clamp(h / 360, 0, 1), light = slope * 19 + noise; d[k] = 224 - high * 41 + light; d[k + 1] = 211 - high * 45 + light; d[k + 2] = 185 - high * 49 + light; }
       d[k + 3] = 255;
     }
     g.putImageData(image, 0, 0);
     // The actual coast and peninsula come from the project's elevation and water mask.
     const shade = g.createRadialGradient(WIDTH / 2, HEIGHT / 2, 120, WIDTH / 2, HEIGHT / 2, 540);
-    shade.addColorStop(0, '#09151b00'); shade.addColorStop(1, '#09151b77'); g.fillStyle = shade; g.fillRect(0, 0, WIDTH, HEIGHT);
+    shade.addColorStop(0, '#805d3000'); shade.addColorStop(1, '#805d3029'); g.fillStyle = shade; g.fillRect(0, 0, WIDTH, HEIGHT);
+    // A faint paper fold is visual texture only; all geography remains data driven.
+    g.strokeStyle = '#765f4426'; g.lineWidth = 1; g.beginPath();
+    g.moveTo(WIDTH / 2 + 0.5, 0); g.lineTo(WIDTH / 2 + 0.5, HEIGHT);
+    g.moveTo(0, HEIGHT / 2 + 0.5); g.lineTo(WIDTH, HEIGHT / 2 + 0.5); g.stroke();
     return c;
   })().catch(error => { backdropPromise = null; throw error; });
   return backdropPromise;
@@ -55,16 +59,19 @@ export default function WestCoastMap() {
       const roadLine = (pts, color, width, step = 10, hidden = () => false) => { g.beginPath(); let started = false; for (let i = 0; i < pts.length; i += step) { const p = pts[i]; if (hidden(p)) { started = false; continue; } const [a, b] = point(p.x, p.z); if (started) g.lineTo(a, b); else { g.moveTo(a, b); started = true; } } const last = pts[pts.length - 1]; if (last && !hidden(last)) { const [a, b] = point(last.x, last.z); if (started) g.lineTo(a, b); else g.moveTo(a, b); } g.lineJoin = g.lineCap = 'round'; g.strokeStyle = color; g.lineWidth = width / zoom; g.stroke(); };
       const network = highways()?.roads || [];
       for (const r of [...network].sort((a, b) => (a.kind === 'dirt' ? -1 : 0) - (b.kind === 'dirt' ? -1 : 0))) {
-        if (r.kind === 'dirt' && zoom < 3) continue;
+        // Dirt branches attach to secondary roads. Reveal both together so a
+        // branch never appears as an isolated stroke at intermediate zoom.
+        if (r.kind === 'dirt' && zoom < 5) continue;
+        if (r.kind === 'dirt' && r.name.endsWith(' (dirt)') && zoom < 8) continue;
         if (zoom < 3 && !MAIN_ROADS.has(r.name)) continue;
         if (zoom < 5 && r.kind === 'secondary' && !MAIN_ROADS.has(r.name)) continue;
         const w = r.kind === 'major' ? 3.3 : r.kind === 'secondary' ? 2.2 : 1.4;
         const dirt = r.kind === 'dirt', hidden = dirt ? p => highways().pavedAt(p.x, p.z, 4) : p => highways().higherRoadAt(p.x, p.z, r), step = dirt ? 1 : 2;
-        roadLine(r.pts, '#10191a', w + 1.8, step, hidden);
-        roadLine(r.pts, dirt ? '#ab9773' : r.kind === 'major' ? '#edc47d' : '#cbb589', w, step, hidden);
+        roadLine(r.pts, '#665e50', w + 1.3, step, hidden);
+        roadLine(r.pts, dirt ? '#a28e6f' : r.kind === 'major' ? '#fffaf0' : '#f5eee0', w, step, hidden);
       }
-      const label = (name, x, z, color = '#f2d59b', size = 13) => { const [a, b] = point(x, z); g.font = `700 ${size / zoom}px system-ui`; g.textAlign = 'center'; g.lineWidth = 3 / zoom; g.strokeStyle = '#071216'; g.strokeText(name, a, b); g.fillStyle = color; g.fillText(name, a, b); };
-      if (zoom < 5) { label('CALIFORNIA', -7000, -1000); label('ARIZONA', 13500, 1500); label('BAJA CALIFORNIA', -10500, 27000); label('PACIFIC OCEAN', -16000, 22000, '#96b9c2'); label('GULF OF MEXICO', 14000, 35000, '#96b9c2'); }
+      const label = (name, x, z, color = '#3c342d', size = 13) => { const [a, b] = point(x, z); g.font = `700 ${size / zoom}px Georgia,serif`; g.textAlign = 'center'; g.lineWidth = 3 / zoom; g.strokeStyle = '#e8dac3'; g.strokeText(name, a, b); g.fillStyle = color; g.fillText(name, a, b); };
+      if (zoom < 5) { label('CALIFORNIA', -7000, -1000); label('ARIZONA', 13500, 1500); label('BAJA CALIFORNIA', -10500, 27000); label('PACIFIC OCEAN', -16000, 22000, '#315b67'); label('GULF OF MEXICO', 14000, 35000, '#315b67'); }
       const occupied = [];
       for (const place of REAL_PLACES) {
         if (zoom < place.zoom) continue;
@@ -74,24 +81,24 @@ export default function WestCoastMap() {
         const box = [sx + 4, sy - 13, sx + 4 + width, sy + 4];
         if (occupied.some(q => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1])) continue;
         occupied.push(box);
-        g.fillStyle = '#f8e9ca'; g.beginPath(); g.arc(a, b, 2.5 / zoom, 0, 7); g.fill();
-        g.font = `600 ${11 / zoom}px system-ui`; g.textAlign = 'left'; g.lineWidth = 2.5 / zoom; g.strokeStyle = '#081318'; g.strokeText(place.name, a + 5 / zoom, b + 4 / zoom); g.fillText(place.name, a + 5 / zoom, b + 4 / zoom);
+        g.fillStyle = '#40372e'; g.beginPath(); g.arc(a, b, 2.5 / zoom, 0, 7); g.fill();
+        g.font = `600 ${11 / zoom}px Georgia,serif`; g.textAlign = 'left'; g.lineWidth = 2.5 / zoom; g.strokeStyle = '#e9ddc8'; g.strokeText(place.name, a + 5 / zoom, b + 4 / zoom); g.fillText(place.name, a + 5 / zoom, b + 4 / zoom);
       }
       if (zoom >= 8) {
         for (const r of ROADS) {
           g.beginPath(); let started = false; r.path.pts.forEach((p, i) => { if (i % 6) return; if ((r.kind === 'dirt' || r.kind === 'gravel') && pavedRoadAt(p.x, p.z, 4)) { started = false; return; } const [a, b] = point(p.x, p.z); if (started) g.lineTo(a, b); else { g.moveTo(a, b); started = true; } });
-          g.lineJoin = g.lineCap = 'round'; g.strokeStyle = '#171d1d'; g.lineWidth = 5 / zoom; g.stroke(); g.strokeStyle = r.kind === 'highway' ? '#ffcc78' : '#dbc097'; g.lineWidth = (r.kind === 'highway' ? 3 : 2) / zoom; g.stroke();
+          g.lineJoin = g.lineCap = 'round'; g.strokeStyle = '#655d50'; g.lineWidth = 5 / zoom; g.stroke(); g.strokeStyle = r.kind === 'highway' ? '#fffaf0' : '#e9dfca'; g.lineWidth = (r.kind === 'highway' ? 3 : 2) / zoom; g.stroke();
         }
       }
-      if (zoom >= 4 && zoom < 10) label('BAJA COUNTY', 0, 2500, '#f2d59b', 16);
+      if (zoom >= 4 && zoom < 10) label('BAJA COUNTY', 0, 2500, '#44392d', 16);
       if (zoom >= 10) {
-        for (const [key, site] of Object.entries(SITES)) if (discovered(game.home).has(key)) { const [a, b] = point(site.x, site.z); g.fillStyle = '#ffdc91'; g.beginPath(); g.arc(a, b, 3.5 / zoom, 0, 7); g.fill(); if (zoom >= 15 || key === 'garage') label(SITE_NAMES[key] || key, site.x + 170, site.z - 100, '#fff0cd', 12); }
+        for (const [key, site] of Object.entries(SITES)) if (discovered(game.home).has(key)) { const [a, b] = point(site.x, site.z); g.fillStyle = '#a46a4b'; g.beginPath(); g.arc(a, b, 3.5 / zoom, 0, 7); g.fill(); if (zoom >= 15 || key === 'garage') label(SITE_NAMES[key] || key, site.x + 170, site.z - 100, '#44392d', 12); }
       }
       for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = point(v.pose.x, v.pose.z); g.fillStyle = '#63d5f6'; g.beginPath(); g.arc(a, b, 4 / zoom, 0, Math.PI * 2); g.fill(); }
       const [a, b] = point(game.pos.x, game.pos.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : game.pose?.h || 0;
       g.translate(a, b); g.rotate(arrowRot(yaw)); g.fillStyle = '#ff4a3c'; g.strokeStyle = '#fff'; g.lineWidth = 1.5 / zoom;
       g.beginPath(); g.moveTo(0, -9 / zoom); g.lineTo(6 / zoom, 7 / zoom); g.lineTo(0, 3 / zoom); g.lineTo(-6 / zoom, 7 / zoom); g.closePath(); g.fill(); g.stroke(); g.restore();
-      g.fillStyle = '#f4d69a'; g.font = '700 15px system-ui'; g.fillText('N', 24, 28); g.strokeStyle = '#f4d69a'; g.beginPath(); g.moveTo(29, 34); g.lineTo(29, 62); g.moveTo(24, 41); g.lineTo(29, 34); g.lineTo(34, 41); g.stroke();
+      g.fillStyle = '#463b31'; g.font = '700 15px Georgia,serif'; g.fillText('N', 24, 28); g.strokeStyle = '#463b31'; g.beginPath(); g.moveTo(29, 34); g.lineTo(29, 62); g.moveTo(24, 41); g.lineTo(29, 34); g.lineTo(34, 41); g.stroke();
     });
     return () => { active = false; };
   }, [revision, game.pos.x, game.pos.z, game.pose?.h, game.face.x, game.face.z, game.home]);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RACE_COURSES, routeLeg, nearestOnRoads, buildRaceCourses } from './raceCourses.js';
+import { RACE_COURSES, routeLeg, nearestOnRoads, pavedLeg, buildRaceCourses } from './raceCourses.js';
 
 const meta = { home: [32.95, -115.55], hScale: 0.04 };   // the real border.json projection numbers
 const BOUNDS = { x0: -16000, x1: 24000, z0: -7000, z1: 45000 };
@@ -40,6 +40,21 @@ test('nearestOnRoads finds the closest point on a polyline within reach, null wh
   const p = nearestOnRoads({ x: 400, z: 300 }, roads, 1000);
   assert.ok(Math.abs(p.x - 400) < 1e-9 && Math.abs(p.z) < 1e-9 && p.road === 'Mex 1');
   assert.equal(nearestOnRoads({ x: 400, z: 5000 }, roads, 1000), null);
+});
+test('paved race legs follow road bends instead of cutting across terrain', () => {
+  const roads = [{ name: 'Mex 1', pts: [[0, 0], [500, 0], [500, 500], [1000, 500]] }];
+  const route = pavedLeg({ x: 50, z: 10 }, { x: 950, z: 490 }, roads);
+  assert.ok(route.some(([x, z]) => x === 500 && z === 0));
+  assert.ok(route.some(([x, z]) => x === 500 && z === 500));
+  assert.deepEqual(route[0], [50, 0]);
+  assert.deepEqual(route.at(-1), [950, 500]);
+});
+test('an unroutable dirt leg does not create a phantom paved shortcut', () => {
+  const blocked = { ...flat, waterAt: () => 0 };
+  const course = { id: 'blocked', series: 'SCORE', name: 'Blocked', kind: 'point', pts: [[32.95, -115.55], [32.94, -115.54, 'D'], [32.93, -115.53, 'P']] };
+  const result = buildRaceCourses({ meta, ground: blocked, roads: [] }, [course]);
+  assert.equal(result.courses.length, 0);
+  assert.equal(result.dirtRoads.length, 0);
 });
 test('buildRaceCourses: every course gets a start, a closed MDR loop and dirt roads that begin and end on the ground it was given', () => {
   const r = buildRaceCourses({ meta, ground: flat, roads: [] });

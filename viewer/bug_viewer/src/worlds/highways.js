@@ -151,7 +151,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     h = terrainGrade(h, g0, floor, p, earthwork, r.kind === 'dirt' ? 12 : 35, r.kind === 'dirt' ? 0.18 : 0.14)
       || h.map((v, i) => Math.max(floor[i], Math.min(g0[i] + earthwork, Math.max(g0[i] - earthwork, v))));
     p.forEach((q, i) => (q.hs = h[i]));
-    list.push({ name: r.name, kind: r.kind, style: st, pts: p, total: path.total, index: list.length });
+    list.push({ name: r.name, kind: r.kind, course: r.course, style: st, pts: p, total: path.total, index: list.length });
     if (r.id != null) kept.add(r.id);
   }
 
@@ -186,6 +186,34 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const p = road.pts[i], a = road.pts[Math.max(0, i - 2)], b = road.pts[Math.min(road.pts.length - 1, i + 2)];
       const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
       p.tx = dx / len; p.tz = dz / len;
+    }
+  }
+
+  // Access branches were seeded from the source lines. The paved lines can
+  // move during smoothing and junction repair, so attach their near end to
+  // the final paved surface before the spatial index and road mesh are built.
+  for (const road of list) {
+    if (road.kind !== 'dirt' || road.name !== 'Dirt road') continue;
+    const ends = [[0, 1], [road.pts.length - 1, -1]];
+    let best = null;
+    for (const [end, dir] of ends) {
+      const tip = road.pts[end];
+      for (const paved of list) {
+        if (paved.kind === 'dirt' || paved.kind === 'ramp') continue;
+        for (let i = 0; i < paved.pts.length - 1; i++) {
+          const a = paved.pts[i], b = paved.pts[i + 1], dx = b.x - a.x, dz = b.z - a.z;
+          const t = Math.max(0, Math.min(1, ((tip.x - a.x) * dx + (tip.z - a.z) * dz) / (dx * dx + dz * dz || 1)));
+          const x = a.x + dx * t, z = a.z + dz * t, distance = Math.hypot(x - tip.x, z - tip.z);
+          if (distance < 200 && (!best || distance < best.distance)) best = { end, dir, x, z, h: a.hs + (b.hs - a.hs) * t, distance };
+        }
+      }
+    }
+    if (!best) continue;
+    const tip = road.pts[best.end], dx = best.x - tip.x, dz = best.z - tip.z, dh = best.h - tip.hs;
+    const taper = Math.max(90, best.distance * 2);
+    for (let i = 0; i < road.pts.length && i * STEP < taper; i++) {
+      const p = road.pts[best.end + best.dir * i], w = 1 - smooth(0, taper, i * STEP);
+      p.x += dx * w; p.z += dz * w; p.hs += dh * w;
     }
   }
 

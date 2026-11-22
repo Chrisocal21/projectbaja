@@ -12,8 +12,8 @@ import RealScenery from './RealScenery.jsx';
 
 const TILE = 400, LO = 10, HI = 40, R_LO = 5200, R_HI = 900, R_DROP = 6200;
 const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
-const SHORE = new THREE.Color('#c9b596');
-const BASIN = new THREE.Color('#b9aa87'), SOUTH = new THREE.Color('#a87859');
+const SHORE = new THREE.Color('#d6c19f');
+const BASIN = new THREE.Color('#c4b28d'), SOUTH = new THREE.Color('#a46a4b');
 
 function tileGeometry(B, ix, iz, seg) {
   const x0 = ix * TILE, z0 = iz * TILE, step = TILE / seg, n = seg + 1, P = n + 2;
@@ -153,6 +153,6 @@ export default function BorderScene() {
     <Terrain />
     <WaterSheet bit={1} y={SEA_Y} color="#2f7fa0" />
     <WaterSheet bit={2} y={B.lakeY} color="#4f8f9a" />
-    <React.Suspense fallback={null}><RealScenery heightAt={B.heightAt} surfaceAt={B.surfaceAt} /></React.Suspense>
+    <React.Suspense fallback={null}><RealScenery heightAt={B.heightAt} surfaceAt={B.surfaceAt} regionAt={B.regionAt} /></React.Suspense>
   </>;
 }

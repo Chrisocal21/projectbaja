@@ -17,6 +17,10 @@ import Sites, { Mesas } from './Sites.jsx';
 import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
 import Home from './Home.jsx';
+import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
+import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
+import RegionalRoadReflectors from './RegionalRoadReflectors.jsx';
+import RegionalCurveWarnings from './RegionalCurveWarnings.jsx';
 import Flora from './Flora.jsx';
 import BiomeScene from './biomes/Biomes.jsx';
 import BoundaryWall from './BoundaryWall.jsx';
@@ -29,8 +33,8 @@ import { dayPhase } from './clock.js';
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
 const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
-const SHORE = new THREE.Color('#c9b596');
-const BASIN = new THREE.Color('#b9aa87'), SOUTH = new THREE.Color('#a87859');
+const SHORE = new THREE.Color('#d6c19f');
+const BASIN = new THREE.Color('#c4b28d'), SOUTH = new THREE.Color('#a46a4b');
 const PAVED = new Set(['asphalt', 'concrete', 'curb']), BIO_GROUND = new Set(['meadow', 'dryGrass', 'forestFloor']);   // biome ground keeps its own colours (no desert mountain tint)
 function tileGeometry(ix, iz, seg) {
   const started = perfStart();
@@ -156,10 +160,10 @@ const blacktop = (center = 'double') => () => tex(512, 1024, (g, w, h) => {
   const r = rnd(center === 'double' ? 51 : 53), M = w / 8.8;
   g.fillStyle = '#9b917f'; g.fillRect(0, 0, w, h); dots(g, r, w, h, 9000, ['#b0a690', '#8a806e', '#77705f'], 1, 3, 0.6);
   const a0 = (8.8 - 7.2) / 2 * M;
-  g.fillStyle = '#3c3f43'; g.fillRect(a0, 0, w - 2 * a0, h);
+  g.fillStyle = '#494947'; g.fillRect(a0, 0, w - 2 * a0, h);
   g.save(); g.beginPath(); g.rect(a0, 0, w - 2 * a0, h); g.clip();
-  blotches(g, r, w, h, 60, 0.06, 0.16, 70); dots(g, r, w, h, 26000, ['#55585c', '#2b2d30', '#6a6d71', '#46484c'], 1, 2.4, 0.5);
-  blurred(g, 10, () => { g.fillStyle = 'rgba(6,6,7,0.32)'; for (const cx of [0.3, 0.42, 0.58, 0.7]) g.fillRect(w * cx - 0.4 * M, 0, 0.8 * M, h); });
+  blotches(g, r, w, h, 60, 0.06, 0.16, 70); dots(g, r, w, h, 26000, ['#5e5d58', '#353635', '#77736b', '#51514e'], 1, 2.4, 0.5);
+  blurred(g, 10, () => { g.fillStyle = 'rgba(15,14,13,0.22)'; for (const cx of [0.3, 0.42, 0.58, 0.7]) g.fillRect(w * cx - 0.4 * M, 0, 0.8 * M, h); });
   wrapDraw(g, w, h, () => { for (let k = 0; k < 10; k++) crack(g, r, a0 + r() * (w - 2 * a0), r() * h, 12 + Math.floor(r() * 16), 0.5); });
   for (let k = 0; k < 4; k++) { const x = a0 + r() * (w - 2 * a0 - 90), y = r() * (h - 200); blurred(g, 3, () => { g.fillStyle = 'rgba(22,24,26,0.35)'; g.fillRect(x, y, 60 + r() * 60, 100 + r() * 120); }); }
   g.restore();
@@ -300,10 +304,6 @@ function HighwayRibbons({ connections }) {
 }
 
 /** One continuous paved surface per node, sampled against the graded ground. */
-function HighwayJunctionSurfaces({ connections }) {
-  const chunks = useMemo(() => {
-    const groups = new Map();
-    for (const node of connections.junctions) {
 /** shows its children only while the player is within r metres of a grid cell ('ix,iz' of `size` m): far junctions cost no draw calls */
 function NearGate({ cell, size, r, children }) {
   const g = useRef(), { camera } = useThree(), tick = useRef(0), [ix, iz] = cell.split(',').map(Number), cx = (ix + 0.5) * size, cz = (iz + 0.5) * size;
@@ -313,6 +313,10 @@ function NearGate({ cell, size, r, children }) {
   });
   return <group ref={g}>{children}</group>;
 }
+function HighwayJunctionSurfaces({ connections }) {
+  const chunks = useMemo(() => {
+    const groups = new Map();
+    for (const node of connections.junctions) {
       const key = `${Math.floor(node.center.x / 800)},${Math.floor(node.center.z / 800)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(node);
@@ -612,13 +616,17 @@ export default function CountyScene() {
     <Ribbon path={dirtStrip} half={4.6} tile={25} makeTexture={dirtTex} feather detail={{ grain: 0.4, bump: 0.7, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 6)} />
     <Ribbon path={offroad} half={5} tile={25} makeTexture={looseTex} feather detail={{ grain: 0.45, bump: 0.85, macro: 0.15 }} lift={0.012} segs={4} heightFn={height} hide={p => { const f = p.s / offroad.total; return (f > 0.715 && f < 0.825) || (f > 0.875 && f < 0.965) || pavedRoadAt(p.x, p.z, 6); }} />
     <Poles />
+    {REAL && <RegionalUtilityPoles />}
+    {REAL && <RegionalPlaceSigns />}
+    {REAL && <RegionalRoadReflectors />}
+    {REAL && <RegionalCurveWarnings />}
     {SIGNS.map(([x, z, ry, lines], i) => <RoadSign key={i} x={x} z={z} ry={ry} lines={lines} />)}
     <Scrub />
     {!REAL && <BiomeScene />}
     <BoundaryWall />
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     <React.Suspense fallback={null}><Desert /></React.Suspense>
-    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} avoid={(x, z) => onCore(x, z) || isRoad(x, z)} /></React.Suspense>}
+    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9)} /></React.Suspense>}
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}
     <Proving />
     <Sites />
