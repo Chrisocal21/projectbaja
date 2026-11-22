@@ -93,8 +93,6 @@ const BODY = {
     diffuseColor.rgb = mix(vec3(0.035, 0.037, 0.04), vec3(0.11, 0.115, 0.125), twill * 0.55 + thread * 0.35);
     wRough = mix(0.22, 0.38, thread);`,
   rubber: `
-    float mudLo = smoothstep(0.5, 0.75, wBig);
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.3, 0.22, 0.13), clamp(mudLo * 0.9 * W, 0.0, 0.7));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.28), W * 0.35 * (0.4 + wBig));
     wRough = 0.95;`,
 };
