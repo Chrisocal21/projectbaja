@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inspect, FRESH, onLanding, onBottomOut, drive, effects, clues, serviceCost } from './wear.js';
+import { wearMods, inspect, FRESH, onLanding, onBottomOut, drive, effects, clues, serviceCost } from './wear.js';
 
 test('fresh car has no effects and no clues', () => { const e = effects(FRESH()); assert.deepEqual([e.damp, e.grip, e.power, e.pull], [1, 1, 1, 0]); assert.equal(clues(FRESH()).length, 0); });
 test('soft landings do nothing, hard ones wear shocks and align it', () => {
@@ -18,4 +18,11 @@ test('a bouncy ride can be tire pressure, and the inspection says so', () => {
   assert.match(clues(w, 32)[0], /tire pressure/); assert.doesNotMatch(clues(w, 20)[0], /tire pressure/);
   assert.ok(inspect(FRESH(), 32).some(l => /not a worn part/i.test(l)));
   assert.deepEqual(inspect(FRESH(), 20), ['Looks good: nothing worn that you can find.']);
+});
+
+test('fitted parts slow the wear', () => {
+  const stock = wearMods({ parts: {}, wheels: 'stock' }), built = wearMods({ parts: { suspension: 'PART_006_TrailShockSet', shocks: 'SHOCK_001_Coilover', skid: 'GUARD_SkidPlate', engineCooling: 'EMOD_Doghouse' }, wheels: 'tire-deep' });
+  assert.ok(built.shocks < stock.shocks && built.engine < 1 && built.tires < 1 && built.align < 1);
+  assert.ok(onLanding(FRESH(), 12, built).shocks < onLanding(FRESH(), 12, stock).shocks);
+  assert.deepEqual(wearMods(null), { shocks: 1, tires: 1, align: 1, engine: 1 });
 });

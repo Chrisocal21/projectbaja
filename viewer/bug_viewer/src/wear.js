@@ -8,17 +8,36 @@
 /** everything wears slowly for now (a quarter of the base rates) until it is dialled in by feel */
 export const WEAR_RATE = 0.25;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ONE = { shocks: 1, tires: 1, align: 1, engine: 1 };
+/** how fitted parts change how fast things wear (multipliers on the wear rate; estimates). Part ids are catalog part ids, tire ids are wheel set ids. */
+export const WEAR_PARTS_MODS = {
+  SHOCK_001_Coilover: { shocks: 0.55 }, PART_006_TrailShockSet: { shocks: 0.65 },   // better dampers last longer under landings
+  GUARD_SkidPlate: { align: 0.7, shocks: 0.9 },   // belly hits do less
+  EMOD_Doghouse: { engine: 0.6 },   // the doghouse cooler: runs cooler, wears less when hot
+  EXH_Megaphone: { engine: 1.1 },
+  PART_011_RockerGuards: { align: 0.9 }, GUARD_MudFlaps: { tires: 0.95 },
+};
+export const WEAR_TIRE_MODS = { 'tire-tread': { tires: 0.7 }, 'tire-deep': { tires: 0.8 }, 'tire-beadlock': { tires: 0.85 }, 'tire-light': { tires: 1.2 } };
+const modCache = new WeakMap();
+export function wearMods(build) {
+  if (build && modCache.has(build)) return modCache.get(build);
+  const m = { ...ONE }, apply = o => { if (o) for (const k in o) m[k] *= o[k]; };
+  for (const id of Object.values(build?.parts || {})) apply(WEAR_PARTS_MODS[id]);
+  apply(WEAR_TIRE_MODS[build?.wheels]);
+  if (build) modCache.set(build, m);
+  return m;
+}
 export const FRESH = () => ({ shocks: 0, tires: 0, align: 0, engine: 0, side: 1 });
 export const WEAR_PARTS = ['shocks', 'tires', 'align', 'engine'];
 
 /** a landing at `imp` m/s downward speed */
-export function onLanding(w, imp) { if (imp <= 4.5) return w; return { ...w, shocks: clamp(w.shocks + (imp - 4.5) * 0.006 * WEAR_RATE, 0, 1), align: clamp(w.align + (imp > 8 ? (imp - 8) * 0.01 : 0) * WEAR_RATE, 0, 1), tires: clamp(w.tires + 0.002 * WEAR_RATE, 0, 1) }; }
-export const onBottomOut = w => ({ ...w, shocks: clamp(w.shocks + 0.006 * WEAR_RATE, 0, 1) });
+export function onLanding(w, imp, m = ONE) { if (imp <= 4.5) return w; return { ...w, shocks: clamp(w.shocks + (imp - 4.5) * 0.006 * WEAR_RATE * m.shocks, 0, 1), align: clamp(w.align + (imp > 8 ? (imp - 8) * 0.01 : 0) * WEAR_RATE * m.align, 0, 1), tires: clamp(w.tires + 0.002 * WEAR_RATE * m.tires, 0, 1) }; }
+export const onBottomOut = (w, m = ONE) => ({ ...w, shocks: clamp(w.shocks + 0.006 * WEAR_RATE * m.shocks, 0, 1), align: clamp(w.align + 0.002 * WEAR_RATE * m.align, 0, 1) });
 /** `dt` s of driving: speed (m/s), rough = surface roughness 0..1 (rr-like), hot = engine over its warn temp, wading depth (m) */
-export function drive(w, dt, { speed = 0, rough = 0, hot = false, wading = 0 } = {}) {
+export function drive(w, dt, { speed = 0, rough = 0, hot = false, wading = 0 } = {}, m = ONE) {
   const sp = Math.abs(speed);
-  w.tires = clamp(w.tires + dt * sp * (0.2 + rough) * 1.6e-5 * WEAR_RATE, 0, 1);
-  if (hot) w.engine = clamp(w.engine + dt * (wading > 0.05 ? 0.03 : 0.004) * WEAR_RATE, 0, 1);   // cold water on a hot engine is harder on it than the heat alone
+  w.tires = clamp(w.tires + dt * sp * (0.2 + rough) * 1.6e-5 * WEAR_RATE * m.tires, 0, 1);
+  if (hot) w.engine = clamp(w.engine + dt * (wading > 0.05 ? 0.03 : 0.004) * WEAR_RATE * m.engine, 0, 1);   // cold water on a hot engine is harder on it than the heat alone
   return w;
 }
 /** what the numbers do to the car: multipliers for env (damp, grip, power) and a steering pull (rad) */

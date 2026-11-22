@@ -1,5 +1,6 @@
 import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef } from 'react';
-import { FRESH, onLanding, onBottomOut, drive, effects, clues } from './wear.js';
+import { activeBuild } from './game/lights.js';
+import { wearMods, FRESH, onLanding, onBottomOut, drive, effects, clues } from './wear.js';
 import { bugAsleep } from './game/home.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
@@ -269,8 +270,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
       camPos.current.set(0, 4, -16);
     }
 
-    const WEAR = (game.home.wear ||= {}), wr = (WEAR[game.active] ||= FRESH()), wfx = effects(wr);   // wear (wear.js): worn shocks, tires, alignment and engine change how the car drives
-    if (!game.onFoot) { drive(wr, dt, { speed: st.v, rough: sf0.key === 'asphalt' ? 0 : 0.5, hot: !!st.engHot, wading: st.wade || 0 }); st.clueT = (st.clueT ?? 20) - dt; if (st.clueT <= 0) { st.clueT = 45; const c = clues(wr, game.home?.tirePsi ?? 30)[0]; if (c) say(c); } }
+    const WEAR = (game.home.wear ||= {}), wr = (WEAR[game.active] ||= FRESH()), wfx = effects(wr), wmods = wearMods(activeBuild());   // wear (wear.js): worn shocks, tires, alignment and engine change how the car drives
+    if (!game.onFoot) { drive(wr, dt, { speed: st.v, rough: sf0.key === 'asphalt' ? 0 : 0.5, hot: !!st.engHot, wading: st.wade || 0 }, wmods); st.clueT = (st.clueT ?? 20) - dt; if (st.clueT <= 0) { st.clueT = 45; const c = clues(wr, game.home?.tirePsi ?? 30)[0]; if (c) say(c); } }
     if (wade > 0.05) st.wetT = 7; else if (st.wetT > 0) { st.wetT -= dt; if (st.wetT <= 0) say('The brakes have dried out and bite again.'); }   // wet brakes: weak for a few seconds after a crossing (fades back in)
     const wetK = st.wetT > 0 ? 1 - 0.6 * Math.min(1, st.wetT / 3) : 1;
     const throttle = bugAsleep() ? 0 : Math.max(-1, Math.min(1, (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + pad.throttle));   // grandma's Bug won't pull until she's fired once
@@ -288,9 +289,9 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // landings and bottoming out: feedback now, and a running tally the wear system will read (game.home.stress)
     { const landed = st.wasAir && !st.air, imp = landed ? Math.max(0, -(st.prevVy || 0)) : 0, full = dims.offroad ? 0.42 : 0.15;
       st.cool = Math.max(0, (st.cool || 0) - dt);
-      if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onLanding(wr, imp); st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
+      if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onLanding(wr, imp, wmods); st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
       const bottom = rb.travel.some(t => t > full * 0.96);
-      if (bottom && !st.cool && !game.onFoot) { WEAR[game.active] = onBottomOut(WEAR[game.active] || wr); st.cool = 0.5; st.bottomT = 1.0; shake.current = Math.max(shake.current, 0.35); game.home = { ...game.home, stress: { ...(game.home.stress || {}), bottomOuts: ((game.home.stress || {}).bottomOuts || 0) + 1 } }; }
+      if (bottom && !st.cool && !game.onFoot) { WEAR[game.active] = onBottomOut(WEAR[game.active] || wr, wmods); st.cool = 0.5; st.bottomT = 1.0; shake.current = Math.max(shake.current, 0.35); game.home = { ...game.home, stress: { ...(game.home.stress || {}), bottomOuts: ((game.home.stress || {}).bottomOuts || 0) + 1 } }; }
       st.impactT = Math.max(0, (st.impactT || 0) - dt); st.bottomT = Math.max(0, (st.bottomT || 0) - dt);
       st.wasAir = st.air; st.prevVy = st.vy; }
     const fx = Math.sin(st.h), fz = Math.cos(st.h), rx = fz, rz = -fx, ox = st.x, oz = st.z, ov = st.v;
