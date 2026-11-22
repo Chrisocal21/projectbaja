@@ -13,7 +13,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { resolve, partFile, bodyById, partById } from './build.js';
 import { partMaterial, panelMaterial } from './paint.js';
 import { getFinish } from './finishJobs.js';
-import { rimGeometry } from './Rims.jsx';
+import { rimGeometry, rimLook, RUBBER } from './Rims.jsx';
 import { ProcPart } from './ProcParts.jsx';
 import { applyWeathering, kindForMaterial, LIVERY } from './weather.js';
 import { createSuspensionVisual, disposeSuspensionVisual } from './suspension.js';
@@ -101,7 +101,7 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
 
 function Rim({ rim, color }) {
   const geo = useMemo(() => rimGeometry(rim.style), [rim.style]);
-  return <mesh geometry={geo}><meshStandardMaterial color={color} metalness={0.4} roughness={0.4} side={THREE.DoubleSide} /></mesh>;
+  return <mesh geometry={geo}><meshStandardMaterial color={color} {...rimLook(rim)} side={THREE.DoubleSide} /></mesh>;
 }
 
 /** One instance of a single-tire GLB (0.95 m across, axle on Z) mounted on a wheel position. */
@@ -113,7 +113,7 @@ function TireWheel({ set, mount, rim, rimColor }) {
       if (!o.isMesh) return;
       o.material = o.material.clone();
       o.castShadow = true; o.receiveShadow = true;
-      if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; }
+      if (!o.material.map) { o.material.color.set(RUBBER); o.material.roughness = 0.95; o.material.metalness = 0; }
     });
     smoothNormals(c);
     c.traverse(o => { if (o.isMesh) applyWeathering(o.material, 'rubber', o, c); });
@@ -130,7 +130,7 @@ function useTireClone(file) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   return useMemo(() => {
     const c = scene.clone(true);
-    c.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); if (!o.material.map) { o.material.color.set('#1d1d1d'); o.material.roughness = 0.95; o.material.metalness = 0; } });
+    c.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true; o.material = o.material.clone(); if (!o.material.map) { o.material.color.set(RUBBER); o.material.roughness = 0.95; o.material.metalness = 0; } });
     smoothNormals(c);
     c.traverse(o => { if (o.isMesh) applyWeathering(o.material, 'rubber', o, c); });
     return c;

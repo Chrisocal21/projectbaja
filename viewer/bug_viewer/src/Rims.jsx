@@ -41,6 +41,17 @@ export const RIM_STYLES = {
   aero: () => [barrelGeo(), disc(0.255, 0.02, 0.1), disc(0.2, 0.02, 0.115), disc(0.07, 0.03, 0.13), lipRing(0.15, 0.285, 0.014)],
 };
 
+/** How a rim's surface looks, by finish: chrome is a bright mirror, anodized a satin metal, powder and paint are coloured and a little glossy. */
+export const RIM_FINISH = {
+  chrome: { metalness: 0.95, roughness: 0.14 },
+  anodized: { metalness: 0.75, roughness: 0.3 },
+  powder: { metalness: 0.25, roughness: 0.42 },
+  paint: { metalness: 0.12, roughness: 0.36 },
+};
+export const rimLook = rim => RIM_FINISH[rim?.finish] || RIM_FINISH.paint;
+/** The black of a tire: warm rubber, not grey. */
+export const RUBBER = '#15120f';
+
 const cache = {};
 export function rimGeometry(style) {
   if (cache[style]) return cache[style];

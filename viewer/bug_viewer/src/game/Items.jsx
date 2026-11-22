@@ -16,7 +16,7 @@ import CajonItem from '../cajon/CajonItem.jsx';
 import ProcEngine from '../Engine.jsx';
 import { useGLTF } from '@react-three/drei';
 import { partById, wheelById, rimById } from '../build.js';
-import { rimGeometry } from '../Rims.jsx';
+import { rimGeometry, rimLook, RUBBER } from '../Rims.jsx';
 import { carFitReady, carFitPlan } from './carSnap.js';
 import { FEEL, restOf, carryScale, HOLD } from './restPose.js';   // fit feel pass (?feel=0 turns it off)
 
@@ -59,15 +59,15 @@ function PartModel({ file, size }) {
 /** a tire (optionally with the rim fitted) lying flat */
 function TireItem({ file, rim }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
-  const obj = useMemo(() => clone(scene, o => { o.material.metalness = 0; }), [scene]);
-  return <group position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}><primitive object={obj} />{rim && <mesh geometry={rimGeometry(rim.style)}><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.6} side={THREE.DoubleSide} /></mesh>}</group>;
+  const obj = useMemo(() => clone(scene, o => { o.material.metalness = 0; if (!o.material.map) { o.material.color.set(RUBBER); o.material.roughness = 0.95; } }), [scene]);
+  return <group position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}><primitive object={obj} />{rim && <mesh geometry={rimGeometry(rim.style)}><meshStandardMaterial color={rim.defaultColor} {...rimLook(rim)} side={THREE.DoubleSide} /></mesh>}</group>;
 }
 /** a bare stock tire (no model of its own: the Bug's tire is part of its body model): a dark ring lying flat, about the Bug's size */
 function PlainTire() {
-  return <mesh position={[0, 0.13, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 12, 24]} /><meshStandardMaterial color="#151515" roughness={0.9} /></mesh>;
+  return <mesh position={[0, 0.13, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 12, 24]} /><meshStandardMaterial color={RUBBER} roughness={0.95} /></mesh>;
 }
 function RimItem({ rim }) {
-  return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} metalness={0.45} roughness={0.55} side={THREE.DoubleSide} /></mesh>;
+  return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} {...rimLook(rim)} side={THREE.DoubleSide} /></mesh>;
 }
 /** a stock body piece (hood, door, seat, wheel...) cut out of the car's own model, lying on y = 0 */
 function StockPiece({ match, rest = [0, 0] }) {
