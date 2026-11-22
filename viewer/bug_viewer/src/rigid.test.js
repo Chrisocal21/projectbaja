@@ -57,3 +57,24 @@ test('a jump lands and settles without blowing up', () => {
   const s = run(b, 12, { throttle: 0, brake: false, steer: 0 }, env(ramp), () => { air += readBody(b).air ? 1 : 0; });
   assert.ok(air > 20, 'never left the ground: ' + air); assert.ok(Number.isFinite(s.y) && s.upY > 0.9, JSON.stringify([s.upY, s.y]));
 });
+import { buildField, tableLengths } from './worlds/offroadFeatures.js';
+
+test('a buggy drives the vehicle table slowly and makes a low jump at race speed', () => {
+  const H = 1.5, x = 1.6;
+  const height = buildField([{ kind: 'jump', x: 0, z: 0, h: 0, H, W: 20 }]).heightAt;
+  for (const speed of [9, 27]) {
+    const b = createBody(dims, { x, z: -12, v: speed });
+    let freeSteps = 0, clearance = 0, minUp = 1;
+    const s = run(b, 10, { throttle: 0.12, brake: false, steer: 0 }, env(height), () => {
+      const p = readBody(b);
+      if (p.z < 0) return;
+      if (p.air) freeSteps++;
+      minUp = Math.min(minUp, p.upY);
+      clearance = Math.max(clearance, p.y - height(p.x, p.z));
+    });
+    assert.ok(s.z > tableLengths(H).total && s.contacts === 4 && minUp > 0.96);
+    assert.ok(clearance < 1, 'excessive jump height ' + clearance);
+    if (speed === 9) assert.equal(freeSteps, 0);
+    else assert.ok(freeSteps >= 6, 'no airtime at race speed');
+  }
+});

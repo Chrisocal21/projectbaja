@@ -78,7 +78,7 @@ function pushOut(pts, avoid) {
  * avoid: keep-clear discs. Returns { roads, near, blend, surfaceKey, isNear }.
  */
 export function makeHighways(roads, ground, { avoid = [], water = () => null } = {}) {
-  const list = [], kept = new Set();   // kept: ids of ramps that survived grading
+  const list = [], kept = new Set(), built = new Map();   // kept: ids of ramps that survived grading
   const order = roads.map((r, i) => [r, i]).sort((a, b) => (a[0].kind === b[0].kind ? 0 : a[0].kind === 'major' ? -1 : 1));
   for (const [r] of order) {
     const st = HW_STYLE[r.kind] || HW_STYLE.secondary;
@@ -120,7 +120,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
          for (let i = 0; i < n; i++) h[i] = t0 + (t1 - t0) * smooth(0, 1, i / (n - 1)); }   // too steep to be a ramp here: leave it out
       else continue;   // does not join two roads (one was dropped or bent away)
     }
-    if (r.kind !== 'ramp') {   // the source lines sometimes stop just short of an existing road
+    if (r.kind !== 'ramp' && !r.pavedEnds && !r.joins) {   // the source lines sometimes stop just short of an existing road
       for (const [end, dir] of [[0, 1], [n - 1, -1]]) {
         let nearest = null, best = 65;
         const tip = p[end], inner = p[end + dir], ox = tip.x - inner.x, oz = tip.z - inner.z, olen = Math.hypot(ox, oz) || 1;
@@ -139,6 +139,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       for (let i = 0; i < n; i++) { const a = p[Math.max(0, i - 2)], b = p[Math.min(n - 1, i + 2)], dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1; p[i].tx = dx / len; p[i].tz = dz / len; }
     }
     for (const [end, dir] of [[0, 1], [n - 1, -1]]) {
+      if (r.pavedEnds || r.joins) continue;
       const e = p[end], target = target0(e);
       if (target == null) continue;
       const off = target - h[end], len = Math.min(path.total * 0.45, Math.max(160, Math.abs(off) / 0.07));   // a big height gap gets a long, gentle ramp
@@ -151,7 +152,8 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     h = terrainGrade(h, g0, floor, p, earthwork, r.kind === 'dirt' ? 12 : 35, r.kind === 'dirt' ? 0.18 : 0.14)
       || h.map((v, i) => Math.max(floor[i], Math.min(g0[i] + earthwork, Math.max(g0[i] - earthwork, v))));
     p.forEach((q, i) => (q.hs = h[i]));
-    list.push({ name: r.name, kind: r.kind, course: r.course, style: st, pts: p, total: path.total, index: list.length });
+    list.push({ name: r.name, kind: r.kind, course: r.course, style: st, fadeEnd: r.pavedEnds?.length === 1, pts: p, total: path.total, index: list.length });
+    built.set(r, list.at(-1));
     if (r.id != null) kept.add(r.id);
   }
 
@@ -215,6 +217,38 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const p = road.pts[best.end + best.dir * i], w = 1 - smooth(0, taper, i * STEP);
       p.x += dx * w; p.z += dz * w; p.hs += dh * w;
     }
+  }
+
+  // Attach authored turnouts to their actual parent after all paved junction
+  // repairs. Join the shelf branches after their wash routes have been attached.
+  for (const [source, road] of built) {
+    const parent = built.get(source.joins || roads[source.parentRoad]);
+    if (!parent || (!source.pavedEnds && !source.joins)) continue;
+    for (const end of source.pavedEnds || [0, 1]) {
+      const pts = road.pts, tip = pts[end ? pts.length - 1 : 0];
+      const anchor = source.pts[end ? source.pts.length - 1 : 0];
+      let nearest = Infinity, x, z, h;
+      for (let j = 1; j < parent.pts.length; j++) {
+        const a = parent.pts[j - 1], b = parent.pts[j], dx = b.x - a.x, dz = b.z - a.z;
+        const t = Math.max(0, Math.min(1, ((anchor[0] - a.x) * dx + (anchor[1] - a.z) * dz) / (dx * dx + dz * dz || 1)));
+        const px = a.x + dx * t, pz = a.z + dz * t, d = (anchor[0] - px) ** 2 + (anchor[1] - pz) ** 2;
+        if (d < nearest) { nearest = d; x = px; z = pz; h = a.hs + (b.hs - a.hs) * t; }
+      }
+      const dx = x - tip.x, dz = z - tip.z, dh = h - tip.hs;
+      const reach = Math.min(road.total * 0.48, Math.max(70, Math.hypot(dx, dz) * 3, Math.abs(dh) * 15));
+      for (let j = 0; j < pts.length && j * STEP < reach; j++) {
+        const q = pts[end ? pts.length - 1 - j : j], w = 1 - smooth(0, reach, j * STEP);
+        q.x += dx * w; q.z += dz * w; q.hs += dh * w;
+      }
+    }
+    let length = 0;
+    road.pts.forEach((q, i, pts) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz) || 1;
+      length += Math.hypot(q.x - a.x, q.z - a.z);
+      q.s = length; q.tx = dx / len; q.tz = dz / len;
+    });
+    road.total = length;
   }
 
   // grid of segments (CSR): every segment is listed in each cell its reach touches
@@ -314,13 +348,19 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   /** the ground height h at (x, z) eased onto the highways' grade */
   function blend(x, z, h) {
     const n = nearAll(x, z); if (!n) return h;
-    const paved = pavedAt(x, z, 4);
+    let edge = Infinity;
+    for (let j = 0; j < n; j++) {
+      const road = list[nR[j]];
+      if (road.kind !== 'dirt') edge = Math.min(edge, nD[j] - road.style.half);
+    }
+    const dirtWeight = smooth(0, 12, edge);
     let wmax = 0, sw = 0, sh = 0;
     for (let j = 0; j < n; j++) {
-      const road = list[nR[j]]; if (paved && road.kind === 'dirt') continue;
+      const road = list[nR[j]];
       const st = road.style, ease = Math.min(REACH - st.half, Math.max(st.shoulder, Math.abs(nH[j] - h) * CUT));   // deep cuts and tall fills get gentler banks
       const w = nD[j] <= st.half ? 1 : 1 - smooth(st.half, st.half + ease, nD[j]); if (w <= 0) continue;
-      const w4 = w ** 4; wmax = Math.max(wmax, w); sw += w4; sh += w4 * nH[j];
+      const weight = road.kind === 'dirt' ? w * dirtWeight : w;
+      const w4 = weight ** 4; wmax = Math.max(wmax, weight); sw += w4; sh += w4 * nH[j];
     }
     return sw ? h + (sh / sw - h) * wmax : h;
   }

@@ -8,7 +8,7 @@ import { SCENERY_WRECKS } from '../game/roadsideLoot.js';
 import { HM_SIZE, TERRAIN, REAL } from './world.js';
 import { WaterSheet } from './Border.jsx';
 import { border, SEA_Y } from './border.js';   // (old-square effects keep the old size: the macro colour map and the scatter)
-import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld, highways, junctions, pavedRoadAt } from './county.js';
+import { SIZE, HALF, height, surface, isRoad, onCore, baseHeight, biomeMasks, washAt, reliefAt, badlandReliefAt, ROADS, TRAILS, ROAD_HALF, SIGNS, SITES, circuit, pitLane, dirtStrip, offroad, startLine, toWorld, highways, junctions, pavedRoadAt } from './county.js';
 import { applyGroundDetail } from './groundDetail.js';
 import { terrainMaterial, LAYER_OF } from './terrainMaterial.js';
 import Desert from './Desert.jsx';
@@ -37,7 +37,7 @@ import WildScenery from './WildScenery.jsx';
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
 const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
-const SHORE = new THREE.Color('#d6c19f');
+const SHORE = new THREE.Color('#d6c19f'), SILT = new THREE.Color('#d9c9ac'), CLAY = new THREE.Color('#a68162');
 const BASIN = new THREE.Color('#c4b28d'), SOUTH = new THREE.Color('#a46a4b');
 const PAVED = new Set(['asphalt', 'concrete', 'curb']), BIO_GROUND = new Set(['meadow', 'dryGrass', 'forestFloor']);   // biome ground keeps its own colours (no desert mountain tint)
 /** time slice for tile building: the generator below gives the frame back whenever this deadline passes (Infinity = run straight through) */
@@ -82,6 +82,14 @@ function* tileGen(ix, iz, seg) {   // the same tile, built in slices so streamin
     if (h > 30 && !core && !BIO_GROUND.has(sf.key)) {
       c.lerp(MOUNTAIN, Math.min(0.6, (h - 30) / 90));
       c.lerp(HIGH, THREE.MathUtils.smoothstep(h, 80, 160) * 0.24);
+    }
+    if (region && !paved) {
+      const relief = badlandReliefAt(x, z);
+      if (relief < 0) c.lerp(SILT, Math.min(0.65, -relief * 0.32));
+      if (relief > 0) {
+        const band = 0.5 + 0.5 * Math.sin(h * 0.94 + x * 0.009 - z * 0.012);
+        c.lerp(CLAY, Math.min(1, relief / 5) * (0.15 + 0.27 * band));
+      }
     }
     c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.01, Math.sin(x * 0.017 - z * 0.013) * 0.04, Math.sin(x * 0.041 + z * 0.036) * 0.03 + (r() - 0.5) * 0.03);
     col.set([c.r, c.g, c.b], k * 3);
@@ -248,6 +256,11 @@ const ROAD_LOOK = {
 const HW_VIEW = DETAIL_RADIUS, HW_PIECE = 100;   // roads vanish with the rest of the scenery, not at the horizon
 /** far pieces (lod 1) use every 3rd point and 2 strips across instead of 6: about a ninth of the triangles, and you cannot tell from 450 m */
 const hwRows = (a, b, lod) => { const ks = []; for (let k = a; k < b; k += lod ? 3 : 1) ks.push(k); ks.push(b); return ks; };
+function ribbonWidthAt(road, point) {
+  if (road.fadeEnd) return THREE.MathUtils.smoothstep(road.total - point.s, 0, 24);
+  if (road.kind === 'ramp') return THREE.MathUtils.smoothstep(Math.min(point.s, road.total - point.s), 0, 65);
+  return 1;
+}
 function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
   const segs = lod ? 2 : 6, half = r.style.half + (r.kind === 'ramp' ? 0.4 : 0.8), pos = [], uv = [], idx = [];
   const crossings = [];
@@ -257,7 +270,7 @@ function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
     const p = r.pts[k], nx = p.tz, nz = -p.tx;
     const dirtHidden = r.kind === 'dirt' && row && H.pavedAt(p.x, p.z, 1) && H.pavedAt(prev.x, prev.z, 1);
     const pavedHidden = r.kind !== 'dirt' && row && H.higherRoadAt(p.x, p.z, r) && H.higherRoadAt(prev.x, prev.z, r);
-    const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
+    const merge = ribbonWidthAt(r, p);
     for (let j = 0; j <= segs; j++) {
       const d = (j / segs * 2 - 1) * half * merge, x = p.x + nx * d, z = p.z + nz * d;
       pos.push(x, height(x, z) + (r.kind === 'major' ? 0.034 : r.kind === 'secondary' ? 0.028 : 0.020) + (1 - r.index / H.roads.length) * 0.004, z); uv.push(j / segs, p.s / 30);
@@ -285,7 +298,7 @@ function hwShoulderGeometry({ r, a, b }, H) {
       const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
       const dirtHidden = r.kind === 'dirt' && (H.pavedAt(p.x, p.z, 7) || (row && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 7)));
       const pavedHidden = r.kind !== 'dirt' && (H.higherRoadAt(p.x, p.z, r, 3) || (row && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r, 3)));
-      const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
+      const merge = ribbonWidthAt(r, p);
       const before = r.pts[Math.max(0, k - 10)], after = r.pts[Math.min(r.pts.length - 1, k + 10)];
       const bend = Math.atan2(before.tx * after.tz - before.tz * after.tx, before.tx * after.tx + before.tz * after.tz);
       const outside = r.kind !== 'dirt' && r.kind !== 'ramp' && side * Math.sign(bend) > 0 && H.crossingDistance(p.x, p.z, r) > 35;
@@ -370,7 +383,7 @@ function HighwayJunctionSurfaces({ connections }) {
     const collector = (lift, texCoord = p => [p.x / 12, p.z / 12]) => {
       const pos = [], uv = [], idx = [];
       const vertex = p => { pos.push(p.x, height(p.x, p.z) + lift, p.z); uv.push(...texCoord(p)); };
-      const emit = (a, b, c) => { const i = pos.length / 3; vertex(a); vertex(b); vertex(c); idx.push(i, i + 2, i + 1); };
+      const emit = (a, b, c) => { const i = pos.length / 3; vertex(a); vertex(b); vertex(c); if ((b.x-a.x)*(c.z-a.z) > (b.z-a.z)*(c.x-a.x)) idx.push(i, i+2, i+1); else idx.push(i, i+1, i+2); };
       const build = () => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g; };
       return { emit, build };
     };
@@ -437,7 +450,7 @@ function HighwayJunctionSurfaces({ connections }) {
 
 /** ?realmap: STOP signs, street lights and dead-end signs at the real junctions (worlds/junctions.js); all instanced, one draw call per part */
 function HighwayFurniture() {
-  const list = useMemo(() => junctions().furniture.filter(f => Math.abs(f.x) < 1e6), []);
+  const list = useMemo(() => junctions().furniture.filter(f => !pavedRoadAt(f.x, f.z, 1.2)), []);
   const poles = useRef(), plates = useRef(), heads = useRef(), arms = useRef();
   const by = useMemo(() => ({ stop: list.filter(f => f.type === 'stop'), deadend: list.filter(f => f.type === 'deadend'), light: list.filter(f => f.type === 'light') }), [list]);
   useEffect(() => {
@@ -460,11 +473,11 @@ function HighwayFurniture() {
 // ---------------- rest areas + gas stations along the real highways (worlds/roadside.js, PROPOSAL: no collision yet) ----------------
 // parts are boxes in the place's own frame: x across, y up, z toward the road: [x, y, z, w, h, d, colour]
 const PLACE_PARTS = {
-  rest: [[0, 0.1, 0, 26, 0.2, 40, '#4a4a4d'], [0, 1.6, -14, 7, 3.2, 4, '#c9bfa6'], [-6, 3.4, 2, 8, 0.3, 5, '#8a5a3a'],
+  rest: [ [0, 1.6, -14, 7, 3.2, 4, '#c9bfa6'], [-6, 3.4, 2, 8, 0.3, 5, '#8a5a3a'],
     [-9.4, 1.6, 0.2, 0.3, 3.2, 0.3, '#6b4a30'], [-2.6, 1.6, 0.2, 0.3, 3.2, 0.3, '#6b4a30'], [-9.4, 1.6, 3.8, 0.3, 3.2, 0.3, '#6b4a30'], [-2.6, 1.6, 3.8, 0.3, 3.2, 0.3, '#6b4a30'],
     [5, 0.5, -2, 2.2, 0.9, 1.4, '#7a5530'], [5, 0.5, 4, 2.2, 0.9, 1.4, '#7a5530'], [10, 0.5, 1, 2.2, 0.9, 1.4, '#7a5530'],
     [0, 2, 19, 0.2, 4, 0.2, '#888'], [0, 4.2, 19, 3.2, 1.8, 0.15, '#1d4f91']],
-  gas: [[0, 0.1, 0, 32, 0.2, 32, '#55565a'], [0, 2, -11, 12, 4, 6, '#d8cfae'], [0, 5, 4, 14, 0.6, 8, '#c8372d'],
+  gas: [ [0, 2, -11, 12, 4, 6, '#d8cfae'], [0, 5, 4, 14, 0.6, 8, '#c8372d'],
     [-5, 2.5, 1, 0.4, 5, 0.4, '#e8e8e8'], [5, 2.5, 1, 0.4, 5, 0.4, '#e8e8e8'], [-5, 2.5, 7, 0.4, 5, 0.4, '#e8e8e8'], [5, 2.5, 7, 0.4, 5, 0.4, '#e8e8e8'],
     [-3, 0.8, 4, 0.8, 1.6, 0.6, '#f0f0f0'], [3, 0.8, 4, 0.8, 1.6, 0.6, '#f0f0f0'],
     [-14, 4.5, 14, 0.3, 9, 0.3, '#888'], [-14, 9.4, 14, 3, 2.4, 0.3, '#f0c020']],
@@ -478,7 +491,7 @@ function RoadsidePlaces() {
     let k = 0;
     for (const s of sites) {
       const y = height(s.x, s.z); q.setFromEuler(e.set(0, s.ry, 0)); base.compose(new THREE.Vector3(s.x, y, s.z), q, one);
-      for (const [x, py, z, w, h, d, c] of PLACE_PARTS[s.type]) { part.compose(new THREE.Vector3(x, py, z), new THREE.Quaternion(), new THREE.Vector3(w, h, d)); mesh.current.setMatrixAt(k, base.clone().multiply(part)); mesh.current.setColorAt(k++, col.set(c)); }
+      for (const [x, py, z, w, h, d, c] of PLACE_PARTS[s.type]) { part.compose(new THREE.Vector3(x, py + height(s.x + x*Math.cos(s.ry) + z*Math.sin(s.ry), s.z - x*Math.sin(s.ry) + z*Math.cos(s.ry)) - y, z), new THREE.Quaternion(), new THREE.Vector3(w, h, d)); mesh.current.setMatrixAt(k, base.clone().multiply(part)); mesh.current.setColorAt(k++, col.set(c)); }
     }
     mesh.current.instanceMatrix.needsUpdate = true; if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
   }, [sites]);
@@ -541,15 +554,22 @@ function RoadsideDriveways() {
   const geo = useMemo(() => {
     const pos = [], idx = [];
     for (const s of sites) {
-      const start = s.type === 'rest' ? 17 : 13, end = s.type === 'rest' ? 38 : 29;
-      const sin = Math.sin(s.ry), cos = Math.cos(s.ry), base = pos.length / 3;
-      for (let row = 0; row <= 8; row++) {
-        const v = row / 8, distance = start + (end - start) * v, half = 3.5 + 1.5 * Math.abs(v - 0.5) * 2;
-        for (const side of [-1, 1]) {
-          const x = s.x + sin * distance + cos * side * half, z = s.z + cos * distance - sin * side * half;
-          pos.push(x, height(x, z) + 0.035, z);
+      const rest = s.type === 'rest', front = rest ? 20 : 16, width = rest ? 13 : 16;
+      const sin = Math.sin(s.ry), cos = Math.cos(s.ry);
+      const end = rest ? 38 : 29, rows = Math.ceil((end + front) / 2), cols = 12, base = pos.length / 3;
+      for (let row = 0; row <= rows; row++) {
+        const distance = -front + (end + front) * row / rows;
+        const half = width - (width - 4) * THREE.MathUtils.smoothstep(distance, front - 6, front + 4)
+          + 1.5 * THREE.MathUtils.smoothstep(distance, end - 5, end);
+        for (let col = 0; col <= cols; col++) {
+          const side = half * (2 * col / cols - 1);
+          const x = s.x + sin * distance + cos * side, z = s.z + cos * distance - sin * side;
+          pos.push(x, height(x, z) + 0.045, z);
+          if (row && col) {
+            const d = base + row * (cols + 1) + col, a = d - cols - 2;
+            idx.push(a, d-1, a+1, a+1, d-1, d);
+          }
         }
-        if (row) { const a = base + (row - 1) * 2, b = a + 1, c = a + 2, d = c + 1; idx.push(a, c, b, b, c, d); }
       }
     }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g;

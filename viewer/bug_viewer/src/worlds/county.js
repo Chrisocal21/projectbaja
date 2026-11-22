@@ -11,12 +11,13 @@ import { createBiomes } from './biomes/index.js';
 import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ringMetric0, REAL } from './world.js';
 import { loadBorder } from './border.js';
 import { makeHighways } from './highways.js';
+import { makeBadlands } from './badlands.js';
 import { regionalDirtRoads } from './regionalRoads.js';
 import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 import { buildRaceCourses } from './raceCourses.js';
-import { planFeatures, planRoadFeatures, planHighwayFeatures, buildField } from './offroadFeatures.js';
+import { tableHeight, planFeatures, planRoadFeatures, planHighwayFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -37,6 +38,7 @@ const HMB = boxBlur(HM, HN, 9);
 const BD = REAL ? await loadBorder() : null;
 /** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
 const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
+let badlands = null;
 let HW = null, JN = null, RACE = null, FEAT = null, FIELD = null;   // FEAT/FIELD: whoops, jumps, berms and mini tracks beside the roads (offroadFeatures.js)
 export const highways = () => HW;
 /** ?realmap: the race courses (worlds/raceCourses.js): SCORE routes that mix dirt with the highways, and MDR dirt loops. [{ id, series, name, kind, start, finish, line, dirtLength, ... }] */
@@ -166,7 +168,7 @@ function reliefAmp(x, z, m = masks(x, z)) {
   a *= 1 - 0.8 * m.home - 0.6 * m.dunes - 0.4 * m.farm;
   return a + m.canyon * 50 + ring * 320 * (1 - 0.75 * corrAt(x, z));   // real mountains round the edge, with passes where the highway leaves
 }
-const fine = (x, z) => Math.sin(x * 0.09) * Math.cos(z * 0.08 + 2) * 0.35 + Math.sin(x * 0.9 + z * 0.4) * Math.sin(z * 0.8 - x * 0.3) * 0.05;
+const fine = (x, z) => Math.sin(x * 0.09) * Math.cos(z * 0.08 + 2) * 0.35 + Math.sin(x * 0.45 + z * 0.2) * Math.sin(z * 0.4 - x * 0.15) * 0.035;
 /** the heightmap's relief, centred on the basin floors (~0.25) so the flats stay near 0 and ridges rise out of them */
 const relief = (x, z, m) => { const hv = hmAt(HM, x, z); return (hv - 0.25) * reliefAmp(x, z, m) + fine(x, z); };
 const TOWN_Y = relief(B.town.x, B.town.z, masks(B.town.x, B.town.z)) * 0.3;
@@ -176,18 +178,23 @@ function mesaAt(x, z) {
     const dx = x - mx, dz = z - mz; if (Math.abs(dx) > r * 1.3 || Math.abs(dz) > r * 1.3) continue;
     const a = Math.atan2(dz, dx), d = Math.hypot(dx, dz) * (1 + 0.1 * Math.sin(a * 3 + mx) + 0.06 * Math.sin(a * 7 + mz));
     const m = 1 - smooth(r * 0.78, r, d); if (m <= 0) continue;
-    const top = h * Math.min(1, m * 1.6), terrace = Math.round(top / 4) * 4, t = top + (terrace - top) * 0.45;   // banded cliff steps
+    const top = h * Math.min(1, m * 1.6), t = top - 0.45 * Math.sin(top * Math.PI / 2);   // continuous shelves in the cliff face
     best = Math.max(best, t);
   }
   return best;
+}
+// Raised cosine ridges round off both sides at the crest.
+function duneHeight(x, z) {
+  const u = x * 0.8 + z * 0.6, v = -x * 0.6 + z * 0.8;
+  return 8 * Math.cos(u * 0.012 + Math.sin(v * 0.008) * 1.5) ** 6
+    + 1.3 * Math.cos(u * 0.04 + v * 0.02) ** 6;
 }
 /** base terrain before roads and pads */
 function base(x, z) {
   if (REAL) return realBase(x, z);
   const m = masks(x, z);
   let h = relief(x, z, m);
-  const u = x * 0.8 + z * 0.6, v = -x * 0.6 + z * 0.8;
-  h += m.dunes * ((1 - Math.abs(Math.sin(u * 0.012 + Math.sin(v * 0.008) * 1.5))) ** 2 * 8 + (1 - Math.abs(Math.sin(u * 0.04 + v * 0.02))) ** 2 * 1.3);
+  h += m.dunes * duneHeight(x, z);
   h += m.canyon * (8 + 4 * Math.sin(x * 0.02) * Math.cos(z * 0.017));
   h += mesaAt(x, z);
   h += (TOWN_Y - h) * m.town;
@@ -199,20 +206,20 @@ function base(x, z) {
 /** ?realmap: the real ground, with the hand-built places levelled into it and dune ripples on the Algodones */
 const flatAt = b => BD.heightAt(b.x, b.z);
 const REAL_FLAT = REAL ? { town: flatAt(BIOMES.town), pg: flatAt(BIOMES.proving), lake: flatAt(BIOMES.lake), home: BD.heightAt(0, 0) } : null;
-function realBase(x, z) {
+function realBase(x, z, grade = true) {
   const m = masks(x, z);
-  let h = BD.heightAt(x, z);
-  const u = x * 0.8 + z * 0.6, v = -x * 0.6 + z * 0.8;
-  h += m.dunes * ((1 - Math.abs(Math.sin(u * 0.012 + Math.sin(v * 0.008) * 1.5))) ** 2 * 8 + (1 - Math.abs(Math.sin(u * 0.04 + v * 0.02))) ** 2 * 1.3);
+  let h = BD.heightAt(x, z) + (badlands?.heightAt(x, z) ?? 0);
+  h += m.dunes * duneHeight(x, z);
   h += (REAL_FLAT.home - h) * m.home * 0.8;
   h += (REAL_FLAT.town - h) * m.town;
   h += (REAL_FLAT.pg - h) * m.pg;
   h += (REAL_FLAT.lake - h) * m.lake;
-  return HW ? HW.blend(x, z, h) : h;
+  return grade && HW ? HW.blend(x, z, h) : h;
 }
 /** 0..1: how far below the local average the ground is (a wash: sand collects there) */
 export const washAt = (x, z) => clamp((hmAt(HMB, x, z) - hmAt(HM, x, z)) * 28, 0, 1);
 /** 0..1: how much real relief shows here (drives the far ground's erosion shading) */
+export const badlandReliefAt = (x, z) => badlands?.heightAt(x, z) ?? 0;
 export const reliefAt = (x, z) => { if (REAL) return 0; const m = masks(x, z); return clamp(reliefAmp(x, z, m) / 70, 0, 1) * (1 - Math.max(m.town, m.pg, m.lake, m.home * 0.7, m.bio)); };
 function baseSurface(x, z) {
   const m = masks(x, z), h = base(x, z), slope = Math.abs(base(x + 1, z) - h) + Math.abs(base(x, z + 1) - h);
@@ -220,6 +227,12 @@ function baseSurface(x, z) {
   else if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
+  if (badlands) {
+    const relief = badlands.heightAt(x, z);
+    if (relief < -0.25) return SURFACES.sand;
+    if (relief > 2 && slope > 0.22) return SURFACES.rock;
+    if (relief > 4) return SURFACES.redDirt;
+  }
   if (m.lake > 0.55) return SURFACES.playa;
   if (slope > 0.6) return SURFACES.rock;
   if (m.dunes > 0.3) return SURFACES.sand;
@@ -270,11 +283,21 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const wildOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 2.2 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 2.2;   // trails, rivers and forests may wind over gentle slopes (under about 8 degrees)
   FEAT = planFeatures(HWJ.roads, featOk, wildOk);
   { const side = planHighwayFeatures(HWJ.roads, featOk, FEAT.items.length); FEAT.items.push(...side.items); FEAT.trails.push(...side.trails); }   // jumps and whoop strips right beside the paved highways
-  HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
+  const desertTrails = regionalDirtRoads(HWJ.roads, BD, keep);
+  const localPavement = ROADS.filter(r => r.kind === 'street' || r.kind === 'highway').map(r => ({
+    kind: r.kind, pts: r.path.pts.filter((_, i, pts) => i % 16 === 0 || i === pts.length - 1).map(p => [p.x, p.z]),
+  }));
+  badlands = makeBadlands(desertTrails, [...HWJ.roads, ...localPavement], BD, keep);
+  HW = makeHighways([...HWJ.roads, ...ramps, ...desertTrails, ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
   const roadOk = (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14);   // never on a paved road
   FEAT.items.push(...planRoadFeatures(HW.roads.filter(r => r.kind === 'dirt'), roadOk, FEAT.items.length));   // whoops and road jumps right on the dirt roads (the ribbons read the same height, so they ride over them)
   const wildRoadOk = (x, z) => wildOk(x, z) && !HW.pavedAt(x, z, 14);
-  FIELD = buildField(FEAT.items, roadOk, realBase, wildRoadOk);   // realBase: the ground without features (creek water levels come from it)
+  // Check the finished grade as well as the elevation data. Road cuts and
+  // dune faces can be steep even when the underlying elevation cell is flat.
+  const gradedOk = (x, z) => roadOk(x, z)
+    && Math.hypot(realBase(x + 3, z) - realBase(x - 3, z), realBase(x, z + 3) - realBase(x, z - 3)) < 0.85;
+  FIELD = buildField(FEAT.items, gradedOk, realBase, wildRoadOk);   // realBase: the ground without features (creek water levels come from it)
+  FEAT.items = FIELD.accepted;
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
@@ -324,22 +347,22 @@ R.paint(circuit, { core: 10, shoulder: 7, centerH: () => PG_Y, tilt: p => clampK
 R.paint(pitLane, { core: 4.6, shoulder: 3, centerH: () => PG_Y, classify: () => SID.concrete });
 const wash = s => smooth(90, 98, s) * (1 - smooth(165, 173, s));
 R.paint(dirtStrip, { core: 4.6, shoulder: 7, centerH: p => base(p.x, p.z) + 1.2 * Math.sin(p.s * 0.02),
-  extra: p => 0.08 * Math.sin((p.s * Math.PI * 2) / 2.4) * wash(p.s), classify: ad => (ad <= 2.9 ? SID.dirt : SID.gravel) });
+  extra: p => 0.035 * Math.sin((p.s * Math.PI * 2) / 4.8) * wash(p.s), classify: ad => (ad <= 2.9 ? SID.dirt : SID.gravel) });
 const T = offroad.total, jumpAt = [0.40 * T, 0.62 * T];
-const jump = s => jumpAt.reduce((m, c) => { const d = s - c; return Math.max(m, d < -14 ? 0 : d < 0 ? 2.1 * smooth(-14, 0, d) : d < 8 ? 2.1 : d < 22 ? 2.1 * (1 - smooth(8, 22, d)) : 0); }, 0);
+const jump = s => Math.max(tableHeight(1.6, s - jumpAt[0] + 15), tableHeight(1.6, s - jumpAt[1] + 15));
 const win = (f, a, b, e = 0.015) => smooth(a, a + e, f) * (1 - smooth(b - e, b, f));
 R.paint(offroad, { core: 5, shoulder: 8,
-  centerH: p => { const f = p.s / T; return PG_Y + 1.6 * Math.sin(f * Math.PI * 4 + 0.5) + jump(p.s) + 0.38 * Math.sin(p.s * Math.PI * 2 / 6) * win(f, 0.10, 0.22) - 0.45 * win(f, 0.88, 0.96, 0.02); },
+  centerH: p => { const f = p.s / T; return PG_Y + 1.6 * Math.sin(f * Math.PI * 4 + 0.5) + jump(p.s) + 0.22 * Math.sin(p.s * Math.PI * 2 / 16) * win(f, 0.10, 0.22) - 0.45 * win(f, 0.88, 0.96, 0.02); },
   tilt: p => clampK(-p.k * 20, 0.3),
-  extra: (p, d) => 0.2 * Math.sin(p.s * 1.7) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
+  extra: (p, d) => 0.10 * Math.sin(p.s * 0.85) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
   classify: (ad, p) => { const f = p.s / T; return win(f, 0.72, 0.82, 0.004) > 0.5 ? SID.rock : win(f, 0.88, 0.96, 0.004) > 0.5 ? SID.mud : SID.looseDirt; } });
 // Paint paved lanes last so tracks and test trails cannot replace their height or surface.
 for (const r of ROADS.filter(r => r.kind === 'street' || r.kind === 'highway')) R.paint(r.path, { ...ROAD_STYLE[r.kind], centerH: p => p.hs });
 export const startLine = { x: -200 + PG_OFF[0], z: -285 + PG_OFF[1], h: Math.PI / 2 };
 
 // ---------------- public lookups ----------------
-const localHeight = R.heightAt(base), localSurface = R.surfaceAt(baseSurface);
-const groundOnly = REAL ? (x, z) => HW.pavedAt(x, z, 3) ? HW.blend(x, z, localHeight(x, z)) : localHeight(x, z) : localHeight;
+const localHeight = R.heightAt(REAL ? (x, z) => realBase(x, z, false) : base), localSurface = R.surfaceAt(baseSurface);
+const groundOnly = REAL ? (x, z) => HW.blend(x, z, localHeight(x, z)) : localHeight;
 const bumps = FIELD ? FIELD.heightAt : null;
 /** the ground you drive on: the land and roads, plus the whoops, jumps and berms laid on it */
 export const height = bumps ? (x, z) => groundOnly(x, z) + bumps(x, z) : groundOnly;
@@ -355,7 +378,7 @@ export const wildTrunksNear = FIELD ? FIELD.trunksNear : () => [];
 export const offroadPlan = () => FEAT;   // test / map hook
 export const surface = (x, z) => { if (localPavedAt(x, z)) return SURFACES.asphalt; if (FIELD && waterDepthAt(x, z) > 0.05) return SURFACES.mud; /* a creek bed is wet mud */ if (REAL) { const paved = HW.surfaceKey(x, z); if (paved === 'asphalt' || paved === 'gravel') return SURFACES[paved]; } return localSurface(x, z); };
 BIO.paint(R, { SID, ground: base, height });   // biome rivers and trails (after the roads they leave)
-export const isRoad = REAL ? (x, z) => R.isRoad(x, z) || HW.isNear(x, z, 3) : R.isRoad;
+export const isRoad = REAL ? (x, z) => (x >= -HALF && x < HALF && z >= -HALF && z < HALF && R.isRoad(x, z)) || HW.isNear(x, z, 3) : R.isRoad;
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------
 // [site, x0, x1, z0, z1, top above the pad] in site-local metres, or [site, 'disc', cx, cz, r, top]
 const FLOORS = [

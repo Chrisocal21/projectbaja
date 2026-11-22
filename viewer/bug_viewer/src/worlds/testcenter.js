@@ -1,3 +1,4 @@
+import { tableHeight } from './offroadFeatures.js';
 // Test Center world data (pure JS, no three.js): an 800 x 800 m map with
 //   - a paved circuit (asphalt, curbs, concrete run-off) + pit lane,
 //   - a long flat dirt road with a washboard section,
@@ -27,7 +28,7 @@ const SID = Object.fromEntries(ID.map((n, i) => [n, i]));
 // ---------------- open desert (analytic) ----------------
 function desert(x, z) {
   let h = Math.sin(x * 0.012 + 1) * Math.cos(z * 0.011) * 5 + Math.sin(x * 0.031 + 1.3) * Math.sin(z * 0.027) * 1.8
-        + Math.sin(x * 0.09) * Math.cos(z * 0.08 + 2) * 0.4 + Math.sin(x * 0.9 + z * 0.4) * Math.sin(z * 0.8 - x * 0.3) * 0.05;
+        + Math.sin(x * 0.09) * Math.cos(z * 0.08 + 2) * 0.4 + Math.sin(x * 0.45 + z * 0.2) * Math.sin(z * 0.4 - x * 0.15) * 0.035;
   h *= smooth(25, 70, Math.hypot(x, z));
   h += smooth(335, 398, Math.max(Math.abs(x), Math.abs(z))) * 16;        // distant ridge all round
   return h;
@@ -116,16 +117,16 @@ paint(pitLane, { core: 4.6, shoulder: 3, classify: () => SID.concrete });
 const wash = s => smooth(90, 98, s) * (1 - smooth(165, 173, s));
 paint(dirtRoad, { core: 4.6, shoulder: 7,
   centerH: p => 1.2 * Math.sin(p.s * 0.02) + 0.8 * Math.sin(p.s * 0.047 + 1),
-  extra: p => 0.08 * Math.sin(((p.s - 0) * Math.PI * 2) / 2.4) * wash(p.s),
+  extra: p => 0.035 * Math.sin(((p.s - 0) * Math.PI * 2) / 4.8) * wash(p.s),
   classify: ad => (ad <= 2.9 ? SID.dirt : SID.gravel) });
 
 const T = offroad.total, jumpAt = [0.40 * T, 0.62 * T];
-const jump = s => jumpAt.reduce((m, c) => { const d = s - c; return Math.max(m, d < -14 ? 0 : d < 0 ? 2.1 * smooth(-14, 0, d) : d < 8 ? 2.1 : d < 22 ? 2.1 * (1 - smooth(8, 22, d)) : 0); }, 0);
+const jump = s => Math.max(tableHeight(1.6, s - jumpAt[0] + 15), tableHeight(1.6, s - jumpAt[1] + 15));
 const win = (f, a, b, e = 0.015) => smooth(a, a + e, f) * (1 - smooth(b - e, b, f));
 paint(offroad, { core: 5, shoulder: 8,
-  centerH: p => { const f = p.s / T; return 1.6 * Math.sin(f * Math.PI * 4 + 0.5) + jump(p.s) + 0.38 * Math.sin(p.s * Math.PI * 2 / 6) * win(f, 0.10, 0.22) - 0.45 * win(f, 0.88, 0.96, 0.02); },
+  centerH: p => { const f = p.s / T; return 1.6 * Math.sin(f * Math.PI * 4 + 0.5) + jump(p.s) + 0.22 * Math.sin(p.s * Math.PI * 2 / 16) * win(f, 0.10, 0.22) - 0.45 * win(f, 0.88, 0.96, 0.02); },
   tilt: p => clamp(-p.k * 20, -0.3, 0.3),
-  extra: (p, d) => 0.2 * Math.sin(p.s * 1.7) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
+  extra: (p, d) => 0.10 * Math.sin(p.s * 0.85) * Math.sin(d * 1.3 + 1) * win(p.s / T, 0.72, 0.82),
   classify: (ad, p) => { const f = p.s / T; return win(f, 0.72, 0.82, 0.004) > 0.5 ? SID.rock : win(f, 0.88, 0.96, 0.004) > 0.5 ? SID.mud : SID.looseDirt; } });
 
 // ---------------- story sites: Honest Al's lot, the player's garage, a barn, a gas station ----------------

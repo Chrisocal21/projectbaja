@@ -1,3 +1,4 @@
+import { bridgeGeometry, bridgeTimberMaterial } from './sceneryGeometry.js';
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -48,7 +49,7 @@ function Water() {
   const group = useRef(), { camera } = useThree(), tick = useRef(0);
   const uTime = useRef({ value: 0 });
   const mat = useMemo(() => {   // flowing water: moving ripple streaks along the creek, foam at the banks (all in the shader; the geometry carries across / along coordinates)
-    const m = new THREE.MeshStandardMaterial({ color: '#4d7f93', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.68, depthWrite: false, side: THREE.DoubleSide });
+    const m = new THREE.MeshStandardMaterial({ color: '#65776a', roughness: 0.46, metalness: 0.02, transparent: true, opacity: 0.68, depthWrite: false, side: THREE.DoubleSide });
     m.onBeforeCompile = sh => {
       sh.uniforms.uTime = uTime.current;
       sh.vertexShader = sh.vertexShader.replace('#include <common>', 'attribute vec2 aFlow;\nvarying vec2 vFlow;\n#include <common>').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFlow = aFlow;');
@@ -58,18 +59,28 @@ function Water() {
         float r2 = sin(ya * 2.3 - uTime * 3.6 + xa * 2.9) * 0.5 + 0.5;
         float streak = smoothstep(0.62, 0.9, r1 * r2);
         float foam = smoothstep(0.78, 0.98, abs(vFlow.x)) * (0.55 + 0.45 * sin(ya * 1.3 - uTime * 2.0));
-        diffuseColor.rgb = mix(diffuseColor.rgb * 0.92, vec3(0.82, 0.93, 0.98), clamp(streak * 0.5 + foam * 0.7, 0.0, 0.85));
-        diffuseColor.a = min(1.0, diffuseColor.a + streak * 0.18 + foam * 0.25);`);
+        diffuseColor.rgb = mix(diffuseColor.rgb * 0.92, vec3(0.82, 0.93, 0.98), clamp(streak * 0.035 + foam * 0.015, 0.0, 0.85));
+        diffuseColor.a = diffuseColor.a * (1.0 - smoothstep(0.62, 1.0, abs(vFlow.x)));`);
     };
     return m;
   }, []);
   const meshes = useMemo(() => wildCreeks().map(c => {
     const pos = [], idx = [], flow = [], n = c.pts.length, half = c.hw * 1.9; let along = 0;
-    c.pts.forEach((q, i) => {
-      const a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, px = -dz / l, pz = dx / l;
-      if (i) along += Math.hypot(q[0] - c.pts[i - 1][0], q[1] - c.pts[i - 1][1]);
-      pos.push(q[0] + px * half, q[2] + 0.02, q[1] + pz * half, q[0] - px * half, q[2] + 0.02, q[1] - pz * half); flow.push(1, along, -1, along);
-      if (i) { const k = (i - 1) * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+    const rows = [c.pts[0]];
+    for (let i = 1; i < n; i++) {
+      const a = c.pts[i-1], b = c.pts[i], steps = Math.ceil(Math.hypot(b[0]-a[0], b[1]-a[1]) / 5);
+      for (let j = 1; j <= steps; j++) rows.push(a.map((v,k) => v + (b[k]-v)*j/steps));
+    }
+    rows.forEach((q, i) => {
+      const a = rows[Math.max(0, i - 1)], b = rows[Math.min(rows.length - 1, i + 1)], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, px = -dz / l, pz = dx / l;
+      if (i) along += Math.hypot(q[0] - rows[i - 1][0], q[1] - rows[i - 1][1]);
+      const tip = Math.min(1, i / 3, (rows.length - 1 - i) / 3);
+      for (let j = 0; j <= 6; j++) {
+        const t = j / 3 - 1, offset = half * t * Math.sqrt(tip);
+        pos.push(q[0] + px * offset, q[2] + 0.02, q[1] + pz * offset);
+        flow.push(t, along);
+        if (i && j) { const d = i * 7 + j; idx.push(d-8, d-7, d-1, d-1, d-7, d); }
+      }
     });
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
     const m = new THREE.Mesh(g, mat); m.renderOrder = 3; m.visible = false; m.userData.c = c.pts[Math.floor(n / 2)]; m.userData.r = g.boundingSphere.radius; return m;
@@ -87,17 +98,13 @@ function Water() {
 /** plank bridges over the creek crossings: the ground is flush across them (the creek bed under the deck does not count), so these are the planks and rails you see */
 function Bridges() {
   const group = useRef(), { camera } = useThree(), tick = useRef(0);
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }), []);
+  const mat = useMemo(bridgeTimberMaterial, []);
   const meshes = useMemo(() => wildDecks().map(d => {
-    const parts = [], box = (w, h, l, x, y, z, hex) => { const g = new THREE.BoxGeometry(w, h, l); g.translate(x, y, z); parts.push(colored(g, hex)); };
-    const L = d.L - 2, W = d.W;
-    box(W, 0.22, L, 0, 0.06, 0, '#7a5c3a');   // the planks (a hand above the ground)
-    for (let s = -L / 2 + 0.3; s < L / 2; s += 1.1) box(W - 0.2, 0.03, 0.04, 0, 0.18, s, '#5a4128');   // plank gaps
-    for (const side of [-1, 1]) { box(0.14, 0.12, L, side * (W / 2 - 0.08), 0.95, 0, '#6b4e30'); box(0.1, 0.1, L, side * (W / 2 - 0.08), 0.55, 0, '#6b4e30'); for (let s = -L / 2 + 0.4; s <= L / 2; s += 2.6) box(0.16, 1.05, 0.16, side * (W / 2 - 0.08), 0.5, s, '#5a4128'); }
-    const g = mergeGeometries(parts.map(p => p.toNonIndexed())), m = new THREE.Mesh(g, mat);
-    m.position.set(d.x, height(d.x, d.z) + 0.12, d.z); m.rotation.y = d.h; m.visible = false; m.userData.d = d; return m;
+    const m = new THREE.Mesh(bridgeGeometry(d, height), mat);
+    m.receiveShadow = true;
+    m.position.set(d.x, height(d.x, d.z), d.z); m.rotation.y = d.h; m.visible = false; m.userData.d = d; return m;
   }), [mat]);
-  useEffect(() => { const g = group.current; meshes.forEach(m => g.add(m)); return () => { meshes.forEach(m => { g.remove(m); m.geometry.dispose(); }); mat.dispose(); }; }, [meshes, mat]);
+  useEffect(() => { const g = group.current; meshes.forEach(m => g.add(m)); return () => { meshes.forEach(m => { g.remove(m); m.geometry.dispose(); }); mat.map.dispose(); mat.dispose(); }; }, [meshes, mat]);
   useFrame((_, dt) => {
     if ((tick.current += dt) < 0.5) return; tick.current = 0;
     const p = game.onFoot ? camera.position : game.pos;

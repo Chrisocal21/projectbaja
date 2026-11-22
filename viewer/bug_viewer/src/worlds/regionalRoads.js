@@ -1,31 +1,71 @@
-// Deterministic unpaved access roads attached to the mapped highway network.
-// Shared by the physical road builder and the map: no decorative-only lines.
-export function regionalDirtRoads(roads, border, avoid = []) {
-  const out = [];
-  const clear = (x, z) => x > border.bounds.x0 + 200 && x < border.bounds.x1 - 200 && z > border.bounds.z0 + 200 && z < border.bounds.z1 - 200 && border.waterAt(x, z) == null && !avoid.some(q => Math.hypot(x - q.x, z - q.z) < q.r + 90);
-  const candidates = roads.filter(r => r.kind === 'secondary' && r.pts.length >= 5);
-  for (let ri = 0; ri < candidates.length && out.length < 80; ri++) {
-    const r = candidates[ri];
-    for (const fraction of [0.3, 0.68]) {
-      if (out.length >= 80) break;
-      const i = Math.max(1, Math.min(r.pts.length - 2, Math.floor((r.pts.length - 1) * fraction)));
-      const [x, z] = r.pts[i], [ax, az] = r.pts[i - 1], [bx, bz] = r.pts[i + 1];
-      const length = Math.hypot(bx - ax, bz - az) || 1, side = (ri + (fraction > 0.5 ? 1 : 0)) % 2 ? 1 : -1;
-      const nx = -(bz - az) / length * side, nz = (bx - ax) / length * side;
-      const reach = 450 + (ri * 137 % 550), bend = (ri * 73 % 220) - 110;
-      const pts = [[x, z], [x + nx * reach * 0.32, z + nz * reach * 0.32], [x + nx * reach * 0.68 + nz * bend, z + nz * reach * 0.68 - nx * bend], [x + nx * reach + nz * bend * 1.5, z + nz * reach - nx * bend * 1.5]];
-      const safe = pts.every(([px, pz], k) => {
-        if (!clear(px, pz)) return false;
-        if (!k) return true;
-        const [sx, sz] = pts[k - 1], distance = Math.hypot(px - sx, pz - sz), steps = Math.ceil(distance / 60);
-        for (let t = 1; t <= steps; t++) {
-          const qx = sx + (px - sx) * t / steps, qz = sz + (pz - sz) * t / steps;
-          if (!clear(qx, qz) || Math.abs(border.heightAt(qx, qz) - border.heightAt(sx, sz)) > 95) return false;
-        }
-        return true;
-      });
-      if (safe) out.push({ name: 'Dirt road', kind: 'dirt', pts });
+// Follow distance along a mapped road, including around bends between its vertices.
+export function roadStations(pts) {
+  const distance = [0];
+  for (let i = 1; i < pts.length; i++) distance.push(distance[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const length = distance.at(-1);
+  function at(s) {
+    s = Math.min(length, Math.max(0, s));
+    let lo = 0, hi = pts.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (distance[mid] <= s) lo = mid;
+      else hi = mid;
     }
+    const span = distance[hi] - distance[lo] || 1;
+    const tx = (pts[hi][0] - pts[lo][0]) / span, tz = (pts[hi][1] - pts[lo][1]) / span;
+    return { x: pts[lo][0] + tx * (s - distance[lo]), z: pts[lo][1] + tz * (s - distance[lo]), tx, tz };
   }
+  return { at, distance, length };
+}
+
+// Long turnouts leave the highway at a shallow angle, traverse a wash, then
+// rejoin downstream. Each valley has a lower route and an alternate shelf trail.
+export function regionalDirtRoads(roads, border, avoid = []) {
+  const out = [], bounds = border.bounds;
+  const clear = (x, z, pad = 0) => x > bounds.x0 + pad && x < bounds.x1 - pad && z > bounds.z0 + pad && z < bounds.z1 - pad
+    && border.waterAt(x, z) == null && !avoid.some(p => Math.hypot(x - p.x, z - p.z) < p.r + 90 + pad);
+  function passable(pts) {
+    let prev = null;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, az] = pts[i - 1], dx = pts[i][0] - ax, dz = pts[i][1] - az;
+      const len = Math.hypot(dx, dz), steps = Math.max(1, Math.ceil(len / 30));
+      for (let j = i === 1 ? 0 : 1; j <= steps; j++) {
+        const x = ax + dx * j / steps, z = az + dz * j / steps, h = border.heightAt(x, z);
+        if (!clear(x, z) || (prev !== null && Math.abs(h - prev) > len / steps * 0.15)) return false;
+        prev = h;
+      }
+    }
+    return true;
+  }
+  roads.forEach((road, ri) => {
+    if (!['major', 'secondary'].includes(road.kind) || road.pts.length < 2) return;
+    const line = roadStations(road.pts);
+    for (let s = Math.min(200, line.length * 0.12), n = 0; line.length - s >= 600; s += 2400, n++) {
+      const span = Math.min(1350 + (ri * 89 + n * 53) % 550, line.length - s);
+      const a = line.at(s), b = line.at(s + span), chord = Math.hypot(b.x - a.x, b.z - a.z);
+      if (chord < span * 0.9) continue;
+      const tx = (b.x - a.x) / chord, tz = (b.z - a.z) / chord;
+      for (const sign of [1, -1]) {
+        const side = sign * ((ri + n) % 2 ? -1 : 1), nx = -tz * side, nz = tx * side;
+        const reach = Math.min(410 + (ri * 71 + n * 37) % 190, chord * 0.35);
+        const pts = [], shelf = [];
+        for (let j = 0; j <= 20; j++) {
+          const f = j / 20, fan = Math.sin(Math.PI * f) ** 2;
+          const d = reach * fan * (1 + 0.13 * Math.sin(4 * Math.PI * f + ri));
+          const x = a.x + tx * chord * f + nx * d, z = a.z + tz * chord * f + nz * d;
+          pts.push([x, z]);
+          if (j >= 5 && j <= 15) {
+            const lift = reach * 0.45 * Math.sin(Math.PI * (j - 5) / 10) ** 2;
+            shelf.push([x + nx * lift, z + nz * lift]);
+          }
+        }
+        if (!passable(pts)) continue;
+        const wash = { name: 'Desert wash trail', kind: 'dirt', pts, pavedEnds: [0, 1], parentRoad: ri };
+        out.push(wash);
+        if (passable(shelf)) out.push({ name: 'Badlands shelf trail', kind: 'dirt', pts: shelf, joins: wash });
+        break;
+      }
+    }
+  });
   return out;
 }

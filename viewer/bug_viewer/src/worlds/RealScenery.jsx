@@ -1,3 +1,4 @@
+import { cardonGeometry, agaveGeometry } from './sceneryGeometry.js';
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -22,14 +23,8 @@ function modelParts(scene, name) {
   return parts;
 }
 
-function cardonParts() {
-  const cylinder = (top, bottom, length, x, y, angle = 0) => {
-    const g = new THREE.CylinderGeometry(top, bottom, length, 9);
-    g.rotateZ(angle); g.translate(x, y, 0); return g;
-  };
-  const pieces = [cylinder(0.3, 0.45, 6.4, 0, 3.2), cylinder(0.19, 0.27, 2.4, 1.05, 3.55, -0.65), cylinder(0.16, 0.23, 1.75, 1.67, 4.5), cylinder(0.18, 0.25, 1.9, -0.85, 2.7, 0.72), cylinder(0.15, 0.2, 1.4, -1.3, 3.55)];
-  const geometry = mergeGeometries(pieces); pieces.forEach(g => g.dispose());
-  return [{ geometry, material: new THREE.MeshStandardMaterial({ color: '#667d4d', roughness: 1 }), local: new THREE.Matrix4() }];
+function plantParts(geometry) {
+  return [{ geometry, material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), local: new THREE.Matrix4() }];
 }
 
 function stemBetween(a, b, radius) {
@@ -63,20 +58,6 @@ function ocotilloParts() {
   return [{ geometry, material: new THREE.MeshStandardMaterial({ color: '#6b7050', roughness: 1 }), local: new THREE.Matrix4() }];
 }
 
-function agaveParts() {
-  const pieces = [];
-  for (let i = 0; i < 13; i++) {
-    const a = i * Math.PI * 2 / 13, reach = 0.95 + (i % 4) * 0.14;
-    const end = new THREE.Vector3(Math.cos(a) * reach, 0.48 + (i % 3) * 0.16, Math.sin(a) * reach);
-    const start = new THREE.Vector3(0, 0.15, 0), delta = end.clone().sub(start);
-    const leaf = new THREE.ConeGeometry(0.18 + (i % 3) * 0.025, delta.length(), 3);
-    leaf.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.clone().normalize()));
-    leaf.translate(...start.add(end).multiplyScalar(0.5).toArray()); pieces.push(leaf);
-  }
-  const geometry = mergeGeometries(pieces); pieces.forEach(g => g.dispose());
-  return [{ geometry, material: new THREE.MeshStandardMaterial({ color: '#75836e', roughness: 1, side: THREE.DoubleSide }), local: new THREE.Matrix4() }];
-}
-
 /** Sparse, deterministic land cover across the real elevation map. Only the nearby field is instanced. */
 export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ south: 0 }), roadAt = () => null, avoid = () => false }) {
   const rocks = useGLTF('/models/ENV_Desert.glb').scene;
@@ -89,10 +70,10 @@ export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ s
     { name: 'TREE_A', parts: modelParts(trees, 'TREE_A'), cap: 850 },
     { name: 'TREE_B', parts: modelParts(trees, 'TREE_B'), cap: 850 },
     { name: 'SHRUB', parts: modelParts(rocks, 'SHRUB'), cap: 850 },
-    { name: 'CARDON', parts: cardonParts(), cap: 850 },
+    { name: 'CARDON', parts: plantParts(cardonGeometry()), cap: 850 },
     { name: 'BOOJUM', parts: boojumParts(), cap: 850 },
     { name: 'OCOTILLO', parts: ocotilloParts(), cap: 850 },
-    { name: 'AGAVE', parts: agaveParts(), cap: 850 },
+    { name: 'AGAVE', parts: plantParts(agaveGeometry()), cap: 850 },
   ], [rocks, trees]);
   const meshes = useMemo(() => entries.map(e => e.parts.map(p => {
     const mat = p.material.clone(); mat.side = THREE.DoubleSide; mat.alphaTest = 0.4; mat.transparent = false;

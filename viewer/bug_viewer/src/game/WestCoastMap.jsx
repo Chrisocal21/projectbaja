@@ -66,7 +66,7 @@ export default function WestCoastMap() {
         if (zoom < 3 && !MAIN_ROADS.has(r.name)) continue;
         if (zoom < 5 && r.kind === 'secondary' && !MAIN_ROADS.has(r.name)) continue;
         const w = r.kind === 'major' ? 3.3 : r.kind === 'secondary' ? 2.2 : 1.4;
-        const dirt = r.kind === 'dirt', hidden = dirt ? p => highways().pavedAt(p.x, p.z, 4) : p => highways().higherRoadAt(p.x, p.z, r), step = dirt ? 1 : 2;
+        const dirt = r.kind === 'dirt', hidden = dirt ? undefined : p => highways().higherRoadAt(p.x, p.z, r), step = dirt ? 1 : 2;
         roadLine(r.pts, '#665e50', w + 1.3, step, hidden);
         roadLine(r.pts, dirt ? '#a28e6f' : r.kind === 'major' ? '#fffaf0' : '#f5eee0', w, step, hidden);
       }

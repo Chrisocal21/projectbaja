@@ -90,3 +90,14 @@ test('a bridge deck is flush and dry over the creek, the creek is still deep bes
   const wet = f.waterDepthAt(q[0], q[1], 0); if (wet > 0.05) { const fl = f.flowAt(q[0], q[1]); assert.ok(fl && Math.abs(Math.hypot(fl.x, fl.z) - 1) < 1e-6 && fl.k > 0.2); }
   assert.equal(f.flowAt(-9999, -9999), null); void b;
 });
+
+test('a creek crossing reserves the whole landing even when the jump is planned first', () => {
+  const creek = plan().items.find(it => it.creeks?.some(c => c.deck));
+  const { deck } = creek.creeks.find(c => c.deck);
+  const approach = { kind: 'jump', x: deck.x, z: deck.z - 30, H: 1.5, W: 20, h: 0 };
+  for (const items of [[approach, creek], [creek, approach]]) {
+    const field = buildField(items);
+    assert.deepEqual(field.accepted, [creek]);
+    assert.equal(field.heightAt(deck.x, deck.z), 0);
+  }
+});
