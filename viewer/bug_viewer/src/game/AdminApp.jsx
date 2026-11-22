@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { offroadPlan } from '../worlds/county.js';
+import { offroadPlan, SITES, toWorld } from '../worlds/county.js';
+import { OBSTACLES as SITE_OBSTACLES } from '../worlds/siteData.js';
+import { STALLS } from '../worlds/lot.js';
+import { clearSpot } from './clearSpot.js';
+import { propObstacles } from './home.js';
+import { standingVehicles } from './fleet.js';
+import { defOf } from './projects.js';
 import { teleportPlaces } from './whereAmI.js';
 import { FRESH, summary, clues, wearNote } from '../wear.js';
 import { game, useGame, save, say, addCash, catalogFor, nameOf } from './store.js';
@@ -64,8 +70,14 @@ export default function AdminApp({ onBack }) {
   const bodyOf = view === 'baja' ? 'classic-stage2' : bodies[0]?.id || 'classic';   // the body whose parts a vehicle view lists
   const cat = catalogFor(bodyOf), sections = SECTIONS.filter(s => cat.part.some(p => sectionOfSlot(p.slot) === s.id));
   const need = () => { if (!game.pos) { say('Walk into the world first.'); return false; } game.home = { ...game.home, adminUsed: true }; return true; };
-  const here = () => ({ x: game.pos.x + (game.face?.x ?? 0) * 7, z: game.pos.z + (game.face?.z ?? 1) * 7, h: Math.atan2(game.face?.x ?? 0, game.face?.z ?? 1) });
-  const projectOf = (name, def, build) => { addProject({ uid: nextProjectUid(), name, def, build, pose: here() }); };
+  const ahead = () => ({ x: game.pos.x + (game.face?.x ?? 0) * 7, z: game.pos.z + (game.face?.z ?? 1) * 7, h: Math.atan2(game.face?.x ?? 0, game.face?.z ?? 1) });
+  /** 7 m ahead of you if that is clear; otherwise an open lot stall, otherwise the nearest clear ground (so a spawned vehicle never lands inside shelves, walls or another car) */
+  const here = (length = 4.2, width = 1.9) => {
+    const circles = [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().map(v => v.pose).filter(Boolean).flatMap(po => [[po.x, po.z, 2.2]]), ...(game.projects || []).map(p => [p.pose.x, p.pose.z, Math.max(2, defOf(p).length / 2)]), ...(game.job ? [[game.job.x, game.job.z, 2.6]] : [])];
+    const stalls = STALLS.map(st => { const [x, z] = toWorld(SITES.garage, st.lx, st.lz); return { x, z, h: SITES.garage.rot + Math.atan2(st.fx, st.fz) }; }).sort((a, b) => Math.hypot(a.x - game.pos.x, a.z - game.pos.z) - Math.hypot(b.x - game.pos.x, b.z - game.pos.z));
+    return clearSpot(ahead(), length, width, circles, stalls) || ahead();
+  };
+  const projectOf = (name, def, build) => { addProject({ uid: nextProjectUid(), name, def, build, pose: here(defOf({ def }).length, defOf({ def }).width) }); };
   const bugFull = () => normalize({ ...defaultBuild(), stripped: [], hidden: [] }), bugBare = () => normalize({ ...defaultBuild(), stripped: BUG.slots.map(s => s.id), hidden: [] });
   /** put a drivable vehicle where you stand (7 m ahead): the one you drive jumps there, any other is added to your vehicles if needed and parked there */
   const placeDrivable = id => {
