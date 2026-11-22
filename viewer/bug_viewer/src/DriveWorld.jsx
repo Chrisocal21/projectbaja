@@ -381,6 +381,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const acc = useRef(0);
   useFrame((_, rawDt) => {
     if (!rig.current || game.paused) return;
+    if (game.carTo) { const t = game.carTo; game.carTo = null; Object.assign(s.current, spawnState(), { x: t.x, z: t.z, h: t.h, y: world.height(t.x, t.z) + 0.5, v: 0 }); camPos.current.set(t.x - Math.sin(t.h) * 10, 4, t.z - Math.cos(t.h) * 10); }   // Admin > Teleport: bring the car along while you are on foot
     if (game.teleportTo && !game.onFoot) { const t = game.teleportTo; game.teleportTo = null; Object.assign(s.current, spawnState(), { x: t.x, z: t.z, h: t.h, y: world.height(t.x, t.z) + 0.5, v: 0 }); camPos.current.set(t.x - Math.sin(t.h) * 10, 4, t.z - Math.cos(t.h) * 10); }   // Admin > Races: go to a course
     if (game.flyMode) {
       const f = fly.current, dt = Math.min(rawDt, 0.05);

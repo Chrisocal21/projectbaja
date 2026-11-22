@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { offroadPlan } from '../worlds/county.js';
+import { teleportPlaces } from './whereAmI.js';
 import { game, useGame, save, say, addCash, catalogFor, nameOf } from './store.js';
 import { SECTIONS, sectionOfSlot } from '../build.js';
 import { cajonCatalog } from './cajonParts.js';
@@ -35,8 +36,8 @@ export default function AdminApp({ onBack }) {
   const [pickedBody, setPickedBody] = useState(null), [q, setQ] = useState('');
   const body = pickedBody || game.build?.body || 'classic', cat = catalogFor(body), cajon = cajonCatalog();   // the body whose parts the archive lists (change it with the chips under the search box)
   const sections = SECTIONS.filter(sec => cat.part.some(p => sectionOfSlot(p.slot) === sec.id));
-  const tabs = [['all', 'Everything'], ...sections.map(s => [s.id, s.label]), ['vehicles', 'Vehicles'], ['shells', 'Body shells'], ['items', 'Items'], ['props', 'Props'], ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['kits', 'Baja kit + tools'], ['races', 'Races'], ['cheats', 'Cash / time']];   // the archive: everything in the game is listed somewhere here, and can be spawned
-  const [tab, setTab] = useState('all'), [last, setLast] = useState('');
+  const tabs = [['all', 'Everything'], ...sections.map(s => [s.id, s.label]), ['vehicles', 'Vehicles'], ['shells', 'Body shells'], ['items', 'Items'], ['props', 'Props'], ['wheel', 'Tires'], ['rim', 'Rims'], ['cajon', 'El Cajon'], ['supplies', 'Supplies'], ['kits', 'Baja kit + tools'], ['teleport', 'Teleport'], ['races', 'Races'], ['cheats', 'Cash / time']];   // the archive: everything in the game is listed somewhere here, and can be spawned
+  const [tab, setTab] = useState('all'), [last, setLast] = useState(''), [veh, setVeh] = useState('');
   const spawn = (kind, id, label) => {
     if (!game.pos) return say('Walk into the world first.');
     game.home = { ...game.home, adminUsed: true };
@@ -86,6 +87,16 @@ export default function AdminApp({ onBack }) {
     : tab === 'supplies' ? filtered(itemRows.filter(r => r.info.startsWith('supply')))
     : [];
   const go = (p, label) => { game.teleportTo = { x: p.x, z: p.z, h: p.h || 0 }; setLast(`Going to ${label}. Close the phone.`); };   // (Walker / the vehicle pick this up next frame)
+  /** teleport to a place and, if a vehicle is picked, bring it along: the one you drive jumps with you, any other is added to your vehicles (if needed), parked there and entered */
+  const goTo = p => {
+    const dest = { x: p.x, z: p.z, h: p.h || 0 }, side = { x: p.x + Math.cos(dest.h) * 5, z: p.z - Math.sin(dest.h) * 5, h: dest.h };
+    game.home = { ...game.home, adminUsed: true };
+    if (!veh) { game.teleportTo = dest; return setLast('Going to ' + p.name + '. Close the phone.'); }
+    if (!owned(veh)) game.fleet = { ...game.fleet, [veh]: { pose: null } };
+    if (veh === game.active) { game.carTo = dest; if (game.onFoot) game.teleportTo = side; else game.teleportTo = dest; }
+    else { switchTo(veh, !game.onFoot); game.pose = { ...dest }; game.spawnAt = { ...dest }; game.keepPose = true; game.teleportTo = game.onFoot ? side : null; }
+    save(); setLast('Going to ' + p.name + ' with ' + (VEHICLE_TYPES[veh]?.name || veh) + '. Close the phone.');
+  };
   const kitBtn = (label, list) => <button key={label} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => { if (!game.pos) return say('Walk into the world first.'); game.home = { ...game.home, adminUsed: true }; const l = list(); l.forEach(([k, id]) => dropNearPlayer(k, id)); save(); setLast('Spawned ' + l.length + ' items at your feet.'); }}>{label}</button>;
   const cheat = (label, fn) => <button key={label} onClick={() => { fn(); setLast(label); }}>{label}</button>;
   return <div className="phone-soon"><h3>Admin</h3>
@@ -104,6 +115,14 @@ export default function AdminApp({ onBack }) {
         {kitBtn('Shock hoops, ready-made (skips fabricating)', () => [['fab', 'shockHoops']])}
         <button style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => { if (!game.pos) return say('Walk into the world first.'); game.home = { ...game.home, adminUsed: true }; const a = adminAddProp('welder', 2), b = adminAddProp('bender', 3.2); setLast(a && b ? 'Placed a MIG welder and a tube bender in the garage.' : 'Placed them: stand INSIDE the garage so they count as garage tools.'); }}>Place a MIG welder + tube bender (stand in the garage)</button>
         <button style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + 30 }; save(); setLast('+30 scrap'); }}>+30 scrap metal (for fabricating at the workbench)</button>
+      </div>
+    : tab === 'teleport'
+      ? <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'left', fontSize: 12 }}>
+        <label>Bring a vehicle: <select value={veh} onChange={e => setVeh(e.target.value)} style={{ fontSize: 12 }}><option value="">none (just me)</option><option value={game.active}>the one I'm in ({VEHICLE_TYPES[game.active]?.name || game.active})</option>{Object.values(VEHICLE_TYPES).filter(v => v.dims && v.id !== game.active).map(v => <option key={v.id} value={v.id}>{v.name}{owned(v.id) ? ' (mine)' : ' (adds it)'}</option>)}</select></label>
+        <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {(() => { const t = q.trim().toLowerCase(), list = teleportPlaces().filter(p => !t || p.name.toLowerCase().includes(t)); return list.length ? list.map((p, i) => <button key={p.name + i} style={{ textAlign: 'left', fontSize: 12, padding: '4px 6px' }} onClick={() => game.pos ? goTo(p) : say('Walk into the world first.')}><b>{p.name}</b> <small style={{ opacity: 0.7 }}>{p.kind === 'town' ? 'city / town' : 'spot'}{veh ? ' · with a vehicle' : ''}</small></button>) : <small>No match.</small>; })()}
+        </div>
+        <small>Uses the search box above. Dirt tracks, jumps, creeks, rivers, forests and hill climbs are under Cash / time ("Go to nearest…").</small>
       </div>
     : tab === 'races'
       ? <div style={{ width: '100%', textAlign: 'left', fontSize: 12 }}>{raceCourses().length ? raceCourses().map(c => <div key={c.id} style={{ padding: '4px 0', borderBottom: '1px solid #ffffff18' }}>

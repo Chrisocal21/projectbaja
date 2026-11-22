@@ -1,12 +1,15 @@
 // "Where am I" for the HUD under the compass: the nearest city or town, and the road you're on (real map), or the named area (classic map).
 import { REAL_PLACES, projectPlace } from './realPlaces.js';
-import { highways, areaAt } from '../worlds/county.js';
+import { highways, areaAt, spawns } from '../worlds/county.js';
 import { border } from '../worlds/border.js';
 import { REAL } from '../worlds/world.js';
 
 let placed = null;
 const places = () => placed || (placed = (() => { const land = border(); return land ? REAL_PLACES.map(p => ({ name: p.name, ...projectPlace(p.lat, p.lon, land.meta) })) : []; })());
 const NEAR_TOWN = 4000, FAR_TOWN = 60000;
+
+/** every place the Admin teleport list offers: the real cities and towns (real map) plus the dev spots of the county */
+export const teleportPlaces = () => [...(REAL ? places().map(p => ({ name: p.name, x: p.x, z: p.z, h: 0, kind: 'town' })) : []), ...spawns.map(s => ({ name: s.name, x: s.x, z: s.z, h: s.h || 0, kind: 'spot' }))];
 
 /** { place, road } for a world position; either can be '' */
 export function whereAmI(x, z) {
