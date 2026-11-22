@@ -35,3 +35,13 @@ test('features that fail the check are dropped', () => {
   assert.equal(none.count, 0); assert.equal(none.heightAt(items[0].x, items[0].z), 0);
   assert.ok(footprint(items[0]).length >= 3);
 });
+
+import { planRoadFeatures } from './offroadFeatures.js';
+test('road features sit on straight stretches of a dirt road and follow its heading', () => {
+  const pts = Array.from({ length: 2000 }, (_, i) => ({ x: i * 5, z: 0, tx: 1, tz: 0, s: i * 5 }));   // 10 km straight, heading +x
+  const bend = Array.from({ length: 400 }, (_, i) => { const a = i * 0.02; return { x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), tx: Math.cos(a), tz: Math.sin(a), s: i * 6 }; });   // a tight curve all the way
+  const items = planRoadFeatures([{ pts, total: 9995 }]);
+  assert.ok(items.length >= 4 && items.every(i => i.onRoad && Math.abs(i.h - Math.PI / 2) < 1e-6 && Math.abs(i.z) < 1e-6), JSON.stringify(items.length));
+  assert.equal(planRoadFeatures([{ pts: bend, total: 2394 }]).length, 0);
+  assert.ok(items.some(i => i.kind === 'whoops') && items.some(i => i.kind === 'jump'));
+});

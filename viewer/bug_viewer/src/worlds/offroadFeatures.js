@@ -131,3 +131,26 @@ export function buildField(items, ok = () => true) {
   };
   return { heightAt, count };
 }
+
+// ---- on the dirt roads themselves ----
+/** whoop sections and road jumps centred on dirt roads. roads: graded roads with pts [{ x, z, tx, tz, s }] and total length; only straight stretches are used. */
+export function planRoadFeatures(roads, okSpot = () => true, firstId = 0) {
+  const items = [], SP = 220;
+  roads.forEach((road, ri) => {
+    const pts = road.pts; if (!pts || pts.length < 10 || road.total < 260) return;
+    let want = 110 + hash(ri, 21) * SP, n = 0;
+    for (let i = 0; i < pts.length - 1 && n < 60; i++) {
+      const p = pts[i]; if (p.s < want) continue;
+      want = p.s + SP * (0.8 + hash(ri, i, 22) * 0.6);
+      if (p.s > road.total - 140) break;
+      const k = ri * 7919 + i, r = hash(k, 1), h = Math.atan2(p.tx, p.tz);
+      const L = r < 0.62 ? 55 + hash(k, 2) * 55 : 80, end = pts.find(q => q.s >= p.s + L); if (!end) continue;
+      if (Math.abs(Math.atan2(Math.sin(Math.atan2(end.tx, end.tz) - h), Math.cos(Math.atan2(end.tx, end.tz) - h))) > 0.18) continue;   // keep to the straights
+      const it = r < 0.62 ? { kind: 'whoops', x: p.x, z: p.z, h, L, W: 11, lam: 7.5 + hash(k, 3) * 2.5, A: 0.35 + hash(k, 4) * 0.3 }
+        : { kind: 'jump', x: p.x, z: p.z, h, H: 0.9 + hash(k, 3) * 0.8, W: 9 };
+      if (!footprint(it).every(q => okSpot(q.x, q.z))) continue;
+      it.id = firstId + items.length; it.onRoad = true; items.push(it); n++;
+    }
+  });
+  return items;
+}

@@ -16,7 +16,7 @@ import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 import { buildRaceCourses } from './raceCourses.js';
-import { planFeatures, buildField } from './offroadFeatures.js';
+import { planFeatures, planRoadFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
@@ -269,7 +269,9 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const featOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 0.9 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 0.9;   // dry, off the built places, on near-flat ground (under 3.5 degrees)
   FEAT = planFeatures(HWJ.roads, featOk);
   HW = makeHighways([...HWJ.roads, ...ramps, ...regionalDirtRoads(HWJ.roads, BD, keep), ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
-  FIELD = buildField(FEAT.items, (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14));   // never on a paved road
+  const roadOk = (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14);   // never on a paved road
+  FEAT.items.push(...planRoadFeatures(HW.roads.filter(r => r.kind === 'dirt'), roadOk, FEAT.items.length));   // whoops and road jumps right on the dirt roads (the ribbons read the same height, so they ride over them)
+  FIELD = buildField(FEAT.items, roadOk);
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there

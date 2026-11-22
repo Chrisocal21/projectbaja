@@ -261,5 +261,6 @@ Polled every frame; buttons become key presses so every existing system keeps wo
 - They are heights added to the ground (`height` in county.js), so the car, terrain mesh, grass and walking all agree. The fine terrain mesh (2.5 m grid, within 430 m) shows them; far tiles don't.
 - Admin > Cash/time: "Go to nearest dirt track / jump / whoops / berms".
 - Tuning knobs: `FEATURE.spacing` (450 m between spots along a road), shapes at the top of the file, flatness limit `featOk` in county.js.
-- Not done: features ON the road itself (paved roads and dirt-road ribbons follow their own graded height), dust/tire-track decals, more density where the ground isn't flat.
+- Dirt roads (race courses, regional dirt roads and the new trails) also get whoop sections and road jumps centred on their straight stretches (`planRoadFeatures`); the ribbons read the same height so they ride over them. About 440 features in all.
+- Not done: features ON paved roads, more density where the ground is not flat.
 - Controller: the right stick orbits the chase camera while driving.
