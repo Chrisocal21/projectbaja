@@ -32,6 +32,7 @@ import { applyMachinePlan, held, toolInHand, pickUp, dropHeld, hangHeld,grabItem
 import LoadingScreen from './game/Loading.jsx';
 import { toggleLights } from './game/lights.js';
 import { useStand } from './game/standActions.js';
+import { useBin, takeBin } from './game/bins.js';
 import { sellItem } from './game/sell.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
@@ -225,6 +226,7 @@ function App() {
     else if (id === 'bench') setPanel('fab');
     else if (id.startsWith('stand:')) useStand(id.slice(6));
     else if (id === 'peg') pegInteract();
+    else if (id.startsWith('bin:')) useBin(+id.slice(4));
     else if (id === 'pc') { if (!game.home?.power && !game.dev) say('The PC is dead. The power is off: flip the main breaker first.'); else setPanel('pc'); }
     else interact(id);
   };
@@ -310,6 +312,7 @@ function App() {
         if (btn === 0 && pressureToolInHand() && game.target?.startsWith('car:')) startPressure();   // tire gauge (let air out) or air chuck (fill): hold on a wheel
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
+        else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));
         else if (btn === 0 && game.target?.startsWith('junk:')) { const id = game.target.slice(5); startHold('Hauling…', () => haulJunk(id), false, HAUL_S * 1000); }   // junk goes out in held loads (game/junkRules.js)
         else if (btn === 0 && game.target === 'tirem') { const pl = planAtMachine(); if (pl?.ok) startHold(`${pl.verb}…`, doMachine, false, pl.seconds * 1000); else if (pl) say(pl.why); }   // the tire machine: the bar takes as long as the job
         else if (btn === 0 && (game.nearCar || game.work) && game.aim && toolInHand() && game.target?.startsWith('car:')) { const id = game.aim; startHold('Taking off…', () => (id.startsWith('up:') ? doDetachUpgrade(id.slice(3)) : doDetach(id, game.carZone))); }   // hold left on a part: the bar fills, it comes off onto the ground. game.work = any restorable vehicle you stand at (donors, the El Cajon); game.nearCar is only the one you drive

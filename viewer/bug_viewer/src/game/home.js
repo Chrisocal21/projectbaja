@@ -17,6 +17,7 @@ import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 import { wallSnap } from './wallhang.js';
 import { passTime } from './orders.js';
+import { spillBin } from './bins.js';
 import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
@@ -90,6 +91,7 @@ const ALL_BUILD_ITEMS = [
   ...STRUCTURE_ITEMS,
   { id: 'wallOpening', name: 'Doorway through an original wall (2 m)', price: OPENING_PRICE, zone: 'yard', r: 0, cat: 'Structure', cut: true, note: "Needs a foundation slab against the garage's right or back wall" },
   { id: 'floodlight', name: 'Floodlight pole', price: 120, zone: 'yard', r: 0.3, cat: 'Yard' },
+  { id: 'partsBin', name: 'Parts bin', price: 45, zone: 'any', r: 0.4, cat: 'Storage', note: 'Stow parts in it (E with a part in hand); E with empty hands takes the last one out. It remembers what is inside.' },
   { id: 'yardRack', name: 'Steel parts rack', price: 150, zone: 'any', r: 0.6, cat: 'Storage', note: 'More shelf room for parts' },
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: to move it, aim at it and click" },
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. To move it, aim at it and click (Shift+X stores it, X sells it)' },
@@ -323,7 +325,7 @@ function dropFixtureItems(p) {
 export function storeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return false;
   if (isPiece(p.id)) { say('Building pieces cannot be stored: take them down with X.'); return false; }
-  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p);
+  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p); spillBin(p);
   const r = storeMove(game.props, storedProps(), uidN); game.props = r.props; game.home = { ...game.home, stored: r.stored };
   game.propsV = (game.propsV || 0) + 1; save(); say(`Stored the ${buildById[p.id].name.toLowerCase()} (take it out from the build menu, B)`); return true;
 }
@@ -353,7 +355,7 @@ export function removeProp(uidN) {
     const l = homeLocal(p.x, p.z), all = game.props.filter(q => isPiece(q.id)).map(q => { const m = homeLocal(q.x, q.z); return { id: q.id, x: m.lx, z: m.lz, ry: (q.ry || 0) - G.rot, uid: q.uid }; });
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
-  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p);
+  dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p); spillBin(p);
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back, 'Took down a prop (refund)'); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }

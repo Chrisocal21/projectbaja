@@ -18,6 +18,8 @@ const seatAim = (eye, look, pose, y) => {   // two roomy boxes over each seat (f
 const AIM_AP = { hoodPanel: 'hood', engineLid: 'lid', doorL: 'doorL', doorR: 'doorR', seatDriver: 'seatL', seatPassenger: 'seatR' };
 import { buildById } from './home.js';
 import { isPiece } from '../worlds/structures.js';
+import { binText } from './bins.js';
+import { isBin } from './binRules.js';
 import { haulPrompt } from './junkRules.js';
 import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
 import { jobById } from './jobs.js';
@@ -62,6 +64,7 @@ export const promptText = id => {
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
+  if (id.startsWith('bin:')) return binText(+id.slice(4));
   if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Press V — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
   if (id === 'tirem') { const p = planAtMachine(); return p ? (p.ok ? `Hold left click — ${p.verb}` : p.why) : ''; }
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
@@ -199,7 +202,8 @@ export default function Walker({ world, sun }) {
     if (wallCache.src !== world.obstacles) wallCache = { src: world.obstacles, list: world.obstacles.filter(c => c[3] === 99) };   // solid walls only: nothing can be reached through them
     const consider = (id, x, z, r, face, bonus = 1, shape = AIM_DEFAULT) => {
       const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;
-      if (foot && wallBlocks(eye, x, z, wallCache.list)) return;   // (cheap distance first: the terrain height below is costly and most targets are far away)
+      if (foot && wallBlocks(eye, x, z, shape.own ? wallCache.list.filter(w => w[0] !== x || w[1] !== z) : wallCache.list)) return;   // own: a bin or chest is solid itself, so its own circle must not block the view of it
+   // (cheap distance first: the terrain height below is costly and most targets are far away)
       if (foot && world.id === 'county' && s.y > world.height(x, z) + 1.4) return;
       if (foot && !(shape.box ? aimsAtBox(eye, look, { x, z, y: s.y, ...shape.box }, r) : aimsAt(eye, look, { x, z, y: s.y + (shape.dy || 0), h: shape.h, r: shape.r }, r))) return;
       if (d * bonus < bd) { bd = d * bonus; best = id; }
@@ -215,6 +219,7 @@ export default function Walker({ world, sun }) {
     if (!nearPump) game.fueled = false;
     if (foot) { const [wx, wz] = toW(SITES.warehouse, -9.4, 0); consider('warehouse', wx, wz, 3.2, false, 0.8, { r: 0.9, h: 1.5 }); }   // the scrap buyer's counter
     if (foot) for (const st of STANDS) { const [sx, sz] = toW(SITES.garage, st.lx, st.lz); consider('stand:' + st.id, sx, sz, 3.0, false, 0.7, { r: 0.55, h: 1.7 }); }   // Walt's supply stands
+    if (foot) for (const q of game.props) if (isBin(q.id)) consider('bin:' + q.uid, q.x, q.z, 2.4, false, 0.85, { r: 0.6, h: 1.1, own: true });   // bins, tool chests and racks hold things
     if (foot) { const pc = nearestProp(game.props, 'computer', px, pz); if (pc) consider('pc', pc.x, pc.z, 2.2, false, 0.9, { r: 1.1, h: 1.2 }); }
     if (foot && held()) { const tm = machineNear(); if (tm && planAtMachine()) consider('tirem', tm.x, tm.z, 2.8, false, 0.8, { r: 1.0, h: 1.6 }); }   // a wheel, rim or tire in hand, at the tire machine
     if (foot) { const pb = nearestProp(game.props, 'pegboard', px, pz); if (pb) consider('peg', pb.x, pb.z, 4.5, false, 0.9, { box: { hx: PEG.w / 2, hz: 0.6, y: s.y + PEG.y - PEG.h / 2, h: PEG.h, yaw: pb.ry || 0 } }); }
