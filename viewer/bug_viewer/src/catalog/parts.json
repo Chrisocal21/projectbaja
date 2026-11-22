@@ -22,6 +22,12 @@
   },
   "labels": {
    "classic-stage2": "High-cut Baja fenders"
+  },
+  "material": {
+   "color": "#f3f3f0",
+   "metalness": 0,
+   "roughness": 0.92,
+   "unpainted": true
   }
  },
  {
@@ -44,6 +50,12 @@
     "B_TurnSignal",
     "B_Tailights"
    ]
+  },
+  "material": {
+   "color": "#f3f3f0",
+   "metalness": 0,
+   "roughness": 0.92,
+   "unpainted": true
   }
  },
  {
@@ -70,6 +82,12 @@
   },
   "labels": {
    "classic-stage2": "Rounded Baja nose"
+  },
+  "material": {
+   "color": "#f3f3f0",
+   "metalness": 0,
+   "roughness": 0.92,
+   "unpainted": true
   }
  },
  {
@@ -96,6 +114,12 @@
   },
   "labels": {
    "classic-stage2": "Open rear deck"
+  },
+  "material": {
+   "color": "#f3f3f0",
+   "metalness": 0,
+   "roughness": 0.92,
+   "unpainted": true
   }
  },
  {
