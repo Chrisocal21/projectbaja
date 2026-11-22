@@ -5,6 +5,7 @@ import { game, useGame } from './game/store.js';
 import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
 import PerfHud from './game/PerfHud.jsx';
+import Governor from './game/Governor.jsx';
 import GameObjects from './game/GameObjects.jsx';
 import { applyGroundDetail, kindOf } from './worlds/groundDetail.js';
 import * as THREE from 'three';
@@ -539,5 +540,6 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     {world.id === 'county' && <Items />}{world.id === 'county' && <DeliveryTruck />}
     {world.id === 'county' && <Fleet />}
     <PerfHud />
+    <Governor />
   </WorldCtx.Provider>;
 }

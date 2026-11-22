@@ -2,7 +2,7 @@
 import { game, emit } from './store.js';
 
 const KEY = 'baja-settings-v1';
-export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', screenHints: false, crosshair: true, showFps: true };
+export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', shadows: 'auto', screenHints: false, crosshair: true, showFps: true };
 /** what the settings panel shows, in order. Every row here is wired to something real. */
 export const SETTING_ROWS = [
   { sec: 'Gameplay' },
@@ -13,6 +13,7 @@ export const SETTING_ROWS = [
   { sec: 'Video' },
   { k: 'fov', type: 'range', label: 'Field of view (on foot)', min: 55, max: 100, step: 1, fmt: v => `${v}°` },
   { k: 'renderScale', type: 'choice', label: 'Render resolution', options: [['auto', 'Auto'], [1, '100%'], [0.75, '75%'], [0.5, '50%']], note: 'Lower is faster on slow machines.' },
+  { k: 'shadows', type: 'choice', label: 'Shadows', options: [['auto', 'Auto'], ['on', 'High'], ['low', 'Low'], ['off', 'Off']], note: 'Auto starts high and turns shadows down by itself if the game runs below about 28 fps.' },
   { sec: 'HUD' },
   { k: 'showFps', type: 'toggle', label: 'Show FPS counter' },
   { k: 'screenHints', type: 'toggle', label: 'Show key hints on screen', note: 'Off by default. Every key is listed under Controls (the tab above).' },
@@ -32,4 +33,6 @@ export function resetSettings() { game.settings = { ...SETTING_DEFAULTS }; try {
 /** mouse-look multipliers: [x, y] */
 export const lookScale = () => [game.settings.sens, game.settings.sens * (game.settings.invertY ? -1 : 1)];
 /** The real map's layered terrain is expensive at device-pixel-ratio 2. Explicit settings still win. */
+/** 'on' | 'low' | 'off'. Auto follows game.perfTier, which the Governor raises when frames are slow (0 high, 1 low, 2+ off). */
+export const shadowMode = () => { const s = game.settings.shadows; return s === 'on' || s === 'low' || s === 'off' ? s : ['on', 'low', 'off', 'off'][Math.min(3, game.perfTier || 0)]; };
 export const canvasDpr = (heavyWorld = false) => (game.settings.renderScale === 'auto' ? (heavyWorld ? 1 : [1, 2]) : game.settings.renderScale);

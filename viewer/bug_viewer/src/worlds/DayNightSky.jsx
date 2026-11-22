@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { tickClock, clockHour } from '../game/clock.js';
 import { dayPhase, goldenPhase, sunPosition } from './clock.js';
 import { REAL } from './world.js';
+import { shadowMode } from '../game/settings.js';
 
 const mix = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), t).getStyle();
 
@@ -20,6 +21,7 @@ export default function DayNightSky({ sun }) {
     acc.current += dt;
     if (acc.current > 0.15) { acc.current = 0; force(n => n + 1); }   // re-render a few times a second, not every frame
   });
+  const sm = shadowMode(), reach = sm === 'low' ? 18 : 36;   // low: shadows only close to you, far fewer things drawn twice
   const h = clockHour(), day = dayPhase(h), night = 1 - day, gold = goldenPhase(h), pos = sunPosition(h);
   const sunColor = mix('#fff6ea', '#ffa15c', gold);
   const skyTint = mix('#dfeaff', '#141c30', night), groundTint = mix('#8a6e45', '#0f0d14', night);
@@ -29,7 +31,7 @@ export default function DayNightSky({ sun }) {
     <fog attach="fog" args={[fogColor, 420 - 380 * night, 4300 - 3700 * night]} />
     <ambientLight intensity={0.15 + 0.35 * day} />
     <hemisphereLight args={[skyTint, groundTint, 0.3 + 0.45 * day]} />
-    <directionalLight ref={sun} position={pos} color={sunColor} intensity={0.08 + 2.6 * day} castShadow={day > 0.08} shadow-mapSize={REAL ? [1024, 1024] : [2048, 2048]}
-      shadow-camera-left={-36} shadow-camera-right={36} shadow-camera-top={36} shadow-camera-bottom={-36} shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
+    <directionalLight ref={sun} position={pos} color={sunColor} intensity={0.08 + 2.6 * day} castShadow={day > 0.08 && sm !== 'off'} shadow-mapSize={REAL ? [1024, 1024] : [2048, 2048]}
+      shadow-camera-left={-reach} shadow-camera-right={reach} shadow-camera-top={reach} shadow-camera-bottom={-reach} shadow-camera-near={1} shadow-camera-far={120} shadow-normalBias={0.025} />
   </>;
 }
