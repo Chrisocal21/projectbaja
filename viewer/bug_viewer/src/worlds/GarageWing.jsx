@@ -146,16 +146,24 @@ function TeamFloor({ wall, timber, H, power }) {
     {/* the open floor edge: a rail along the south side */}
     <Box p={[(f.x0 + f.x1) / 2, y + 0.95, f.z1]} s={[f.x1 - f.x0, 0.06, 0.06]} color="#514536" />
     {[f.x0 + 0.1, (f.x0 + f.x1) / 2, f.x1 - 0.1].map(x => <Box key={x} p={[x, y + 0.5, f.z1]} s={[0.05, 1, 0.05]} color="#514536" />)}
-    <Label text="TEAM ROOM" p={[-16.0, y + 2.3, z0 + 0.12]} w={2.0} />
+    {/* plain timber panelling on the walls and a pale ceiling, so the room reads as an office and not a shed */}
+    <Box p={[x0 + 0.13, y + 0.7, -3]} s={[0.05, 1.4, 5.9]} color="#c8b48c" />
+    <Box p={[cx, y + 0.7, z0 + 0.13]} s={[x1 - x0 - 0.2, 1.4, 0.05]} color="#c8b48c" />
+    <Box p={[x1 - 0.13, y + 0.7, -3]} s={[0.05, 1.4, 5.9]} color="#c8b48c" />
+    <Box p={[cx, H - 0.06, 0]} s={[x1 - x0 - 0.2, 0.06, z1 - z0 - 0.2]} color="#d6ccb4" />
+    <Label text="TEAM ROOM" p={[-15.0, y + 2.45, z0 + 0.14]} w={1.5} />
     {/* the team table with chairs */}
     <Box p={[tb.x, y + 0.74, tz]} s={[0.9, 0.07, tb.z1 - tb.z0]} map={timber} color="#a88a5c" />
     {[tb.z0 + 0.1, tb.z1 - 0.1].map(z => [-0.35, 0.35].map(dx => <Box key={`${z}${dx}`} p={[tb.x + dx, y + 0.37, z]} s={[0.08, 0.74, 0.08]} map={timber} />))}
     {[-3.8, -3.2, -2.6].map(z => [tb.x - 0.75, tb.x + 0.75].map(x => <Box key={`${z}${x}`} p={[x, y + 0.25, z]} s={[0.42, 0.5, 0.42]} map={timber} color="#76583c" />))}
-    {/* the race planning wall, on the old office's wall: a board with routes pinned to it */}
-    <Box p={[board.x, y + 1.7, (board.z0 + board.z1) / 2]} s={[0.06, 1.7, board.z1 - board.z0]} color="#6e6a58" />
-    {[[-4.5, 0.9, 1.1], [-3.3, 1.6, 0.8], [-2.3, 2.0, 1.2], [-4.2, 2.1, 0.9], [-1.9, 1.3, 0.6]].map(([z, h, w2], i) => <Box key={i} p={[board.x - 0.04, y + h, z]} s={[0.03, 0.05, w2]} color={['#a2382c', '#38639f', '#c9a640', '#4d7a4c', '#a2382c'][i]} />)}
-    {[-4.6, -3.2, -2.0].map((z, i) => <Box key={z} p={[board.x - 0.04, y + 1.45 + (i % 2) * 0.6, z]} s={[0.02, 0.34, 0.26]} color="#d8d0b7" />)}
-    <Label text="RACE PLANNING" p={[board.x - 0.06, y + 2.75, (board.z0 + board.z1) / 2]} w={2.0} />
+    {/* the race planning wall, on the old office's wall: a framed cork board with paper and route strips pinned on (blank: no names or routes yet) */}
+    {(() => { const bz = (board.z0 + board.z1) / 2, bl = board.z1 - board.z0, fx = board.x + 0.0, face = board.x - 0.035; return <>
+      <Box p={[fx, y + 1.6, bz]} s={[0.05, 1.7, bl + 0.16]} map={timber} color="#4f3a26" />
+      <Box p={[fx - 0.01, y + 1.6, bz]} s={[0.05, 1.54, bl]} color="#b89a6a" />
+      {[[-4.5, 1.2, 0.9], [-3.3, 1.9, 0.8], [-2.3, 2.1, 1.0], [-4.2, 2.15, 0.7]].map(([z, h, w2], i) => <Box key={i} p={[face, y + h - 0.2, z]} s={[0.02, 0.04, w2]} color={['#a2382c', '#38639f', '#c9a640', '#4d7a4c'][i]} />)}
+      {[[-4.6, 1.5], [-3.7, 1.0], [-2.8, 1.55], [-1.9, 1.1]].map(([z, h], i) => <Box key={z} p={[face - 0.005, y + h, z]} s={[0.012, 0.34, 0.26]} color="#e2dac2" rot={[0.04 * (i - 1.5), 0, 0]} />)}
+      <group position={[face - 0.03, y + 2.28, bz]} rotation={[0, -Math.PI / 2, 0]}><Label text="RACE PLANNING" p={[0, 0, 0]} w={1.8} /></group>
+    </>; })()}
     {[[x0 - 0.02, -1.2], [x0 - 0.02, -3.2]].map(([x, z], i) => <Box key={i} p={[x, y + 1.5, z]} s={[0.05, 1.1, 1.4]} color="#394848" />)}
     <pointLight position={[cx, y + 2.6, -3.2]} color="#ffca81" intensity={power ? 12 : 0} distance={8} decay={2} />
   </group>;
