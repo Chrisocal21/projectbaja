@@ -239,3 +239,10 @@ Chris: finds should help the vehicle, be sold (Dusty or another buyer), or be us
 - The car is now one rigid body with a quaternion orientation (was: heading + separate pitch/roll angles that tangled when rolled). Four spring-damper wheels (travel, bump stop, anti-roll), a friction-circle tire at each contact patch (slip-angle lateral, engine/brake/handbrake longitudinal), a body shell of contact points that scrapes and rests on the ground, air drag. Fixed 120 Hz. `suspension.js` keeps the visuals/rig; its old `stepSuspension` is no longer used by the game.
 - Rolled cars tumble, come to rest, and the crew stands them up after ~3 s still (or press R). Tests: `src/rigid.test.js`.
 - Tuning knobs live in rigid.js (grip caps, `ACC` factor, damping) and DriveWorld.jsx (STEER_FADE).
+
+## Physics data pass (Nov 21): mass/CG from parts, surfaces and tire pressure
+- `src/catalog/physics.json` holds the real-world inputs (every number an [estimate]; sources to check: Gillespie, Milliken, Bentley/Haynes). `src/vehiclePhysics.js` turns it into mass + CG from fitted parts (`massModel`), tire-pressure effects (`pressureEffect`) and the tip limit.
+- rigid.js reads `dims.mass / cgY / cgFromRear` (the Baja Bug only; other vehicles keep old defaults). Engine force and air drag are fixed forces, so a caged, heavier car accelerates slower and tips sooner.
+- Surfaces now use real grip and rolling-resistance coefficients (sand bogs at street pressure; aired down it floats). Tire pressure is `game.home.tirePsi` (Admin > Cash/time buttons for now; real UI is Chris's call).
+- Taking parts off now needs a tool in hand (`toolInHand()` in game/items.js), like a build hammer; empty hands open doors and sit.
+- Not done yet: engine torque curve/gears/diff, heat, stress/failure, diagnosis/tune-up/torque-spec procedures (lesson-plan Steps 5-8).

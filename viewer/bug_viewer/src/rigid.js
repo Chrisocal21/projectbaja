@@ -22,14 +22,14 @@ export function suspensionSpec(dims) {
 export function bodyShape(dims) {
   const hub = dims.mounts[0].center[1], fz = dims.mounts.find(m => m.name === 'FL')?.center[2] ?? 1.19, rz = dims.mounts.find(m => m.name === 'RL')?.center[2] ?? -1.19;
   const L = dims.wheelbase + 1.3, W = dims.track + 0.2, H = 1.1;
-  const com = V(0, hub + 0.17, fz * 0.42 + rz * 0.58);   // rear engine: 58% of the weight on the rear axle, so no pitch torque at rest
-  const I = V(MASS * (H * H + L * L) / 12 * 1.3, MASS * (W * W + L * L) / 12 * 1.2, MASS * (W * W + H * H) / 12 * 1.6);
+  const mass = dims.mass || MASS, com = V(0, dims.cgY ?? hub + 0.17, dims.cgFromRear != null ? rz + dims.cgFromRear : fz * 0.42 + rz * 0.58);   // rear engine: 58% of the weight on the rear axle, so no pitch torque at rest
+  const I = V(mass * (H * H + L * L) / 12 * 1.3, mass * (W * W + L * L) / 12 * 1.2, mass * (W * W + H * H) / 12 * 1.6);
   const roofY = (dims.cabEye ? dims.cabEye[1] : dims.bellyHeight + 1.1) + 0.2, hull = [];
   for (const x of [-dims.track * 0.35, 0, dims.track * 0.35]) for (const z of [-dims.wheelbase / 2 - 0.4, 0, dims.wheelbase / 2 + 0.4]) hull.push(V(x, dims.bellyHeight + (z === 0 ? 0 : 0.2), z));
   for (const x of [-dims.track * 0.3, dims.track * 0.3]) for (const z of [-dims.wheelbase * 0.2, dims.wheelbase * 0.2, dims.wheelbase * 0.38]) hull.push(V(x, roofY, z));
   for (const x of [-dims.track / 2 - 0.15, dims.track / 2 + 0.15]) for (const z of [-dims.wheelbase * 0.35, 0, dims.wheelbase * 0.35]) hull.push(V(x, dims.bellyHeight + 0.45, z));
   for (const x of [-dims.track * 0.32, dims.track * 0.32]) hull.push(V(x, roofY - 0.3, dims.wheelbase * 0.5), V(x, roofY - 0.3, -dims.wheelbase * 0.5));   // windshield base and rear deck
-  return { com, I, hull };
+  return { com, I, hull, mass };
 }
 
 const SAMPLES = (r, hw) => { const out = []; for (let i = 0; i <= 6; i++) { const a = (i / 6 - 0.5) * Math.PI; out.push(V(0, -Math.cos(a) * r, Math.sin(a) * r)); } out.push(V(-hw, -r, 0), V(hw, -r, 0)); return out; };
@@ -49,9 +49,10 @@ const tmpA = V(), tmpB = V(), tmpC = V(), tmpD = V();
 /** one fixed step. ctl: { throttle -1..1, brake bool (handbrake), steer rad }; env: { height(x,z), mu, rr, ACC, MAXV, DRG } */
 export function stepBody(b, dims, ctl, env, dt) {
   const cfg = suspensionSpec(dims), { q, c, vel, w, shape } = b, mounts = dims.mounts, hf = env.height;
+  const M = shape.mass;   // this car's mass (from its fitted parts); engine force and air drag stay fixed so a heavier car is slower
   const up = V(0, 1, 0).applyQuaternion(q), fwdB = V(0, 0, 1).applyQuaternion(q);
   const origin = bodyOrigin(b, V());
-  const F = V(0, -MASS * G, 0), T = V();
+  const F = V(0, -M * G, 0), T = V();
   const push = (f, p) => { F.add(f); T.add(tmpD.copy(p).sub(c).cross(f)); };
   const vcar = vel.x * fwdB.x + vel.z * fwdB.z, fl = Math.hypot(fwdB.x, fwdB.z) || 1, speed = vcar / fl;   // forward speed along the heading
   const mu = env.mu, ACC = env.ACC * 0.75;
@@ -67,7 +68,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   });
   // ---- spring + damper + bump stop + anti-roll bar: the load each tire carries ----
   for (const o of info) {
-    o.preload = MASS * G * (o.m.name.startsWith('F') ? 0.21 : 0.29);
+    o.preload = M * G * (o.m.name.startsWith('F') ? 0.21 : 0.29);
     const xdot = clamp((o.x - b.xs[o.i]) / dt, -9, 9), frac = Math.max(0, o.x) / cfg.compression;
     let N = o.preload + cfg.stiffness * o.x * (1 + 6 * frac ** 3) + (xdot > 0 ? cfg.damping * (0.3 + 2.2 * frac * frac) * xdot : cfg.damping * 3.2 * xdot);
     if (o.needed > cfg.compression) N += 160000 * (o.needed - cfg.compression);   // bottomed out: the stop is nearly solid
@@ -94,15 +95,15 @@ export function stepBody(b, dims, ctl, env, dt) {
       const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * N * (front ? 1 : 1.1);
       const sa = vs / Math.max(Math.abs(vl), 0.8);   // tan of the slip angle (floored so it behaves at a standstill)
       let Fy = -cap * Math.tanh(sa / (front ? 0.2 : 0.26));
-      Fy = clamp(Fy, -Math.abs(vs) * MASS / 4 / dt * 0.5, Math.abs(vs) * MASS / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
+      Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
       // longitudinal: engine (rear wheels), brakes (front-biased), handbrake (rear locks), rolling resistance
       let Fx = 0;
       const throttle = ctl.throttle, braking = throttle < 0 && speed > 0.5;
       if (!front && throttle > 0) Fx += MASS * ACC * Math.max(0, 1 - (speed / env.MAXV) ** 2) * throttle / 2;
       if (!front && throttle < 0 && !braking) Fx -= MASS * ACC * 0.45 * (speed > -9 ? 1 : 0) / 2;
       const sgn = clamp(vl / 0.5, -1, 1);
-      if (braking) Fx -= sgn * MASS * 22 * (front ? 0.65 : 0.35) / 2;
-      if (ctl.brake) Fx -= sgn * (front ? MASS * 22 * 0.3 / 2 : cap * 2);
+      if (braking) Fx -= sgn * M * 22 * (front ? 0.65 : 0.35) / 2;
+      if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 / 2 : cap * 2);
       Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * env.rr + (throttle === 0 && !front ? 0.02 : 0)) * N;
       const avail = Math.sqrt(Math.max(0, cap * cap - Fy * Fy));
       Fx = clamp(Fx, -avail, avail);
@@ -123,7 +124,7 @@ export function stepBody(b, dims, ctl, env, dt) {
     if (pen <= 0) continue;
     touch = true;
     const rel = tmpB.copy(p).sub(c), vp = V().copy(w).cross(rel).add(vel), vn = vp.y;
-    const Fn = clamp(130000 * pen + 11000 * Math.max(0, -vn), 0, MASS * G * 14) * (contacts >= 3 ? 0.5 : 1);
+    const Fn = clamp(130000 * pen + 11000 * Math.max(0, -vn), 0, M * G * 14) * (contacts >= 3 ? 0.5 : 1);
     const ht = V(vp.x, 0, vp.z), hl = ht.length(), mub = 0.75;
     const f = V(0, Fn, 0);
     if (hl > 1e-4) f.addScaledVector(ht, -mub * Fn / (hl + 0.2));
@@ -135,7 +136,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   if (contacts >= 2) T.addScaledVector(up, -0.3 * shape.I.y * w.dot(up));
   else T.addScaledVector(w, -0.02 * shape.I.y);
   // ---- integrate: forces move the centre of mass; torque turns it (Euler's equation in the body frame) ----
-  vel.addScaledVector(F, dt / MASS);
+  vel.addScaledVector(F, dt / M);
   const qi = q.clone().invert(), wb = V().copy(w).applyQuaternion(qi), Tb = T.applyQuaternion(qi), I = shape.I;
   const al = V((Tb.x - (wb.y * I.z * wb.z - wb.z * I.y * wb.y)) / I.x, (Tb.y - (wb.z * I.x * wb.x - wb.x * I.z * wb.z)) / I.y, (Tb.z - (wb.x * I.y * wb.y - wb.y * I.x * wb.x)) / I.z);
   wb.addScaledVector(al, dt);

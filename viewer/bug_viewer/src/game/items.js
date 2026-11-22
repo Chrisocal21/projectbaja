@@ -55,6 +55,8 @@ export function vehiclesNear(reach = 6) {
   return out.sort((a, b) => a[1] - b[1]).map(([id]) => id);
 }
 export const held = () => game.items.find(i => i.loc === 'hand');
+/** taking parts off needs a tool in your hands (the wrench), like a build hammer: empty hands only open doors, sit and look */
+export const toolInHand = () => { const h = held(); return h?.kind === 'tool' ? h : null; };
 export const packItems = () => game.items.filter(i => i.loc === 'pack');
 export const carItems = (veh = game.active) => game.items.filter(i => i.loc === 'car' && vehOf(i) === veh);
 export const garageItems = () => game.items.filter(i => i.loc === 'garage' && i.spot !== 'grid' && i.spot !== 'peg');   // (tires set on the floor / racks are placed, not shelf stock: placement/garageStore.js)

@@ -36,6 +36,7 @@ import VehicleCargo from './placement/VehicleCargo.jsx';   // vehicle cargo plac
 import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
 import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
+import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
 import { createBody, stepBody, readBody, uprightBody } from './rigid.js';   // the car is one rigid body: see rigid.js
 
 // ---------- terrain ----------
@@ -45,12 +46,9 @@ const HALF = WORLD / 2 - 6;  // drivable limit
 export { terrainHeight } from './terrain.js';
 
 // ---------- ground types: grip (mu), rolling resistance multiplier (rr), colour ----------
-const SURF = {
-  dirt: { name: 'Packed dirt', mu: 0.72, rr: 1.0, color: '#a98c5a' },
-  sand: { name: 'Loose sand', mu: 0.45, rr: 2.2, color: '#d6bd86' },
-  rock: { name: 'Rock', mu: 0.85, rr: 0.8, color: '#7d7568' },
-  mud:  { name: 'Mud', mu: 0.30, rr: 3.0, color: '#5a4630' },
-};
+// grip and rolling resistance now come from catalog/physics.json (real coefficients; rr here = rrCoef / the sim's standard 0.03)
+const SURF_COLOR = { dirt: '#a98c5a', sand: '#d6bd86', rock: '#7d7568', mud: '#5a4630' };
+const SURF = Object.fromEntries(Object.keys(SURF_COLOR).map(k => [k, { name: SURFACE_DATA[k].name, mu: SURFACE_DATA[k].grip, rr: SURFACE_DATA[k].rrCoef / STD_ROLL, color: SURF_COLOR[k] }]));
 for (const [k, v] of Object.entries(SURF)) v.key = k;
 export function surfaceAt(x, z) {
   const h = terrainHeight(x, z);
@@ -250,8 +248,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
-    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), tmu = sf0.mu * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip
-    const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
+    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.25;   // 1.25 = base off-road tire grip; psiFx: tire pressure (physics.json)
+    const sf = { name: sf0.name, mu: tmu, rr: sf0.rr * psiFx.rr * tr.rr }, grip = tmu / 0.7; st.surface = sf.name; const v0 = st.v;
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
       Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
@@ -263,7 +261,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const steerIn = (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0);
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
-    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)));
+    st.steer += (steerIn * maxSteer - st.steer) * Math.min(1, dt * (steerIn === 0 ? 9 : 6.5 - Math.min(2.2, Math.abs(st.v) * 0.09)) / (1 + psiFx.steerLag));
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;

@@ -1,4 +1,5 @@
 import { slots, bodies, wheelSets, parts, presets, rims } from './catalog/index.js';
+import { massModel } from './vehiclePhysics.js';
 
 export { slots, bodies, wheelSets, parts, presets, rims };
 /** Part sections used by the customizer and the shop: each part slot belongs to exactly one. */
@@ -78,6 +79,9 @@ export function setPart(build, slot, id) {
 }
 export const applyPreset = p => normalize({ ...defaultBuild(), ...p.build });
 
+/** mass / CG for the Baja Bug from its fitted parts (other vehicles keep the sim defaults) */
+const massDims = (build, wheelbase) => { const m = build.body && /classic/.test(build.body) ? massModel(build, wheelbase) : null; return m ? { mass: m.mass, cgY: m.cgY, cgFromRear: m.cgFromRear } : {}; };
+
 // ---- derived values used by the renderer + the drive world ----
 export function resolve(build) {
   const body = bodyById[build.body], ws = wheelById[build.wheels];
@@ -109,6 +113,7 @@ export function resolve(build) {
     rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable,
     perf,
     dims: { topSpeed: perf.topMph * 0.44704, accelMul: perf.power, tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
+      ...(massDims(build, fl.center[2] - rl.center[2])),
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
       offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks') },
   };

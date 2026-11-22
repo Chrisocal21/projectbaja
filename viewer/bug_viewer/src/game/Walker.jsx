@@ -31,7 +31,7 @@ import { zoneAt, isDriveable, missingToDrive } from '../rules/restore.js';
 import { machineNear, planAtMachine } from './tireMachine.js';
 import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift snaps (not runs) while a held item is aimed at a vehicle surface
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
-import { held, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
+import { held, toolInHand, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
 import { carLocal, fitCandidate, driveable, whyNotDrive, DEF, openCovers, planRemove } from './workshop.js';
@@ -72,7 +72,7 @@ const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (
 /** what the car offers right now, plus "R — Take off …" for the part you're aiming at (empty hands) */
 function carAction(zone, ap, W) {   // W = the restorable vehicle you stand at (game/projects.js workVehicles via game.work); none = the active vehicle as before
   const a = carAction0(zone, ap, W);
-  if (game.aim && !held() && (W || activeType().kind === 'build') && (W ? W.build : game.build)) {
+  if (game.aim && toolInHand() && (W || activeType().kind === 'build') && (W ? W.build : game.build)) {
     const pd = planRemove(game.aim, W ? W.build : game.build, zone), n = pd.name;
     const D = W?.def || DEF, t = pd.ok ? `Hold left click — Take off the ${n}` : pd.openCover ? `Hold left click — Open the ${D.covers[pd.openCover].name} to get at the ${n}` : pd.why;
     return { ...a, text: t + (a.text ? '  ·  ' + a.text : '') };
@@ -83,7 +83,7 @@ function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair i
   if (!W && activeType().kind !== 'build') return held() ? { type: 'why', why: '', text: `F — Load ${nameOfItem(held())} into the ${activeType().name}` } : { type: 'enter', text: `Press E — Get in  ·  F — Unload  ·  Tab — Inventory` };
   const b = W ? W.build : game.build; if (!b) return { type: 'none', text: '' };
   const D = W?.def || DEF, canEnter = !W || W.active;   // D: this vehicle's own definition (the Bug or the El Cajon); you can only sit in the car you drive
-  const fc = fitCandidate(b, zone), h = held(), fcName = fc && (fc.plan.slotName || nameOfItem(fc.it) || 'part').toLowerCase();   // bolt-on upgrades blocked by a lid carry no slotName
+  const fc = fitCandidate(b, zone), h = toolInHand() ? null : held(), fcName = fc && (fc.plan.slotName || nameOfItem(fc.it) || 'part').toLowerCase();   // bolt-on upgrades blocked by a lid carry no slotName
   const where = zone === 'driver' || zone === 'passenger' ? '' : '';
   if (fc?.plan.ok) return { type: 'fit', uid: fc.it.uid, text: `Hold left click — Bolt on the ${fcName}${fc.it.loc === 'pack' ? ' (from pack)' : ''}` };
   if (fc?.plan.openCover) return { type: 'cover', id: fc.plan.openCover, text: `Press E — Open the ${D.covers[fc.plan.openCover].name} to fit the ${fcName}` };

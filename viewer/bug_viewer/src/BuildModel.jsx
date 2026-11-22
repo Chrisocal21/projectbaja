@@ -6,7 +6,7 @@ import { carFitReady } from './game/carSnap.js';
 import { workVehicles } from './game/projects.js';
 import { toLocal } from './game/workTarget.js';
 import { HOLD } from './game/restPose.js';
-import { held } from './game/items.js';
+import { held, toolInHand } from './game/items.js';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -339,7 +339,7 @@ export function DetachGlow({ build, r, carRef, vehId }) {
       }
       game.snapAim = near;
       game.look = id;                 // what the crosshair is on (doors, hood, lid, seats use this for E)
-      const gid = held() ? null : id; // what a hold-click would take off: only with empty hands
+      const gid = toolInHand() ? id : null; // what a hold-click would take off: only with empty hands
       game.aim = gid;
       if (gid !== S.aim) {
         unlight(); S.aim = gid;
