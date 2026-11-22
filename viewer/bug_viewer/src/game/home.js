@@ -17,6 +17,7 @@ import { allocUid } from './saveFormat.js';
 import { storedOf, refundOf, seededV, storeMove, unstoreMove } from './stash.js';
 import { wallSnap } from './wallhang.js';
 import { passTime } from './orders.js';
+import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
@@ -44,6 +45,15 @@ export function clearJunk(id) {
   const tail = !left ? ' The place is finally clean.' : j.inside && garageClean() ? ' Garage floor is clear — press B to start fixing the place up.' : ` ${left} piles left.`;
   say(`Hauled out ${j.label}${j.cash ? ` (+$${j.cash})` : ''}${j.scrap ? ` — kept ${j.scrap} pieces of usable scrap metal` : ''}.${tail}`);
   save();
+}
+/** one held haul: a load goes out, the pile shrinks, and the last load clears it for good (progress is saved) */
+export function haulJunk(id) {
+  const j = JUNK.find(x => x.id === id); if (!j || isCleared(id)) return;
+  const h = haulLoad(game.home, j);
+  if (h.last) { clearJunk(id); return; }
+  game.home = { ...game.home, junkLoads: { ...(game.home.junkLoads || {}), [id]: h.n } };
+  const left = loadsOf(j.kind) - h.n;
+  say(`You haul a load of ${j.label} out. ${left} load${left === 1 ? '' : 's'} left.`); save();
 }
 export function flipBreaker() {
   if (!game.home.power && game.home.tripped) { game.home = { ...game.home, power: true, tripped: false }; save(); say('*clunk* You reset the breaker. The lights come back. Run fewer machines at once.'); return; }
