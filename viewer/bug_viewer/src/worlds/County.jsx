@@ -138,20 +138,22 @@ function StreamTerrain() {
     const started = perfStart();
     const p = game.onFoot ? camera.position : game.pos, g = group.current, map = tiles.current, q = jobs.current;
     // tile geometry is built in slices of about 4 ms a frame (a fine tile is hundreds of ms in one go: that was the hitch at speed)
-    const t0 = performance.now(); BUDGET.until = t0 + 4;
+    for (let i = q.length - 1; i >= 0; i--) { const j = q[i]; if (j.t && Math.hypot(j.cx - p.x, j.cz - p.z) > R_DROP) { q.splice(i, 1); if (j.hi) j.t.hiJob = false; else map.delete(j.k); } }   // after a teleport: forget the tiles queued around the old spot
+    const urgent = q.some(j => j.near);   // ground near you is still missing (just arrived, or fast): spend more of the frame on it than the usual 4 ms, then fall back
+    const t0 = performance.now(); BUDGET.until = t0 + (urgent ? 11 : 4);
     while (q.length && performance.now() < BUDGET.until) { const j = q[0], r = j.gen.next(); if (r.done) { q.shift(); j.done(r.value); } }
     BUDGET.until = Infinity;
     const viewRadius = Math.min(R_LO, 800 + 3700 * dayPhase(clockHour())); // fog ends at 600 m at night, 4300 m by day
     const cx = Math.floor((p.x + HALF) / TILE), cz = Math.floor((p.z + HALF) / TILE), R = Math.ceil(viewRadius / TILE), ctr = (i, j) => [-HALF + (i + 0.5) * TILE, -HALF + (j + 0.5) * TILE];
     let queued = 0, hiQueued = q.some(j => j.hi);
-    const more = () => q.length + queued < 3;   // keep a short queue: nearest tiles first, new ones only as the old ones finish
+    const more = () => q.length + queued < (urgent ? 8 : 3);   // keep a short queue: nearest tiles first, new ones only as the old ones finish
     const order = (t, geo, key, hi) => { const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; if (map.get(key) !== t) { geo.dispose(); return; } g.add(m); if (hi) { t.hi = m; t.hiJob = false; if (t.lo) t.lo.visible = false; } else { t.lo = m; t.loJob = false; if (t.hi) m.visible = false; } };
     for (let ring = 0; ring <= R && more(); ring++) for (let iz = cz - ring; iz <= cz + ring && more(); iz++) for (let ix = cx - ring; ix <= cx + ring && more(); ix++) {
       if (Math.max(Math.abs(ix - cx), Math.abs(iz - cz)) !== ring) continue;
       const [tx, tz] = ctr(ix, iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7); if (d > viewRadius) continue;
       const k = ix + ',' + iz; let t = map.get(k);
-      if (!t) { t = { ix, iz, lo: null, hi: null, loJob: true, hiJob: false }; map.set(k, t); const tt = t; q.push({ gen: tileGen(ix, iz, d < 1500 ? LO : LO_REAL), done: geo => order(tt, geo, k, false) }); queued++; }
-      if (!t.hi && !t.hiJob && !hiQueued && d < R_HI) { t.hiJob = true; hiQueued = true; const tt = t; q.push({ hi: true, gen: tileGen(ix, iz, HI), done: geo => order(tt, geo, k, true) }); queued++; }
+      if (!t) { t = { ix, iz, lo: null, hi: null, loJob: true, hiJob: false }; map.set(k, t); const tt = t; q.push({ gen: tileGen(ix, iz, d < 1500 ? LO : LO_REAL), done: geo => order(tt, geo, k, false), t: tt, k, cx: tx, cz: tz, near: d < 700 }); queued++; }
+      if (!t.hi && !t.hiJob && !hiQueued && d < R_HI) { t.hiJob = true; hiQueued = true; const tt = t; q.push({ hi: true, gen: tileGen(ix, iz, HI), done: geo => order(tt, geo, k, true), t: tt, k, cx: tx, cz: tz }); queued++; }
     }
     if (queued) { perfEnd('terrain stream frame', started); return; }
     for (const [k, t] of map) {
