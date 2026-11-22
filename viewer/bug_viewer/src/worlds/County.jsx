@@ -129,7 +129,8 @@ function StreamTerrain() {
     const viewRadius = Math.min(R_LO, 800 + 3700 * dayPhase(clockHour())); // fog ends at 600 m at night, 4300 m by day
     const cx = Math.floor((p.x + HALF) / TILE), cz = Math.floor((p.z + HALF) / TILE), R = Math.ceil(viewRadius / TILE), ctr = (i, j) => [-HALF + (i + 0.5) * TILE, -HALF + (j + 0.5) * TILE];
     let built = 0, hiBuilt = false;
-    for (let ring = 0; ring <= R && built < 8; ring++) for (let iz = cz - ring; iz <= cz + ring && built < 8; iz++) for (let ix = cx - ring; ix <= cx + ring && built < 8; ix++) {
+    const t0 = performance.now(), more = () => built < 8 && (built === 0 || performance.now() - t0 < 6);   // a time budget, not a count: eight tiles in one frame was an 80 ms hitch
+    for (let ring = 0; ring <= R && more(); ring++) for (let iz = cz - ring; iz <= cz + ring && more(); iz++) for (let ix = cx - ring; ix <= cx + ring && more(); ix++) {
       if (Math.max(Math.abs(ix - cx), Math.abs(iz - cz)) !== ring) continue;
       const [tx, tz] = ctr(ix, iz), d = Math.max(0, Math.hypot(tx - p.x, tz - p.z) - TILE * 0.7); if (d > viewRadius) continue;
       const k = ix + ',' + iz; let t = map.get(k);
@@ -200,20 +201,24 @@ const ROAD_LOOK = {
 
 /** ?realmap: the real highways (county.js highways()), drawn in 400 m pieces only near the player; two shared materials */
 const HW_VIEW = 1800, HW_PIECE = 100;
-function hwPieceGeometry({ r, a, b }, H, clearCrossings = true) {
-  const segs = 6, half = r.style.half + (r.kind === 'ramp' ? 0.4 : 0.8), pos = [], uv = [], idx = [];
+/** far pieces (lod 1) use every 3rd point and 2 strips across instead of 6: about a ninth of the triangles, and you cannot tell from 450 m */
+const hwRows = (a, b, lod) => { const ks = []; for (let k = a; k < b; k += lod ? 3 : 1) ks.push(k); ks.push(b); return ks; };
+function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
+  const segs = lod ? 2 : 6, half = r.style.half + (r.kind === 'ramp' ? 0.4 : 0.8), pos = [], uv = [], idx = [];
   const crossings = [];
-  for (let k = a; k <= b; k++) {
-    const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
-    const dirtHidden = r.kind === 'dirt' && row && H.pavedAt(p.x, p.z, 1) && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 1);
-    const pavedHidden = r.kind !== 'dirt' && row && H.higherRoadAt(p.x, p.z, r) && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r);
+  const ks = hwRows(a, b, lod);
+  for (let row = 0; row < ks.length; row++) {
+    const k = ks[row], prev = r.pts[ks[row - 1]];
+    const p = r.pts[k], nx = p.tz, nz = -p.tx;
+    const dirtHidden = r.kind === 'dirt' && row && H.pavedAt(p.x, p.z, 1) && H.pavedAt(prev.x, prev.z, 1);
+    const pavedHidden = r.kind !== 'dirt' && row && H.higherRoadAt(p.x, p.z, r) && H.higherRoadAt(prev.x, prev.z, r);
     const merge = r.kind === 'ramp' ? THREE.MathUtils.smoothstep(Math.min(p.s, Math.max(0, r.total - p.s)), 0, 65) : 1;
     for (let j = 0; j <= segs; j++) {
       const d = (j / segs * 2 - 1) * half * merge, x = p.x + nx * d, z = p.z + nz * d;
       pos.push(x, height(x, z) + (r.kind === 'major' ? 0.034 : r.kind === 'secondary' ? 0.028 : 0.020) + (1 - r.index / H.roads.length) * 0.004, z); uv.push(j / segs, p.s / 30);
       if (row && j && !dirtHidden && !pavedHidden) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
     }
-    if (row) crossings.push(clearCrossings && (H.crossingDistance(p.x, p.z, r) < 13 || H.crossingDistance(r.pts[k - 1].x, r.pts[k - 1].z, r) < 13));
+    if (row) crossings.push(clearCrossings && (H.crossingDistance(p.x, p.z, r) < 13 || H.crossingDistance(prev.x, prev.z, r) < 13));
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
@@ -277,10 +282,12 @@ function HighwayRibbons({ connections }) {
     const view = Math.min(HW_VIEW, 750 + 1050 * dayPhase(clockHour()));
     for (const s of list) {
       const d = Math.hypot(s.cx - p.x, s.cz - p.z) - s.rad, have = map.get(s.key);
-      if (d < view && !have && built < 6) {
-        const piece = new THREE.Group(), shoulder = new THREE.Mesh(hwShoulderGeometry(s, H), mats.shoulder);
-        shoulder.receiveShadow = true; shoulder.renderOrder = -1; piece.add(shoulder);
-        const road = new THREE.Mesh(hwPieceGeometry(s, H, false), mats[s.r.kind] || mats.secondary);
+      const lod = d > 450 ? 1 : 0;   // far: coarse road, no shoulder strip (a piece is rebuilt in detail when you get within 350 m)
+      if (have && have.userData.lod && d < 350 && built < 6) { g.remove(have); have.children.forEach(m => m.geometry.dispose()); map.delete(s.key); built++; }
+      if (d < view && !map.has(s.key) && built < 6) {
+        const piece = new THREE.Group(); piece.userData.lod = lod;
+        if (!lod) { const shoulder = new THREE.Mesh(hwShoulderGeometry(s, H), mats.shoulder); shoulder.receiveShadow = true; shoulder.renderOrder = -1; piece.add(shoulder); }
+        const road = new THREE.Mesh(hwPieceGeometry(s, H, false, lod), mats[s.r.kind] || mats.secondary);
         road.receiveShadow = true; road.renderOrder = (s.r.kind === 'major' ? 4 : s.r.kind === 'secondary' ? 3 : s.r.kind === 'ramp' ? 2 : 1) + (1 - s.r.index / H.roads.length); piece.add(road);
         g.add(piece); map.set(s.key, piece); built++;
       }
@@ -529,8 +536,8 @@ function Scrub() {
     bush.current.instanceMatrix.needsUpdate = bush.current.instanceColor.needsUpdate = yucca.current.instanceMatrix.needsUpdate = true;
   }, [bushes, yuccas]);
   return <>
-    <instancedMesh ref={bush} args={[null, null, bushes.length]} castShadow><icosahedronGeometry args={[1, 1]} /><meshStandardMaterial roughness={1} flatShading /></instancedMesh>
-    <instancedMesh ref={yucca} args={[null, null, yuccas.length]} castShadow><coneGeometry args={[0.7, 2, 7]} /><meshStandardMaterial color="#56663a" roughness={1} flatShading /></instancedMesh>
+    <instancedMesh ref={bush} args={[null, null, bushes.length]}><icosahedronGeometry args={[1, 1]} /><meshStandardMaterial roughness={1} flatShading /></instancedMesh>
+    <instancedMesh ref={yucca} args={[null, null, yuccas.length]}><coneGeometry args={[0.7, 2, 7]} /><meshStandardMaterial color="#56663a" roughness={1} flatShading /></instancedMesh>
   </>;
 }
 
