@@ -75,7 +75,9 @@ export default function GarageExtension({ level, power }) {
   const fl = rep(epoxy ? T.epoxy : T.concrete, W / 4, D / 4);
   return <group>
     {/* floor: one slab with the old shop's, fresh concrete or glossy epoxy; steel threshold strip where the old back wall stood */}
-    <Box p={[cx, 0.06, cz]} s={[W, 0.12, D]} color="#fff" map={fl} rough={epoxy ? 0.28 : 0.9} metal={epoxy ? 0.05 : 0} cast={false} />
+    {/* the slab runs out to the old slab's outer edge (0.6 m past the walls) and stops where Walt's slab starts (z -6.6), so the two never overlap and flicker */}
+    <Box p={[-3, 0.06, (e.z0 - 0.6 - 6.6) / 2]} s={[21.2, 0.12, e.z1 - e.z0]} color="#fff" map={fl} rough={epoxy ? 0.28 : 0.9} metal={epoxy ? 0.05 : 0} cast={false} />
+    <Box p={[-10.6, 0.06, -6.45]} s={[6, 0.12, 0.3]} color="#fff" map={fl} rough={epoxy ? 0.28 : 0.9} metal={epoxy ? 0.05 : 0} cast={false} />
     <Box p={[0, 0.125, e.z1]} s={[14, 0.01, 0.3]} color="#7d8285" metal={0.6} rough={0.4} cast={false} />
     {/* walls */}
     {back.pieces.map(([a, b]) => <WallRun key={`b${a}`} face={back} a={a} b={b} H={H} T={T} />)}
@@ -92,7 +94,7 @@ export default function GarageExtension({ level, power }) {
     <Box p={[(e.x0 - 7) / 2, (1.2 + Math.min(H, 4.6)) / 2, e.z1 - 0.14]} s={[-7 - e.x0, Math.min(H, 4.6) - 1.2, 0.03]} map={rep(T.liner, 1.5, 1)} color="#fff" rough={0.8} cast={false} />
     <Box p={[(e.x0 - 7) / 2, 0.6, e.z1 - 0.15]} s={[-7 - e.x0, 1.2, 0.04]} color="#6c7378" metal={0.5} rough={0.5} cast={false} />
     {/* where the extension stands taller than Walt's shop, the old back wall is closed above the old eave */}
-    {H > 4.6 && <WallRun face={{ axis: 'z', at: e.z1, sign: -1 }} a={e.x0} b={e.x1} H={H} T={T} out />}
+    {H > 4.6 && <Box p={[cx, (4.6 + H) / 2, e.z1]} s={[W, H - 4.6, 0.2]} map={rep(T.steel, W / 3, (H - 4.6) / 4.6)} color="#fff" rough={0.6} metal={0.25} />}
     {/* flat roof with a low parapet; white ceiling with steel beams and purlins under it */}
     <Box p={[cx, H + 0.12, cz]} s={[W + 0.3, 0.2, D + 0.2]} color="#9aa0a3" metal={0.4} rough={0.6} />
     {[[cx, e.z0, W + 0.3, 0.12], [cx, e.z1, W + 0.3, 0.12]].map(([x, z, w, t], i) => <Box key={`pa${i}`} p={[x, H + 0.4, z]} s={[w, 0.4, t]} color="#b3b7b2" metal={0.3} rough={0.6} />)}
@@ -125,9 +127,6 @@ export default function GarageExtension({ level, power }) {
       </group>)}
       <Box p={[kx, 5.5, k.z1 - 0.1]} s={[kw - 0.1, 0.14, 0.12]} color="#e0661f" metal={0.4} rough={0.5} />
     </group>; })}
-    {/* outside: concrete aprons in front of each roll-up door */}
-    {back.gaps.map(([a, b]) => <Box key={`ap${a}`} p={[(a + b) / 2, 0.05, e.z0 - 2.5]} s={[b - a + 1, 0.1, 5]} color="#fff" map={rep(T.concrete, 1, 1.2)} cast={false} />)}
-    {west.gaps.map(([a, b]) => <Box key={`apw${a}`} p={[e.x0 - 2.5, 0.05, (a + b) / 2]} s={[5, 0.1, b - a + 1]} color="#fff" map={rep(T.concrete, 1.2, 1)} cast={false} />)}
-    {east.gaps.map(([a, b]) => <Box key={`ape${a}`} p={[e.x1 + 2.5, 0.05, (a + b) / 2]} s={[5, 0.1, b - a + 1]} color="#fff" map={rep(T.concrete, 1.2, 1)} cast={false} />)}
+    {/* outside: the door ramps, slab edge and gravel drive are in GarageGrounds.jsx */}
   </group>;
 }

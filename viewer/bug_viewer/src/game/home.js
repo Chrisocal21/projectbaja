@@ -7,7 +7,7 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
-import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles } from '../worlds/garageLevels.js';
+import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles, extension } from '../worlds/garageLevels.js';
 import { ownedStages } from '../worlds/upgrades.js';
 import { upgradeLevel, stageWhy } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
@@ -358,10 +358,13 @@ export function propObstacles() {
     const n = Math.ceil(it.len / 0.8), c = Math.cos(ry), s = Math.sin(ry);
     return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * (it.len - 0.4); return [p.x + c * t, p.z - s * t, it.r, 99]; });
   })] };
-  if (cache.floorsV !== `${v}|${game.props.length}`) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
+  const gl = garageLevelOf(ownedStages(game.home));
+  if (cache.floorsV !== `${v}|${game.props.length}|${gl}`) {   // the walkable pieces follow the same cache (rotation 0 only: the garage is not rotated)
     dynFloors.length = 0;
+    const ext = extension(gl);   // the extension's slab (county.js FLOORS only knows Walt's): feet and wheels stand on it, not 12 cm inside it
+    if (ext) { const [x0, z0] = toWorld(G, -13.6, ext.z0 - 0.6), [x1, z1] = toWorld(G, 7.6, -6.3); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: G.y + 0.12 }); }
     for (const p of game.props) { if (!isPiece(p.id)) continue; const m = homeLocal(p.x, p.z), f = floorRect(p.id, m.lx, m.lz); if (!f) continue; const [x0, z0] = toWorld(G, f.x0, f.z0), [x1, z1] = toWorld(G, f.x1, f.z1); dynFloors.push({ x0: Math.min(x0, x1), x1: Math.max(x0, x1), z0: Math.min(z0, z1), z1: Math.max(z0, z1), top: height(p.x, p.z) + f.top }); }
-    cache.floorsV = `${v}|${game.props.length}`;
+    cache.floorsV = `${v}|${game.props.length}|${gl}`;
   }
   return cache.list;
 }

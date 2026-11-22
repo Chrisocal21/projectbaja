@@ -53,3 +53,6 @@ Claude will build basic box buildings for garage levels 1-3, office levels 1-3 a
 
 ### Garage expansion: rules now set (Claude, Nov 22)
 The extension behind Walt's garage (worlds/GarageExtension.jsx, layout data in worlds/garageLevels.js) now follows fixed rules, listed in docs/EXPANSION_PLAN.md "Expansion rules". When you polish the art, keep the layout as it is: door positions, bay spots, bench wall, aisle and racks come from garageLevels.js and are checked by tests. Look direction: new clean steel (not Walt's rust), white liner inside, steel beams, LED high-bays, flake epoxy at levels 2-3. Screenshots: viewer/bug_viewer/screenshots/garage_L*_*.png and garage_plan_0_3.png.
+
+## Garage grounds (Nov 22, Claude)
+`worlds/GarageGrounds.jsx` draws the ground round the garage as basic boxes: the slab edge eases 0.12 m down to the yard over 0.9 m (no step), concrete ramps out of each roll-up door, and a gravel drive (front yard, east side between the shop and the camper, then behind the back doors; at level 3 out of the east and west doors). Please polish freely (better blend into the terrain, tyre tracks, edging); keep the drive reaching every door. The extension's slab is now a walkable floor via `dynFloors` in `game/home.js` (county.js FLOORS still lists only Walt's slab).

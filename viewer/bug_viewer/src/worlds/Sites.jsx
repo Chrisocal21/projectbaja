@@ -7,6 +7,7 @@ import { OFFICE } from './office.js';
 import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
 import GarageExtension from './GarageExtension.jsx';
+import GarageGrounds from './GarageGrounds.jsx';
 import { garageLevelOf, levelOpenings } from './garageLevels.js';
 import { ownedStages } from './upgrades.js';
 import RoadSigns from './RoadSigns.jsx';
@@ -183,6 +184,7 @@ function Garage() {
     {/* walls: corrugated outside, plywood lining up to 1.3 m inside */}
     <OriginalWall which="B" map={wallBack} lining={ply} open={cuts} /><OriginalWall which="R" map={wallSide} lining={ply} open={cuts} />
     <GarageExtension level={gLevel} power={power} />
+    <GarageGrounds level={gLevel} />
     {/* left wall: reception doorway */}
     <Box p={[-w, H / 2, (-d + OFFICE.inner.z0) / 2]} s={[t, H, OFFICE.inner.z0 + d]} color="#fff" map={wallSide} />
     <Box p={[-w, H / 2, (d + OFFICE.inner.z1) / 2]} s={[t, H, d - OFFICE.inner.z1]} color="#fff" map={wallSide} />
