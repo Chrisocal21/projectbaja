@@ -20,3 +20,6 @@ Method: a fresh save in headless Chrome (state probes) plus reading the loop cod
 2. Customer cars: the office/customer-lot loop with work orders that use the hands-on systems (the garage business).
 3. Finding vehicles: rumours and map finds that lead to wrecks, then restoring them.
 4. Story trail for levels 0 and 1 from objects only; Chris writes the real text, I build the places and slots (no invented lore).
+
+## Done
+- **1. Real start state (Nov 22).** `src/rules/fuel.js` (pure, tested). Each vehicle has a tank in litres (`home.fuel[id]`; Bug 38 L, El Cajon 60 L, pickups 70 L; all PROPOSAL). Grandma's Bug starts with 6 L of old fuel (Walt's letter: she sat since '09). The first key turn now checks the car: no battery means "there is no battery in the car", an empty tank means "she cranks but the tank is dry". Driving burns fuel (idle 0.0004 L/s to flat out 0.0039 L/s, about 2.7 hours of flat-out driving per Bug tank), the HUD shows `FUEL n L` with LOW and EMPTY, and an empty tank leaves 35% throttle so you can always limp to a pump (canon rule 4). The pump sells fuel at $0.80 a litre for the active vehicle (it used to be a flat $25 flag); with less cash it sells what you can pay for. Not done: battery charge, fuel can, fuel in other vehicles' start checks, stale-fuel penalty.

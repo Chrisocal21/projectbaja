@@ -1,6 +1,7 @@
 // Tiny game-state store shared by the 3D scene (pickups, shop, pause) and the React UI (menus, HUD).
 import { useEffect, useState } from 'react';
 import { WEAR } from '../weather.js';
+import { tankOf, fuelOf, fillUp, PRICE_PER_L } from '../rules/fuel.js';
 import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
@@ -111,7 +112,15 @@ export function interact(id) {
   }
   else if (id === 'tarp') say("Al: 'The half-ton's got good bones and no motor. Not for sale till I find one.'");
   else if (id === 'al') say(lines[(game.alLine = ((game.alLine ?? -1) + 1)) % lines.length]);
-  else if (id === 'pump') { if (game.fueled) say('Tank is already full.'); else if (game.cash < 25) say('Not enough cash for gas.'); else { addCash(-25, 'Gas'); game.fueled = true; say('Tank filled up — $25'); } }
+  else if (id === 'pump') {
+    const fid = game.active, cap = tankOf(fid), have = fuelOf(game.home, fid), f = fillUp(have, cap);
+    if (f.litres < 0.5) say('Tank is already full.');
+    else {
+      const litres = game.cash >= f.price ? f.litres : Math.floor(game.cash / PRICE_PER_L);   // short on cash: pay for what you can
+      if (litres < 1) say(`Not enough cash for gas ($${f.price} for a fill-up).`);
+      else { const price = Math.ceil(litres * PRICE_PER_L); addCash(-price, 'Gas'); game.home = { ...game.home, fuel: { ...(game.home.fuel || {}), [fid]: have + litres } }; save(); say(`Filled ${Math.round(litres)} L: $${price}`); }
+    }
+  }
   else if (id === 'wash') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120, 'Car wash'); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }
 }
 export function resetProgress() { game.cash = 500; game.owned.clear(); persist(); emit(); }

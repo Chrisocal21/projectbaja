@@ -47,7 +47,7 @@ import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
-  peg: 'Press E — Pegboard: hang a tool, or take one', pc: 'Press E — Use the office PC', pump: 'Press E — Fill the tank ($25)', store: 'Press E — Corner store',
+  peg: 'Press E — Pegboard: hang a tool, or take one', pc: 'Press E — Use the office PC', pump: 'Press E — Fill the tank ($0.80 a litre)', store: 'Press E — Corner store',
   letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Pull the tarp back', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {

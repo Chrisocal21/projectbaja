@@ -2,6 +2,7 @@ import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef 
 import { activeBuild } from './game/lights.js';
 import { wearMods, FRESH, onLanding, onBottomOut, drive, effects, clues } from './wear.js';
 import { bugAsleep } from './game/home.js';
+import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
 import { exitHit } from './game/regions.js';
@@ -280,7 +281,14 @@ function Vehicle({ children, hud, dims, race, sun }) {
     st.deep = wade > 0.7 ? (st.deep || 0) + dt : Math.max(0, (st.deep || 0) - dt * 0.5);   // deep water: the engine drowns after a moment, then restarts when you are out and it has dried (a few seconds)
     if (st.deep > 1.2 && !(st.drown > 0) && !game.onFoot) { st.drown = 4; const W0 = game.home.wear[game.active]; if (W0) W0.engine = Math.min(1, W0.engine + 0.03); say('Water in the intake: the engine drowned. Get out of the deep water and give it a few seconds.'); }
     if (st.drown > 0 && wade < 0.5) st.drown -= dt;
-    const throttle = st.drown > 0 ? 0 : throttle0; st.thr = throttle;
+    // fuel (rules/fuel.js): driving burns the tank; empty leaves a limp throttle so you are never stranded; the pump fills it
+    const FUEL = (game.home.fuel ||= {}), fid = game.active; if (typeof FUEL[fid] !== 'number') FUEL[fid] = startFuel(fid);
+    if (!game.onFoot && !bugAsleep()) FUEL[fid] = Math.max(0, FUEL[fid] - burn(throttle0, dt));
+    const fcap = tankOf(fid), flow = FUEL[fid] / fcap, fword = gaugeWord(FUEL[fid], fcap);
+    if (bugAsleep()) { st.fuelEmpty = false; st.fuelLow = false; } else if (fword === 'EMPTY' && !st.fuelEmpty) { st.fuelEmpty = true; say('Out of fuel: she is running on fumes. Limp to a pump and fill up.'); }
+    else if (fword === 'LOW' && !st.fuelLow) { st.fuelLow = true; say('The fuel is getting low.'); }
+    if (flow > 0.2) { st.fuelLow = false; st.fuelEmpty = false; } else if (fword !== 'EMPTY') st.fuelEmpty = false;
+    const throttle = (st.drown > 0 ? 0 : throttle0) * (game.onFoot ? 1 : throttleCap(FUEL[fid])); st.thr = throttle;
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
@@ -389,7 +397,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
     { const st = s.current; updateAudio({ on: !game.onFoot && !game.paused && !game.travelling, rpm: st.rpm, throttle: st.thr || 0, speed: st.v, slip: Math.min(1, st.slip || 0), loose: dustiness(st.sfKey), air: st.air, wade: st.wade || 0 }); }
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.drown > 0 ? ' · ENGINE DROWNED' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · FUEL ${Math.round(FUEL[game.active] ?? 0)} L${gaugeWord(FUEL[game.active] ?? 0, tankOf(game.active)) ? ' ' + gaugeWord(FUEL[game.active] ?? 0, tankOf(game.active)) : ''} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.drown > 0 ? ' · ENGINE DROWNED' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

@@ -5,6 +5,7 @@ import { creative } from './settings.js';
 import { SITES, PROPERTY, toWorld, height, groundHeight, dynFloors } from '../worlds/county.js';
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
+import { startCheck, fuelOf } from '../rules/fuel.js';
 import { inOffice, wingFree, annexWallCircles, wingWallCircles, officeLevelOf, WING } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles, extension } from '../worlds/garageLevels.js';
@@ -405,6 +406,8 @@ const CRANKS = [
 ];
 export function crankBug() {
   if (!bugAsleep() || game.cranking) return;
+  const sc = startCheck({ battery: !(game.build?.stripped || []).includes('battery'), litres: fuelOf(game.home, 'bug') });   // the start depends on the real car (rules/fuel.js)
+  if (!sc.ok) { say(sc.why); return; }
   game.cranking = true; say('*click* … rrr-rrr-rrr…');
   setTimeout(() => {
     game.cranking = false;
