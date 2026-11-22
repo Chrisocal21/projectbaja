@@ -29,14 +29,20 @@ export const ANNEX = { x0: -17.2, x1: OFFICE.x0, z0: -1, z1: 3, H: 4.4, doorZ0: 
 // Doorway = openings.js segments OW3 + OW4 (z 0..4). Customer door in the front (z = 6) wall. The service counter stands in the wing, beside the doorway.
 export const WING = { x0: -17.2, x1: OFFICE.x0, z0: -6, z1: 6, H: 4.4, door: { x0: -16.5, x1: -14.5 }, openings: ['OW3', 'OW4'],
   counter: { x: -14.6, z0: 0.2, z1: 2.0, r: 0.45 } };
-export const officeLevelOf = owned => (owned.has('office1') ? 1 : 0);
+export const officeLevelOf = owned => (owned.has('office2') ? 2 : owned.has('office1') ? 1 : 0);
+// level 2: parts shelving along the back room's west and east walls, and the supplier desk beside the counter
+export const PARTS_ROOM = { shelves: [{ x: -16.75, z0: -5.6, z1: -1.4 }, { x: -13.65, z0: -5.6, z1: -1.4 }], desk: { x: -16.5, z0: 0.4, z1: 2.2 } };
 export const inWing = (lx, lz, m = 0) => lx > WING.x0 + m && lx < WING.x1 - m && lz > WING.z0 + m && lz < WING.z1 - m;
 /** collision circles ([lx, lz, r]) for the wing's west, north and front walls (the front has the customer door gap) and the service counter */
-export function wingWallCircles() {
+export function wingWallCircles(level = 1) {
   const { x0, x1, z0, z1, door, counter } = WING, r = 0.15, step = 0.5, out = [];
   for (let z = z0; z <= z1 + 1e-9; z += step) out.push([x0, z, r]);
   for (let x = x0; x <= x1 + 1e-9; x += step) { out.push([x, z0, r]); if (x < door.x0 - 1e-9 || x > door.x1 + 1e-9) out.push([x, z1, r]); }
   for (let z = counter.z0 + 0.1; z <= counter.z1 + 1e-9; z += 0.5) out.push([counter.x, z, counter.r]);
+  if (level >= 2) {
+    for (const sh of PARTS_ROOM.shelves) for (let z = sh.z0; z <= sh.z1 + 1e-9; z += 0.6) out.push([sh.x, z, 0.3]);
+    for (let z = PARTS_ROOM.desk.z0; z <= PARTS_ROOM.desk.z1 + 1e-9; z += 0.6) out.push([PARTS_ROOM.desk.x, z, 0.35]);
+  }
   return out;
 }
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles, WING, wingWallCircles, officeLevelOf } from './office.js';
+import { OFFICE, CAMPER, STAIRS, LOFT, WING_FREE, ANNEX, walkingLevel, inOffice, wingFree, annexWallCircles, WING, wingWallCircles, officeLevelOf, PARTS_ROOM } from './office.js';
 import { segByKey } from './openings.js';
 
 test('office is attached left, camper and door are right, forecourt stays clear', () => {
@@ -72,4 +72,11 @@ test('office level 1: the wing meets the office wall, its doorway is two opening
   assert.ok(!crossing(-17, WING.z1), 'the front wall beside the door blocks');
   assert.ok(!crossing(WING.counter.x, 1), 'the counter blocks');
   assert.ok(crossing(-14.6, 3.2) && crossing(OFFICE.x0, 3.2), 'you can still get from the doorway into the wing past the counter');
+});
+test('office level 2: shelving and the supplier desk block, but the way from the doorway to the front door stays open', () => {
+  assert.equal(officeLevelOf(new Set(['office1', 'office2'])), 2);
+  const cs = wingWallCircles(2), crossing = (x, z) => !cs.some(([cx, cz, r]) => Math.hypot(cx - x, cz - z) < r + 0.3);
+  assert.ok(!crossing(PARTS_ROOM.shelves[0].x, -3), 'the west shelves block'); assert.ok(!crossing(PARTS_ROOM.desk.x, 1), 'the supplier desk blocks');
+  assert.ok(crossing(-15.2, -3), 'the middle of the parts room is clear'); assert.ok(crossing(-15.5, 4) && crossing(-14.6, 3.2), 'doorway to front door still open');
+  assert.ok(wingWallCircles(1).length < cs.length, 'level 1 has no shelves');
 });

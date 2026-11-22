@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { OFFICE, STAIRS, LOFT, ANNEX, WING } from './office.js';
+import { OFFICE, STAIRS, LOFT, ANNEX, WING, PARTS_ROOM } from './office.js';
 import { signTex } from '../lot/CarLot.jsx';
 import OriginalWall from './OriginalWall.jsx';
 import { game } from '../game/store.js';
@@ -17,7 +17,7 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-10.1, 0.06, 0]} s={[6.8, 0.12, 12.6]} map={floor} color="#fff" />
     {/* west wall: solid, unless the "Office expansion" upgrade has cut a doorway through it (game/upgrades.js, openings.js WALLS.OW) */}
     <OriginalWall which="OW" map={wall} lining={timber} open={game.home?.openings || []} height={H} />
-    {upgradeLevel('office') >= 1 && (hasStage('office1') ? <OfficeWing wall={wall} timber={timber} roof={roof} floor={floor} power={power} /> : <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />)}
+    {upgradeLevel('office') >= 1 && (hasStage('office1') ? <OfficeWing level={hasStage('office2') ? 2 : 1} wall={wall} timber={timber} roof={roof} floor={floor} power={power} /> : <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />)}
     <Box p={[-10.1, H / 2, z0]} s={[6.2, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x0 + entry.x0) / 2, H / 2, z1]} s={[entry.x0 - x0, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x1 + entry.x1) / 2, H / 2, z1]} s={[x1 - entry.x1, H, 0.2]} map={wall} color="#fff" />
@@ -85,7 +85,7 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
 
 /** office level 1 (stage 'office1'): the annex grown into a wing the full depth of the office. Customer door at the front, waiting seats,
  *  a service counter beside the widened doorway, a back room with a desk and files. Basic boxes (ChatGPT polishes). */
-function OfficeWing({ wall, timber, roof, floor, power }) {
+function OfficeWing({ level, wall, timber, roof, floor, power }) {
   const { x0, x1, z0, z1, H, door, counter } = WING, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, t = 0.2, d = z1 - z0, glass = '#394848';
   const cz0 = (counter.z0 + counter.z1) / 2, cl = counter.z1 - counter.z0 + 0.5;
   return <group>
@@ -102,14 +102,25 @@ function OfficeWing({ wall, timber, roof, floor, power }) {
     {/* the service counter, beside the widened doorway */}
     <Box p={[counter.x, 0.55, cz0]} s={[0.8, 1.1, cl]} map={timber} />
     <Box p={[counter.x, 1.15, cz0]} s={[1.0, 0.1, cl + 0.1]} map={timber} color="#76583c" />
+    {level >= 2 && <Box p={[counter.x + 0.52, 1.5, cz0]} s={[0.04, 0.6, cl + 0.1]} color="#4b5a58" />}
     {/* waiting area by the front door: two benches and a low table */}
     {[3.9, 5.1].map(z => <group key={z}><Box p={[x0 + 0.5, 0.25, z]} s={[0.5, 0.5, 1.0]} map={timber} /><Box p={[x0 + 0.3, 0.75, z]} s={[0.08, 0.5, 1.0]} map={timber} color="#76583c" /></group>)}
     <Box p={[x0 + 1.7, 0.2, 4.5]} s={[0.6, 0.4, 0.9]} map={timber} color="#8a6a44" />
+    {level >= 2 ? <>
+      {/* parts room: shelving along both side walls, a supplier desk beside the parts counter */}
+      <Label text="PARTS ROOM" p={[cx, 3.4, z0 + 0.12]} w={2.2} />
+      {PARTS_ROOM.shelves.map((sh, k) => <group key={k}>{[0.4, 1.1, 1.8, 2.5].map(y => <Box key={y} p={[sh.x, y, (sh.z0 + sh.z1) / 2]} s={[0.5, 0.06, sh.z1 - sh.z0]} map={timber} />)}
+        {[sh.z0, (sh.z0 + sh.z1) / 2, sh.z1].map(z => <Box key={z} p={[sh.x, 1.3, z]} s={[0.5, 2.6, 0.06]} map={timber} color="#76583c" />)}
+        {Array.from({ length: 9 }, (_, i) => <Box key={i} p={[sh.x, [0.58, 1.28, 1.98][i % 3], sh.z0 + 0.4 + i * 0.45]} s={[0.36, 0.3, 0.34]} color={['#8d5b39', '#76694f', '#594f3c'][i % 3]} />)}</group>)}
+      <Box p={[PARTS_ROOM.desk.x, 0.75, (PARTS_ROOM.desk.z0 + PARTS_ROOM.desk.z1) / 2]} s={[0.9, 0.07, PARTS_ROOM.desk.z1 - PARTS_ROOM.desk.z0]} map={timber} color="#a88a5c" />
+      {[PARTS_ROOM.desk.z0, PARTS_ROOM.desk.z1].map(z => <Box key={z} p={[PARTS_ROOM.desk.x, 0.36, z]} s={[0.8, 0.72, 0.08]} map={timber} />)}
+    </> : <>
     {/* back room: a desk and filing cabinets */}
     <Label text="BACK ROOM" p={[cx, 3.4, z0 + 0.12]} w={2.2} />
     <Box p={[x0 + 1.0, 0.75, -4.6]} s={[1.0, 0.07, 1.9]} map={timber} color="#a88a5c" />
     {[-5.5, -3.7].map(z => <Box key={z} p={[x0 + 1.0, 0.36, z]} s={[0.9, 0.72, 0.08]} map={timber} />)}
     {[-5.4, -4.7].map(z => <Box key={z} p={[x1 - 0.5, 0.7, z]} s={[0.5, 1.4, 0.6]} color="#7a7f78" />)}
+    </>}
     {[[cx, H - 0.8, -3], [cx, H - 0.8, 3]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 11 : 0} distance={8} decay={2} />)}
   </group>;
 }

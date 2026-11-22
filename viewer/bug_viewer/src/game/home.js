@@ -348,9 +348,9 @@ export function propObstacles() {
   const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0, office = upgradeLevel('office') >= 1;
   const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const extC = extensionWallCircles(garageLevelOf(ownedStages(game.home))).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
-  const wing = officeLevelOf(ownedStages(game.home)) >= 1;
-  const annexC = office ? (wing ? wingWallCircles() : annexWallCircles()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
-  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== wing) cache = { v, mv, office, wing, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+  const ol = officeLevelOf(ownedStages(game.home)), wing = ol >= 1;
+  const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
+  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== ol) cache = { v, mv, office, wing: ol, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (it.posts) return localCircles(p, it.posts);   // car lift: just the two posts, the car drives between

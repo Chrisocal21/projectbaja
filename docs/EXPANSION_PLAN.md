@@ -69,6 +69,6 @@ Not yet: Walt's workbench still stands where it was (free-standing, move it by h
 ## Office levels plan (PROPOSED Nov 22, waiting for Chris to approve)
 Diagram: viewer/bug_viewer/screenshots/office_plan_0_3.png. The office grows into a new wing 4 m x 12 m west of the old office (x -17.2..-13.2, z -6..6; the existing annex stage lives inside it). It does not touch the garage extension (that starts at z -6.6, further west is the L3 west drive).
 - L1 customer office: wing with a customer door at the front, waiting seats, service counter in the widened (3 m) wall doorway, back room with a desk and files.  BUILT Nov 22 (doorway is 4 m: openings OW3+OW4).
-- L2 parts counter: the back room becomes a parts room with shelves; parts counter plus supplier desk (faster orders).
+- L2 parts counter: the back room becomes a parts room with shelves; parts counter plus supplier desk (faster orders).  BUILT Nov 22 (stage office2: shelving both walls, supplier desk, parts counter screen; order speed stays with the supplier account).
 - L3 two-storey block: stair up in the wing; upstairs team room, race planning wall; a balcony through the old office's east wall over Walt's shop floor (3.1 m up).
 - Decided (Chris): the apartment (living L3) does NOT share the upstairs; it goes somewhere else (place to be chosen when living is built). The office plan is otherwise approved.

@@ -59,3 +59,6 @@ The extension behind Walt's garage (worlds/GarageExtension.jsx, layout data in w
 
 ## Office level 1 (Nov 22, Claude)
 Stage `office1` ("Customer office", needs the annex): `worlds/office.js` WING (x -17.2..-13.2, z -6..6) replaces the annex; `GarageWing.jsx` OfficeWing draws it with basic boxes (walls, customer door in the front wall with header and sign, service counter, waiting benches, back room desk and files). Doorway to the old office is openings OW3+OW4 (4 m). Collision = `wingWallCircles` (walls, door gap, counter). Floor is a walkable dyn floor in `home.js`. Polish: real windows, door, counter, seating, signage, lighting. Levels 2-3 (parts counter, upstairs team room, balcony) follow the plan in EXPANSION_PLAN.md.
+
+## Office level 2 (Nov 22, Claude)
+Stage `office2` ("Parts counter", needs office1): `worlds/office.js` PARTS_ROOM (shelving along both back-room walls, supplier desk beside the counter); `OfficeWing` in GarageWing.jsx swaps the back room's desk and files for shelves with part boxes, adds a screen over the counter. Collision via `wingWallCircles(2)`. Order speed is unchanged (supplier account still sets it). Polish: real shelving, counter window, supplier desk props, signs.
