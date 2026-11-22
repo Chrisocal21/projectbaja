@@ -24,7 +24,7 @@ export function buyStage(id) {
   else home.stages = [...(home.stages || []), id];
   if (id === 'annex') home.openings = [...new Set([...(home.openings || []), ANNEX_DOOR])];
   game.home = home;
-  if (id === 'annex') game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
+  if (id === 'annex' || /^garage[123]$/.test(id)) game.propsV = (game.propsV || 0) + 1;   // the annex changes wall collision (propObstacles' cache, and DriveWorld's obstacle-cache key, both key off propsV)
   save(); say(`Upgrade: ${s.name}${free ? ' (creative: free)' : ` (−$${s.price})`}`);
   return true;
 }

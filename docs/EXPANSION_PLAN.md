@@ -43,3 +43,7 @@ Basic box buildings with correct doors and bay markers. ChatGPT polishes later (
 
 ## Open
 - Living quarters design (rec above). Customer pile-up default: starts at level 1.
+
+## Status (Nov 22)
+Built: levels 1-3 as basic boxes (viewer/bug_viewer/src/worlds/GarageExtension.jsx): back wall opens, side and back walls, roof, light rows, yellow bay lines, epoxy floor at level 2-3, wall racks at level 3. Screenshots in viewer/bug_viewer/screenshots/garage_L*.png.
+Not yet: lifts snapping to bays, lifts/benches for the new bays, a doorway through the office's back wall, outside look of the extension, Walt's bench and pegboard sit in the opened back wall until moved by hand.

@@ -7,7 +7,7 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { inOffice, wingFree, annexWallCircles } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
-import { garageLevelOf, inExtension } from '../worlds/garageLevels.js';
+import { garageLevelOf, inExtension, levelOpenings, extensionWallCircles } from '../worlds/garageLevels.js';
 import { ownedStages } from '../worlds/upgrades.js';
 import { upgradeLevel, stageWhy } from './upgrades.js';
 import { MORNING_HOUR } from './clock.js';
@@ -148,7 +148,7 @@ export function snapWorld(item, x, z) {
 }
 /** garage-local points of the placed foundation slabs */
 const foundationsLocal = () => game.props.filter(q => q.id === 'foundation').map(q => { const m = homeLocal(q.x, q.z); return { x: m.lx, z: m.lz }; });
-export const openingKeys = () => game.home?.openings || [];
+export const openingKeys = () => { const own = game.home?.openings || [], lv = levelOpenings(garageLevelOf(ownedStages(game.home))); return lv.length ? [...new Set([...own, ...lv])] : own; };
 /** the original-wall opening nearest a world point → { key, x, z, ry } in world terms, or null */
 export function snapCutWorld(x, z) {
   const l = homeLocal(x, z), s = snapCut(l.lx, l.lz); if (!s) return null;
@@ -328,8 +328,9 @@ let cache = { v: -1, list: [] };
 export function propObstacles() {
   const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0, office = upgradeLevel('office') >= 1;
   const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
+  const extC = extensionWallCircles(garageLevelOf(ownedStages(game.home))).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const annexC = office ? annexWallCircles().map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }) : [];
-  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office) cache = { v, mv, office, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office) cache = { v, mv, office, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (it.posts) return localCircles(p, it.posts);   // car lift: just the two posts, the car drives between

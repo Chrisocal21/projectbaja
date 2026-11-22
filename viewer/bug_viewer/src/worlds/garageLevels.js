@@ -41,3 +41,15 @@ export function nearestBay(level, x, z, reach = 3, liftOnly = false) {
 export const bayOf = (level, x, z) => baysAt(level).find(b => Math.abs(x - b.x) <= BAY.w / 2 && Math.abs(z - b.z) <= BAY.d / 2) || null;
 /** bays with no car in them. cars = [{ x, z }] */
 export const freeBays = (level, cars) => baysAt(level).filter(b => !cars.some(c => Math.abs(c.x - b.x) <= BAY.w / 2 && Math.abs(c.z - b.z) <= BAY.d / 2));
+
+export const EXT_H = 4.6;   // wall height of the extension (matches the old garage, Sites.jsx)
+/** the old back wall (openings.js wall B, segments B0..B6) is open from level 1 on: the extension is one room with the shop */
+export const levelOpenings = level => (level >= 1 ? ['B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6'] : []);
+/** collision circles [lx, lz, r] for the extension's three outside walls (west, east, back) */
+export function extensionWallCircles(level) {
+  const e = extension(level); if (!e) return [];
+  const r = 0.15, step = 0.5, out = [];
+  for (let z = e.z0; z <= e.z1 + 1e-9; z += step) { out.push([e.x0, z, r]); out.push([e.x1, z, r]); }
+  for (let x = e.x0; x <= e.x1 + 1e-9; x += step) out.push([x, e.z0, r]);
+  return out;
+}

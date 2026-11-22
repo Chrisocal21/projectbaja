@@ -6,6 +6,9 @@ import { GARAGE, BARN, CACTI } from './siteData.js';
 import { OFFICE } from './office.js';
 import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
+import GarageExtension from './GarageExtension.jsx';
+import { garageLevelOf, levelOpenings } from './garageLevels.js';
+import { ownedStages } from './upgrades.js';
 import RoadSigns from './RoadSigns.jsx';
 import MergedStatic from './MergedStatic.jsx';
 import SupplyStands from './SupplyStands.jsx';
@@ -158,6 +161,7 @@ export function ShelfStuff({ kind, p }) {
 /** The player's garage: concrete slab, roller door, two-post lift, workbench + pegboard, shelves, an engine on a stand. Local +z = the door. */
 function Garage() {
   useGame();
+  const gLevel = garageLevelOf(ownedStages(game.home)), cuts = [...new Set([...(game.home?.openings || []), ...levelOpenings(gLevel)])];
   const { w, d, door } = GARAGE, t = 0.2, H = 4.6, power = game.home?.power, open = !!(game.home?.open && power);
   const wallBack = useMemo(() => { const m = corrugatedTex('#8a9893'); m.repeat.set(5, 1); return m; }, []);
   const wallSide = useMemo(() => { const m = corrugatedTex('#8a9893', 33); m.repeat.set(4, 1); return m; }, []);
@@ -177,7 +181,8 @@ function Garage() {
     {/* bay lines either side of the lift */}
     {[-2.05, 2.05].map(x => <mesh key={x} position={[x, 0.122, 0.6]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[0.1, 8]} /><meshStandardMaterial color="#d9b23a" roughness={0.8} /></mesh>)}
     {/* walls: corrugated outside, plywood lining up to 1.3 m inside */}
-    <OriginalWall which="B" map={wallBack} lining={ply} open={game.home?.openings || []} /><OriginalWall which="R" map={wallSide} lining={ply} open={game.home?.openings || []} />
+    <OriginalWall which="B" map={wallBack} lining={ply} open={cuts} /><OriginalWall which="R" map={wallSide} lining={ply} open={cuts} />
+    <GarageExtension level={gLevel} wallSide={wallSide} wallBack={wallBack} roof={roof} floor={floor} />
     {/* left wall: reception doorway */}
     <Box p={[-w, H / 2, (-d + OFFICE.inner.z0) / 2]} s={[t, H, OFFICE.inner.z0 + d]} color="#fff" map={wallSide} />
     <Box p={[-w, H / 2, (d + OFFICE.inner.z1) / 2]} s={[t, H, d - OFFICE.inner.z1]} color="#fff" map={wallSide} />
