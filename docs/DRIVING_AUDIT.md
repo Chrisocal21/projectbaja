@@ -30,3 +30,28 @@ What exists: a real rigid body with four spring-damper wheels and a friction-cir
 2. Engine piece condition changes idle and power (a weak coil or plugs misfires), so a "fixed" engine sounds and pulls better.
 3. Wear per corner for shocks and tires, plus the puncture changing the drive.
 4. Hardpack and clay as surfaces; cargo and towing later.
+
+## Measured numbers (step B2, Nov 22)
+`src/driveMeasure.js` runs the real rigid-body physics headless: same test car, flat ground, fixed input, one surface or one tire at a time. `src/driveMeasure.test.js` asserts the orderings and prints this table. Seconds are to 15 m/s, stops are from 20 m/s with the brake held. Numbers are the MODEL's, using the game's own grip and rolling-resistance data; they are for comparing, not for real-world accuracy.
+
+| Surface (neutral tire) | Stop from 20 m/s | 0 to 15 m/s |
+|---|---|---|
+| Pavement | 14.9 m | 1.8 s |
+| Packed dirt | 16.4 m | 1.9 s |
+| Gravel | 20.1 m | 2.6 s |
+| Sand | 22.3 m | 4.4 s |
+| Mud | 33.2 m | 6.4 s |
+
+Tires from the real catalog (stop / launch):
+
+| Tire | Dirt | Sand | Mud |
+|---|---|---|---|
+| Stock street | 20.5 m / 2.6 s | 43.1 m / never | 83.3 m / never |
+| Highway tread | 17.8 m / 2.2 s | 35.1 m / 12.0 s | 60.2 m / never |
+| Light and floaty | 17.5 m / 2.1 s | 19.6 m / 3.0 s | 49.4 m / 11.8 s |
+| Beadlock | 16.1 m / 1.9 s | 22.3 m / 4.6 s | 35.1 m / 7.4 s |
+| Deep tread | 16.6 m / 1.9 s | 26.2 m / 9.0 s | 23.9 m / 4.0 s |
+
+What this shows: the tire you fit changes stopping and launch by a lot, and the right tire wins on its ground (floaty in sand, deep tread in mud). DRV-002/003/004 pass as reproducible tests.
+
+**Finding for Chris:** with the stock street tires the model never reaches 15 m/s in sand or mud, so the starting Bug cannot drive out of either. That matches the catalog note ("hopeless in sand and mud") but breaks the canon rule that you are never stranded (and research DRV-012: no unbounded sinking). A floor (a minimum crawl, like the empty-tank limp mode) is the likely fix, but how hard the stock tires should be punished is a feel call. Not changed yet.

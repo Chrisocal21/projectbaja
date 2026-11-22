@@ -45,7 +45,7 @@ Status key: [ ] not started, [x] done, [~] partly there.
 
 ### B. Driving (research/PROJECT_BAJA_DRIVING_PHYSICS)
 1. [x] Audit written: [DRIVING_AUDIT](./DRIVING_AUDIT.md) (from the code, check by feel). Best next: a headless drive script that measures stopping distance and acceleration per surface.
-2. [ ] Installed tire changes grip you can measure (tires now exist per rim size).
+2. [x] Installed tire changes grip you can measure: src/driveMeasure.js plus tests, table in [DRIVING_AUDIT](./DRIVING_AUDIT.md). Finding: stock tires cannot leave sand or mud (needs a limp floor, Chris to decide how hard).
 3. [ ] Surfaces: hardpack, gravel, sand, clay behave differently.
 4. [ ] Worn damper and punctured tire change the drive; repair undoes it.
 5. [ ] Gearing and tire size trade-off; towing and recovery later.
