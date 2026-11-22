@@ -41,3 +41,8 @@ export const PART_NAME = { shocks: 'Shocks', tires: 'Tires', align: 'Alignment',
 export const partCost = (w, p) => (w[p] < 0.02 ? 0 : Math.round(8 + 60 * w[p]));
 export const serviceCost = w => WEAR_PARTS.reduce((s, p) => s + partCost(w, p), 0);
 export const serviced = (w, p) => ({ ...w, [p]: 0 });
+
+/** hand service: the wrench does shocks, alignment and engine tune-ups; the jack does the tires. Returns the worst worn part that tool can fix, or null */
+export const TOOL_JOBS = { wrench: ['shocks', 'align', 'engine'], jack: ['tires'] };
+export const SERVICE_VERB = { shocks: 'Re-seat and re-torque the shocks', align: 'Set the alignment', engine: 'Tune the engine', tires: 'Rotate and re-seat the tires' };
+export const serviceJob = (w, toolId) => { const c = (TOOL_JOBS[toolId] || []).filter(p => partCost(w, p) > 0).sort((a, b) => w[b] - w[a]); return c[0] || null; };

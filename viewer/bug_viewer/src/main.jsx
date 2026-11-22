@@ -1,4 +1,5 @@
 import { ClerkProvider } from '@clerk/react';
+import { FRESH, SERVICE_VERB, PART_NAME, partCost, serviced } from './wear.js';
 import { CloudAuto } from './game/CloudBox.jsx';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -24,7 +25,7 @@ import {
   partState, partFile, wheelSetFits, labelFor, encodeBuild, decodeBuild, randomBuild, countBuilds,
 } from './build.js';
 import { startGamepad } from './game/gamepad.js';
-import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact } from './game/store.js';
+import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact, save } from './game/store.js';
 import { applyMachinePlan, held, toolInHand, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { toggleLights } from './game/lights.js';
@@ -70,6 +71,7 @@ const categories = [...new Set(slots.map(s => s.category))];
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
 const cancelHold = () => { clearTimeout(holdT); game.holdBar = null; };
+const doService = part => { const w = game.home?.wear?.[game.active] || FRESH(), c = partCost(w, part); if (!c) return; if (game.cash < c) return say('Not enough cash for the parts: $' + c + '.'); addCash(-c, 'Service: ' + PART_NAME[part]); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: serviced(w, part) } }; save(); say(PART_NAME[part] + ' done.'); };
 const startHold = (label, fn, tap = false, ms = HOLD_MS) => { ms = Math.max(200, Math.round(ms * effects().holdScale)); game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
 const fmt = n => n >= 1e15 ? n.toExponential(1).replace('e+', ' x 10^') : n >= 1e12 ? `${(n / 1e12).toFixed(1)} trillion` : n >= 1e9 ? `${(n / 1e9).toFixed(1)} billion` : n.toLocaleString('en-US');
@@ -288,6 +290,7 @@ function App() {
       else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (vehiclesNear().length) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
+      else if (e.code === 'KeyT' && !e.repeat && p === null && game.onFoot && toolInHand() && game.target?.startsWith('car:') && game.carPlan?.part) { const part = game.carPlan.part; cancelHold(); startHold(SERVICE_VERB[part] + '…', () => doService(part), false, 4000); }   // hold T near the car with a tool: service what is worn (wear.js)
       else if (e.code === 'KeyE' && !e.repeat && p === null) { if (game.target) worldInteract(game.target); else if (game.prompt.startsWith('Press E')) setPanel('shop'); }
     };
     const shiftT = e => { furn.shift = e.type === 'blur' ? false : e.shiftKey; }; window.addEventListener('keydown', shiftT); window.addEventListener('keyup', shiftT); window.addEventListener('blur', shiftT);
@@ -304,8 +307,8 @@ function App() {
       if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); else if (t?.startsWith('furn:')) { const q = game.props.find(o => o.uid === +t.slice(5)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } } } };   // (a scrap heap is picked through with a click too)
-    window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => { const was = game.holdBar; cancelHold(); if (was?.tap && held() && game.onFoot) dropHeld(); }; window.addEventListener('mouseup', holdEnd); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
-    return () => { window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('contextmenu', ctx); };
+    window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => { const was = game.holdBar; cancelHold(); if (was?.tap && held() && game.onFoot) dropHeld(); }; window.addEventListener('mouseup', holdEnd); const tUp = e => { if (e.code === 'KeyT') cancelHold(); }; window.addEventListener('keyup', tUp); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('keydown', shiftT); window.removeEventListener('keyup', shiftT); window.removeEventListener('blur', shiftT); window.removeEventListener('wheel', wheel); window.removeEventListener('mousedown', click); window.removeEventListener('mouseup', holdEnd); window.removeEventListener('keyup', tUp); window.removeEventListener('contextmenu', ctx); };
   }, [mode]);
   useEffect(() => {   // turning "unlock everything" off strips parts you do not own yet
     if (game.unlockAll) return;

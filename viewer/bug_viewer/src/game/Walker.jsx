@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { FRESH, serviceJob, SERVICE_VERB, partCost } from '../wear.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { lookScale, settings } from './settings.js';
@@ -75,7 +76,8 @@ const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (
 /** what E does at the car from this side (blueprint §2.2 + §3.4) */
 /** what the car offers right now, plus "R — Take off …" for the part you're aiming at (empty hands) */
 function carAction(zone, ap, W) {   // W = the restorable vehicle you stand at (game/projects.js workVehicles via game.work); none = the active vehicle as before
-  const a = carAction0(zone, ap, W);
+  const a0 = carAction0(zone, ap, W), tl = toolInHand(), wr = game.home?.wear?.[game.active] || FRESH(), job = tl && (!W || W.active) && activeType().kind === 'build' ? serviceJob(wr, tl.id) : null;   // a tool in hand and something worn: hold T services it (wear.js)
+  const a = job ? { ...a0, part: job, text: (a0.text ? a0.text + '  ·  ' : '') + `Hold T — ${SERVICE_VERB[job]} ($${partCost(wr, job)})` } : a0;
   if (game.aim && toolInHand() && (W || activeType().kind === 'build') && (W ? W.build : game.build)) {
     const pd = planRemove(game.aim, W ? W.build : game.build, zone), n = pd.name;
     const D = W?.def || DEF, t = pd.ok ? `Hold left click — Take off the ${n}` : pd.openCover ? `Hold left click — Open the ${D.covers[pd.openCover].name} to get at the ${n}` : pd.why;
