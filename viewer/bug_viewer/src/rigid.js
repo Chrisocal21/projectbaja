@@ -6,7 +6,7 @@ import { createEngine, stepEngine, splitDrive } from './drivetrain.js';
 import * as THREE from 'three';
 import { wheelSteerAngle } from './suspension.js';
 
-export const MASS = 1000, G = 9.81;
+export const MASS = 1000, HEAVY = 1.35, G = 9.81 * HEAVY;   // HEAVY: the car falls and presses on its tires 35% harder than real gravity, so it feels planted (acceleration is unchanged: engine force is fixed)
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const Q = () => new THREE.Quaternion();
 const UP = V(0, 1, 0);
