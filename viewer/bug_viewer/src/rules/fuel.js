@@ -13,8 +13,9 @@ export const PRICE_PER_L = 0.8;
 /** what a fill-up costs: { litres, price } for a tank that holds `have` of `cap` */
 export const fillUp = (have, cap) => { const litres = Math.max(0, cap - have); return { litres, price: Math.ceil(litres * PRICE_PER_L) }; };
 /** can the key start the engine? battery: is one fitted. Returns { ok, why } and the why names what is wrong. */
-export function startCheck({ battery, litres, engine }) {
+export function startCheck({ battery, litres, engine, charge }) {
   if (!battery) return { ok: false, why: 'Click. Nothing: there is no battery in the car.' };
+  if (typeof charge === 'number' && charge < 0.2) return { ok: false, why: `The starter barely turns: the battery is flat (${Math.round(charge * 100)}%). Put it on a charger.` };   // game/benchRules.js FLAT
   if (engine && !engine.ok) return { ok: false, why: engine.why };   // the engine's own pieces (game/engineRules.js engineStartCheck)
   if (!(litres > 0)) return { ok: false, why: 'She cranks and cranks but the tank is dry. Fuel from a pump will fix that.' };
   return { ok: true, why: '' };

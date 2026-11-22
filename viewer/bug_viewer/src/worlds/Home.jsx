@@ -16,6 +16,7 @@ import { boxItems } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { tickTray } from '../game/tireMachine.js';
 import { tickEngineStand } from '../game/engineStand.js';
+import { tickBenches } from '../game/benches.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
 import { wood, metalTex, ShelfStuff, pegTex } from './Sites.jsx';
 import { PEG_SLOTS, PEG, pegState } from '../game/fixtures.js';
@@ -517,6 +518,7 @@ export function PropModel({ id, T, mat, uid }) {
     </>;
     case 'toolChest': return <><P p={[0, 0.55, 0]} s={[1.2, 0.95, 0.55]} c="#b3261e" map={T.red} m={0.4} r={0.45} />{[0.2, 0.38, 0.56, 0.74, 0.9].map(y => <React.Fragment key={y}><P p={[0, y, 0.28]} s={[1.12, 0.012, 0.012]} c="#4a1410" /><P p={[0, y + 0.06, 0.29]} s={[0.5, 0.025, 0.025]} c="#d8d8d8" m={0.8} r={0.3} /></React.Fragment>)}<P p={[0, 1.1, 0]} s={[1.0, 0.22, 0.5]} c="#c22d24" map={T.red} m={0.4} r={0.45} />{[-0.5, 0.5].flatMap(x => [-0.22, 0.22].map(z => <C key={x + '' + z} p={[x, 0.05, z]} a={[0.05, 0.05, 0.04, 10]} c="#222" rot={[Math.PI / 2, 0, 0]} />))}</>;
     case 'lift': return <>{[-1.55, 1.55].map(x => <React.Fragment key={x}><P p={[x, 1.9, 0]} s={[0.32, 3.8, 0.42]} c="#c8372b" map={T.red} m={0.3} r={0.5} /><P p={[x, 0.03, 0]} s={[0.7, 0.06, 0.7]} c="#555" m={0.5} /><P p={[x * 0.62, 0.45, 0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? 0.45 : -0.45, 0]} /><P p={[x * 0.62, 0.45, -0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? -0.45 : 0.45, 0]} /></React.Fragment>)}<P p={[0, 3.85, 0]} s={[3.5, 0.18, 0.28]} c="#c8372b" map={T.red} m={0.3} /><P p={[1.55, 1.5, 0.25]} s={[0.25, 0.35, 0.12]} c="#2b2b2b" /></>;
+    case 'batteryCharger': return <><P p={[0, 0.45, 0]} s={[0.5, 0.9, 0.35]} c="#c8372b" m={0.3} r={0.5} /><P p={[0, 0.7, 0.18]} s={[0.36, 0.2, 0.02]} c="#222" /><mesh position={[0, 0.7, 0.195]}><planeGeometry args={[0.24, 0.1]} /><meshStandardMaterial color="#123" emissive="#3ad07a" emissiveIntensity={0.6} /></mesh>{[-0.12, 0.12].map(x => <C key={x} p={[x, 0.95, 0]} a={[0.03, 0.03, 0.08, 8]} c="#d8d8d8" m={0.7} />)}<P p={[0, 0.05, 0.1]} s={[0.56, 0.1, 0.5]} c="#333" m={0.5} /></>;
     case 'engineStand': return <><P p={[0, 0.06, 0]} s={[1, 0.08, 0.1]} c="#c8372b" /><P p={[0, 0.06, 0]} s={[0.1, 0.08, 0.8]} c="#c8372b" /><C p={[0, 0.5, 0]} a={[0.05, 0.05, 0.9, 8]} c="#c8372b" /><P p={[0.25, 0.92, 0]} s={[0.4, 0.1, 0.1]} c="#c8372b" /><C p={[0.46, 0.92, 0]} a={[0.16, 0.16, 0.03, 16]} c="#666" m={0.6} rot={[0, 0, Math.PI / 2]} /></>;
     case 'welder': return <><P p={[0, 0.5, 0]} s={[0.5, 0.45, 0.75]} c="#1f5fae" m={0.3} r={0.5} /><P p={[0, 0.74, 0.39]} s={[0.4, 0.28, 0.02]} c="#222" /><C p={[0.1, 0.8, 0.41]} a={[0.04, 0.04, 0.02, 12]} c="#ddd" m={0.6} rot={[Math.PI / 2, 0, 0]} /><C p={[0, 1.05, -0.2]} a={[0.11, 0.11, 0.6, 14]} c="#3f6b3a" m={0.4} r={0.4} /><P p={[0, 0.22, 0]} s={[0.55, 0.06, 0.85]} c="#333" m={0.5} />{[-0.22, 0.22].map(x => <C key={x} p={[x, 0.12, -0.3]} a={[0.12, 0.12, 0.05, 14]} c="#222" rot={[0, 0, Math.PI / 2]} />)}<mesh position={[0.3, 0.55, 0.2]} rotation={[0.4, 0, 0.9]}><torusGeometry args={[0.18, 0.015, 6, 16]} /><M c="#222" /></mesh></>;
     case 'bender': return <><P p={[0, 0.45, 0]} s={[0.25, 0.9, 0.25]} c="#3a3d40" m={0.5} /><P p={[0, 0.03, 0]} s={[0.8, 0.06, 0.8]} c="#555" m={0.5} /><C p={[0, 0.95, 0]} a={[0.2, 0.2, 0.08, 20]} c="#d9962f" m={0.5} r={0.4} /><C p={[0.5, 0.98, 0]} a={[0.03, 0.03, 1.1, 8]} c="#3a3d40" m={0.6} rot={[0, 0, Math.PI / 2]} /><C p={[-0.3, 1.0, 0.15]} a={[0.02, 0.02, 0.9, 8]} c="#cfcfcf" m={0.7} rot={[Math.PI / 2, 0, 0.2]} /></>;
@@ -570,7 +572,7 @@ function Ghost({ T }) {
 /** the customer car on the driveway (odd jobs) + the clock that sends the next one */
 function Customer() {
   useGame();
-  useFrame((_, dt) => { tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); });
+  useFrame((_, dt) => { tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); tickBenches(Math.min(dt, 0.1)); });
   const j = game.job && jobById[game.job.id]; if (!j) return null;
   return <group position={[game.job.x, groundHeight(game.job.x, game.job.z), game.job.z]} rotation={[0, game.job.h, 0]}><Pickup body={j.car[0]} roof={j.car[1]} primer={j.car[0]} /></group>;
 }

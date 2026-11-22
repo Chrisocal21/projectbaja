@@ -38,7 +38,7 @@ Status key: [ ] not started, [x] done, [~] partly there.
 1. [~] Bench system: generalise the tray into recipes; tire machine is the first. (this plan)
 2. [x] Engine stand with a Tier 0 buildable motor (above): nine outside pieces, order enforced, condition kept. Not yet wired to whether the car starts (step 3).
 3. [x] The engine's pieces ride into the car with it (build.engineParts) and back out. No starter, carburetor, coil, distributor or plugs, or one below 15%, means it will not start, and the message names the piece. Sitting in the seat and the first crank both check it. Still to do: weak (not dead) pieces making it run rough or crank longer.
-4. [ ] Workbench repair recipes and battery charger.
+4. [x] Battery charger (new buildable prop: a battery beside it charges in about 90 s, needs garage power; a flat battery under 20% will not start the car; junk batteries start part empty; charge rides in and out of the car) and workbench service (an engine piece lying on the bench is cleaned in 4 s, +25 up to 85%, once per piece; shot pieces under 15% need replacing). Not yet: replacement stock for shot pieces, cleaning battery health.
 5. [ ] Press, parts washer, spring compressor, brake lathe (one at a time).
 6. [ ] Blockers and the access order for the engine; Tier 1 pieces.
 7. [ ] Work orders and the repair ledger.

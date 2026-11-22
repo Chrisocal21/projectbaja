@@ -196,7 +196,7 @@ function stockPlaces(cs, ss, bodyId, add) {
     const far = c.far || 0;   // roadside stops far from home hold more (cash up to x3)
     game.boxes[c.id] = { cash: fixed ? fixed.cash : Math.random() < 0.6 ? Math.round(rint(rule.cash) * (1 + far)) : 0, scrap: !fixed && c.type !== 'toolbox' && Math.random() < 0.45 ? 1 + Math.floor(Math.random() * 2) : 0, searched: false };
     const list = fixed ? fixed.items : Array.from({ length: rint(rule.n) + (Math.random() < far / 2 ? 1 : 0) }, () => pick(rule.max)).filter(Boolean);
-    for (const [k, id] of list) add({ kind: k, id, loc: 'box', box: c.id });
+    for (const [k, id] of list) add({ kind: k, id, loc: 'box', box: c.id, ...(k === 'stock' && id === 'battery' ? { charge: Math.round(Math.random() * 60) / 100 } : {}) });   // junk-yard batteries are part empty
   }
   for (const s of ss) if (Math.random() < 0.8) { const p = pick(s.max); if (p) add({ kind: p[0], id: p[1], loc: 'world', x: s.x, z: s.z, y: s.ly, ry: s.wry + (Math.random() - 0.5) * 0.6 }); }
 }

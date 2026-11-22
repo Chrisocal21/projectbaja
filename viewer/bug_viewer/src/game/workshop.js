@@ -11,6 +11,7 @@ import { checkRoll } from './wheelAssembly.js';
 import { wheelOfItem } from './machineRules.js';
 import { sizes as machineSizes } from './tireMachine.js';
 import { engineStartCheck } from './engineRules.js';
+import { batteryCheck } from './benchRules.js';
 
 export const DEF = BUG;
 export const STOCK_NAMES = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots).map(s => [s.id, s.name]));
@@ -23,8 +24,9 @@ export function toolsHere() {
   return t;
 }
 export const openCovers = () => (game.work?.uid != null ? projectOpen(game.work.uid) : game.open || (game.open = new Set()));   // each vehicle has its own open lids
-export const driveable = b => game.dev || (isDriveable(defOfBuild(b), b) && engineStartCheck(b.engineParts).ok);   // the engine's own pieces count too (engineRules.js)
-export const whyNotDrive = b => { const e = engineStartCheck(b.engineParts); return isDriveable(defOfBuild(b), b) && !e.ok ? `Won't start. ${e.why}` : `Won't start — missing: ${listNames(missingToDrive(defOfBuild(b), b))}.`; };
+const startWhy = b => engineStartCheck(b.engineParts).why || batteryCheck(b.batteryCharge).why;   // '' = the engine and the battery are fine
+export const driveable = b => game.dev || (isDriveable(defOfBuild(b), b) && !startWhy(b));   // the engine's own pieces count too (engineRules.js)
+export const whyNotDrive = b => { const e = startWhy(b); return isDriveable(defOfBuild(b), b) && e ? `Won't start. ${e}` : `Won't start — missing: ${listNames(missingToDrive(defOfBuild(b), b))}.`; };
 
 /** the player's position in the car's own frame, and which zone that is */
 export function carLocal() {
@@ -62,7 +64,7 @@ export function planFit(it, b, zone) {
   if (it.kind === 'stock') {
     const slot = slotById(DEF, it.id); if (!slot) return { ok: false, why: "That doesn't belong on this car." };
     const r = checkFit(DEF, b, slot, ctx);
-    return { ...r, slotName: slot.name, apply: bb => ({ build: slot.id === 'engine' ? (() => { const n = withSlot(DEF, bb, 'engine', true); const p = { ...n.parts }; delete p.engine; const o = { ...n, parts: p }; if (it.parts) o.engineParts = it.parts; else delete o.engineParts; return o; })() : withSlot(DEF, bb, slot.id, true), drops: [] }) };   // the engine's pieces ride in with it (engineParts)
+    return { ...r, slotName: slot.name, apply: bb => ({ build: slot.id === 'engine' ? (() => { const n = withSlot(DEF, bb, 'engine', true); const p = { ...n.parts }; delete p.engine; const o = { ...n, parts: p }; if (it.parts) o.engineParts = it.parts; else delete o.engineParts; return o; })() : slot.id === 'battery' ? (() => { const o = { ...withSlot(DEF, bb, 'battery', true) }; if (typeof it.charge === 'number') o.batteryCharge = it.charge; else delete o.batteryCharge; return o; })() : withSlot(DEF, bb, slot.id, true), drops: [] }) };   // a battery brings its charge   // the engine's pieces ride in with it (engineParts)
   }
   if (it.kind === 'fab' && it.id === 'shockHoops') {
     if (b.fab?.hoops) return { ok: false, why: 'The hoops are already welded in.' };
@@ -102,8 +104,8 @@ export function planDetach(slotId, b, zone) {
   const mods = slotId === 'engine' ? Object.entries(b.parts).filter(([s]) => UPGRADE_FIT[s]?.needsEngine) : [];
   if (r.ok && mods.length) r = { ok: false, why: `Take the ${mods.map(([, id]) => partById[id].label.toLowerCase()).join(', ')} off the engine first.` };
   if (slotId === 'shell') return { ...r, item: ['shell', b.body], toYard: true, apply: bb => withSlot(DEF, bb, 'shell', false) };
-  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels, ...(DEF === BUG ? {} : { from: DEF.id }) }] : slotId === 'engine' && b.engineParts ? ['stock', 'engine', { parts: b.engineParts }] : ['stock', slotId];   // `from`: a wheel off the El Cajon is drawn with its own wheel model; an engine keeps its pieces' condition
-  return { ...r, item, apply: bb => { let n = withSlot(DEF, bb, slotId, false); if (slotId === 'engine') { const p = { ...n.parts }; delete p.engine; n = { ...n, parts: p }; delete n.engineParts; } return n; } };
+  const item = slotId === 'engine' && b.parts.engine ? ['part', b.parts.engine] : slot.wheel ? ['stock', 'wheel', { set: b.wheels, ...(DEF === BUG ? {} : { from: DEF.id }) }] : slotId === 'engine' && b.engineParts ? ['stock', 'engine', { parts: b.engineParts }] : slotId === 'battery' && typeof b.batteryCharge === 'number' ? ['stock', 'battery', { charge: b.batteryCharge }] : ['stock', slotId];   // `from`: a wheel off the El Cajon is drawn with its own wheel model; an engine keeps its pieces' condition
+  return { ...r, item, apply: bb => { let n = withSlot(DEF, bb, slotId, false); if (slotId === 'engine') { const p = { ...n.parts }; delete p.engine; n = { ...n, parts: p }; delete n.engineParts; } if (slotId === 'battery') { n = { ...n }; delete n.batteryCharge; } return n; } };
 }
 /** detaching a bolt-on upgrade (lights, racks, bumpers...) that has no restoration slot */
 export function planDetachUpgrade(catSlot, b) {
