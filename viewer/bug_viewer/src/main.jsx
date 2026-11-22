@@ -201,6 +201,7 @@ function App() {
     else if (id === 'car:fit') say('Hold left click to bolt it on.');
     else if (id === 'car:cover') toggleCover(game.carPlan.id);
     else if (id === 'car:drive') { const uid = game.carPlan?.uid; if (promoteCajon(uid)) worldInteract('veh:cajon'); }
+    else if (id === 'car:veh') worldInteract('veh:' + game.carPlan.id);
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
     else if (id === 'warehouse') setPanel('warehouse');

@@ -99,6 +99,8 @@ function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair i
     if (hasDoor) return { type: 'cover', id: ap, text: `Press E — ${o ? 'Close' : 'Open'} the ${D.covers[ap].name}` };
     return { type: 'none', text: 'No door on this side' };
   }
+  if ((ap === 'seatL' || ap === 'seatR') && !canEnter && game.fleet?.[W.id]?.pose) return { type: 'veh', id: W.id, text: `Press E — Take the ${vehicleType(W.id).name} out (you're driving the ${activeType().name})` };   // a parked car of yours: E makes it the one you drive, then the seat works as usual
+  if ((ap === 'seatL' || ap === 'seatR') && !canEnter) return { type: 'why', why: '', text: `This isn't the car you're driving (${W.name || W.id}). Park the ${activeType().name} and take this one out first.` };
   if ((ap === 'seatL' || ap === 'seatR') && canEnter) {   // look at a seat: E sits
     const door = ap === 'seatL' ? 'doorL' : 'doorR', hasDoor = isFitted(D, b, door);
     if (driveable(b)) return { type: 'enter', door: hasDoor ? door : null, text: `Press E — Sit in the ${ap === 'seatL' ? "driver's" : 'passenger'} seat` };
