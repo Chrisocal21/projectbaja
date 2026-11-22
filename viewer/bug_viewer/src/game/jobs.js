@@ -4,7 +4,9 @@
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { pickStall, stallsFor } from '../worlds/lot.js';
-import { homeLocal, isOpen } from './home.js';
+import { homeLocal, isOpen, hasInGarage } from './home.js';
+import { spawnItem } from './items.js';
+import { custWheel, isCustWheel, custWheelReady } from './custJobs.js';
 import { standingVehicles } from './fleet.js';
 import { upgradeLevel } from './upgrades.js';
 
@@ -27,6 +29,7 @@ export const JOBS = [
   { id: 'tire', who: 'a long-haul trucker', car: ['#7a2f26', '#cfc8b8'], title: 'Slow leak', ask: 'Picked up a nail on 9. Can you plug it so I make it to Yuma?', need: { kind: 'supply', id: 'plug' }, pay: 45 },
   { id: 'wipers', who: 'Mrs. Hollis', car: ['#5b6e4a', '#e8e2d2'], title: 'Wipers shot', ask: "It rains twice a year and I'd like to see both times.", need: { kind: 'supply', id: 'wipers' }, pay: 35 },
   { id: 'belt', who: 'Dusty', car: ['#c8372b', '#e8e6dc'], title: 'Squealing belt', ask: 'Sounds like a cat in a blender. Walt always fixed it with a belt.', need: { kind: 'supply', id: 'belt' }, pay: 60 },
+  { id: 'flatwheel', who: 'a young mechanic', car: ['#3d5a7a', '#d8d4c8'], title: 'Flat, properly', ask: "Pulled a nail out of this one. The spare's worn out. Can you patch the wheel and air it back up?", need: { kind: 'custWheel' }, pay: 95, needsGarage: 'tireChanger' },
   { id: 'tune', who: 'Old Man Hollis', car: ['#6e5a3a', '#cfc4a4'], title: 'Rough idle', ask: "She coughs. Walt'd just twist something. You got his wrench?", need: { tool: 'wrench' }, pay: 70 },
 ];
 const FIRST_AFTER = 75, GAP = [200, 380];
@@ -44,14 +47,20 @@ export function tickJobs(dt) {
   const due = h.jobsDone ? h.nextJobAt || GAP[0] : FIRST_AFTER;
   if (h.jobClock < due) return;
   const stall = pickStall(occupiedNow(), Math.random, stallsFor(upgradeLevel('parking'))); if (!stall) return;   // lot full: the customer waits until a stall opens
-  const last = h.lastJob, pool = JOBS.filter(j => j.id !== last);
+  const last = h.lastJob, pool = JOBS.filter(j => j.id !== last && (!j.needsGarage || hasInGarage(j.needsGarage)));
   const j = pool[Math.floor(Math.random() * pool.length)];
-  game.job = { id: j.id, stall: stall.id, ...stallPose(stall) };
+  const pose = stallPose(stall);
+  game.job = { id: j.id, stall: stall.id, ...pose };
+  if (j.need.kind === 'custWheel') {   // the customer leaves their wheel on the ground beside the car
+    spawnItem('stock', 'wheel', pose.x + Math.cos(pose.h) * 2.2, pose.z - Math.sin(pose.h) * 2.2);
+    Object.assign(game.items[game.items.length - 1], custWheel());
+  }
   h.jobClock = 0; h.nextJobAt = GAP[0] + Math.random() * (GAP[1] - GAP[0]);
   save(); say(`A car just pulled into the lot — ${j.who} needs a hand.`);
 }
 /** can you do the job right now? → { ok, why, item } */
 export function jobCheck(j) {
+  if (j.need.kind === 'custWheel') { const it = game.items.find(isCustWheel); const r = custWheelReady(it); return r.ok && it.loc === 'world' ? { ok: false, why: 'Pick their wheel up first.' } : r.ok ? { ok: true, item: it } : r; }
   if (j.need.tool) return game.items.some(i => i.kind === 'tool' && i.id === j.need.tool && (i.loc === 'pack' || i.loc === 'hand')) ? { ok: true } : { ok: false, why: `You need a ${j.need.tool}.` };
   const it = game.items.find(i => i.kind === j.need.kind && i.id === j.need.id && (i.loc === 'hand' || i.loc === 'pack'));
   const st = standFor(j.need.kind, j.need.id);   // Walt's stand has one too: no need to carry it

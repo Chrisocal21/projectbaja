@@ -82,7 +82,7 @@ function StoryLog({ view, setView }) {
 /** the Jobs app (real, PROPOSAL layout): the customer waiting in the lot, what they need, what it pays, and whether you can do it right now */
 function JobsApp({ onBack }) {
   const j = game.job && jobById[game.job.id], done = game.home?.jobsDone || 0;
-  const needName = !j ? '' : j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : 'A car battery';
+  const needName = !j ? '' : j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : j.need.kind === 'custWheel' ? 'Their wheel, patched and aired up' : 'A car battery';
   const c = j ? jobCheck(j) : null;
   return <div className="phone-soon"><h3>Jobs</h3>
     {j ? <>
