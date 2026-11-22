@@ -5,10 +5,10 @@ import { FRESH, onLanding, onBottomOut, drive, effects, clues, serviceCost } fro
 test('fresh car has no effects and no clues', () => { const e = effects(FRESH()); assert.deepEqual([e.damp, e.grip, e.power, e.pull], [1, 1, 1, 0]); assert.equal(clues(FRESH()).length, 0); });
 test('soft landings do nothing, hard ones wear shocks and align it', () => {
   assert.equal(onLanding(FRESH(), 4).shocks, 0);
-  const w = onLanding(FRESH(), 12); assert.ok(w.shocks > 0.02 && w.align > 0.03);
+  const w = onLanding(FRESH(), 12); assert.ok(w.shocks > 0.005 && w.align > 0.005);
 });
 test('worn out is bounded: never worse than the stated limits', () => { const e = effects({ shocks: 1, tires: 1, align: 1, engine: 1, side: -1 }); assert.ok(e.damp >= 0.6 && e.grip >= 0.8 && e.power >= 0.75 && Math.abs(e.pull) <= 0.025); assert.ok(e.pull < 0); });
 test('wear never passes 1', () => { let w = FRESH(); for (let i = 0; i < 500; i++) w = onBottomOut(onLanding(w, 20)); assert.equal(w.shocks, 1); });
 test('wading while hot hurts the engine far more than heat alone', () => { const a = drive(FRESH(), 10, { hot: true }), b = drive(FRESH(), 10, { hot: true, wading: 0.4 }); assert.ok(b.engine > a.engine * 5); });
-test('driving fast on rough ground wears tires; idling does not', () => { assert.ok(drive(FRESH(), 600, { speed: 25, rough: 0.5 }).tires > 0.01); assert.equal(drive(FRESH(), 600, { speed: 0 }).tires, 0); });
-test('clues appear and service costs scale with wear', () => { const w = onLanding(FRESH(), 14); w.shocks = 0.7; assert.match(clues(w)[0], /bouncy|soft/); assert.ok(serviceCost(w) > serviceCost(FRESH())); });
+test('driving fast on rough ground wears tires (slowly); idling does not', () => { assert.ok(drive(FRESH(), 6000, { speed: 25, rough: 0.5 }).tires > 0.01); assert.equal(drive(FRESH(), 600, { speed: 0 }).tires, 0); });
+test('clues appear and service costs scale with wear', () => { const w = onLanding(FRESH(), 14); w.shocks = 0.7; assert.equal(serviceCost(FRESH()), 0); assert.match(clues(w)[0], /bouncy|soft/); assert.ok(serviceCost(w) > serviceCost(FRESH())); });

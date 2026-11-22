@@ -1,4 +1,5 @@
 import React from 'react';
+import { FRESH, WEAR_PARTS, PART_NAME, partCost, serviced } from '../wear.js';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
 import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
@@ -10,7 +11,7 @@ import { containerById, CONTAINER_RULES } from './loot.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
 import { SaveTools } from './update.jsx';
-import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress } from './store.js';
+import { game, useGame, owns, priceOf, nameOf, catalogFor, buy, setUnlockAll, addCash, resetProgress, say, save } from './store.js';
 
 export function TitleScreen({ onNew, onContinue, onDev, onSettings, onWiki }) {
   useGame();
@@ -193,7 +194,15 @@ export function FabPanel({ onMake, onDev, onClose }) {
     <p className="hint">Scrap metal: <b>{game.mats?.scrap || 0}</b>. Shop tools: welder {hasInGarage('welder') ? '✓' : '✗'} · tube bender {hasInGarage('bender') ? '✓' : '✗'} (build them with B).</p>
     {RECIPES.map(r => { const tools = r.tools.every(hasInGarage), mats = (game.mats?.scrap || 0) >= r.scrap; return <div key={r.id} className="inv-row"><span>{r.name}<small>{r.scrap} scrap · needs {r.tools.map(t => buildById[t].name.toLowerCase()).join(' + ')} · {r.note}</small></span>
       <span className="inv-btns"><button disabled={!tools || !mats || game.build?.fab?.hoops} onClick={() => onMake(r.id)}>{game.build?.fab?.hoops ? 'Done' : !tools ? 'Need tools' : !mats ? `${game.mats?.scrap || 0}/${r.scrap}` : 'Make'}</button></span></div>; })}
+    <WearService />
     <div className="menu">{game.dev && <button onClick={onDev}>Customizer (testing)</button>}<button className="big" onClick={onClose}>Close (Esc)</button></div></div></div>;
+}
+
+/** the bench also services the vehicle you drive: shocks, tires, alignment, engine; cheap, and only what is worn */
+function WearService() {
+  useGame();
+  const w = game.home?.wear?.[game.active] || FRESH(), fix = p => { const c = partCost(w, p); if (!c) return; if (game.cash < c) return say('Not enough cash.'); addCash(-c, 'Service: ' + PART_NAME[p]); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: serviced(w, p) } }; save(); say(PART_NAME[p] + ' done.'); };
+  return <div><h3>SERVICE YOUR VEHICLE</h3>{WEAR_PARTS.map(p => <div key={p} className="inv-row"><span>{PART_NAME[p]}<small>{w[p] < 0.02 ? 'like new' : w[p] < 0.3 ? 'a little worn' : w[p] < 0.6 ? 'worn' : 'worn out'}</small></span><span className="inv-btns"><button disabled={!partCost(w, p)} onClick={() => fix(p)}>{partCost(w, p) ? '$' + partCost(w, p) : 'Fine'}</button></span></div>)}</div>;
 }
 
 /** a customer with a small job */
