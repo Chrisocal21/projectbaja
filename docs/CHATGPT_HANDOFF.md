@@ -69,3 +69,8 @@ Stage `office3` ($14,000, proposal). Code: worlds/office.js (WING_UP, wingLevel,
 - Collision circles may now be `[x, z, r, top, bottom]`: `top` = walkers above it pass over, `bottom` = walkers below it pass under (used for the upstairs table).
 - Basic box art only: please polish the stair, rails, team table, chairs, the race planning board (blank on purpose: do not invent team names or routes), windows, a real door model.
 - Left for later: the balcony over Walt's shop floor, any link from the upstairs room to the old office loft, an upstairs use for the team room (nothing happens there yet).
+
+## New ground types: hardpack and clay (Nov 22, Claude)
+`src/catalog/physics.json` now has two more surfaces next to dirt, gravel, sand, mud, rock and pavement: **hardpack** (grip 0.85, rolling resistance 0.02: a compacted road or wash bed, nearly as good as pavement) and **clay** (grip 0.55, rolling resistance 0.05: dry clay, slippery when it dries out in a sheet). Numbers are estimates; `src/driveMeasure.test.js` measures stopping and launch on each.
+- The physics already works with them. The WORLD does not return them yet: `DriveWorld.jsx` builds its surface list from `SURF_COLOR`, and the ground lookup (`world.surface(x, z)`) only returns the old keys. To use them, add `hardpack` and `clay` colours to `SURF_COLOR` and return them from the surface lookup where it suits (compacted dirt tracks, desert wash beds = hardpack; dry lakebed, wet-season flats = clay). Tires with no entry for a surface fall back to 1.0 (catalog `wheels.json` `grip.surf`), so nothing breaks if you leave them.
+- I did not touch the world files (yours). Do not rename the keys: the tests and tire pressure code read them.

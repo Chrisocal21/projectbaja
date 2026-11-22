@@ -83,6 +83,18 @@
       "rrCoef": 0.013,
       "soft": 0
     },
+    "hardpack": {
+      "name": "Hardpack",
+      "grip": 0.85,
+      "rrCoef": 0.02,
+      "soft": 0.05
+    },
+    "clay": {
+      "name": "Clay",
+      "grip": 0.55,
+      "rrCoef": 0.05,
+      "soft": 0.5
+    },
     "dirt": {
       "name": "Packed dirt",
       "grip": 0.72,
