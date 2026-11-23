@@ -36,6 +36,8 @@ import { useBin, takeBin } from './game/bins.js';
 import { sellItem } from './game/sell.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
+import { apartBuild } from './game/teardown.js';
+import { spawnApartParts } from './game/teardownSpawn.js';
 import { mayStrip } from './game/salvage.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
 import { dustyVisit } from './game/cajonGift.js';
@@ -45,7 +47,7 @@ import { planFit, planDetach, planDetachUpgrade, planRemove, toggleCover, DEF } 
 import { isDriveable, isFitted } from './rules/restore.js';
 import { GARAGE_DRIVE } from './worlds/siteData.js';
 import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
-import { HudOverlay, KeyHints, Crosshair } from './game/hud.jsx';
+import { HudOverlay, KeyHints, BuildHint, Crosshair } from './game/hud.jsx';
 import OfficePC from './game/OfficePC.jsx';
 import { regionById } from './game/regions.js';
 import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
@@ -142,7 +144,7 @@ function App() {
   const startStory = cont => {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
-    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] })); } else if (game.build) setBuildRaw(normalize(game.build));
+    if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize(apartBuild({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] }))); spawnApartParts(); }   // the Bug starts taken apart, every part on the garage floor (game/teardown.js) else if (game.build) setBuildRaw(normalize(game.build));
     migrateGrid(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot();   // Walt's wall shelving: movable props, seeded once per save
     if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
@@ -426,6 +428,7 @@ function App() {
     <LoadingScreen />
     <div className="hud"><div ref={hud} className="speed">0 km/h</div></div>
     <Crosshair />
+    <BuildHint />
     <KeyHints driving={!game.onFoot} pro={pro} cabLabel={body.cabLabel} />
     <HudOverlay />
     <UpdateToast />

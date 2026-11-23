@@ -34,6 +34,9 @@ One bench system, not one-off code per machine.
 
 Status key: [ ] not started, [x] done, [~] partly there.
 
+### Start state: the Bug comes apart (Chris, Nov 22)
+A NEW story game now starts with the Bug taken completely apart: engine, battery, wheels, doors, fenders, seats, glass, bumpers, trim, lights, pedals, dash, steering, lid, hood and plate are all loose items on the garage floor (game/teardown.js, 35 parts; the body shell stays on). The battery starts flat (charger lesson) and the engine comes with its own pieces (engine stand lesson). A line at the top of the screen says how far along the car is and what to fit next (order and tool rules are the car's own: dash before steering wheel, wrench, jack, engine hoist). Old saves are untouched. Still to do: step-by-step teaching text for the first few steps, spreading the parts onto the shelves and bench instead of one floor block, more parts to split (suspension, brakes, wiring).
+
 ### A. Vehicle mechanics (research/PROJECT_BAJA_VEHICLE_MECHANICS)
 1. [~] Bench system: generalise the tray into recipes; tire machine is the first. (this plan)
 2. [x] Engine stand with a Tier 0 buildable motor (above): nine outside pieces, order enforced, condition kept. Not yet wired to whether the car starts (step 3).

@@ -45,6 +45,7 @@ export function HudOverlay() {
   </>;
 }
 
+import { nextStep } from './teardown.js';
 /** bottom-left key hints for the current mode */
 export function KeyHints({ driving, pro, cabLabel }) {
   useGame();
@@ -55,6 +56,14 @@ export function KeyHints({ driving, pro, cabLabel }) {
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['Y', 'Unstuck'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]
       : [['WASD', 'Walk'], ['Shift', 'Run'], ['E', 'Interact'], ['Tab', 'Inventory'], ['F', 'Car storage'], ['L', 'Lights'], ['Y', 'Unstuck'], ...(game.canBuild ? [['B', 'Build'], ['U', 'Upgrades']] : []), ['M', 'Map'], ['I', 'Index'], ['Esc', 'Menu']];
   return <div className={`hud-keys2${bm ? ' col' : ''}`}>{bm?.why && <span style={{ color: '#ff8a7a' }}>{bm.why}</span>}{list.map(([k, t]) => <span key={k + t}><Key k={k} />{t}</span>)}</div>;
+}
+
+/** the assembly guide: while the Bug is not whole, one line says how far along it is and what to fit next (game/teardown.js) */
+export function BuildHint() {
+  useGame();
+  if (!game.onFoot || game.buildMode || game.dev || !game.build) return null;
+  const n = nextStep(game.build); if (!n) return null;
+  return <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', background: '#000a', color: '#f3e6c4', padding: '4px 12px', borderRadius: 4, fontSize: 13, pointerEvents: 'none', zIndex: 5 }}>{n.text}</div>;
 }
 
 export function Crosshair() {
