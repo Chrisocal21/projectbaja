@@ -42,6 +42,33 @@ const border = makeBorder(meta, H, M);
 const keep = JSON.parse(fs.readFileSync(new URL('../tools/keep.json', import.meta.url)));
 const t0 = Date.now();
 const trails = planTrails(border, hw.roads, keep);
+// Check the baked centerlines, including the bends introduced by smoothing.
+// A valid route joins pavement at both ends and does not cut through mapped water.
+const paved = hw.roads.filter(r => r.kind !== 'dirt' && r.kind !== 'ramp');
+const distanceToPavement = ([x, z]) => {
+  let nearest = Infinity;
+  for (const road of paved) for (let i = 1; i < road.pts.length; i++) {
+    const [ax, az] = road.pts[i - 1], [bx, bz] = road.pts[i];
+    const dx = bx - ax, dz = bz - az, len2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / len2));
+    nearest = Math.min(nearest, Math.hypot(x - ax - t * dx, z - az - t * dz));
+  }
+  return nearest;
+};
+for (const trail of trails) {
+  const [first, last] = [trail.pts[0], trail.pts.at(-1)];
+  if (distanceToPavement(first) > 90 || distanceToPavement(last) > 90) {
+    throw new Error(`${trail.name} has an end farther than 90 m from pavement: ${first} -> ${last}`);
+  }
+  for (let i = 1; i < trail.pts.length; i++) {
+    const [ax, az] = trail.pts[i - 1], [bx, bz] = trail.pts[i];
+    const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 20));
+    for (let s = 0; s <= steps; s++) {
+      const x = ax + (bx - ax) * s / steps, z = az + (bz - az) * s / steps;
+      if (border.waterAt(x, z) != null) throw new Error(`${trail.name} crosses water at ${Math.round(x)},${Math.round(z)}`);
+    }
+  }
+}
 console.log(trails.length, 'dirt roads,', (trails.reduce((s, t) => s + length(t.pts), 0) / 1000).toFixed(0), 'km total', Date.now() - t0, 'ms');
 for (const t of trails) console.log((length(t.pts) / 1000).toFixed(1) + ' km', t.pts[0].join(','), '->', t.pts.at(-1).join(','));
 fs.writeFileSync(new URL('trails.json', dir), JSON.stringify({ source: 'tools/build_trails.mjs', trails }));

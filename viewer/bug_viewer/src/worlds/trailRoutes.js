@@ -177,5 +177,36 @@ export function planTrails(border, roads, keep = [], { want = 18, tries = 260, s
     if (picked.some(p => p.runs.some(r1 => c.runs.some(r2 => r1.some((u, i) => i % 4 === 0 && r2.some((v, j) => j % 4 === 0 && Math.hypot(u[0] - v[0], u[1] - v[1]) < minSpread * 0.2))))) ) continue;
     picked.push(c);
   }
-  return picked.flatMap(c => c.runs).map(pts => ({ name: 'Dirt road', kind: 'dirt', pts }));
+  const main = picked.flatMap(c => c.runs).map(pts => ({ name: 'Dirt road', kind: 'dirt', pts }));
+
+  // The real western Imperial route map has a finer mesh around Plaster City,
+  // Yuha Basin and the adjoining washes than the sparse long-distance network.
+  // These are original, terrain-routed connectors, not traced BLM route lines.
+  // Both ends return to pavement, so a player can leave and rejoin the main road.
+  const localAnchors = anchors.filter(([x, z]) => x > -5000 && x < 1500 && z > -3200 && z < 3200);
+  const local = [], localTry = Math.min(260, tries);
+  for (let t = 0; t < localTry && localAnchors.length > 2; t++) {
+    const a = localAnchors[(rnd() * localAnchors.length) | 0];
+    const near = localAnchors.filter(b => {
+      const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      return d > 1800 && d < 6000;
+    });
+    if (!near.length) continue;
+    const b = near[(rnd() * near.length) | 0];
+    const cells = findTrail(g, a[2], b[2], 110000);
+    if (!cells) continue;
+    const runs = dirtRuns(g, cells, 350);
+    const dirt = runs.reduce((sum, r) => sum + length(r), 0);
+    const straight = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (dirt < 900 || dirt > 6500 || cells.length * CELL > straight * 2.05) continue;
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    // Keep separate connectors rather than stacking many near-identical tracks.
+    if (local.some(c => Math.hypot(c.mid[0] - mid[0], c.mid[1] - mid[1]) < 850)) continue;
+    const overlaps = r => r.pts.some((p, i) => i % 8 === 0 && runs.some(run => run.some((q, j) => j % 8 === 0 && Math.hypot(p[0] - q[0], p[1] - q[1]) < 180)));
+    if (main.some(overlaps) || local.some(c => c.runs.some(pts => overlaps({ pts })))) continue;
+    local.push({ mid, runs });
+    if (local.length >= 12) break;
+  }
+  // highways.js joins baked routes named "Dirt road" to the final paved mesh.
+  return [...main, ...local.flatMap(c => c.runs).map(pts => ({ name: 'Dirt road', kind: 'dirt', pts }))];
 }
