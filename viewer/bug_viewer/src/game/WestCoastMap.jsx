@@ -117,8 +117,8 @@ export default function WestCoastMap() {
           const loop = c.kind === 'loop', s = c.start, f = c.finish || c.start;
           const flag = (p, txt, col) => { const [a, b] = point(p.x, p.z), r = (big ? 9 : 7) * K / z1; g.fillStyle = col; g.strokeStyle = '#fff'; g.lineWidth = 2 * K / z1; g.beginPath(); g.arc(a, b, r, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = `800 ${(big ? 11 : 9) * K / z1}px "Barlow Condensed", sans-serif`; g.textAlign = 'center'; g.fillText(txt, a, b + 3.5 * K / z1); };
           if (s) flag(s, loop ? 'S/F' : 'S', '#2f9e5b'); if (!loop && f) flag(f, 'F', '#c4372d');
-          if (s && (big || zoom >= 6)) label(c.name.toUpperCase() + (loop ? ' START/FINISH' : ' START'), s.x, s.z - (big ? 600 : 400), color, 12);
-          if (!loop && f && (big || zoom >= 6)) label(c.name.toUpperCase() + ' FINISH', f.x, f.z - 600, color, 12);
+          if (s && (big || zoom >= 6)) label(c.name.toUpperCase() + (loop ? ' START/FINISH' : ' START') + (c.from ? ' · ' + c.from.toUpperCase() : ''), s.x, s.z - (big ? 600 : 400), color, 12);
+          if (!loop && f && (big || zoom >= 6)) label(c.name.toUpperCase() + ' FINISH' + ((c.to || c.from) ? ' · ' + (c.to || c.from).toUpperCase() : ''), f.x, f.z - 600, color, 12);
         }
       }
       // cities and towns

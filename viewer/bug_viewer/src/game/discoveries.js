@@ -31,7 +31,7 @@ export function buildDiscoverables({ towns = [], places = [], stops = [], wrecks
   for (const t of towns) list.push({ id: 'town-' + t.name, kind: 'town', name: t.name, x: t.x, z: t.z });
   stops.forEach((s, i) => list.push({ id: 'stop-' + i, kind: 'stop', name: s.name || (s.type === 'gas' ? 'Gas station' : 'Rest area'), x: s.x, z: s.z }));
   for (const w of wrecks) list.push({ id: 'wreck-' + w.id, kind: 'wreck', name: w.name, x: w.x, z: w.z });
-  for (const c of courses) list.push({ id: 'race-' + c.id, kind: 'race', name: `${c.name} start`, x: c.start.x, z: c.start.z });
+  for (const c of courses) list.push({ id: 'race-' + c.id, kind: 'race', name: c.from ? `${c.name} start (${c.from})` : `${c.name} start`, x: c.start.x, z: c.start.z });
   const near = list.filter(d => d.kind === 'stop' || d.kind === 'wreck' || d.kind === 'race');
   for (const d of near) d.hint = hintFor(d, towns);
   return list.map(d => ({ ...d, reach: REACH[d.kind] }));
