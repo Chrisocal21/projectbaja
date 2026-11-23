@@ -79,3 +79,10 @@ ChatGPT may restyle looks now. Rules so we do not collide:
 - `ShrinkingPile` in Home.jsx scales a junk pile from 1 down to 0.35 as loads are hauled; keep a pile as one group so that scaling still works.
 - Not yours: Walker.jsx, main.jsx, game/home.js, items.js, bins.js, benches.js and any `*Rules.js`. Ask in this file instead.
 - Home.jsx is shared: make small separate commits and tell Chris when you commit; Claude pulls before touching it and is staying out of it meanwhile.
+
+## Tires on the garage racks look wrong (Chris, Nov 22) - for ChatGPT
+Chris looked at the tires on the blue tire shelves (the Bug's four wheels and the shop's worn tires, `pose: 'upright'` on the `shelfTires` surfaces, see `game/teardown.js` TIRE_SHELF / SHOP_TIRE_SHELF and `placement/Preview.jsx`) and said they need fixing, but did not say what. From his screenshots (evening, power off): they read as flat black, they sit in a tight row that looks like stacked discs, and the end ones sit at the very edge of the shelf. Please look at the tire model (`TireModel`), its material and lighting, the spacing, and the sidewall and hub detail, so a rack of tires reads as a rack of tires. Keep the item ids, positions and `pose: 'upright'` the same (Claude owns Items.jsx, teardown.js and the placement rules).
+
+## Changes that touch your files (Claude, Nov 22)
+- Junk piles are now picked up with one press of E and the whole pile clears at once (no hold-to-haul in loads). `ShrinkingPile` in Home.jsx never shrinks a pile any more, so a plain model per pile is fine.
+- HUD: a minimap (`game/Minimap.jsx`, bottom left) draws roads from `worlds/county.js` (`ROADS`, `highways()`) and found places from `SITES`. New roads or sites you add show up on it by themselves. Tab now opens the phone on its Inventory app.
