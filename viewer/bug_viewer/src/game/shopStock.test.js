@@ -37,3 +37,9 @@ test('what you bought comes back on the shelf after three game days', () => {
   const back = shelf(s, ctx, sold, 10 + RESTOCK_HOURS, soldAt);
   assert.ok(back.rows.some(r => r.id === row.id)); assert.equal(back.soldCount, 0);
 });
+test('every finishing tool can be bought: ordered, at the store, and an off-road store carries some', async () => {
+  const { GARAGE_SUPPLIES } = await import('./garageSupplies.js'), { FINISH_TOOLS } = await import('../finishJobs.js');
+  for (const id of Object.keys(FINISH_TOOLS)) assert.ok(GARAGE_SUPPLIES.some(r => r[0] === 'tool:' + id && r[2] > 0), id);
+  const finCtx = { ...ctx, supplyPrice: id => (id.startsWith('tool:') ? 50 : 20) };
+  assert.ok([1, 2, 3, 4, 5, 6].some(x => shopRows(at('offroad', x * 977), finCtx).rows.some(r => r.kind === 'tool' && r.itemId !== 'wrench' && FINISH_TOOLS[r.itemId])));
+});

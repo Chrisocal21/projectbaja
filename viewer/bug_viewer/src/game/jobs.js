@@ -20,6 +20,9 @@ export const STORE_ITEMS = [
   ['stock:battery', '12V car battery', 60, 'small · fits in your pack'],
   ['tool:wrench', 'Wrench', 15, 'small · bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'large · change tires anywhere'],
+  ['tool:hose', 'Hose / power sprayer', 60, 'small · washes the dirt off'],
+  ['tool:spray-white', 'White spray paint', 12, 'small · paints a panel'],
+  ['tool:spray-black', 'Black spray paint', 12, 'small · paints a panel'],
   ...Object.entries(SUPPLIES).map(([id, s]) => ['supply:' + id, s.name, s.price, 'small · for customer jobs']),
   ['wash', 'Hand wash & wax', 120, 'cleans up the paint a bit'],
 ];

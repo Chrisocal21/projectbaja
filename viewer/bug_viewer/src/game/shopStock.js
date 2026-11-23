@@ -23,6 +23,8 @@ export const SPECIALTY = {
 };
 const JUNK_PRICE = { drum: 18, jerrycan: 10, crate: 8, engineblock: 60 };
 const SUPPLY_IDS = ['oil', 'bulb', 'plug', 'wipers', 'belt'];
+/** the finishing tools (finishJobs.js): the off-road stores carry them new, junkyards and barns now and then used */
+const FINISH_IDS = ['grinder', 'buffer', 'hose', 'spray-white', 'spray-red', 'spray-blue', 'spray-black', 'spray-yellow'];
 
 /**
  * site: { type, x, z }; ctx: { cat: { part: [{id, slot}], wheel: [{id}], rim: [{id}], stock?: [{id}] }, price(kind, id), supplyPrice(id), martItems?: [{id, kind, itemId, price, note}] }
@@ -31,6 +33,7 @@ const SUPPLY_IDS = ['oil', 'bulb', 'plug', 'wipers', 'belt'];
 export function shopRows(site, ctx) {
   const rnd = rngOf(site), { cat, price } = ctx, rows = [], add = (kind, itemId, factor, note) => rows.push({ id: kind + ':' + itemId, kind, itemId, price: Math.max(1, Math.round(price(kind, itemId) * factor)), note });
   const jit = (lo, hi) => lo + rnd() * (hi - lo), sup = (s, f) => rows.push({ id: 'supply:' + s, kind: 'supply', itemId: s, price: Math.max(1, Math.round(ctx.supplyPrice('supply:' + s) * f)), note: 'supply' });
+  const fin = (id, f, note) => rows.push({ id: 'tool:' + id, kind: 'tool', itemId: id, price: Math.max(1, Math.round(ctx.supplyPrice('tool:' + id) * f)), note });
   if (site.type === 'offroad') {
     const keys = Object.keys(SPECIALTY), spec = SPECIALTY[keys[Math.floor(rnd() * keys.length)]];
     const pool = cat.part.filter(p => spec.slots.includes(p.slot)), other = cat.part.filter(p => !spec.slots.includes(p.slot));
@@ -40,6 +43,7 @@ export function shopRows(site, ctx) {
     for (const r of take(cat.rim, 2, rnd)) add('rim', r.id, jit(0.95, 1.1), 'new rim');
     rows.push({ id: 'tool:wrench', kind: 'tool', itemId: 'wrench', price: Math.round(ctx.supplyPrice('tool:wrench') * 1.2), note: 'tool' });
     for (const s of take(SUPPLY_IDS, 2, rnd)) sup(s, 1.15);
+    for (const t of take(FINISH_IDS, 2, rnd)) fin(t, jit(1.05, 1.2), 'tool · new');
     return { rows, theme: spec.name };
   }
   if (site.type === 'junk') {
@@ -47,6 +51,7 @@ export function shopRows(site, ctx) {
     for (const w of take(cat.wheel, 1, rnd)) add('wheel', w.id, jit(0.35, 0.5), 'used wheel set');
     for (const r of take(cat.rim, 2, rnd)) add('rim', r.id, jit(0.3, 0.5), 'used rim');
     for (const id of take(Object.keys(JUNK_PRICE), 3, rnd)) rows.push({ id: 'junk:' + id, kind: 'junk', itemId: id, price: Math.round(JUNK_PRICE[id] * jit(0.9, 1.4)), note: 'junk' });
+    if (rnd() < 0.45) fin(take(FINISH_IDS.slice(0, 3), 1, rnd)[0], jit(0.35, 0.55), 'tool · used, works');
     if (cat.stock?.length && rnd() < 0.7) for (const c of take(cat.stock, 2, rnd)) add('stock', c.id, jit(0.45, 0.65), 'used · El Cajon');
     return { rows, theme: 'used parts' };
   }
@@ -56,6 +61,7 @@ export function shopRows(site, ctx) {
     if (rnd() < 0.4) rows.push({ id: 'tool:jack', kind: 'tool', itemId: 'jack', price: Math.round(ctx.supplyPrice('tool:jack') * jit(0.5, 0.75)), note: 'tool · heavy, old' });
     if (rnd() < 0.6) rows.push({ id: 'stock:battery', kind: 'stock', itemId: 'battery', price: Math.round(60 * jit(0.45, 0.7)), note: 'old battery, holds a charge' });
     for (const id of take(Object.keys(JUNK_PRICE), 2, rnd)) rows.push({ id: 'junk:' + id, kind: 'junk', itemId: id, price: Math.round(JUNK_PRICE[id] * jit(0.5, 0.9)), note: 'junk' });
+    if (rnd() < 0.4) fin(take(FINISH_IDS, 1, rnd)[0], jit(0.4, 0.65), 'tool · well worn');
     for (const p of take(cat.part, 1 + Math.floor(rnd() * 2), rnd)) add('part', p.id, jit(0.6, 0.85), 'barn find');
     if (rnd() < 0.35) for (const w of take(cat.wheel, 1, rnd)) add('wheel', w.id, jit(0.5, 0.7), 'barn find · wheel set');
     return { rows, theme: 'barn finds' };

@@ -13,6 +13,11 @@ export const GARAGE_SUPPLIES = [
   ['epart:plugs', 'Spark plugs (set of 4)', 16, 'supplies', "new, for the Bug's engine; dropped off at the garage door"],
   ['tool:wrench', 'Wrench', 15, 'tools', 'bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'tools', 'change tires anywhere'],
+  // finish tools (src/finishJobs.js): hold-click on a panel. Prices are PROPOSALs; the cans are not used up yet
+  ['tool:grinder', 'Angle grinder', 85, 'tools', 'takes paint and rust off a panel'],
+  ['tool:buffer', 'Buffer', 70, 'tools', 'brings the paint up to a shine'],
+  ['tool:hose', 'Hose / power sprayer', 60, 'tools', 'washes the dirt off'],
+  ...[['white', 'White'], ['red', 'Red'], ['blue', 'Blue'], ['black', 'Black'], ['yellow', 'Yellow']].map(([c, n]) => ['tool:spray-' + c, n + ' spray paint', 12, 'tools', 'paints a panel']),
 ];
 export const SUPPLY_TABS = [['supplies', 'Supplies'], ['tools', 'Tools']];
 const byId = Object.fromEntries(GARAGE_SUPPLIES.map(r => [r[0], r]));
