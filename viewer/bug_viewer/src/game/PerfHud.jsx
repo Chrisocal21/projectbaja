@@ -33,7 +33,7 @@ export default function PerfHud() {
   }, []);
   useEffect(() => {
     const el = document.createElement('div');
-    el.style.cssText = `position:fixed;right:18px;top:${detailed ? 250 : 236}px;z-index:9999;padding:${detailed ? '8px 10px' : '5px 8px'};background:#111d;color:#d8e7dc;font:700 12px/1.4 monospace;white-space:pre;pointer-events:none;border:1px solid #fff3`;
+    el.style.cssText = `position:fixed;right:18px;top:${detailed ? 12 : 80}px;z-index:9999;padding:${detailed ? '8px 10px' : '5px 8px'};background:#111d;color:#d8e7dc;font:700 12px/1.4 monospace;white-space:pre;pointer-events:none;border:1px solid #fff3`;
     document.body.appendChild(el); node.current = el;
     return () => { el.remove(); node.current = null; };
   }, []);

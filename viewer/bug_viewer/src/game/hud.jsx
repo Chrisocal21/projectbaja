@@ -40,12 +40,6 @@ export function HudOverlay() {
     </div>
     {game.prompt && <div className="hud-prompt2">{promptParts(game.prompt).map(([k, t], i) => <span key={i} className="hp-part">{k && <Key k={k} />}<span>{t}</span></span>)}</div>}
     {game.toast && <div key={game.toast.t} className="hud-toast2"><i />{game.toast.msg}</div>}
-    {game.onFoot && !game.buildMode && <div className="hud-carry2">
-      <div className="hc-hands"><small>IN HANDS</small><b>{held() ? nameOfItem(held()) : 'Empty'}</b>{held() && <em>{SIZE_NAME[sizeOf(held().kind, held().id)]} · <Key k="G" /> put down</em>}</div>
-      <Meter label="Pack" v={used('pack')} cap={packCap()} />
-      {Object.entries(storageOf()).map(([k, v]) => <Meter key={k} label={`${activeType().name} · ${v.label}`} v={used(k)} cap={v.cap} />)}
-      {activeType().kind === 'build' && !hasRack() && <div className="hc-note">No roof rack</div>}
-    </div>}
   </>;
 }
 

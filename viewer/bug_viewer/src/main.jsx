@@ -133,7 +133,7 @@ function App() {
   const [build, setBuildRaw] = useState(initialBuild);
   const [wireframe, setWireframe] = useState(false), [spin, setSpin] = useState(false), [grid, setGrid] = useState(true);
   const buildRef = useRef(null);
-  const [mode, setMode] = useState('title'), [play, setPlay] = useState({ kind: 'drive', world: 'test' }), [panel, setPanelState] = useState(null), [fs, setFs] = useState(false), hud = useRef(null), panelRef = useRef(null);
+  const [mode, setMode] = useState('title'), [play, setPlay] = useState({ kind: 'drive', world: 'test' }), [panel, setPanelState] = useState(null), [fs, setFs] = useState(false), phoneStart = useRef(null), hud = useRef(null), panelRef = useRef(null);
   const drive = mode === 'play', pro = drive && play.kind === 'pro', world = play.world;
   const setBuild = next => { if (mode === 'play') game.keepPose = true; setBuildRaw(next); };
   const setPanel = p => { panelRef.current = p; game.paused = p !== null; setPanelState(p); if (p && document.pointerLockElement) document.exitPointerLock(); };
@@ -256,7 +256,7 @@ function App() {
     const key = e => {
       const p = panelRef.current;
       const bm = game.buildMode;
-      if (e.code === 'KeyP' && !e.repeat && e.target?.tagName !== 'INPUT') { e.preventDefault(); if (p === 'pause') resume(); else setPanel('pause'); return; }
+      if (e.code === 'KeyP' && !e.repeat && e.target?.tagName !== 'INPUT') { e.preventDefault(); if (p === 'pause') resume(); else { phoneStart.current = null; setPanel('pause'); } return; }
       if (game.flyMode && p === null && e.code !== 'Escape') return;
       if (p === 'wiki') {   // the game index: typing goes to its search box; I / Esc close it
         if (e.target?.tagName === 'INPUT' && e.code !== 'Escape') return;
@@ -302,7 +302,7 @@ function App() {
       if (e.code === 'KeyM' && !e.repeat && play.world === 'county' && (p === null || p === 'map')) { if (p === 'map') resume(); else setPanel('map'); return; }
       if (e.code === 'Escape' && p === 'settings') { setPanel('pause'); return; }
       if (e.code === 'Escape') { if (p === 'pause' || p === 'shop' || p === 'garage' || p === 'map' || p === 'dealer' || p === 'letter' || p === 'fab' || p === 'pc' || p === 'job' || p === 'trailer' || p === 'inv' || p === 'workshop' || p === 'store' || p?.startsWith('shell:') || p?.startsWith('box:')) resume(); }
-      else if (e.code === 'Tab') { e.preventDefault(); if (p === 'inv') resume(); else if (p === null && game.onFoot) setPanel('inv'); }
+      else if (e.code === 'Tab') { e.preventDefault(); if (e.repeat) return; if (p === 'pause') resume(); else if (p === null && game.onFoot) { phoneStart.current = 'inv'; setPanel('pause'); } }   // Tab opens the phone on the Inventory app
       else if (p === null && game.onFoot && !e.repeat && e.code === 'KeyF') { if (vehiclesNear().length) { if (held()) loadHeld(); else takeFromCar(); } }
       else if (e.code === 'KeyG' && !e.repeat && p === null && !game.onFoot && game.target === 'crank') interact('exit');
       else if (e.code === 'KeyT' && !e.repeat && p === null && game.onFoot && toolInHand() && game.target?.startsWith('car:') && game.carPlan?.part) { const part = game.carPlan.part; cancelHold(); startHold(SERVICE_VERB[part] + '…', () => doService(part), false, 4000); }   // hold T near the car with a tool: service what is worn (wear.js)
@@ -443,7 +443,7 @@ function App() {
     {panel === 'settings' && <SettingsPanel onClose={() => setPanel('pause')} />}
     {panel === 'wiki' && <WikiPanel onClose={resume} />}
     {panel === 'upgrades' && <UpgradesPanel onClose={resume} />}
-    {panel === 'pause' && <PhonePanel canMap={play.world === 'county'} onMap={() => setPanel('map')} onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} onFly={() => { game.flyMode = !game.flyMode; say(game.flyMode ? 'Fly: WASD move, mouse look, Space up, Q down, Shift faster. Phone to stop.' : 'Back in the vehicle'); resume(); }} fullscreen={fs} onFullscreen={toggleFs}
+    {panel === 'pause' && <PhonePanel start={phoneStart.current} canMap={play.world === 'county'} onMap={() => setPanel('map')} onResume={resume} onSettings={() => setPanel('settings')} onWiki={() => setPanel('wiki')} onUpgrades={() => setPanel('upgrades')} onCustomize={() => setPanel('garage')} onExit={toTitle} onFly={() => { game.flyMode = !game.flyMode; say(game.flyMode ? 'Fly: WASD move, mouse look, Space up, Q down, Shift faster. Phone to stop.' : 'Back in the vehicle'); resume(); }} fullscreen={fs} onFullscreen={toggleFs}
       teleports={!game.dev ? [] : play.kind === 'drive' && play.world === 'test' ? TEST_SPAWNS : play.world === 'county' ? COUNTY_SPAWNS : []} onTeleport={k => { resume(); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit' + k })); }} />}
     {panel === 'shop' && <ShopPanel bodyId={body.id} build={build} story={!game.dev} onBuy={game.dev ? equip : buyBoxed} onUnequip={unequip} onClose={resume} previewOf={previewOf} renderPreview={(pb, close) => <Stage build={pb} cam={close ? { pos: [2.3, 0.9, 3.0], target: [0, 0.45, 0.5] } : null} autoRotate showGrid={false} resetKey={0} onSelect={() => {}} />} />}
     {panel === 'dealer' && <DealerPanel onBuy={id => buyVehicle(id)} onClose={resume} />}

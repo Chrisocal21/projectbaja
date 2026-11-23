@@ -20,6 +20,7 @@ import ExplorerApp from './ExplorerApp.jsx';
 import { takePhoto, updatePhoto, deletePhoto, photos } from './photos.js';
 import { coordText, postedFeed } from './photologic.js';
 import { compassPoint } from './compass.js';
+import { InventoryBody } from './ui.jsx';
 
 const SOON = { web: 'Browse the internet (parts, cars, news)', bank: 'Money: bills, sales, balance history', texts: 'Messages from suppliers and clients', contacts: 'Who you know in town', jobs: 'Odd jobs and orders', story: 'Story log: letters, photos, notes', camera: 'Take photos for the wall', music: 'Radio and music', weather: 'Weather and time', orders: 'Order parts, watch the delivery on the map', cars: 'Cars for sale' };
 const ICONS = {
@@ -27,16 +28,18 @@ const ICONS = {
   bank: 'M12 3v18M16.5 7.5C15.5 6 13.5 5.5 12 5.5c-2 0-3.8 1-3.8 2.8 0 4 8 2 8 6.2 0 1.8-1.8 3-4.2 3-1.8 0-3.6-.7-4.5-2.2',
   settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12l2-1.5-2-3.5-2.4.8-1.6-1L14.6 4h-4l-.4 2.8-1.6 1L6.2 7 4.2 10.5 6.2 12l-.1 1-2 1.5 2 3.5 2.4-.8 1.6 1 .4 2.8h4l.4-2.8 1.6-1 2.4.8 2-3.5-2-1.5z',
   texts: 'M4 5h16v11H9l-5 4V5z', contacts: 'M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4 20c1-4 4-6 8-6s7 2 8 6', jobs: 'M4 8h16v11H4zM9 8V5h6v3', story: 'M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7',
+  inv: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2',
   camera: 'M4 8h4l2-3h4l2 3h4v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', music: 'M9 18V6l10-2v12M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM19 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z', weather: 'M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.5-1A4.5 4.5 0 0 1 17 18z',
   orders: 'M3 6h3l2 10h10l2-7H7', cars: 'M4 15v-3l2-5h12l2 5v3M4 15h16M7 18v2M17 18v2M7 12h10', explorer: 'M12 21s-6-5.5-6-10a6 6 0 0 1 12 0c0 4.500-6 10-6 10zM12 8.500a2.500 2.500 0 1 0 0 5 2.500 2.500 0 0 0 0-5z', admin: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.2-.7-.7-2.2z', save: 'M5 4h12l2 2v14H5zM8 4v5h7V4M8 20v-6h8v6', index: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM9 8h6', upgrades: 'M12 20V6M6 12l6-6 6 6', fly: 'M3 13l8-2 4-7 2 1-2 7 6 3v2l-7-1-3 4-2-1 1-5-7 1z', power: 'M12 3v8M6.5 6.5a8 8 0 1 0 11 0', full: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
 };
 const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
 
-export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onFly, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
+export function PhonePanel({ start, onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onFly, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [explorerView, setExplorerView] = useState(false), [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [wxView, setWxView] = useState(false), [carsView, setCarsView] = useState(false), [camView, setCamView] = useState(false), [adminView, setAdminView] = useState(false);   // story: null | 'list' | 'letter'
+  const [explorerView, setExplorerView] = useState(false), [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [wxView, setWxView] = useState(false), [carsView, setCarsView] = useState(false), [camView, setCamView] = useState(false), [adminView, setAdminView] = useState(false), [invView, setInvView] = useState(start === 'inv');   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
+    ...(game.onFoot ? [real('inv', 'Inventory', () => setInvView(true), 'Tab')] : []),
     ...(canMap ? [real('map', 'Map', onMap, 'M')] : []),
     real('web', 'Internet', () => setNetView(true)), real('bank', `$${game.cash}`, () => setBankView(true)),
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('admin', 'Admin', () => setAdminView(true), 'test tool'), real('index', 'Index', onWiki, 'I'), real('explorer', 'Explorer', () => setExplorerView(true)),
@@ -46,10 +49,14 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
     real('fly', game.flyMode ? 'Stop flying' : 'Fly', onFly),
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
+  const SECTIONS = [['Garage', ['inv', 'orders', 'web', 'jobs', 'cars', 'upgrades']], ['Town', ['map', 'weather', 'bank', 'story', 'camera', 'texts', 'contacts', 'music']], ['Phone', ['index', 'explorer', 'settings', 'save', 'full', 'fly', 'admin', 'power']]];
+  const byKey = Object.fromEntries(apps.map(a => [a.key, a])), grouped = SECTIONS.map(([t, ks]) => [t, ks.map(k => byKey[k]).filter(Boolean)]).filter(([, l]) => l.length);
+  const appBtn = a => <button key={a.key} className={`ph-app k-${a.key}${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>;
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>{clockText(game.clock ?? 9)} <span style={{ opacity: 0.6 }}>▂▄▆</span></span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
-    {explorerView ? <ExplorerApp onBack={() => setExplorerView(false)} />
+    {invView ? <div className="phone-soon inv-app"><h3>Inventory</h3><div className="inv-scroll"><InventoryBody /></div><button onClick={() => setInvView(false)}>Back</button></div>
+      : explorerView ? <ExplorerApp onBack={() => setExplorerView(false)} />
       : adminView ? <AdminApp onBack={() => setAdminView(false)} />
       : camView ? <CameraApp onBack={() => setCamView(false)} />
       : carsView ? <CarSalesApp onBack={() => setCarsView(false)} />
@@ -61,9 +68,9 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
       : story ? <StoryLog view={story} setView={setStory} />
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><AccountBox /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
-      : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app k-${a.key}${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
-    {teleports?.length > 0 && !soon && !adminView && !explorerView && !camView && !wxView && !carsView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
-    <button className="phone-home" onClick={onResume}>Close (P)</button><div className="phone-pill" />
+      : <div className="phone-grid">{grouped.map(([t, l]) => <React.Fragment key={t}><div className="ph-sec">{t}</div>{l.map(appBtn)}</React.Fragment>)}</div>}
+    {teleports?.length > 0 && !soon && !invView && !adminView && !explorerView && !camView && !wxView && !carsView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
+    <button className="phone-home" onClick={onResume}>Close (P / Tab)</button><div className="phone-pill" />
   </div></div>;
 }
 

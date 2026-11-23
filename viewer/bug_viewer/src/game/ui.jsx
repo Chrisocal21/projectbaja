@@ -141,12 +141,16 @@ export function ContainerPanel({ id, onClose }) {
 
 /** Tab: hands, pack, the storage of every vehicle you are standing at (the one you drive and any you left parked), the garage shelves */
 export function InventoryPanel({ onClose }) {
+  return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2><InventoryBody /><div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
+}
+/** hands, pack, car storage, scrap and garage backstock: lives in the phone (Tab) */
+export function InventoryBody() {
   useGame();
   const h = held(), pack = packItems(), vehs = vehiclesNear(), shed = inGarageZone(game.pos.x, game.pos.z), shelf = garageItems();
   const shown = [game.active, ...vehs.filter(v => v !== game.active)];   // the one you drive is always listed; parked ones appear when you walk up to them
   const toShelf = it => shed && <button onClick={() => storeInGarage(it.uid)}>Shelve in backstock</button>;
   const putIn = it => vehs.map(v => <button key={v} onClick={() => stowInCar(it.uid, v)}>{vehs.length > 1 ? `Put in ${vehicleType(v).name}` : 'Put in car'}</button>);
-  return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
+  return <>
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
     <div className="inv-sec">PACK <span>{used('pack')}/{packCap()} · small parts only</span></div>
     {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
@@ -158,7 +162,7 @@ export function InventoryPanel({ onClose }) {
     <div className="inv-sec">SCRAP METAL <span>{game.mats?.scrap || 0} pieces · used at the workbench</span></div>
     <div className="inv-sec">STORAGE ROOM ? BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
-    <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
+  </>;
 }
 
 /** a lifted-off body shell sitting in the yard */
