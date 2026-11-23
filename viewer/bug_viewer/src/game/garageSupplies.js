@@ -13,6 +13,7 @@ export const GARAGE_SUPPLIES = [
   ['epart:plugs', 'Spark plugs (set of 4)', 16, 'supplies', "new, for the Bug's engine; dropped off at the garage door"],
   ['tool:wrench', 'Wrench', 15, 'tools', 'bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'tools', 'change tires anywhere'],
+  ['tool:pump', '12 V tire pump', 35, 'tools', 'plugs and fills a tire anywhere (needs a plug kit for a hole)'],
   // finish tools (src/finishJobs.js): hold-click on a panel. Prices are PROPOSALs; the cans are not used up yet
   ['tool:grinder', 'Angle grinder', 85, 'tools', 'takes paint and rust off a panel'],
   ['tool:buffer', 'Buffer', 70, 'tools', 'brings the paint up to a shine'],

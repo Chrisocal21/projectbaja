@@ -6,7 +6,12 @@ export const PSI = { min: 8, max: 45, street: 30, bleedPerSec: 4, pumpPerSec: 6 
 export const PRESSURE_TOOLS = {
   gauge: { name: 'Tire gauge', size: 1, verb: 'Letting air out' },
   airchuck: { name: 'Air chuck', size: 1, verb: 'Filling' },
+  pump: { name: '12 V tire pump', size: 1, verb: 'Pumping' },   // the field kit: plugs a flat with a plug kit, then fills from the car's battery, anywhere
 };
+/** seconds of holding to plug a hole in the field (PROPOSAL) */
+export const PATCH_SECS = 6;
+/** the 12 V pump is slower than the garage compressor */
+export const FIELD_PUMP_PER_SEC = 3;
 export const isPressureTool = id => !!PRESSURE_TOOLS[id];
 export const PRESSURE_TOOL_ITEMS = Object.fromEntries(Object.entries(PRESSURE_TOOLS).map(([id, t]) => [id, { name: t.name, size: t.size }]));
 
@@ -21,6 +26,10 @@ export function stepPressure(toolId, psi, dt, hasAir = false) {
     if (!hasAir) return { ok: false, psi, why: 'The air chuck needs the air compressor in the garage.' };
     if (psi >= PSI.max) return { ok: false, psi, why: `${PSI.max} psi is the most this tire will take.` };
     return { ok: true, psi: round(Math.min(PSI.max, psi + PSI.pumpPerSec * dt)) };
+  }
+  if (toolId === 'pump') {
+    if (psi >= PSI.max) return { ok: false, psi, why: `${PSI.max} psi is the most this tire will take.` };
+    return { ok: true, psi: round(Math.min(PSI.max, psi + FIELD_PUMP_PER_SEC * dt)) };
   }
   return { ok: false, psi, why: 'That tool does not change tire pressure.' };
 }

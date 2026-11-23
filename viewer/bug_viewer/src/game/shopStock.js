@@ -44,6 +44,7 @@ export function shopRows(site, ctx) {
     rows.push({ id: 'tool:wrench', kind: 'tool', itemId: 'wrench', price: Math.round(ctx.supplyPrice('tool:wrench') * 1.2), note: 'tool' });
     for (const s of take(SUPPLY_IDS, 2, rnd)) sup(s, 1.15);
     for (const t of take(FINISH_IDS, 2, rnd)) fin(t, jit(1.05, 1.2), 'tool · new');
+    fin('pump', jit(1.05, 1.2), 'tool · new');
     return { rows, theme: spec.name };
   }
   if (site.type === 'junk') {

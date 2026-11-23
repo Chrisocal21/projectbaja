@@ -42,7 +42,7 @@ How a job works (the pattern we already use): aim at the thing, hold the click (
 | Multimeter, battery charger, jump pack | electrical diagnosis, dead battery | PLANNED |
 | Shock and spring compressor | coilovers and long-travel shocks | PLANNED |
 | Wheel alignment rig, toe plates | proper alignment (we already wear it) | PLANNED |
-| Tire gauge, valve-core tool, bead breaker, tire irons | psi (we already model it), deflate for sand, break a bead in the field | gauge + air chuck HAVE (hold on a wheel; one psi for all tires; bead breaker, irons, valve-core tool PLANNED) |
+| Tire gauge, valve-core tool, bead breaker, tire irons | psi (we already model it), deflate for sand, break a bead in the field | gauge + air chuck + 12 V field pump (plugs a hole with a plug kit, then fills, anywhere) HAVE (hold on a wheel; one psi for all tires; bead breaker, irons, valve-core tool PLANNED) |
 | Wheel balancer | tire vibration at speed | PLANNED |
 | Parts washer | clean parts before inspection | PLANNED |
 | Creeper, work light | work under the car, dark corners | PLANNED |
