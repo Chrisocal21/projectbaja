@@ -38,7 +38,7 @@ const Ico = ({ d }) => <svg viewBox="0 0 24 24" width="30" height="30" fill="non
 
 export function PhonePanel({ start, onResume, onSettings, onWiki, onUpgrades, onMap, onExit, onFly, onTeleport, teleports, fullscreen, onFullscreen, canMap }) {
   useGame();
-  const [towView, setTowView] = useState(false), [explorerView, setExplorerView] = useState(false), [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [wxView, setWxView] = useState(false), [carsView, setCarsView] = useState(false), [camView, setCamView] = useState(false), [adminView, setAdminView] = useState(false), [invView, setInvView] = useState(start === 'inv');   // story: null | 'list' | 'letter'
+  const [contactsView, setContactsView] = useState(false), [explorerView, setExplorerView] = useState(false), [soon, setSoon] = useState(null), [saveView, setSaveView] = useState(false), [story, setStory] = useState(null), [jobsView, setJobsView] = useState(false), [bankView, setBankView] = useState(false), [netView, setNetView] = useState(false), [ordersView, setOrdersView] = useState(false), [wxView, setWxView] = useState(false), [carsView, setCarsView] = useState(false), [camView, setCamView] = useState(false), [adminView, setAdminView] = useState(false), [invView, setInvView] = useState(start === 'inv');   // story: null | 'list' | 'letter'
   const real = (key, label, fn, sub) => ({ key, label, fn, sub });
   const apps = [
     ...(game.onFoot ? [real('inv', 'Inventory', () => setInvView(true), 'Tab')] : []),
@@ -46,19 +46,19 @@ export function PhonePanel({ start, onResume, onSettings, onWiki, onUpgrades, on
     real('web', 'Internet', () => setNetView(true)), real('bank', `$${game.cash}`, () => setBankView(true)),
     real('save', 'Save', () => setSaveView(true)), real('settings', 'Settings', onSettings), real('admin', 'Admin', () => setAdminView(true), 'test tool'), real('index', 'Index', onWiki, 'I'), real('explorer', 'Explorer', () => setExplorerView(true)),
     ...(game.onFoot ? [real('upgrades', 'Upgrades', onUpgrades, 'U')] : []),
-    { key: 'texts', label: 'Texts', soon: true }, { key: 'contacts', label: 'Contacts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), real('orders', 'Orders', () => setOrdersView(true)), real('cars', 'Car sales', () => setCarsView(true)), real('tow', 'Tow truck', () => setTowView(true)),
-    real('story', 'Story log', () => setStory('list')), real('camera', 'Camera', () => setCamView(true)), { key: 'music', label: 'Radio', soon: true }, real('weather', 'Weather', () => setWxView(true)),
+    { key: 'texts', label: 'Texts', soon: true }, real('jobs', 'Jobs', () => setJobsView(true)), real('orders', 'Orders', () => setOrdersView(true)), real('cars', 'Car sales', () => setCarsView(true)),
+    real('contacts', 'Contacts', () => setContactsView(true)), real('story', 'Story log', () => setStory('list')), real('camera', 'Camera', () => setCamView(true)), { key: 'music', label: 'Radio', soon: true }, real('weather', 'Weather', () => setWxView(true)),
     real('fly', game.flyMode ? 'Stop flying' : 'Fly', onFly),
     real('full', fullscreen ? 'Exit full' : 'Fullscreen', onFullscreen), real('power', 'Exit', onExit, 'to title'),
   ];
-  const SECTIONS = [['Garage', ['inv', 'orders', 'web', 'jobs', 'cars', 'upgrades']], ['Town', ['map', 'tow', 'weather', 'bank', 'story', 'camera', 'texts', 'contacts', 'music']], ['Phone', ['index', 'explorer', 'settings', 'save', 'full', 'fly', 'admin', 'power']]];
+  const SECTIONS = [['Garage', ['inv', 'orders', 'web', 'jobs', 'cars', 'upgrades']], ['Town', ['map', 'weather', 'bank', 'story', 'camera', 'texts', 'contacts', 'music']], ['Phone', ['index', 'explorer', 'settings', 'save', 'full', 'fly', 'admin', 'power']]];
   const byKey = Object.fromEntries(apps.map(a => [a.key, a])), grouped = SECTIONS.map(([t, ks]) => [t, ks.map(k => byKey[k]).filter(Boolean)]).filter(([, l]) => l.length);
   const appBtn = a => <button key={a.key} className={`ph-app k-${a.key}${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>;
   return <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) onResume(); }}><div className="phone">
     <div className="phone-notch" />
     <div className="phone-top"><span>{clockText(game.clock ?? 9)} <span style={{ opacity: 0.6 }}>▂▄▆</span></span><span>{game.saveLocked ? "● Saving is OFF (see Save)" : game.dev ? "● Test session: not saved" : "● Autosave on"}</span></div>
     {invView ? <div className="phone-soon inv-app"><h3>Inventory</h3><div className="inv-scroll"><InventoryBody /></div><button onClick={() => setInvView(false)}>Back</button></div>
-      : towView ? <TowApp onBack={() => setTowView(false)} onDone={onResume} />
+      : contactsView ? <ContactsApp onBack={() => setContactsView(false)} onDone={onResume} onInternet={() => { setContactsView(false); setNetView(true); }} />
       : explorerView ? <ExplorerApp onBack={() => setExplorerView(false)} />
       : adminView ? <AdminApp onBack={() => setAdminView(false)} />
       : camView ? <CameraApp onBack={() => setCamView(false)} />
@@ -132,6 +132,22 @@ function InternetApp({ onBack }) {
     {tab === 'gear' ? <div style={{ width: '100%', textAlign: 'left' }}>{game.home?.printer ? <p>Photo printer: owned.</p> : <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Photo printer<small> · ${PRINTER_PRICE} · prints your posted photos</small></span><button disabled={game.dev || game.cash < PRINTER_PRICE} onClick={buyPrinter}>Buy</button></div>}</div> : <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{rows.map(r => <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{r.label}<small> · ${r.price}{r.note ? ` · ${r.note}` : ''}</small></span><button disabled={game.cash < r.price} onClick={() => placeOrder(r.kind, r.id)}>Order</button></div>)}</div>}
     {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left', maxHeight: 130, overflow: 'auto' }}><small>ON THE WAY</small>{groupOrders(waiting, o => orderName(o, body), etaText).map((g, i) => <div key={i}>{g.name}{g.n > 1 ? ` ×${g.n}` : ''}<small> · {etaText(g.left)}</small></div>)}</div>}
+    <button onClick={onBack}>Back</button></div>;
+}
+
+/** Contacts: the people and places you can call. Dusty's store and the off-road shop take orders (the same as the Internet app); the tow truck brings you home (game/tow.js). */
+const CONTACTS = [
+  { id: 'dusty', name: "Dusty's store", sub: 'groceries, tools, plug kits, spray paint' },
+  { id: 'offroad', name: 'Off-road parts', sub: 'order parts and wheels' },
+  { id: 'tow', name: 'Tow truck', sub: "a ride back to Walt's garage, anywhere" },
+];
+function ContactsApp({ onBack, onDone, onInternet }) {
+  const [open, setOpen] = useState(null);
+  if (open === 'tow') return <TowApp onBack={() => setOpen(null)} onDone={onDone} />;
+  return <div className="phone-soon"><h3>Contacts</h3>
+    <div style={{ width: '100%', textAlign: 'left' }}>{CONTACTS.map(c => <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 0', borderBottom: '1px solid #ffffff18' }}>
+      <span><b>{c.name}</b><br /><small>{c.sub}</small></span>
+      <button onClick={() => (c.id === 'tow' ? setOpen('tow') : onInternet())}>Call</button></div>)}</div>
     <button onClick={onBack}>Back</button></div>;
 }
 
