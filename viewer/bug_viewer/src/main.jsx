@@ -59,6 +59,7 @@ import { nextMat, matName, DEFAULT_MAT } from './worlds/structures.js';
 import { partById, SECTIONS, tireMax, bodyById, wheelById } from './build.js';
 import MapPanel from './game/MapPanel.jsx';
 import Compass from './game/Compass.jsx';
+import Minimap from './game/Minimap.jsx';
 import { startFinish, stopFinish, finishToolInHand } from './game/finishWork.js';
 import { startPressure, stopPressure, pressureToolInHand } from './game/pressureWork.js';
 import HoldBar from './game/HoldBar.jsx';
@@ -434,6 +435,7 @@ function App() {
     <UpdateToast />
     {panel === 'continue' && <div className="overlay" onClick={resume} style={{ cursor: 'pointer' }}><div className="card"><h2>Back in the game</h2><p>Click to continue</p></div></div>}
     <Compass />
+    <Minimap />
     <HoldBar />
     {panel !== 'build' && <BuildHud />}
     {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}

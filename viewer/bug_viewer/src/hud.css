@@ -370,3 +370,19 @@
 .hud-guide { top: 108px; left: 22px; transform: none; width: 320px; max-width: 34vw; text-align: left; padding: 10px 16px 12px; }
 .hud-prompt2 { font-size: 17px; padding: 10px 22px; }
 .hold-bar { top: calc(50% + 100px); }
+
+/* ==== On-foot HUD + minimap pass ====
+   minimap: top right (round, turns with you). carry panel: bottom left (no key list any more). gauge stays bottom right when driving. */
+.minimap { position: absolute; top: 14px; right: 22px; width: 190px; z-index: 5; pointer-events: none; }
+.minimap canvas { display: block; width: 190px; height: 190px; border-radius: 50%; border: 2px solid var(--hud-line2); box-shadow: 0 0 0 4px rgba(8, 11, 13, 0.55), 0 6px 24px rgba(0, 0, 0, 0.6); background: #23211d; }
+.minimap::after { content: ''; position: absolute; left: 0; top: 0; width: 190px; height: 190px; border-radius: 50%; box-shadow: inset 0 0 22px 6px rgba(0, 0, 0, 0.55); pointer-events: none; }
+.mm-cap { margin-top: 10px; text-align: center; font: 700 12px/1 var(--hud-cond); letter-spacing: 0.14em; text-transform: uppercase; color: var(--hud-text); text-shadow: 0 2px 6px #000, 0 0 3px #000; white-space: nowrap; }
+.mm-cap:empty { display: none; }
+.hud-carry2 { right: auto; left: 22px; bottom: 22px; width: 250px; padding: 12px 16px 12px; border-left: 3px solid var(--hud-acc); background: linear-gradient(90deg, rgba(11, 14, 16, 0.9), rgba(11, 14, 16, 0.6)); }
+.hc-hands b { font: 700 24px/1.1 var(--hud-cond); letter-spacing: 0.02em; margin: 4px 0 3px; }
+.hc-meter { grid-template-columns: 1fr auto; margin-top: 10px; }
+.hc-meter .pips { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 3px; text-decoration: none; }
+.hc-meter .pips b { flex: 1; height: 8px; background: rgba(255, 255, 255, 0.1); transform: skewX(-18deg); }
+.hc-meter .pips b.on { background: var(--hud-acc); box-shadow: 0 0 8px rgba(242, 163, 58, 0.45); }
+.hc-meter em.full { color: var(--hud-bad); }
+.hud-status .hs-cash { font-size: 40px; }

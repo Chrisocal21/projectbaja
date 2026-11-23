@@ -91,8 +91,8 @@ export default function WestCoastMap() {
         }
       }
       if (zoom >= 4 && zoom < 10) label('BAJA COUNTY', 0, 2500, '#44392d', 16);
-      if (zoom >= 10) {
-        for (const [key, site] of Object.entries(SITES)) if (discovered(game.home).has(key)) { const [a, b] = point(site.x, site.z); g.fillStyle = '#a46a4b'; g.beginPath(); g.arc(a, b, 3.5 / zoom, 0, 7); g.fill(); if (zoom >= 15 || key === 'garage') label(SITE_NAMES[key] || key, site.x + 170, site.z - 100, '#44392d', 12); }
+      if (zoom >= 3) {
+        for (const [key, site] of Object.entries(SITES)) if (discovered(game.home).has(key)) { const [a, b] = point(site.x, site.z); g.fillStyle = '#a46a4b'; g.beginPath(); g.arc(a, b, 5 / zoom, 0, 7); g.fill(); if (zoom >= 5 || key === 'garage') label(SITE_NAMES[key] || key, site.x + 170, site.z - 100, '#44392d', 12); }
       }
       for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = point(v.pose.x, v.pose.z); g.fillStyle = '#63d5f6'; g.beginPath(); g.arc(a, b, 4 / zoom, 0, Math.PI * 2); g.fill(); }
       const [a, b] = point(game.pos.x, game.pos.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : game.pose?.h || 0;
@@ -111,5 +111,5 @@ export default function WestCoastMap() {
   };
   const pointerDown = e => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, ox: view.current.ox, oy: view.current.oy }; };
   const pointerMove = e => { if (!drag.current) return; const r = e.currentTarget.getBoundingClientRect(), v = view.current; v.ox = clamp(drag.current.ox + (e.clientX - drag.current.x) / r.width * WIDTH, WIDTH * (1 - v.zoom), 0); v.oy = clamp(drag.current.oy + (e.clientY - drag.current.y) / r.height * HEIGHT, HEIGHT * (1 - v.zoom), 0); redraw(n => n + 1); };
-  return <div className="map-stage"><canvas ref={ref} width={WIDTH} height={HEIGHT} className="map-canvas west-coast-map" onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} aria-label="West coast map. Scroll to zoom and drag to pan." /><p className="hint">Scroll to zoom | drag to pan | red arrow: you | blue dots: parked vehicles</p></div>;
+  return <div className="map-stage"><canvas ref={ref} width={WIDTH} height={HEIGHT} className="map-canvas west-coast-map" onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} aria-label="West coast map. Scroll to zoom and drag to pan." /><p className="hint">Scroll to zoom | drag to pan | red arrow: you | brown dots: places you have found | blue dots: parked vehicles</p></div>;
 }

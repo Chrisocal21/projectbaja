@@ -19,7 +19,11 @@ function ClockChip() {
 /** "Press E — Get in  ·  X — Take a part off" → [['E', 'Get in'], ['X', 'Take a part off']] (text without a key stays plain) */
 export const promptParts = s => s.split(/\s+·\s+/).map(p => { const m = /^(?:Press )?([A-Z][A-Za-z0-9]{0,4}|Esc|Tab|Shift) — (.+)$/.exec(p.trim()); return m ? [m[1], m[2]] : [null, p.trim()]; });
 
-const Meter = ({ label, v, cap }) => <div className="hc-meter"><span>{label}</span><i><b style={{ width: `${Math.min(100, (v / Math.max(1, cap)) * 100)}%` }} className={v >= cap ? 'full' : ''} /></i><em>{v}/{cap}</em></div>;
+/** a row of slots (one square per unit of space) when the space is small, a bar when it is big */
+const Meter = ({ label, v, cap }) => <div className="hc-meter"><span>{label}</span>
+  {cap <= 12 ? <u className="pips">{Array.from({ length: cap }, (_, i) => <b key={i} className={i < v ? 'on' : ''} />)}</u>
+    : <i><b style={{ width: `${Math.min(100, (v / Math.max(1, cap)) * 100)}%` }} className={v >= cap ? 'full' : ''} /></i>}
+  <em className={v >= cap ? 'full' : ''}>{v}/{cap}</em></div>;
 
 export function HudOverlay() {
   useGame();
@@ -37,7 +41,7 @@ export function HudOverlay() {
     {game.prompt && <div className="hud-prompt2">{promptParts(game.prompt).map(([k, t], i) => <span key={i} className="hp-part">{k && <Key k={k} />}<span>{t}</span></span>)}</div>}
     {game.toast && <div key={game.toast.t} className="hud-toast2"><i />{game.toast.msg}</div>}
     {game.onFoot && !game.buildMode && <div className="hud-carry2">
-      <div className="hc-hands"><small>HANDS</small><b>{held() ? nameOfItem(held()) : 'Empty'}</b>{held() && <em>{SIZE_NAME[sizeOf(held().kind, held().id)]} · <Key k="G" /> put down</em>}</div>
+      <div className="hc-hands"><small>IN HANDS</small><b>{held() ? nameOfItem(held()) : 'Empty'}</b>{held() && <em>{SIZE_NAME[sizeOf(held().kind, held().id)]} · <Key k="G" /> put down</em>}</div>
       <Meter label="Pack" v={used('pack')} cap={packCap()} />
       {Object.entries(storageOf()).map(([k, v]) => <Meter key={k} label={`${activeType().name} · ${v.label}`} v={used(k)} cap={v.cap} />)}
       {activeType().kind === 'build' && !hasRack() && <div className="hc-note">No roof rack</div>}
@@ -50,7 +54,7 @@ import { nextStep } from './teardown.js';
 export function KeyHints({ driving, pro, cabLabel }) {
   useGame();
   const bm = game.buildMode;
-  if (!game.settings?.screenHints) return null;   // the keys live in the phone's Settings > Controls; this bar is opt-in
+  if (!bm) return null;   // walking and driving show no key list (the keys live in the phone's Settings > Controls); only build mode needs its controls on screen
   const list = bm ? (bm.moving ? [['Click', 'Set down'], ['Wheel/Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Esc', 'Cancel']]
     : [['Click', 'Build / pick up'], ['Q/E/R', 'Rotate'], ['Shift', 'Snap'], ['Wheel', 'Rotate'], ['1-8', 'Hotbar'], ['V', 'Move'], ['X', 'Remove'], ['B', 'Build menu'], ['Esc', 'Put away']])
     : driving ? [['W/S', 'Throttle'], ['A/D', 'Steer'], ['Space', 'Brake'], ['R', 'Reset'], ['C', cabLabel || 'Cab view'], ['Y', 'Unstuck'], ['E', 'Get out'], ['M', 'Map'], ['Esc', 'Menu'], ...(pro ? [['Pad', 'Gamepad ok']] : [])]
