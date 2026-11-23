@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, useGame } from './store.js';
-import { sizeOf, nameOfItem, held, toolInHand, dropSpot } from './items.js';
+import { sizeOf, nameOfItem, held, toolInHand, dropPoint } from './items.js';
 import ToolModel from './ToolModel.jsx';
 import { UPGRADE_FIT } from '../rules/vehicles.js';
 import { containers } from './loot.js';
@@ -167,7 +167,7 @@ export default function Items() {
       } } }
     // the ground marker: where what you hold will land when you put it down (like a build ghost), sized to its footprint
     { const m = markRef.current, h = held(); if (m) { m.visible = game.onFoot && !!h && h.kind !== 'tool' && !game.buildMode && !carFitReady();
-      if (m.visible) { const d = dropSpot(), dm = DIM[sizeOf(h.kind, h.id)] || DIM[2]; m.position.set(d.x, groundHeight(d.x, d.z) + 0.04, d.z); m.rotation.set(0, d.ry, 0); m.scale.set(dm[0], 1, dm[2]); } } }
+      if (m.visible) { const d = dropPoint(), dm = DIM[sizeOf(h.kind, h.id)] || DIM[2]; m.position.set(d.x, groundHeight(d.x, d.z) + 0.04, d.z); m.rotation.set(0, d.ry, 0); m.scale.set(dm[0], 1, dm[2]); } } }
     const g = heldRef.current; if (!g) return;
     g.visible = game.onFoot && !!held() && held().kind !== 'tool' && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
     if (!g.visible) return;

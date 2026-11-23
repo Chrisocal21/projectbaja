@@ -94,9 +94,14 @@ const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are bus
 
 export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry, ...(kind === 'epart' ? { cond: 100 } : {}) }); commit(); }   // a bought engine piece is new
 const near = (d = 1.4, jitter = 0.5) => ({ x: game.pos.x + game.face.x * d + (Math.random() - 0.5) * jitter, z: game.pos.z + game.face.z * d + (Math.random() - 0.5) * jitter });
-export function dropNearPlayer(kind, id, extra = {}) {
+/** where something you put down lands: clear ground ahead of you, not under a car, not on another part. The ground marker in Items.jsx shows exactly this spot. */
+export function dropPoint() {
   const t = activeType(), car = [...(game.pose && t ? [{ x: game.pose.x, z: game.pose.z, h: game.pose.h, width: t.width, length: t.length }] : []), ...(game.projects || []).map(p => { const d = defOf(p); return { x: p.pose.x, z: p.pose.z, h: p.pose.h, width: d.width, length: d.length }; })];   // not under the car you drive, nor under any project
-  const p = dropSpot(game.pos, game.face, car, game.items.filter(i => i.loc === 'world' && i.x !== undefined));   // clear ground, not under the car, not on another part
+  const p = dropSpot(game.pos, game.face, car, game.items.filter(i => i.loc === 'world' && i.x !== undefined));
+  return { x: p.x, z: p.z, ry: Math.atan2(game.face.x, game.face.z) };
+}
+export function dropNearPlayer(kind, id, extra = {}) {
+  const p = dropPoint();
   game.items.push({ uid: uid(), kind, id, loc: 'world', x: p.x, z: p.z, y: 0, ry: Math.random() * 6, ...extra }); commit(); }
 
 export function pickUp(uidN) {
@@ -117,11 +122,8 @@ export function grabItem(uidN) {
 /** put something you carry down at your feet */
 export function dropItem(uidN) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
-  const p = dropSpot(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: p.ry }); commit();
+  const p = dropPoint(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: p.ry }); commit();
 }
-/** where a put-down item lands: straight ahead of you, turned the way you face (the ground marker in Items.jsx shows exactly this) */
-export const DROP_D = 1.4;
-export const dropSpot = () => ({ x: game.pos.x + game.face.x * DROP_D, z: game.pos.z + game.face.z * DROP_D, ry: Math.atan2(game.face.x, game.face.z) });
 export const dropHeld = () => dropItem();
 /** G with a keepsake in your hands, standing at a garage wall: hang it there (game/wallhang.js). Returns false if nothing was hung (then G just drops it). */
 export function hangHeld() {
