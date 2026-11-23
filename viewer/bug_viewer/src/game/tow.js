@@ -18,6 +18,7 @@ export function callTow() {
   game.clock = ((game.clock ?? 9) + q.hours) % 24; passTime(q.hours); tickFinish(0, q.hours);   // the ride takes time: orders count down, bare steel rusts a little
   const dest = { x: g.x, z: g.z, h: g.h || 0 }, side = { x: g.x + Math.cos(dest.h) * 5, z: g.z - Math.sin(dest.h) * 5, h: dest.h };
   game.carTo = dest; game.teleportTo = game.onFoot ? side : dest;
+  if (game.home?.sink?.[game.active]) game.home = { ...game.home, sink: { ...game.home.sink, [game.active]: { n: 0 } } };   // pulled out of the silt (bogDown.js)
   save();
   say(q.charge < q.fee ? `The driver takes what you have ($${q.charge}) and drops you at the garage.` : `The tow truck brings you home: $${q.charge}, ${q.hours} h.`);
 }

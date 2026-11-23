@@ -40,4 +40,4 @@ export function createDust(N = 480) {
 }
 
 /** how dusty a surface is (0 = none): paved and wet ground throws nothing */
-export const dustiness = key => (({ asphalt: 0, concrete: 0, curb: 0, water: 0, mud: 0, rock: 0.35, grass: 0.25, meadow: 0.25, forestFloor: 0.3, sand: 1.2, looseDirt: 1.1, playa: 1.3, dunes: 1.2 })[key] ?? 0.85);
+export const dustiness = key => (({ asphalt: 0, concrete: 0, curb: 0, water: 0, mud: 0, rock: 0.35, grass: 0.25, meadow: 0.25, forestFloor: 0.3, sand: 1.2, silt: 2.2, softSand: 1.4, looseDirt: 1.1, playa: 1.3, dunes: 1.2 })[key] ?? 0.85);

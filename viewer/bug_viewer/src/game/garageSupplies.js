@@ -14,6 +14,8 @@ export const GARAGE_SUPPLIES = [
   ['tool:wrench', 'Wrench', 15, 'tools', 'bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'tools', 'change tires anywhere'],
   ['tool:pump', '12 V tire pump', 35, 'tools', 'plugs and fills a tire anywhere (needs a plug kit for a hole)'],
+  ['tool:shovel', 'Shovel', 25, 'tools', 'digs a bogged wheel out of silt or soft sand'],
+  ['tool:boards', 'Traction boards', 95, 'tools', 'laid under a wheel, they get a stuck car moving again'],
   // finish tools (src/finishJobs.js): hold-click on a panel. Prices are PROPOSALs; the cans are not used up yet
   ['tool:grinder', 'Angle grinder', 85, 'tools', 'takes paint and rust off a panel'],
   ['tool:buffer', 'Buffer', 70, 'tools', 'brings the paint up to a shine'],

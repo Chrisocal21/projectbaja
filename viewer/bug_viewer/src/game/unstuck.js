@@ -17,6 +17,7 @@ export function unstuck() {
     if (!s) return say('No clear ground nearby.');
     game.teleportTo = { x: s.x, z: s.z, keepYaw: true }; say('Unstuck: moved you to clear ground.'); return;
   }
+  if ((game.home?.sink?.[game.active]?.n || 0) > 0.3) return say("Bogged down in soft ground: that needs digging out. Use a shovel, traction boards, or call a tow from the phone's Contacts.");   // Y is for glitches, not for silt (bogDown.js)
   const t = activeType(), po = game.pose; if (!po) return;
   const s = clearSpot({ x: po.x, z: po.z, h: po.h }, t.length || 4.2, t.width || 1.9, circles());
   if (!s) return say('No clear ground nearby.');

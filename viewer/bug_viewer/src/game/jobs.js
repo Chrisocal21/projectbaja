@@ -21,6 +21,7 @@ export const STORE_ITEMS = [
   ['tool:wrench', 'Wrench', 15, 'small · bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'large · change tires anywhere'],
   ['tool:pump', '12 V tire pump', 35, 'small · plug and fill a tire anywhere'],
+  ['tool:shovel', 'Shovel', 25, 'medium · dig a stuck wheel out'],
   ['tool:hose', 'Hose / power sprayer', 60, 'small · washes the dirt off'],
   ['tool:spray-white', 'White spray paint', 12, 'small · paints a panel'],
   ['tool:spray-black', 'Black spray paint', 12, 'small · paints a panel'],

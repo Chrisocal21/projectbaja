@@ -9,6 +9,7 @@ import { dropSpot } from './dropSpot.js';
 import { SUPPLIES } from './jobs.js';
 import { FINISH_TOOL_ITEMS, canTag } from '../finishJobs.js';
 import { PRESSURE_TOOL_ITEMS } from '../tirePressure.js';
+import { RECOVERY_TOOLS } from '../bogDown.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
 import { VEHICLES } from '../rules/vehicles.js';
 import { defOf } from './projects.js';
@@ -22,7 +23,7 @@ import { registerTireSizes } from '../placement/gameItems.js';
 import { wheelSets } from '../catalog/index.js';
 registerTireSizes(Object.fromEntries(wheelSets.map(w => [w.id, tireSizeOf(w)])));   // loose tires are as big as their wheel set
 
-export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor jack', size: 3 }, ...FINISH_TOOL_ITEMS, ...PRESSURE_TOOL_ITEMS };
+export const TOOLS = { wrench: { name: 'Wrench', size: 1 }, jack: { name: 'Floor jack', size: 3 }, ...FINISH_TOOL_ITEMS, ...PRESSURE_TOOL_ITEMS, ...RECOVERY_TOOLS };
 /** keepsakes: normal items you can carry, shelve and (later) hang on the wall. The text lives in home.js LETTER. */
 /** loose yard junk: real, carryable items (PROPOSAL: drums and cans may hold oil/fuel later) */
 export const JUNK = { drum: { name: 'Oil drum', size: 3 }, jerrycan: { name: 'Jerry can', size: 1 }, crate: { name: 'Wooden crate', size: 2 }, engineblock: { name: 'Engine block', size: 3 } };
@@ -125,6 +126,8 @@ export function dropItem(uidN) {
   const p = dropPoint(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: p.ry }); commit();
 }
 export const dropHeld = () => dropItem();
+/** set an item you carry down at an exact spot (traction boards laid at a wheel: game/recoveryWork.js) */
+export function setDown(it, x, z, ry = 0) { if (!it || !['hand', 'pack'].includes(it.loc)) return; at(it); Object.assign(it, { loc: 'world', x, z, y: 0, ry }); commit(); }
 /** G with a keepsake in your hands, standing at a garage wall: hang it there (game/wallhang.js). Returns false if nothing was hung (then G just drops it). */
 export function hangHeld() {
   const it = held(); if (!it || it.kind !== 'memento' || !game.onFoot) return false;

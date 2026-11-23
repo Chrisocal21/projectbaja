@@ -62,6 +62,7 @@ import Compass from './game/Compass.jsx';
 import Minimap from './game/Minimap.jsx';
 import { startFinish, stopFinish, finishToolInHand } from './game/finishWork.js';
 import { startPressure, stopPressure, pressureToolInHand } from './game/pressureWork.js';
+import { startRecovery, stopRecovery, recoveryToolInHand } from './game/recoveryWork.js';
 import HoldBar from './game/HoldBar.jsx';
 import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
@@ -79,7 +80,7 @@ const categories = [...new Set(slots.map(s => s.category))];
 /** Stage 4b: the held build item is furniture (not a building piece or a cut doorway): free placement + the new rotate / click controls */
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
-const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); game.holdBar = null; };
+const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); stopRecovery(); game.holdBar = null; };
 const doService = part => { const w = game.home?.wear?.[game.active] || FRESH(), c = partCost(w, part); if (!c) return; if (game.cash < c) return say('Not enough cash for the parts: $' + c + '.'); addCash(-c, 'Service: ' + PART_NAME[part]); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: serviced(w, part) } }; save(); say(PART_NAME[part] + ' done.'); };
 const startHold = (label, fn, tap = false, ms = HOLD_MS) => { ms = Math.max(200, Math.round(ms * effects().holdScale)); game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
@@ -316,6 +317,7 @@ function App() {
       if (!bm && panelRef.current === null && game.onFoot && document.pointerLockElement && (e.button === 0 || e.button === 2)) {   // hold left = bolt the aimed part on, hold right = take the aimed part off (about half a second)
         cancelHold(); const btn = e.button;
         if (btn === 0 && pressureToolInHand() && game.target?.startsWith('car:')) startPressure();   // tire gauge (let air out) or air chuck (fill): hold on a wheel
+        else if (btn === 0 && recoveryToolInHand() && game.target?.startsWith('car:')) startRecovery();   // shovel or traction boards: hold on a wheel of a bogged car (bogDown.js)
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
         else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));

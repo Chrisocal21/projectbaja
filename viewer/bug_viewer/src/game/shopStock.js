@@ -45,6 +45,7 @@ export function shopRows(site, ctx) {
     for (const s of take(SUPPLY_IDS, 2, rnd)) sup(s, 1.15);
     for (const t of take(FINISH_IDS, 2, rnd)) fin(t, jit(1.05, 1.2), 'tool · new');
     fin('pump', jit(1.05, 1.2), 'tool · new');
+    fin('shovel', jit(1.05, 1.2), 'tool · new'); fin('boards', jit(1.05, 1.2), 'tool · new');   // recovery gear (bogDown.js)
     return { rows, theme: spec.name };
   }
   if (site.type === 'junk') {

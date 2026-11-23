@@ -111,7 +111,7 @@ export default function RealScenery({ heightAt, surfaceAt, regionAt = () => ({ s
       const distance = Math.hypot(x - job.x, z - job.z);
       if (distance > RADIUS || avoid(x, z)) continue;
       const surface = surfaceAt(x, z).key;
-      if (['water', 'sand', 'playa', 'asphalt', 'concrete', 'curb'].includes(surface)) continue;
+      if (['water', 'sand', 'silt', 'softSand', 'playa', 'asphalt', 'concrete', 'curb'].includes(surface)) continue;
       const dx = (heightAt(x + 8, z) - heightAt(x - 8, z)) / 16;
       const dz = (heightAt(x, z + 8) - heightAt(x, z - 8)) / 16;
       const slope = Math.hypot(dx, dz), h = heightAt(x, z), r = hash(ix, iz, 47), region = regionAt(x, z), south = region.south;

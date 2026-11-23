@@ -59,10 +59,10 @@ How a job works (the pattern we already use): aim at the thing, hold the click (
 The map has water, mud-free dirt, sand, jumps and flips, so a car will end up somewhere it cannot leave on its own. Recovery is the answer to "I broke it far from home".
 | Tool | Job | Status |
 |---|---|---|
-| Spare tire, tire plug kit, 12 V air pump | fix a flat and re-inflate away from the garage | PLANNED |
+| Spare tire, tire plug kit, 12 V air pump | fix a flat and re-inflate away from the garage | plug kit + 12 V pump HAVE; spare PLANNED |
 | Jerry can, water jug | fuel and coolant in the field | PLANNED |
 | Fire extinguisher | engine fire (heat model exists) | PLANNED |
-| Shovel, traction boards | dig out of sand, bridge a soft spot | PLANNED |
+| Shovel, traction boards | dig out of sand, bridge a soft spot | HAVE (Nov 22): silt beds and soft sand on the map bog a slow or wheel-spinning car (`src/bogDown.js`, `src/worlds/softGround.js`); hold-click a wheel with the shovel to dig it (5 s), or with the boards to lay them (they stay on the ground: drive out, walk back for them). Airing down floats you. Y won't free a bogged car; the tow does |
 | Tow strap, recovery strap, shackles | pull a stuck or dead vehicle with another | PLANNED |
 | Hi-lift jack | lift and roll a flipped or stuck car | PLANNED |
 | Winch (vehicle-mounted), come-along (hand) | pull yourself or another vehicle; anchor to a tree or rock | PLANNED |

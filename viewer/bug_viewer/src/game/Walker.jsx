@@ -45,6 +45,7 @@ import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift sna
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { finishPrompt } from './finishWork.js';
 import { pressurePrompt } from './pressureWork.js';
+import { recoveryPrompt } from './recoveryWork.js';
 import { aimDist } from './aim.js';
 import { held, toolInHand, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
@@ -89,7 +90,8 @@ const fitsCar = it => { const b = game.build, body = b && bodyById[b.body]; if (
 function carAction(zone, ap, W) {   // W = the restorable vehicle you stand at (game/projects.js workVehicles via game.work); none = the active vehicle as before
   const a0 = carAction0(zone, ap, W), tl = toolInHand(), wr = game.home?.wear?.[game.active] || FRESH(), job = tl && (!W || W.active) && activeType().kind === 'build' ? serviceJob(wr, tl.id) : null;   // a tool in hand and something worn: hold T services it (wear.js)
   const worn = WEAR_PARTS.some(p => wr[p] > 0.05), a = job ? { ...a0, part: job, text: (a0.text ? a0.text + '  ·  ' : '') + `Hold T — ${SERVICE_VERB[job]} ($${partCost(wr, job)})` } : !tl && worn && (!W || W.active) && activeType().kind === 'build' && !held() ? { ...a0, look: true, text: (a0.text ? a0.text + '  ·  ' : '') + 'Hold T — Look the car over' } : a0;
-  { const pp = pressurePrompt(); if (pp) return { ...a, text: pp }; }   // tire gauge or air chuck in hand: the prompt is the tire pressure
+  { const pp = pressurePrompt(); if (pp) return { ...a, text: pp }; }
+  { const rp = recoveryPrompt(); if (rp) return { ...a, text: rp }; }   // a shovel or traction boards in hand: getting a bogged car out (bogDown.js)   // tire gauge or air chuck in hand: the prompt is the tire pressure
   { const fp = finishPrompt(); if (fp) return { ...a, text: fp }; }   // a grinder, spray can, buffer or hose in hand: the prompt is about the panel finish, not taking parts off
   if (game.aim && toolInHand() && (W || activeType().kind === 'build') && (W ? W.build : game.build)) {
     const pd = planRemove(game.aim, W ? W.build : game.build, zone), n = pd.name;

@@ -113,6 +113,18 @@
       "rrCoef": 0.2,
       "soft": 1
     },
+    "silt": {
+      "name": "Silt",
+      "grip": 0.38,
+      "rrCoef": 0.096,
+      "soft": 1
+    },
+    "softSand": {
+      "name": "Soft sand",
+      "grip": 0.4,
+      "rrCoef": 0.084,
+      "soft": 1
+    },
     "mud": {
       "name": "Mud",
       "grip": 0.3,

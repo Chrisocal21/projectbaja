@@ -22,4 +22,4 @@ export function createRuts(N = 2600) {
 }
 
 /** how deep a surface takes a tyre mark (0 = none): paved ground only shows skids when sliding hard */
-export const rutDepth = key => (({ asphalt: 0, concrete: 0, curb: 0, water: 0, rock: 0, sand: 1, looseDirt: 1, playa: 0.7, mud: 1 })[key] ?? 0.75);
+export const rutDepth = key => (({ asphalt: 0, concrete: 0, curb: 0, water: 0, rock: 0, sand: 1, silt: 1.3, softSand: 1.25, looseDirt: 1, playa: 0.7, mud: 1 })[key] ?? 0.75);

@@ -21,6 +21,7 @@ import { buildRaceCourses } from './raceCourses.js';
 import { tableHeight, planFeatures, planRoadFeatures, planHighwayFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
 export { DRIVE as DRIVE_BOUNDS };
+import { softKind } from './softGround.js';
 import { SURFACES, SID, smooth, clamp, makePath, createRaster, toWorld, offsetPts, boxBlur } from './kit.js';
 export { SURFACES, toWorld };
 
@@ -229,6 +230,7 @@ function baseSurface(x, z) {
   if (REAL) { const hk = HW && HW.surfaceKey(x, z); if (hk) return hk === 'dirt' ? SURFACES.hardpack : SURFACES[hk]; const w = BD.waterAt(x, z); if (w != null && h < w - 0.4) return SURFACES.water; if (w != null) return SURFACES.sand; }
   else if (x < -3800 && h < 0.05) return SURFACES.water;   // below sea level on the coast (the ocean plane is drawn in biomes/Biomes.jsx)
   if (m.bio > 0.3) { const bs = BIO.surface(x, z, slope, 1 - m.lake); if (bs) return SURFACES[bs]; }
+  if (slope < 0.42) { const built = m.town > 0.2 || m.pg > 0.3 || m.farm > 0.3 || m.home > 0.3, sk = softKind({ x, z, wash: built ? 0 : washAt(x, z), dunes: m.dunes, lake: m.lake, built, home: Math.hypot(x, z) }); if (sk) return SURFACES[sk]; }   // silt beds and soft sand: they bog a slow car down (worlds/softGround.js, bogDown.js)
   const n = warp(x, z, 1.7, -2100, 3100) * 3.2 + warp(x, z, 4.1, 900, 700) * 1.2;   // organic dirt / sand patches
   if (badlands) {
     const relief = badlands.heightAt(x, z);

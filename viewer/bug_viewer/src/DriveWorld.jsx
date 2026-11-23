@@ -6,6 +6,7 @@ import { driveHudHtml } from './game/driveHud.js';
 import { condRows } from './game/condition.js';
 import { chipVehicle, hitPanels, hitHardness, eligiblePanels } from './finishJobs.js';
 import { partById, bodyById } from './build.js';
+import { stepSink, sinkEffect, isStuck, sinkWord, sinkDeeper, BOARDS } from './bogDown.js';
 import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
@@ -259,11 +260,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
   // (4 wheels x 4 passes x 39 points, each a costly height query), which was ~40% of the frame while you stood in the yard. It wakes the moment you get in
   // or anything moves it (the test is "same place as last step", so a teleport, fly mode or a push all wake it).
   function simGuarded(dt) {
-    const st = s.current, r = st.rest, near = r && Math.abs(r.x - st.x) < 1e-3 && Math.abs(r.z - st.z) < 1e-3 && Math.abs(r.h - st.h) < 1e-3 && Math.abs(r.y - st.y) < 0.02;   // a parked Bug still creeps a few cm: "the same place" is within 2 cm
+    const st = s.current, r = st.rest, near = r && Math.abs(r.x - st.x) < 1e-3 && Math.abs(r.z - st.z) < 1e-3 && Math.abs(r.h - st.h) < 1e-3 && Math.abs(r.y - st.y) < 0.02 && r.sk === (game.home?.sink?.[game.active]?.n || 0);   // (a shovel changing the sink wakes it) a parked Bug still creeps a few cm: "the same place" is within 2 cm
     if (game.onFoot && !fly.current.active && near && r.n >= 20 && !st.air && !st.rolled) return;
     sim(dt);
     const still = game.onFoot && Math.abs(st.v) < 0.02 && Math.abs(st.lateralV) < 0.02 && Math.abs(st.yr) < 0.01 && Math.abs(st.vy) < 0.3 && !st.air && !st.rolled;
-    st.rest = still && near ? { ...r, n: r.n + 1 } : { x: st.x, z: st.z, h: st.h, y: st.y, n: 0 };
+    st.rest = still && near ? { ...r, n: r.n + 1 } : { x: st.x, z: st.z, h: st.h, y: st.y, sk: game.home?.sink?.[game.active]?.n || 0, n: 0 };
   }
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
@@ -294,6 +295,17 @@ function Vehicle({ children, hud, dims, race, sun }) {
     else if (fword === 'LOW' && !st.fuelLow) { st.fuelLow = true; say('The fuel is getting low.'); }
     if (flow > 0.2) { st.fuelLow = false; st.fuelEmpty = false; } else if (fword !== 'EMPTY') st.fuelEmpty = false;
     const throttle = (st.drown > 0 ? 0 : throttle0) * (game.onFoot ? 1 : throttleCap(FUEL[fid])); st.thr = throttle;
+    // soft ground (bogDown.js): crawling or spinning the wheels in silt or soft sand sinks the car; speed and aired-down tires float over it
+    const SK = (game.home.sink ||= {}), sk = (SK[game.active] ||= { n: 0 });
+    st.bdT = (st.bdT || 0) - dt;
+    if (st.bdT <= 0) { st.bdT = 0.4; st.boardsOn = false;   // traction boards: checked a couple of times a second, not every step
+      if (sk.boards) { const it = game.items.find(i => i.uid === sk.boards), d = it && it.loc === 'world' ? Math.hypot(it.x - st.x, it.z - st.z) : Infinity;
+        if (d < BOARDS.reach) st.boardsOn = true; else if (d > BOARDS.leave) { if (d < Infinity && !game.onFoot) say('Out! Your traction boards are lying back there: go and pick them up.'); delete sk.boards; } } }
+    { const n0 = sk.n; sk.n = stepSink(sk.n, { key: sf0.key, throttle, speed: st.v, psi: game.home?.tirePsi, boards: st.boardsOn }, dt); sinkDeeper(sk, n0); }   // (in place: this runs every step)
+    const bog = sinkEffect(sk.n, sf0.key, st.boardsOn), sunk = bog.depth > 0.002 ? (x, z) => world.height(x, z) - bog.depth : world.height;   // the wheels sit down in the ground
+    st.stuckT = !game.onFoot && isStuck(sk.n, st.v, throttle) ? (st.stuckT || 0) + dt : 0;
+    if (st.stuckT > 1.2 && !st.stuckSaid) { st.stuckSaid = true; say("You're stuck. Get out and dig the wheels with a shovel, lay traction boards under a wheel, or call a tow from the phone's Contacts. Airing the tires down helps you float."); }
+    if (sk.n < 0.2) st.stuckSaid = false;
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
     const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
@@ -302,7 +314,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: sunk, mu: sf.mu * wfx.grip * bog.mu, rr: sf.rr * bog.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);
@@ -410,6 +422,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       if (st.slip > 0.14) fl.push(['SLIDING', 'warn']); if (st.air) fl.push(['AIRBORNE', '']); if (st.rolled) fl.push(['ROLLED: R to stand up', 'bad']);
       if (st.impactT > 0) fl.push([st.impact > 8 ? 'HARD LANDING' : 'LANDED', st.impact > 8 ? 'bad' : '']); if (st.bottomT > 0) fl.push(['BOTTOMED OUT', 'warn']);
       if (st.wade > 0.05) fl.push(['WADING ' + Math.round(st.wade * 100) + ' cm', 'warn']); else if (st.wetT > 0) fl.push(['WET BRAKES', 'warn']); if (st.drown > 0) fl.push(['ENGINE DROWNED', 'bad']);
+      { const sw = sinkWord(game.home.sink?.[game.active]?.n || 0, st.stuckT > 1.2); if (st.boardsOn) fl.push(['ON TRACTION BOARDS', '']); else if (sw) fl.push([sw === 'STUCK' ? 'STUCK: shovel, boards or tow' : sw, sw === 'STUCK' ? 'bad' : 'warn']); }
       if (st.engHot) fl.push([st.engDerate < 1 ? 'OVERHEATING: LOSING POWER' : 'ENGINE HOT: ease off', st.engDerate < 1 ? 'bad' : 'warn']);
       const foot = GATES.length ? `Gate ${rc.next + 1}/${GATES.length} &nbsp; ${rc.t.toFixed(1)}s &nbsp; Best ${f(rc.best)}${rc.flash > 0 ? ` &nbsp; LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `${world.area(st.x, st.z)}${game.dev ? ' | keys 0-9 - = [ ] teleport' : ''}`;
       const html = game.onFoot ? '' : driveHudHtml({ speedUnit: game.settings.speedUnit, mph: Math.abs(st.v) * 2.23694, topMph: MAXV * 2.23694, gear: st.gear, rpm: st.rpm, redline: 5600, fuel: fu, tank: tankOf(game.active), fuelWord: fw, surface: st.surface, flags: fl, foot, cond: condRows({ temp: st.engTemp ?? 70, damage: st.engDamage || 0, wear: wr, psi: game.home?.tirePsi ?? 30, tempUnit: game.settings.tempUnit }) });
