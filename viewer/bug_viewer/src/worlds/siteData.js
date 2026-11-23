@@ -3,7 +3,7 @@ import { SITES, toWorld, height, isRoad, baseHeight, surface, biomeMasks, SIZE, 
 import { LOT_CIRCLES, LOT_SPOTS } from '../lot/CarLot.jsx';
 import { LOOT_COLLIDERS } from '../game/loot.js';
 import { TREE_COLLIDERS } from './flora.js';
-import { OFFICE } from './office.js';
+import { OFFICE, BREAKER } from './office.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const TALL = 99;
@@ -106,7 +106,7 @@ export const TARGETS = [
   T('tarp', lot, LOT_SPOTS.tarp.x, LOT_SPOTS.tarp.z, 5.5),
   T('al', lot, LOT_SPOTS.al.x, LOT_SPOTS.al.z, 4),
   T('bench', G, -3, -4, 3.4),   // E spot of the workbench in its original place; Walker.jsx follows the workbench prop instead (game/fixtures.js benchSpot)
-  T('breaker', G, 6.75, -1.2, 2.2),
+  T('breaker', G, BREAKER.x, BREAKER.z, 2.2),
   T('openSwitch', G, 5.4, 6.6, 2.0),
   T('pump', S, -3.6, 6.2, 5, { car: true, face: false }),
   T('pump', S, 3.6, 6.2, 5, { car: true, face: false }),

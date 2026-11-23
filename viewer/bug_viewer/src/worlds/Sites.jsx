@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { SITES, height } from './county.js';
 import { game, useGame } from '../game/store.js';
 import { GARAGE, BARN, CACTI } from './siteData.js';
-import { OFFICE } from './office.js';
+import { OFFICE, BREAKER } from './office.js';
 import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
 import GarageExtension from './GarageExtension.jsx';
@@ -252,8 +252,8 @@ function Garage() {
     <pointLight position={[0, H - 0.8, 0]} intensity={power ? 32 : 6} distance={20} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />
     {/* grandpa's letter is a normal item now (game/home.js ensureLetterItem) */}
     {/* the main breaker panel (press E) */}
-    <Box p={[w - 0.16, 1.5, -1.2]} s={[0.12, 0.7, 0.5]} color="#5b6266" metal={0.5} rough={0.5} />
-    <Box p={[w - 0.23, 1.55, -1.2]} s={[0.04, 0.12, 0.05]} color={power ? '#3fbf5a' : '#c8372b'} emissive={power ? '#3fbf5a' : '#c8372b'} ei={0.8} cast={false} />
+    <Box p={[BREAKER.x, BREAKER.y, BREAKER.z]} s={[0.12, 0.7, 0.5]} color="#5b6266" metal={0.5} rough={0.5} />
+    <Box p={[BREAKER.x - 0.07, BREAKER.y + 0.05, BREAKER.z]} s={[0.04, 0.12, 0.05]} color={power ? '#3fbf5a' : '#c8372b'} emissive={power ? '#3fbf5a' : '#c8372b'} ei={0.8} cast={false} />
   </group>;
 }
 
