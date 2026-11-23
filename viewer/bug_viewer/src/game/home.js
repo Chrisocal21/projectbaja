@@ -72,7 +72,7 @@ export function toggleOpen() {
 export const LETTER = [
   'Kid —',
   "If you're reading this, the garage is yours. Don't let your mother sell it.",
-  "The Bug in the garage was your grandma's. She hasn't run since '09 — I had her half apart chasing rust, she picked up a flat on the back, and I pulled the seats to fix the runners. The old plugs were shot, so I pulled those too; you'll need a new set. Every other piece is there: on the red shelf, the tire rack and the floor. Battery's been sitting, so charge it. Put her back together and give her a few cranks; she'll wake up.",
+  "The Bug in the garage was your grandma's. She quit on me in '09 and I never did figure out why. I started pulling things off looking for it, then figured while she was apart I'd fix the rust and repaint her, pulled the seats to do the runners... and here we are. Every piece is there: on the red shelf, the tire rack and the floor. Battery's been sitting, so charge it. Put her back together and give her a few cranks; she'll wake up.",
   "Al in Dry Wells will sell you anything with wheels. Count your fingers after. Dusty at the gas station is good people.",
   'The old Proving Grounds down Highway 9 are closed, but nobody checks the fence.',
   "Once she runs, the big shocks and tires you can order won't clear the stock body - you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
@@ -433,7 +433,7 @@ export function crankBug() {
     if (n <= CRANKS.length) { say(CRANKS[n - 1]); return; }
     game.home = { ...game.home, bugFired: true }; save();
     const clue = pieceClue(game.build?.engineParts);
-    say("*BRRRAAAP* — she fires! Grandma's Bug is running for the first time since '09." + (clue ? ' ' + clue : ' Let her warm up, then take her out.'));
+    say("*BRRRAAAP* — she fires! Grandma's Bug is running for the first time since '09. Walt took half the car apart, and it was the spark plugs the whole time." + (clue ? ' ' + clue : ' Let her warm up, then take her out.'));
   }, 1400);
 }
 

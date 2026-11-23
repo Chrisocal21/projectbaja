@@ -12,7 +12,7 @@ export const LOOSE = ['engine', 'battery', 'wheelFL', 'wheelFR', 'wheelRL', 'sea
 export const apartSlots = () => BUG.slots.filter(s => LOOSE.includes(s.id));
 /** the car with every part off (the body shell stays: it only lifts off a stripped car on the hoist) */
 export const apartBuild = b => apartSlots().reduce((n, s) => withSlot(BUG, n, s.id, false), b);
-const noPlugs = p => { const o = { ...p }; delete o.plugs; return o; };
+const noPlugs = p => ({ ...p, plugs: { ...(p.plugs || {}), c: 4 } });   // fouled: the whole reason she quit, and Walt never found it (the joke of the opening)
 /** the loose part for each slot: [kind, id, extra] */
 export function apartItems(rng = Math.random) {
   return apartSlots().map(s => s.wheel ? ['stock', 'wheel', { set: 'stock' }]
@@ -64,7 +64,7 @@ export const PLUGS_TIP = "She has no spark plugs: Walt pulled them. Order a set 
 /** eng: the loose engine item, if any (to see whether its plugs are in) */
 export function nextStep(b, eng) {
   const n = nextStepOf(b);
-  return n && n.slot.id === 'engine' && eng?.parts && !eng.parts.plugs ? { ...n, tip: PLUGS_TIP } : n;
+  return n && n.slot.id === 'engine' && eng?.parts && !eng.parts.plugs ? { ...n, tip: PLUGS_TIP } : n;   // (only when the plugs are out: fouled ones are for the player to find)
 }
 function nextStepOf(b) {
   const order = s => (['start', 'steer', 'drive', 'grip'].includes(s.fn) ? 0 : 1);
