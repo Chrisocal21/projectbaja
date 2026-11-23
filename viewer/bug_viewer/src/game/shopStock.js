@@ -1,6 +1,6 @@
 // What each shop on the map sells (pure: no game state, loads under node). Every barn, junkyard, off-road store and gas-station mart has its own shelf:
 // a fixed pick from its kind's pool, decided by where it stands, so the same shop always sells the same things and no two shops match. What you buy leaves
-// the shelf for good (game.home.shopSold). Prices are PROPOSALs.
+// the shelf until RESTOCK_HOURS of game time pass (game.home.shopSold, shopSoldAt). Prices are PROPOSALs.
 //   off-road store: new parts, each store leaning one way (suspension, engine, body, lights, gear), plus wheels, rims, a tool and a supply or two
 //   junkyard:       used parts at about half price, old wheels and rims, junk, now and then an El Cajon part
 //   barn:           supplies and tools cheap, a "barn find" or two, an old battery, a drum or a crate
@@ -64,8 +64,11 @@ export function shopRows(site, ctx) {
   for (const r of take(ctx.martItems || [], 4 + Math.floor(rnd() * 3), rnd)) rows.push({ id: r.id, kind: r.kind, itemId: r.itemId, price: Math.round(r.price * jit(1.1, 1.35)), note: r.note });
   return { rows, theme: 'convenience' };
 }
-/** the shelf now: the rows minus what has been bought, with the shop's key. sold = game.home.shopSold ({ [key]: [row id] }) */
-export function shelf(site, ctx, sold = {}) {
-  const key = shopKey(site), gone = new Set(sold[key] || []), { rows, theme } = shopRows(site, ctx);
+/** game hours until something you bought is back on a shop's shelf (three days; PROPOSAL) */
+export const RESTOCK_HOURS = 72;
+/** the shelf now: the rows minus what has been bought and not yet restocked, with the shop's key.
+ * sold = game.home.shopSold ({ [key]: [row id] }); soldAt = game.home.shopSoldAt ({ [key]: { [row id]: game hour bought } }); now = game hours played so far */
+export function shelf(site, ctx, sold = {}, now = 0, soldAt = {}) {
+  const key = shopKey(site), gone = new Set((sold[key] || []).filter(id => now - (soldAt[key]?.[id] ?? 0) < RESTOCK_HOURS)), { rows, theme } = shopRows(site, ctx);
   return { key, theme, rows: rows.filter(r => !gone.has(r.id)), soldCount: gone.size };
 }

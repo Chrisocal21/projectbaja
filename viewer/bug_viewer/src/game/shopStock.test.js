@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { shopRows, shelf, SPECIALTY } from './shopStock.js';
+import { shopRows, shelf, SPECIALTY, RESTOCK_HOURS } from './shopStock.js';
 
 const slots = Object.values(SPECIALTY).flatMap(s => s.slots);
 const cat = {
@@ -30,4 +30,10 @@ test('what you buy leaves the shelf and stays gone', () => {
   const s = at('junk', 55), first = shelf(s, ctx), row = first.rows[0], after = shelf(s, ctx, { [first.key]: [row.id] });
   assert.equal(after.rows.length, first.rows.length - 1); assert.ok(!after.rows.some(r => r.id === row.id)); assert.equal(after.soldCount, 1);
   assert.equal(shelf(at('junk', 56), ctx, { [first.key]: [row.id] }).soldCount, 0);
+});
+test('what you bought comes back on the shelf after three game days', () => {
+  const s = at('junk', 55), first = shelf(s, ctx), row = first.rows[0], sold = { [first.key]: [row.id] }, soldAt = { [first.key]: { [row.id]: 10 } };
+  assert.ok(!shelf(s, ctx, sold, 10 + RESTOCK_HOURS - 1, soldAt).rows.some(r => r.id === row.id));
+  const back = shelf(s, ctx, sold, 10 + RESTOCK_HOURS, soldAt);
+  assert.ok(back.rows.some(r => r.id === row.id)); assert.equal(back.soldCount, 0);
 });

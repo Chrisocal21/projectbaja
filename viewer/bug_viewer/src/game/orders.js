@@ -24,7 +24,8 @@ export function placeOrder(kind, id) {
 
 /** game time passes (in-game hours): count orders down, set down whatever is due */
 export function passTime(hours) {
-  if (hours > 0) game.marketHours = (game.marketHours || 0) + hours;   // game time, for the buyers' shelves (game/market.js)
+  if (hours > 0) { game.marketHours = (game.marketHours || 0) + hours;   // game time, for the buyers' shelves (game/market.js)
+    if (game.home) game.home.hoursTotal = (game.home.hoursTotal || 0) + hours; }   // saved game time, for the shops' restocking (game/shopStock.js); in place, this runs every frame
   const list = ordersOnTheWay(); if (!list.length || !(hours > 0)) return;
   let due = false; for (const o of list) { o.left -= hours; if (o.left <= 1e-9) due = true; }   // (counted down in place: this runs every frame)
   if (!due) return;

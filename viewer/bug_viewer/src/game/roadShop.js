@@ -24,7 +24,7 @@ export function openRoadShop(site, brandName) { game.roadShop = { site: { ...sit
 /** the shelf now: { key, theme, rows } minus what you have bought, each row with its display label */
 export function roadShelf() {
   const rs = game.roadShop; if (!rs) return { rows: [], theme: '' };
-  const sh = shelf(rs.site, ctx(), game.home?.shopSold);
+  const sh = shelf(rs.site, ctx(), game.home?.shopSold, game.home?.hoursTotal || 0, game.home?.shopSoldAt);
   return { ...sh, rows: sh.rows.map(r => ({ ...r, label: nameOfItem({ kind: r.kind, id: r.itemId }) })) };
 }
 export function roadBuy(row) {
@@ -33,6 +33,7 @@ export function roadBuy(row) {
   if (!canCarry(row.kind, row.itemId)) return say('Your hands are full.');
   const name = nameOfItem({ kind: row.kind, id: row.itemId }), key = roadShelf().key;
   addCash(-row.price, `Bought at ${rs.title.toLowerCase()}: ${name}`); giveToPlayer(row.kind, row.itemId);
-  game.home = { ...game.home, shopSold: { ...(game.home.shopSold || {}), [key]: [...(game.home.shopSold?.[key] || []), row.id] } };
+  const h = game.home, at = h.hoursTotal || 0;
+  game.home = { ...h, shopSold: { ...(h.shopSold || {}), [key]: [...(h.shopSold?.[key] || []).filter(i => i !== row.id), row.id] }, shopSoldAt: { ...(h.shopSoldAt || {}), [key]: { ...(h.shopSoldAt?.[key] || {}), [row.id]: at } } };
   save(); say(`Bought: ${name}`);
 }
