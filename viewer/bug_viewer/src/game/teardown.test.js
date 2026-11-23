@@ -23,3 +23,11 @@ test('the next step starts with a drive part nothing blocks, and ends null when 
   assert.equal(nextStep(whole), null);
   assert.notEqual(nextStep(apartBuild(whole)).slot.id, 'steering', 'the steering wheel needs the dash first');
 });
+import { layoutParts, RACKS, RACK, FLOOR_SPOTS } from './teardown.js';
+test('every loose part has its own place: a rack board it fits on, or a floor spot, nothing doubled', () => {
+  const lay = layoutParts(), ids = apartSlots().map(s => s.id);
+  assert.ok(ids.every(id => lay[id]), 'every part is placed: ' + ids.filter(id => !lay[id]).join());
+  assert.equal(new Set(ids.map(id => lay[id].x.toFixed(2) + ',' + lay[id].z.toFixed(2) + ',' + lay[id].y.toFixed(2))).size, ids.length);
+  for (const r of RACKS) r.boards.forEach(b => { const w = b.reduce((n, id) => n + [0, 0.34, 0.5, 0.72, 0.9][BUG.slots.find(s => s.id === id).size] + 0.05, 0); assert.ok(w <= RACK.len - 0.05, r.name + ' board is too full: ' + w); });
+  assert.ok(Object.keys(FLOOR_SPOTS).every(k => lay[k].y === 0));
+});

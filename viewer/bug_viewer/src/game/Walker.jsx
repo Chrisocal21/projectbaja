@@ -42,6 +42,7 @@ import { aimingHeld } from '../placement/input.js';   // ?placement=1: Shift sna
 const TRAILER_DOOR = (() => { const [x, z] = toW(SITES.garage, CAMPER.doorX, CAMPER.doorZ); return { x, z }; })();
 import { finishPrompt } from './finishWork.js';
 import { pressurePrompt } from './pressureWork.js';
+import { aimDist } from './aim.js';
 import { held, toolInHand, nameOfItem, sizeOf, inGarageZone, boxItems, carItems } from './items.js';
 import { containers, containerById, CONTAINER_RULES } from './loot.js';
 import { partById, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
@@ -125,6 +126,7 @@ function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair i
 }
 // PROPOSAL (design guesses): aim volumes for fixed targets. r = how far the crosshair may be from the centre line, h = height, dy = height of the base above the floor.
 const AIM_DEFAULT = { r: 1.0, h: 1.8 };
+const ITEM_AIM = { 1: { r: 0.17, h: 0.3 }, 2: { r: 0.25, h: 0.4 }, 3: { r: 0.34, h: 0.5 }, 4: { r: 0.42, h: 0.6 } };   // an item's hit volume by its size: about the size of the crate it is drawn as
 const AIM_TARGET = { tarp: { r: 1.4, h: 0.8 }, al: { r: 1.0, h: 1.8 }, bench: { r: 1.3, h: 1.2 }, letter: { r: 0.4, h: 0.2, dy: 0.98 }, breaker: { r: 0.5, h: 1.0, dy: 0.9 }, openSwitch: { r: 0.6, h: 1.2, dy: 0.5 }, pump: { r: 0.8, h: 1.8 }, store: { r: 2.5, h: 3.0 } };
 const SHOP = SITES.shop, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
@@ -229,10 +231,17 @@ export default function Walker({ world, sun }) {
     const wv = foot && !game.buildMode ? pickWork({ x: px, z: pz }, workVehicles()) : null;   // the restorable vehicle you stand at: the Bug, or a donor / project
     game.work = wv ? { id: wv.id, active: wv.v.active, uid: wv.v.uid, name: wv.v.name, build: wv.v.build, pose: wv.v.pose, width: wv.v.width, length: wv.v.length, def: wv.v.def, lx: wv.lx, lz: wv.lz, zone: zoneAt(wv.v.def, wv.lx, wv.lz) } : null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
-    let aimedItem = null, aimedD = 1e9;   // the nearest loose item the crosshair is actually on: it beats the bench it lies on (the bench's own spot is always closer)
-    if (foot) for (const it of game.items) if (it.loc === 'world') { const d = consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0, own: (it.y || 0) > 0.5 });   // own: lying on a bench or shelf, so the furniture's own solid circles must not hide it
-      if (d && d < aimedD) { aimedD = d; aimedItem = 'item:' + it.uid; } }
-    if (aimedItem && best === 'bench') best = aimedItem;
+    // loose items: the hit volume is the size of the item, and the pick is the FIRST item the view ray reaches (not the nearest to your feet, not one behind the thing you look at)
+    let aimedItem = null, aimedD = 1e9;
+    if (foot) for (const it of game.items) if (it.loc === 'world') {
+      if (it.kind === 'shell') { consider('item:' + it.uid, it.x, it.z, 3.6, true, 0.5, { r: 0.9, h: 0.9, dy: it.y || 0 }); continue; }
+      const dx = it.x - px, dz = it.z - pz; if (dx * dx + dz * dz > 5.76) continue;   // 2.4 m
+      const sz = ITEM_AIM[sizeOf(it.kind, it.id)] || ITEM_AIM[2], onTop = (it.y || 0) > 0.5;   // onTop: lying on a bench or shelf, so the furniture's own solid circles must not hide it
+      if (wallBlocks(eye, it.x, it.z, onTop ? wallCache.list.filter(w => Math.hypot(w[0] - it.x, w[1] - it.z) > w[2] + 0.7) : wallCache.list)) continue;
+      const d = aimDist(eye, look, { x: it.x, z: it.z, y: s.y + (it.y || 0), h: sz.h, r: sz.r }, 2.4);
+      if (d !== null && d < aimedD) { aimedD = d; aimedItem = 'item:' + it.uid; }
+    }
+    if (aimedItem && !(best && !best.startsWith('item:') && best !== 'bench' && bd < aimedD * 0.5)) { best = aimedItem; bd = Math.min(bd, aimedD * 0.5); }
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
     if (foot && raceCarStage() < 2) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6, { r: 1.6, h: 1.5 });
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });

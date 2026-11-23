@@ -92,6 +92,7 @@ const ALL_BUILD_ITEMS = [
   { id: 'wallOpening', name: 'Doorway through an original wall (2 m)', price: OPENING_PRICE, zone: 'yard', r: 0, cat: 'Structure', cut: true, note: "Needs a foundation slab against the garage's right or back wall" },
   { id: 'floodlight', name: 'Floodlight pole', price: 120, zone: 'yard', r: 0.3, cat: 'Yard' },
   { id: 'partsBin', name: 'Parts bin', price: 45, zone: 'any', r: 0.4, cat: 'Storage', note: 'Stow parts in it (E with a part in hand); E with empty hands takes the last one out. It remembers what is inside.' },
+  { id: 'partsRack', name: 'Parts rack (2.4 m)', price: 130, zone: 'any', r: 0.5, len: 2.4, cat: 'Storage', note: 'Three open boards for parts: set things on them. To move it, aim at it and click' },
   { id: 'yardRack', name: 'Steel parts rack', price: 150, zone: 'any', r: 0.6, cat: 'Storage', note: 'More shelf room for parts' },
   { id: 'shelfTires', name: 'Tire & rim shelving (2.4 m)', price: 140, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: "Walt's wall shelving: to move it, aim at it and click" },
   { id: 'shelfSupplies', name: 'Supply shelving (2.4 m)', price: 120, zone: 'any', r: 0.45, len: 2.4, cat: 'Storage', note: 'Oil, cans and paint. To move it, aim at it and click (Shift+X stores it, X sells it)' },

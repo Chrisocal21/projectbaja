@@ -6,16 +6,19 @@ export function lookDir(yaw, pitch) { const c = Math.cos(pitch); return { x: -Ma
 
 /** Does the view ray pass within `r` metres of a vertical post (centre x,z; from y0 up to y0+h), no further than `reach` metres (straight line) ahead?
  *  Closest approach between the ray (t >= 0) and the vertical segment. */
-export function aimsAt(origin, dir, t, reach = 7) {
+export function aimsAt(origin, dir, t, reach = 7) { return aimDist(origin, dir, t, reach) !== null; }
+/** the distance along the ray to the first point of the post it passes through, or null if the ray misses it */
+export function aimDist(origin, dir, t, reach = 7) {
   const h = t.h ?? 1, r = t.r ?? 0.5, y0 = t.y ?? 0, n = h > 0.05 ? 16 : 1;
+  let first = null;
   for (let i = 0; i <= n; i++) {
     const qy = y0 + (n === 1 ? h / 2 : h * i / n), vx = t.x - origin.x, vy = qy - origin.y, vz = t.z - origin.z;
     const s = vx * dir.x + vy * dir.y + vz * dir.z;               // distance along the ray to the closest point
     if (s < 0.05) continue;                                       // behind (or on top of) the camera
     const dist = Math.hypot(vx - s * dir.x, vy - s * dir.y, vz - s * dir.z);
-    if (dist <= r && Math.hypot(vx, vy, vz) <= reach + r) return true;
+    if (dist <= r && Math.hypot(vx, vy, vz) <= reach + r && (first === null || s < first)) first = s;
   }
-  return false;
+  return first;
 }
 
 /** Same for a yaw-rotated box: centre x,z, floor y, half sizes hx (across), hz (along), height h, yaw (heading, as in pose.h: forward = (sin h, cos h)). */

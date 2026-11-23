@@ -23,6 +23,28 @@ export function gridSpots(n) {
   for (let z = -4.8; z <= 5.4 && rows.length < n; z += 0.95) for (const x of cols) { if (rows.length < n && !skip.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 0.6)) rows.push([x, Math.round(z * 100) / 100, 0]); }
   return rows;
 }
+/** Parts racks along the right side of the garage (garage-local metres; length runs along z). Boards are 0.45, 1.05 and 1.65 m up; each lists what lies on it, left to right.
+ *  Grouped so the car comes together in order: small drive parts, panels, big panels, bumpers. Heavy things (engine, wheels) go on the floor beside the lift. */
+export const RACK = { len: 2.4, boards: [0.45, 1.05, 1.65], ry: Math.PI / 2 };
+export const RACKS = [
+  { x: 3.2, z: 1.9, name: 'small parts', boards: [['battery', 'steering', 'pedals', 'plate', 'mats'], ['handles', 'headlights', 'taillights', 'sideWindows', 'turnSignals'], ['hoodTrim']] },
+  { x: 3.2, z: 4.5, name: 'panels and seats', boards: [['dash', 'seatPassenger', 'engineLid'], ['hoodPanel', 'nosePanel', 'tailPanel'], ['rearWindow']] },
+  { x: 5.2, z: 1.9, name: 'doors and fenders', boards: [['doorL', 'doorR', 'windshield'], ['fenderFL', 'fenderFR', 'fenderRL'], ['fenderRR', 'seatBack', 'sideTrim']] },
+  { x: 5.2, z: 4.5, name: 'bumpers', boards: [['frontBumper', 'rearBumper']] },
+];
+export const FLOOR_SPOTS = { engine: [4.3, -3.8], wheelFL: [2.6, -2.2], wheelFR: [2.6, -3.0], wheelRL: [2.6, -3.8] };
+const WIDTH = { 1: 0.34, 2: 0.5, 3: 0.72, 4: 0.9 };
+/** where each part goes: { [slotId]: { x, z, y, ry } } in garage-local metres, y = height above the floor. Unassigned parts get floor spots after the racks. */
+export function layoutParts() {
+  const out = {};
+  for (const r of RACKS) r.boards.forEach((ids, bi) => {
+    const ws = ids.map(id => WIDTH[BUG.slots.find(s => s.id === id).size] + 0.05), total = ws.reduce((a, b) => a + b, 0);
+    let at = -total / 2;
+    ids.forEach((id, i) => { out[id] = { x: r.x, z: r.z + at + ws[i] / 2, y: RACK.boards[bi] + 0.03, ry: RACK.ry }; at += ws[i]; });
+  });
+  for (const [id, [x, z]] of Object.entries(FLOOR_SPOTS)) out[id] = { x, z, y: 0, ry: 0.3 };
+  return out;
+}
 /** the next thing to fit, as a short hint: the drive parts first, then the body. null when the car is whole. */
 export function nextStep(b) {
   const order = s => (['start', 'steer', 'drive', 'grip'].includes(s.fn) ? 0 : 1);
