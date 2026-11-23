@@ -12,7 +12,6 @@ import { WORLD_SIZE, HM_SIZE, DRIVE_LIMIT, SURFACE_CELL, DRIVE, ringMetric as ri
 import { loadBorder } from './border.js';
 import { makeHighways } from './highways.js';
 import { makeBadlands } from './badlands.js';
-import { regionalDirtRoads } from './regionalRoads.js';
 import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
@@ -38,6 +37,8 @@ const HMB = boxBlur(HM, HN, 9);
 const BD = REAL ? await loadBorder() : null;
 /** ?realmap: the real highways (worlds/highways.js), built once the sites are placed (they bend round them) */
 const HWJ = REAL ? await (await fetch('/terrain/highways.json')).json() : null;
+/** ?realmap: long dirt trails that follow washes and mountain grades, baked by tools/build_trails.mjs (public/terrain/trails.json) */
+const TRAILJ = REAL ? await fetch('/terrain/trails.json').then(r => r.json()).catch(() => ({ trails: [] })) : { trails: [] };
 let badlands = null;
 let HW = null, JN = null, RACE = null, FEAT = null, FIELD = null;   // FEAT/FIELD: whoops, jumps, berms and mini tracks beside the roads (offroadFeatures.js)
 export const highways = () => HW;
@@ -282,13 +283,13 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   const featOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 0.9 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 0.9;   // dry, off the built places, on near-flat ground (under 3.5 degrees)
   const wildOk = (x, z) => BD.waterAt(x, z) == null && !keep.some(k => Math.hypot(x - k.x, z - k.z) < k.r + 60) && Math.abs(BD.heightAt(x + 8, z) - BD.heightAt(x - 8, z)) < 2.2 && Math.abs(BD.heightAt(x, z + 8) - BD.heightAt(x, z - 8)) < 2.2;   // trails, rivers and forests may wind over gentle slopes (under about 8 degrees)
   FEAT = planFeatures(HWJ.roads, featOk, wildOk);
-  { const side = planHighwayFeatures(HWJ.roads, featOk, FEAT.items.length); FEAT.items.push(...side.items); FEAT.trails.push(...side.trails); }   // jumps and whoop strips right beside the paved highways
-  const desertTrails = regionalDirtRoads(HWJ.roads, BD, keep);
+  { const side = planHighwayFeatures(HWJ.roads, featOk, FEAT.items.length); FEAT.items.push(...side.items); }   // jumps and whoop strips right beside the paved highways (their little dirt loops are gone: the long trails below are the dirt roads)
+  const desertTrails = [];   // the old procedural wash loops are retired; the baked trails (TRAILJ) replace them
   const localPavement = ROADS.filter(r => r.kind === 'street' || r.kind === 'highway').map(r => ({
     kind: r.kind, pts: r.path.pts.filter((_, i, pts) => i % 16 === 0 || i === pts.length - 1).map(p => [p.x, p.z]),
   }));
   badlands = makeBadlands(desertTrails, [...HWJ.roads, ...localPavement], BD, keep);
-  HW = makeHighways([...HWJ.roads, ...ramps, ...desertTrails, ...RACE.dirtRoads, ...FEAT.trails], realBase, { water: BD.waterAt, avoid: keep });
+  HW = makeHighways([...HWJ.roads, ...ramps, ...desertTrails, ...RACE.dirtRoads, ...TRAILJ.trails], realBase, { water: BD.waterAt, avoid: keep });
   const roadOk = (x, z) => featOk(x, z) && !HW.pavedAt(x, z, 14);   // never on a paved road
   FEAT.items.push(...planRoadFeatures(HW.roads.filter(r => r.kind === 'dirt'), roadOk, FEAT.items.length));   // whoops and road jumps right on the dirt roads (the ribbons read the same height, so they ride over them)
   const wildRoadOk = (x, z) => wildOk(x, z) && !HW.pavedAt(x, z, 14);

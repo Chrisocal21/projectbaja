@@ -86,3 +86,9 @@ Chris looked at the tires on the blue tire shelves (the Bug's four wheels and th
 ## Changes that touch your files (Claude, Nov 22)
 - Junk piles are now picked up with one press of E and the whole pile clears at once (no hold-to-haul in loads). `ShrinkingPile` in Home.jsx never shrinks a pile any more, so a plain model per pile is fine.
 - HUD: a minimap (`game/Minimap.jsx`, bottom left) draws roads from `worlds/county.js` (`ROADS`, `highways()`) and found places from `SITES`. New roads or sites you add show up on it by themselves. Tab now opens the phone on its Inventory app.
+
+## Dirt roads are now baked trails (Claude, Nov 22)
+- The brown dirt lines were procedural loops beside the highways (`regionalRoads.js` wash/shelf trails, `planHighwayFeatures` loops). Those are no longer added to the world. `regionalDirtRoads` still exists but is unused.
+- Dirt roads now come from `viewer/bug_viewer/public/terrain/trails.json`, baked by `node tools/build_trails.mjs [debug.png]` using `src/worlds/trailRoutes.js`. Trails are least-cost routes over the real elevation data between two highway points: they favour washes, avoid ridges and steep faces and water, and ride a highway where that is the easy way. Only the off-pavement runs are kept, so each one starts and ends on a road.
+- Race dirt legs (`RACE.dirtRoads`) are unchanged. Re-run the tool if highways.json, the keep-out list (`tools/keep.json`) or the terrain changes. To get more or fewer trails change `want` in `planTrails`.
+- Trails are named 'Dirt road' on purpose: highways.js snaps their ends onto the nearest paved road.
