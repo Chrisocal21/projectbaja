@@ -5,6 +5,7 @@ import { bugAsleep } from './game/home.js';
 import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
+import { piecePower } from './game/engineRules.js';   // worn engine pieces cost power
 import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
 import PerfHud from './game/PerfHud.jsx';
@@ -297,7 +298,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power, MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: world.height, mu: sf.mu * wfx.grip, rr: sf.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);

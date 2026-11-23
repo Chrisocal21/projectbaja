@@ -6,7 +6,7 @@ import { SITES, PROPERTY, toWorld, height, groundHeight, dynFloors } from '../wo
 import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from '../worlds/openings.js';
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { startCheck, fuelOf } from '../rules/fuel.js';
-import { engineStartCheck } from './engineRules.js';
+import { engineStartCheck, pieceClue } from './engineRules.js';
 import { inOffice, wingFree, annexWallCircles, wingWallCircles, officeLevelOf, WING } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles, extension } from '../worlds/garageLevels.js';
@@ -432,7 +432,8 @@ export function crankBug() {
     const n = (game.crankTries = (game.crankTries || 0) + 1);
     if (n <= CRANKS.length) { say(CRANKS[n - 1]); return; }
     game.home = { ...game.home, bugFired: true }; save();
-    say("*BRRRAAAP* — she fires! Grandma's Bug is running for the first time since '09. Let her warm up, then take her out.");
+    const clue = pieceClue(game.build?.engineParts);
+    say("*BRRRAAAP* — she fires! Grandma's Bug is running for the first time since '09." + (clue ? ' ' + clue : ' Let her warm up, then take her out.'));
   }, 1400);
 }
 

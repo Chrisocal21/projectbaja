@@ -86,6 +86,24 @@ export function engineStartCheck(parts) {
   }
   return { ok: true, why: '' };
 }
+/** worn pieces that still let her start cost power: below WORN each one loses up to its share, in a straight line down to DEAD. A missing air cleaner or exhaust
+ *  (she runs without them) counts as dead. The total never drops below MIN_POWER. PROPOSAL numbers. */
+export const WORN = 60, MIN_POWER = 0.5;
+export const POWER_SHARE = { carb: 0.2, plugs: 0.15, distributor: 0.12, coil: 0.1, intakeManifold: 0.1, airCleaner: 0.06, exhaust: 0.06 };
+const lossOf = (parts, id) => { const c = parts[id] ? parts[id].c : DEAD; return POWER_SHARE[id] * Math.max(0, Math.min(1, (WORN - c) / (WORN - DEAD))); };
+/** 0.5..1: the share of full power the engine's own pieces allow (undefined parts = a complete engine = 1) */
+export function piecePower(parts) {
+  if (!parts) return 1;
+  const loss = Object.keys(POWER_SHARE).filter(id => !(id === 'intakeManifold' && !hasT1(parts))).reduce((n, id) => n + lossOf(parts, id), 0);
+  return Math.max(MIN_POWER, Math.round((1 - loss) * 100) / 100);
+}
+const FEEL = { carb: 'stumbles when you open the throttle: the carburetor is worn', plugs: 'misfires under load: the spark plugs are tired', distributor: 'runs rough and down on power: the distributor is worn', coil: 'has a weak spark and feels flat: the ignition coil is tired', intakeManifold: 'hisses and hunts at idle: the intake manifold leaks', airCleaner: 'sucks dirt with no air cleaner and feels down on power', exhaust: 'is loud and flat without a good exhaust' };
+/** what you hear and feel when she runs, for the piece costing the most power ('' = she runs clean) */
+export function pieceClue(parts) {
+  if (!parts || piecePower(parts) >= 0.95) return '';
+  const worst = Object.keys(POWER_SHARE).filter(id => !(id === 'intakeManifold' && !hasT1(parts))).sort((a, b) => lossOf(parts, b) - lossOf(parts, a))[0];
+  return `She ${FEEL[worst]} (about ${Math.round(piecePower(parts) * 100)}% power).`;
+}
 /** a short line for the engine's name tag */
 export function engineTag(eng) {
   const m = missingOf(partsOf(eng));
