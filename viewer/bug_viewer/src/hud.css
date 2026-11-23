@@ -412,3 +412,9 @@
 .dg-c i { font-size: 15px; color: #fff; margin-top: 6px; letter-spacing: 0.32em; }
 .dg-gear { position: absolute; left: 20px; top: 40px; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; font: 800 24px var(--hud-cond); color: #fff; background: rgba(8, 11, 13, 0.55); }
 .dg-gear.red { border-color: var(--hud-bad); color: var(--hud-bad); }
+
+/* minimap v3: wide rounded rectangle (GTA 6 shape); the nearest place reads top-left inside the frame */
+.minimap { width: 320px; }
+.full .minimap canvas { width: 320px; height: 210px; border-radius: 18px; border: 2px solid rgba(255, 255, 255, 0.85); }
+.minimap::after { width: 320px; height: 210px; border-radius: 18px; }
+.mm-cap { left: 14px; top: 12px; bottom: auto; transform: none; background: rgba(8, 11, 13, 0.7); font-size: 13px; max-width: 250px; }
