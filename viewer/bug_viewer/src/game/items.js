@@ -117,8 +117,11 @@ export function grabItem(uidN) {
 /** put something you carry down at your feet */
 export function dropItem(uidN) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
-  const p = near(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: Math.random() * 6 }); commit();
+  const p = dropSpot(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: p.ry }); commit();
 }
+/** where a put-down item lands: straight ahead of you, turned the way you face (the ground marker in Items.jsx shows exactly this) */
+export const DROP_D = 1.4;
+export const dropSpot = () => ({ x: game.pos.x + game.face.x * DROP_D, z: game.pos.z + game.face.z * DROP_D, ry: Math.atan2(game.face.x, game.face.z) });
 export const dropHeld = () => dropItem();
 /** G with a keepsake in your hands, standing at a garage wall: hang it there (game/wallhang.js). Returns false if nothing was hung (then G just drops it). */
 export function hangHeld() {

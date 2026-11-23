@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { game, useGame } from './store.js';
-import { sizeOf, nameOfItem, held, toolInHand } from './items.js';
+import { sizeOf, nameOfItem, held, toolInHand, dropSpot } from './items.js';
 import ToolModel from './ToolModel.jsx';
 import { UPGRADE_FIT } from '../rules/vehicles.js';
 import { containers } from './loot.js';
@@ -148,7 +148,7 @@ function ToolSwitch({ idRef }) {
 /** boxes lying around the world, plus the box in the player's hands */
 export default function Items() {
   useGame();
-  const heldRef = useRef(), toolRef = useRef(), toolId = useRef('wrench'), { camera } = useThree();
+  const heldRef = useRef(), markRef = useRef(), toolRef = useRef(), toolId = useRef('wrench'), { camera } = useThree();
   const loose = game.items.filter(i => i.loc === 'world'), hand = held();
   useFrame(() => {
     // the tool in your hand: the one you carry out, or the one this part needs while it snaps onto the car; it turns while the hold bar fills
@@ -165,6 +165,9 @@ export default function Items() {
         t.quaternion.copy(camera.quaternion); t.rotateX(-0.18); t.rotateY(-0.12); t.rotateZ(-0.33 + turn);
         t.scale.setScalar(id === 'jack' ? 1.25 : 1.75);
       } } }
+    // the ground marker: where what you hold will land when you put it down (like a build ghost), sized to its footprint
+    { const m = markRef.current, h = held(); if (m) { m.visible = game.onFoot && !!h && h.kind !== 'tool' && !game.buildMode && !carFitReady();
+      if (m.visible) { const d = dropSpot(), dm = DIM[sizeOf(h.kind, h.id)] || DIM[2]; m.position.set(d.x, groundHeight(d.x, d.z) + 0.04, d.z); m.rotation.set(0, d.ry, 0); m.scale.set(dm[0], 1, dm[2]); } } }
     const g = heldRef.current; if (!g) return;
     g.visible = game.onFoot && !!held() && held().kind !== 'tool' && !carFitReady();   // when it fits the car, it "snaps": the part leaves your hands and its glowing spot on the car is the preview
     if (!g.visible) return;
@@ -182,6 +185,7 @@ export default function Items() {
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     <Containers />
     <group ref={heldRef} visible={false}>{hand && hand.kind !== 'tool' && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
+    <group ref={markRef} visible={false}><mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#f2a33a" transparent opacity={0.28} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh><lineSegments rotation={[-Math.PI / 2, 0, 0]} renderOrder={6}><edgesGeometry args={[new THREE.PlaneGeometry(1, 1)]} /><lineBasicMaterial color="#ffd28e" /></lineSegments></group>
     <group ref={toolRef} visible={false}><ToolSwitch idRef={toolId} /></group>
   </>;
 }
