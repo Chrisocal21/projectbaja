@@ -2,6 +2,8 @@
 
 Last updated: November 21, 2026. Paste one prompt per request. All of these are original, unbranded art: no real logos, badges or makes. Never write "Volkswagen", "VW", "Toyota" or any real brand on anything. Real **place names** (cities, towns, highways) are fine; real company names and logos are not.
 
+For the vehicle and terrain direction in Chris's November 22 race photographs, use [VEHICLE_GROUND_REFERENCE.md](VEHICLE_GROUND_REFERENCE.md). Its frame index covers mechanical construction, suspension poses, road surfaces, dust, water, and lighting.
+
 **Shared style line.** Add it to the end of any prompt if the results drift:
 > Grounded semi-realism, warm late-afternoon desert light, dusty air, sun-faded colours, no heavy bloom, no post-apocalyptic look. Palette: sand #C4A574, clay #A46A4B, sage #778571, graphite #353B40, cream #E5DDD0, orange #DC652D.
 
