@@ -408,7 +408,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       if (st.wade > 0.05) fl.push(['WADING ' + Math.round(st.wade * 100) + ' cm', 'warn']); else if (st.wetT > 0) fl.push(['WET BRAKES', 'warn']); if (st.drown > 0) fl.push(['ENGINE DROWNED', 'bad']);
       if (st.engHot) fl.push([st.engDerate < 1 ? 'OVERHEATING: LOSING POWER' : 'ENGINE HOT: ease off', st.engDerate < 1 ? 'bad' : 'warn']);
       const foot = GATES.length ? `Gate ${rc.next + 1}/${GATES.length} &nbsp; ${rc.t.toFixed(1)}s &nbsp; Best ${f(rc.best)}${rc.flash > 0 ? ` &nbsp; LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `${world.area(st.x, st.z)}${game.dev ? ' | keys 0-9 - = [ ] teleport' : ''}`;
-      const html = game.onFoot ? '' : driveHudHtml({ mph: Math.abs(st.v) * 2.23694, topMph: MAXV * 2.23694, gear: st.gear, rpm: st.rpm, redline: 5600, fuel: fu, tank: tankOf(game.active), fuelWord: fw, surface: st.surface, flags: fl, foot, cond: condRows({ temp: st.engTemp ?? 70, damage: st.engDamage || 0, wear: wr, psi: game.home?.tirePsi ?? 30 }) });
+      const html = game.onFoot ? '' : driveHudHtml({ speedUnit: game.settings.speedUnit, mph: Math.abs(st.v) * 2.23694, topMph: MAXV * 2.23694, gear: st.gear, rpm: st.rpm, redline: 5600, fuel: fu, tank: tankOf(game.active), fuelWord: fw, surface: st.surface, flags: fl, foot, cond: condRows({ temp: st.engTemp ?? 70, damage: st.engDamage || 0, wear: wr, psi: game.home?.tirePsi ?? 30, tempUnit: game.settings.tempUnit }) });
       if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; }
     }
   };

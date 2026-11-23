@@ -1,5 +1,6 @@
 // The phone opens with P. Real apps: Map, Index, Upgrades, Settings, Fullscreen, Exit.
 // Everything else is a grey "coming soon" placeholder until its system exists (see docs/GAMEPLAN.md item 18).
+import { tempText } from './units.js';
 import { AccountBox } from './CloudBox.jsx';
 import AdminApp from './AdminApp.jsx';
 import { tempF, feel, skyWord, forecast } from './weatherlogic.js';
@@ -172,9 +173,9 @@ function WeatherApp({ onBack }) {
   useGame();
   const h = game.clock ?? 9, t = tempF(h), hr = x => clockText(x).replace(':00 AM', 'a').replace(':00 PM', 'p');
   return <div className="phone-soon"><h3>Weather</h3>
-    <p style={{ fontSize: 44, fontWeight: 700, margin: 0 }}>{t}°F</p>
+    <p style={{ fontSize: 44, fontWeight: 700, margin: 0 }}>{tempText(t, 'F', game.settings.tempUnit)}</p>
     <p style={{ margin: '0 0 6px' }}>{skyWord(h)} · {feel(t)} · {clockText(h)}</p>
-    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', margin: '6px 0' }}>{forecast(h, 6).map(f => <div key={f.hour} style={{ flex: 1, background: '#ffffff12', borderRadius: 10, padding: '6px 2px', textAlign: 'center' }}><small>{hr(f.hour)}</small><div style={{ fontWeight: 600 }}>{f.temp}°</div></div>)}</div>
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', margin: '6px 0' }}>{forecast(h, 6).map(f => <div key={f.hour} style={{ flex: 1, background: '#ffffff12', borderRadius: 10, padding: '6px 2px', textAlign: 'center' }}><small>{hr(f.hour)}</small><div style={{ fontWeight: 600 }}>{tempText(f.temp, 'F', game.settings.tempUnit, true)}</div></div>)}</div>
     <div style={{ textAlign: 'left', width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #ffffff18' }}><span>Roads</span><span>Dry</span></div>
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #ffffff18' }}><span>Wind and dust</span><span>No warnings</span></div></div>

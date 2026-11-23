@@ -2,7 +2,7 @@
 import { game, emit } from './store.js';
 
 const KEY = 'baja-settings-v1';
-export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', shadows: 'auto', screenHints: false, crosshair: true, showFps: true };
+export const SETTING_DEFAULTS = { creative: false, sens: 1, invertY: false, fov: 70, renderScale: 'auto', shadows: 'auto', screenHints: false, crosshair: true, showFps: true, speedUnit: 'mph', tempUnit: 'F' };
 /** what the settings panel shows, in order. Every row here is wired to something real. */
 export const SETTING_ROWS = [
   { sec: 'Gameplay' },
@@ -18,6 +18,8 @@ export const SETTING_ROWS = [
   { k: 'showFps', type: 'toggle', label: 'Show FPS counter' },
   { k: 'screenHints', type: 'toggle', label: 'Show key hints on screen', note: 'Off by default. Every key is listed under Controls (the tab above).' },
   { k: 'crosshair', type: 'toggle', label: 'Show crosshair' },
+  { k: 'speedUnit', type: 'choice', label: 'Speed', options: [['mph', 'mph'], ['kph', 'km/h']] },
+  { k: 'tempUnit', type: 'choice', label: 'Temperature', options: [['F', '°F'], ['C', '°C']], note: 'Used by the weather app and the engine temperature gauge.' },
 ];
 
 const load = () => { try { return { ...SETTING_DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { ...SETTING_DEFAULTS }; } };
