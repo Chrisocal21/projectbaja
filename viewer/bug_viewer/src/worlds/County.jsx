@@ -18,6 +18,8 @@ import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
 import { GAS_BRANDS } from './brands.js';
 import { stationLayout } from './stationLayout.js';
+import { planStreetLights } from './streetLights.js';
+import { REAL_PLACES, projectPlace } from '../game/realPlaces.js';
 import Home from './Home.jsx';
 import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
 import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
@@ -570,6 +572,39 @@ function RoadsideDriveways() {
   return <mesh geometry={geo} renderOrder={2} receiveShadow><meshStandardMaterial color="#48494a" roughness={0.94} polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} /></mesh>;
 }
 
+// ---------------- street lights: around gas stations and rest stops, junctions and towns (worlds/streetLights.js); the lamps glow at night ----------------
+function StreetLights() {
+  const poles = useRef(), arms = useRef(), heads = useRef(), mat = useRef(), tick = useRef(0);
+  const lights = useMemo(() => {
+    const lit = [];
+    for (const s of junctions()?.roadside?.sites || []) lit.push({ x: s.x, z: s.z, r: 240 });
+    for (const f of junctions()?.furniture || []) if (f.type === 'stop') lit.push({ x: f.x, z: f.z, r: 110 });
+    const meta = border()?.meta;
+    if (meta) for (const p of REAL_PLACES) if (p.zoom <= 3) { const q = projectPlace(p.lat, p.lon, meta); lit.push({ x: q.x, z: q.z, r: 700 }); }
+    return planStreetLights((highways()?.roads || []).filter(r => r.kind === 'major' || r.kind === 'secondary'), lit);
+  }, []);
+  useEffect(() => {
+    const o = new THREE.Object3D();
+    lights.forEach((l, i) => {
+      const y = height(l.x, l.z), dx = Math.sin(l.ry), dz = Math.cos(l.ry);
+      o.position.set(l.x, y + 4.2, l.z); o.rotation.set(0, l.ry, 0); o.updateMatrix(); poles.current.setMatrixAt(i, o.matrix);
+      o.position.set(l.x + dx * 1.3, y + 8.3, l.z + dz * 1.3); o.updateMatrix(); arms.current.setMatrixAt(i, o.matrix);
+      o.position.set(l.x + dx * 2.5, y + 8.2, l.z + dz * 2.5); o.updateMatrix(); heads.current.setMatrixAt(i, o.matrix);
+    });
+    for (const m of [poles, arms, heads]) m.current.instanceMatrix.needsUpdate = true;
+  }, [lights]);
+  useFrame((_, dt) => {   // the lamps come on as the light goes
+    tick.current += dt; if (tick.current < 1) return; tick.current = 0;
+    if (mat.current) mat.current.emissiveIntensity = 3.2 * Math.max(0, Math.min(1, 1 - dayPhase(clockHour()) * 1.6));
+  });
+  if (!lights.length) return null;
+  return <>
+    <instancedMesh ref={poles} args={[null, null, lights.length]} frustumCulled={false} castShadow><cylinderGeometry args={[0.1, 0.15, 8.4, 6]} /><meshStandardMaterial color="#6f7478" metalness={0.5} roughness={0.6} /></instancedMesh>
+    <instancedMesh ref={arms} args={[null, null, lights.length]} frustumCulled={false}><boxGeometry args={[0.1, 0.1, 2.7]} /><meshStandardMaterial color="#6f7478" metalness={0.5} roughness={0.6} /></instancedMesh>
+    <instancedMesh ref={heads} args={[null, null, lights.length]} frustumCulled={false}><boxGeometry args={[0.55, 0.14, 1.0]} /><meshStandardMaterial ref={mat} color="#d9d6c8" emissive="#ffe2a0" emissiveIntensity={0} roughness={0.5} /></instancedMesh>
+  </>;
+}
+
 // ---------------- roadside: telephone poles, signs ----------------
 function Poles() {
   const poles = useRef(), arms = useRef();
@@ -694,6 +729,7 @@ export default function CountyScene() {
     {REAL && <HighwayFurniture />}
     {REAL && <RoadsidePlaces />}
     {REAL && <GasBrandSigns />}
+    {REAL && <StreetLights />}
     {REAL && <RoadsideWrecks />}
     {REAL && <RoadsideDriveways />}
     {TRAILS.map((t, i) => <GRibbon key={'t' + i} path={t.path} half={2.8} tile={22} makeTexture={looseTex} feather detail={{ grain: 0.5, bump: 1, macro: 0.15 }} lift={0.014} segs={4} heightFn={height} hide={p => pavedRoadAt(p.x, p.z, 4)} />)}
