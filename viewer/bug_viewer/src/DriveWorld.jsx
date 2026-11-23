@@ -4,6 +4,8 @@ import { wearMods, FRESH, onLanding, onBottomOut, onHit, drive, effects, clues }
 import { bugAsleep } from './game/home.js';
 import { driveHudHtml } from './game/driveHud.js';
 import { condRows } from './game/condition.js';
+import { chipVehicle, hitPanels, hitHardness, eligiblePanels } from './finishJobs.js';
+import { partById, bodyById } from './build.js';
 import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
@@ -322,7 +324,9 @@ function Vehicle({ children, hud, dims, race, sun }) {
       const d = Math.hypot(dx, dz);
       if (d < min && d > 1e-4) {
         st.x += (dx / d) * (min - d); st.z += (dz / d) * (min - d);
-        if (st.v * (fx * dx + fz * dz) < 0) st.v *= 0.25;   // moving towards the obstacle
+        if (st.v * (fx * dx + fz * dz) < 0) {   // moving towards the obstacle
+          const hard = hitHardness(Math.abs(st.v)); if (hard > 0 && !game.onFoot && game.build) { const b = game.build; game.home = chipVehicle(game.home, game.active, hitPanels(off > 0, dz * fx - dx * fz > 0), hard, eligiblePanels(b, partById, b.colors?.paint || bodyById[b.body]?.defaultPaint)); game.finishRev = (game.finishRev || 0) + 1; }   // the paint chips on the nose or tail, on the side that hit
+          st.v *= 0.25; }
       }
     }
     { const bd = world.bounds || { x0: -HALF, x1: HALF, z0: -HALF, z1: HALF }; st.x = Math.max(bd.x0, Math.min(bd.x1, st.x)); st.z = Math.max(bd.z0, Math.min(bd.z1, st.z)); }   // (county: a rectangle, the south side is open: worlds/world.js DRIVE)

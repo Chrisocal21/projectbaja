@@ -58,3 +58,12 @@ test('a spray can runs out: new, part used, empty; other tools never do', () => 
   assert.equal(canTag({ id: 'spray-red', paint: CAN_SECS / 4 }), ' · 25% left'); assert.equal(canTag({ id: 'spray-red', paint: 0 }), ' · empty');
   assert.equal(canLeft({ id: 'hose' }), Infinity); assert.equal(canTag({ id: 'grinder', paint: 0 }), '');
 });
+import { chipVehicle, hitPanels, hitHardness } from './finishJobs.js';
+test('a hit chips the paint on the nose or tail, harder when faster, and not at a crawl', () => {
+  assert.deepEqual(hitPanels(true, false), ['hoodPanel', 'fenderFL']); assert.deepEqual(hitPanels(false, true), ['engineLid', 'fenderRR']);
+  assert.equal(hitHardness(2), 0); assert.equal(hitHardness(30), 1); assert.ok(hitHardness(9) > 0 && hitHardness(9) < 1);
+  const elig = ['hoodPanel', 'fenderFL', 'engineLid'].map(k => [k, () => bodySeed('#336699')]), home = { finish: {} };
+  assert.equal(chipVehicle(home, 'bug', ['hoodPanel'], 0, elig), home);
+  const h = chipVehicle(home, 'bug', hitPanels(true, false), 0.5, elig);
+  assert.ok(h.finish.bug.hoodPanel.coverage < 1 && h.finish.bug.fenderFL.coverage < 1 && !h.finish.bug.engineLid);
+});

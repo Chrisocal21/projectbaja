@@ -1,6 +1,6 @@
 // Hold-click panel finishing: which tool does which rule, how long a whole job takes, and the saved per-panel state.
 // Pure (no game store, no renderer) so it is testable; game/finishWork.js runs it on the held mouse button.
-import { newPanel, grind, paint, buff, hose, look, weather, splash } from './rules/finish.js';
+import { newPanel, grind, paint, buff, hose, look, weather, splash, chip } from './rules/finish.js';
 
 /** secs = seconds of holding for one whole job (a full coat, all the rust off). PROPOSAL: tune by feel. */
 export const FINISH_TOOLS = {
@@ -67,6 +67,17 @@ export function weatherHome(home, hours, exposure = 1) {
 }
 
 /** Driving kicks dirt up on every panel of the vehicle (seeding untouched ones so there is something to wash). */
+/** Which panels take a knock: the nose or the tail, on the left or the right (body panel slot ids, rules/vehicles.js). */
+export const hitPanels = (front, right) => (front ? ['hoodPanel', right ? 'fenderFR' : 'fenderFL'] : ['engineLid', right ? 'fenderRR' : 'fenderRL']);
+/** How hard a hit is, 0..1, from the speed you hit at (m/s): nothing under a walking-pace bump, a full hit at about 15 m/s (PROPOSAL). */
+export const hitHardness = speed => Math.max(0, Math.min(1, (speed - 3) / 12));
+/** A hit chips the paint on these panels (only those you still have on the car). Returns the same home if nothing changed. */
+export function chipVehicle(home, vehId, keys, hardness, eligible) {
+  if (!(hardness > 0)) return home;
+  const have = home?.finish?.[vehId] || {}, next = { ...have }; let any = false;
+  for (const [key, seed] of eligible) if (keys.includes(key)) { next[key] = chip(have[key] || seed(), hardness); any = true; }
+  return any ? { ...home, finish: { ...(home?.finish || {}), [vehId]: next } } : home;
+}
 export function dirtyVehicle(home, vehId, eligible, amount) {
   const have = home?.finish?.[vehId] || {}, next = { ...have };
   for (const [key, seed] of eligible) next[key] = splash(have[key] || seed(), amount);
