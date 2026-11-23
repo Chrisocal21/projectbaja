@@ -1,12 +1,12 @@
 # Vehicle and ground reference: Baja racing photos
 
-Chris supplied these photos in chat on November 22, 2026. This page indexes them in the order shown and records the art direction for Project Baja. The photos themselves were supplied inline, without source files to check into the repository. Use their construction, terrain, motion, and lighting as reference. Create original vehicles and liveries; do not copy sponsor logos, race numbers, badges, or distinct production grilles. This complements [CANON.md](CANON.md) and [ART_PROMPTS.md](ART_PROMPTS.md).
+Chris supplied two sets of photos in chat on November 22, 2026. Each section indexes its own set in the order shown and records the art direction for Project Baja. The photos themselves were supplied inline, without source files to check into the repository. Use their construction, terrain, motion, and lighting as reference. Create original vehicles and liveries; do not copy sponsor logos, race numbers, badges, or distinct production grilles. This complements [CANON.md](CANON.md) and [ART_PROMPTS.md](ART_PROMPTS.md).
 
 ## The core look
 
 The vehicle and the ground must visibly affect one another. Tires carry weight, springs compress or extend, the body rolls, shadows anchor each wheel, and the driven surface leaves the right marks. Race action can be intense while the surrounding desert remains grounded, sparse, and inhabited. Bright blue sky, pale sand, ocher dirt, dark rubber and underbodies, and distant dusty hills are more faithful to these photos than a uniform orange filter.
 
-## Photo-by-photo observations
+## First set: race action and ground, photo-by-photo
 
 | # | Reference frame | Details to carry into the game |
 | --- | --- | --- |
@@ -74,3 +74,50 @@ Routes should connect through physical transitions: pavement to shoulder to grav
 ## Art review captures
 
 Capture these at normal gameplay distance before close inspection: parked truck side/front three-quarter; Bug head-on over uneven ruts; truck sliding through a banked turn; Bug on an off-camber rocky trail; truck entering and leaving a ford; both vehicle classes over modest crests; highway-to-dirt junction. Review bright daylight and late afternoon. Each frame should show the physical cause behind its pose and effects. This is the quality target, not a claim that current assets already meet it.
+
+## Second set: vehicle construction and suspension, photo-by-photo
+
+This set is especially useful for inspecting *why* a race vehicle has its stance. The studio, workshop and driveway images reveal attachment points that motion photos hide. White backdrops and sale text are not game-world styling.
+
+| # | Reference frame | Construction and art cues |
+| --- | --- | --- |
+| 01 | White Bug, front three-quarter, open dirt lot | Mostly complete rounded cabin contrasts with cut front fenders, low tube bumper, exposed front suspension and oversized knobby tires. Roof basket and four round lamps are carried by upright supports, while two lamps sit on the nose. Keep accessory mass and mounts visible. |
+| 02 | White Bug, front three-quarter, driveway | Wider front track, very tall travel, pronounced outer tire shoulders, dark open wheel wells and thin side steps. A bumper hoop, skid plate, exposed front shocks, lamp cluster and roof lamps make a layered nose. Brand graphics are not part of the target. |
+| 03 | White Bug, rear three-quarter, garage | The stock-looking roof and rear window remain above a cut-away rear apron. A tube cage wraps the exposed engine; exhaust, cooling and rear shock structure can be read. Wide rear tires sit outside the shell, and the roof basket is bolted to the body. |
+| 04 | Blue and silver bodied trophy truck, studio | The fiberglass front clip hides much of the frame, while wide arches and an open rear bed reveal the race platform. Preserve the contrast between smooth large body panels and open mechanical volumes. Original grille and graphics only. |
+| 05 | Black trophy truck chassis, wheels fitted, studio side | Full side silhouette: low cockpit, high cabin cage, spare at the rear, engine/bed volume behind the cabin, long front and rear wheel travel. The arm and coilover paths remain visible even with armor panels. This is the stance and proportion benchmark. |
+| 06 | Bare tube chassis in a fabrication shop | Dense triangulation connects nose, cabin, roof and rear. Tubes change diameter by role; gussets, brackets, plates and weld junctions make the frame credible. Engine/exhaust routing and jack stands explain the build stage. Avoid a random lattice of identical rods. |
+| 07 | Dark truck launching over desert hardpack | Tires drop away from body, one axle higher than the other; dust remains behind at the crest. Cloudy light keeps dark panels readable. |
+| 08 | Stripped black truck chassis with wheels removed | Brake rotors and hubs sit at the ends of the arms; the wheel opening is not empty space. Spare support, cage and side armor reveal load paths. Compare with frame 05 to ensure wheels attach to the same underlying geometry. |
+| 09 | Black open-wheel buggy, front | Very wide front track; upper/lower arms, tie rods, shock towers and front light bar are exposed. Cabin is narrow behind a compact front panel. Front tire offset and arm triangles should read at normal camera distance. |
+| 10 | Black open-wheel buggy, desert three-quarter | Nose lamps and roof bar sit on a strong cage, with large front tires much wider than the cabin. Long coilovers bridge wheel end and upper frame. Ignore the sale caption; use the clear silhouette. |
+| 11 | Bare long-wheelbase buggy outside | Side and roof diagonals form a protective space frame. Seats are inside the cage; front arms and skid are forward of the cabin. The wheelbase is longer and bodywork lighter than the Bug. |
+| 12 | Bare buggy frame in workshop | Close view of bent tubes, triangular joints, shock tower gussets, radiator placement and multiple mounting plates. Differently sized metal parts and hardware break up the frame. |
+| 13 | Buggy climbing a loose dirt rise | Rear tires cut into an uneven path and leave a low, rolling plume. The rut is physical relief; the vehicle pitches with the slope. |
+| 14 | Dark buggy airborne near spectators | Long wheel droop under the body; chassis remains rigid while arms swing. Ground shadow and spectator scale make height legible. Crowd and sponsor signs are race-event context, not a required base-world look. |
+| 15 | Yellow/white open-wheel buggy in sand | Open nose, protective side bodywork, rear frame and spare, long stance. The sandy road has several tire grooves and a raised edge; distant hills are subdued by haze. |
+| 16 | Bare buggy, head-on against a wall | Symmetrical front-arm triangles, center skid, paired shocks and roof lamps; wheels far outside the narrow central frame. Use for a straight-on alignment and clearance check. |
+| 17 | Silver Bug front detail | Rounded original hood stays above a black armor/skid wedge and exposed arms. Large tires sit well outside the stock fender line; steering and brake hardware are visible behind the tire. A useful intermediate build stage. |
+| 18 | Overturned buggy on rocky desert | Real suspension and cage make rollover damage readable: inverted wheels, bent/grounded frame, a detached wheel, disturbed rocks and dust. Use as a damage/physics reference; do not treat a dramatic rollover as normal driving stance. |
+| 19 | Blue Bug at full articulation | One front tire nearly airborne and the other highly loaded; front arms and angled shocks remain attached to the chassis. The skid clears a steep cut road. Dust follows the downhill tire path. This is the strongest Bug suspension pose target. |
+| 20 | Blue truck bed viewed from behind | A full-size spare lies flat in a metal cradle, below the roof light bar and between upright bed supports. Brackets and straps restrain it. Tail lights, bed rails and crossbars remain readable. |
+| 21 | Close-up mechanical suspension assembly | Wheel hub, arms, linkages, coilover spring, damper, adjuster, bump hardware and small fasteners have distinct materials. Use the relationship of components, not this exact assembly or its text marks. |
+| 22 | Workshop rear-suspension mount detail | Twin dampers, silver plates, blue shafts and welded tube triangulation meet at a reinforced pivot. Plates sandwich joints; bolts have visible axes. This is a strong check against floating shock ends. |
+| 23 | Chassis side detail with coilover | Tall vertical coil spring and parallel damper sit inside the cage, with diagonal bracing, reservoir/hoses, seat and exhaust nearby. Exposed mechanics should feel layered and serviceable without becoming visual noise. |
+
+### What this second set adds to the art target
+
+- **Three distinct vehicle families:** the compact shell-based Bug, a long enclosed race truck, and an almost fully open space-frame buggy. Do not scale one generic chassis to make all three. Their cabin shape, wheelbase, track width, body coverage and spare location must differ.
+- **Layered mechanical detail:** at distance, the silhouette should show wheel, arm triangle, shock and cage. Up close, pivots, brackets, mounting plates, bolts, reservoirs, hoses, brake rotor and hub make the assembly believable. Detail density falls with distance so the scene remains readable and fast.
+- **Suspension motion follows joints:** upper/lower arms or trailing links pivot at chassis and hub; steering links follow the front wheels; shocks change length between mounts. The tire does not simply move vertically while rods stay fixed. Full droop and compression need clearance from body panels and cage.
+- **Accessories need support:** roof lamps and racks have feet; light bars mount to cross tubes; a spare has a cradle and restraint; skid plates and bumpers attach to load-bearing members. The close-ups show hardware that makes otherwise decorative objects credible.
+- **Build stages matter:** a full stock-like shell, cut fenders and exposed engine, and a fabricated race chassis are visibly different steps. A garage upgrade should change construction, not only color or numeric stats.
+- **Damage has structure:** if rollover or impact is represented, bend/break exposed parts consistently and let dust, stones and shadow respond. Do not reuse the intact vehicle pose inside a debris effect.
+
+### Focused review captures for this set
+
+1. Bug front three-quarter parked and at full articulation: hood-to-arm clearance, shock mounts, skid, wheel track and tire size.
+2. Bug rear three-quarter: cut apron, engine cage, rear shocks, exhaust and spare/rack supports.
+3. Truck bare chassis side and bodied side: the same wheel centers, pivots and cage should make sense in both build states.
+4. Open buggy head-on and side: wide arms, narrow cabin, wheelbase, cage, skid and shock path must differ from the Bug and truck.
+5. Close-up of a shock/pivot and a rear spare mount: plates, bolts and connected tubes without clipping or floating hardware.
