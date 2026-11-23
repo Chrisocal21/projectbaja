@@ -1,4 +1,4 @@
-# RESUME HERE (rewritten Nov 22, 2026)
+# RESUME HERE (rewritten Nov 22, 2026; start-here note Nov 23)
 
 Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
 
@@ -7,7 +7,7 @@ Read this first when picking the work back up. Then [README](./README.md) (which
 - **One branch: `main`.** Commit and push small, often. Only commit in this repo (`projectbaja`); never in `salvageroad` (it is a read-only reference, merge finished, see [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md)).
 - **Two builders at once: Claude Code and ChatGPT.** Before editing, run `git status`: files that show as modified and are not yours belong to the other builder, so leave them alone. Whenever something is for ChatGPT, add it to [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md) (standing rule).
 - Chris plays and judges how it feels. All physics, wear and world numbers are estimates (labelled in code and docs) to tune by feel.
-- Dev server: `npx vite --port 3001` in `viewer/bug_viewer`. Tests: `npm test` (about 440 pass). Build check: `npx vite build --outDir <tmp> --emptyOutDir`.
+- Dev server: `npx vite --port 3001` in `viewer/bug_viewer`. Tests: `npm test` (607 pass, Nov 22). `npm run build` fails on a locked `dist/review` folder (EPERM): build to a temp folder instead. Build check: `npx vite build --outDir <tmp> --emptyOutDir`.
 
 ## Where things stand (Nov 22)
 All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md) (the running record) and [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
@@ -21,6 +21,27 @@ All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAI
 - **Sound:** a first procedural pass (`src/audio.js`, K mutes, 50% default). Real recordings are better; see the handoff.
 - **Big map (`?realmap`):** real border slice, real highways, junction signs, rest areas, gas stations. See [WORLD_MAP](./WORLD_MAP.md) and [ROAD_WORK_BACKLOG](./ROAD_WORK_BACKLOG.md). Road crossings, river crossings and driveways into places are ChatGPT's current job (Nov 22).
 
+## START HERE (Nov 23)
+Chris stopped for the night on Nov 22 after the getting-stuck build (commit `f2985d8`). Everything below is built, tested and pushed, but **none of it has been checked in the game yet**. No screenshot was possible (the headless browser freezes once the big map starts). First job tomorrow: Chris plays through the list, then Claude tunes.
+
+**Built Nov 22, to check in the game:**
+1. **Shops restock**: what you buy at a roadside shop comes back after 72 game hours (`game/shopStock.js`).
+2. **Carry it or have it delivered**: every road-shop item has a "Deliver $X" button (price + 15% fee, hours by distance) to Walt's pickup area (`game/roadShop.js`).
+3. **Units**: Settings has mph / km/h and °F / °C (`game/units.js`).
+4. **Race towns**: start and finish towns on the race signs, the map and the discoveries (`worlds/raceCourses.js`).
+5. **Finish work**: grinder, buffer, hose and spray cans for sale (Dusty's, off-road stores, junkyards, barns); spray cans run dry (shows "% left"); hitting rocks and cacti chips the paint on that corner (left/right side is a guess: check it); front and rear aprons can be ground and painted.
+6. **Field kit**: 12 V tire pump plugs a flat (needs a plug kit) and fills tires anywhere.
+7. **Phone Contacts app**: Dusty's store, Off-road parts, Tow truck. The tow brings you and the car to Walt's from anywhere: a fee plus distance, takes game hours (`game/tow.js`). Dusty's and Off-road "Call" open Internet ordering for now.
+8. **Getting stuck** (`src/bogDown.js`, `src/worlds/softGround.js`, `game/recoveryWork.js`): silt (pale powder: open flats, a ring round the dry lakebed) and soft sand (deep washes, dune hearts); never near Walt's. Crawl or spin the wheels and you sink (the car sits lower, HUD says SOFT GROUND / BOGGING DOWN / STUCK); speed (~25 mph silt, ~20 soft sand) and aired-down tires float you. Out with a **shovel** ($25, hold-click each wheel 5 s) or **traction boards** ($95, lay at a wheel, drive out, walk back for them), or the tow. Y no longer frees a bogged car. Questions for Chris: can you see the silt? Too easy or too hard to get stuck? Does digging out feel right?
+
+**Next build: the winch** (Opus 5.5, high effort: physics). Chris: winches grab onto trees near you (`world.trunks(x, z)` already lists nearby trunks). Decide first: a **winch bolted to the car** (an installed part, powered by the car) or a **hand winch / come-along** you carry and crank? After that: tow strap between two vehicles.
+
+**Waiting on Chris:** what Dusty's and the off-road shop should say or do when you call them (no lore invented, so they open ordering for now); the winch choice above; feel notes from playing.
+
+**With ChatGPT** (in [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md)): paintable bumpers and a separate roof mesh; silt sections on trails, a silt ground texture, shovel and board models.
+
+**Older backlog:** walk-in shop interiors, body work (dents, filler), towing with a strap / drivable tow truck, bumpers and roof finish once the model pieces exist, rain exposure (no weather system yet).
+
 ## Right now (Nov 22, late)
 Chris paused the garage/office expansion (levels 1-3 of garage and office are built; living, mechanics, fuel room are not) to go back to **gameplay: the garage business, building and finding vehicles, and the story in levels 0 and 1**. See [EXPANSION_PLAN](./EXPANSION_PLAN.md) "Status, Nov 22".
 
@@ -29,9 +50,9 @@ Chris paused the garage/office expansion (levels 1-3 of garage and office are bu
 2. **Lower the dirt roads just below the highway asphalt** so unpaved "flatish" roads sit in a natural shallow cut (jumps at crossings are fine); not on bump sections, jumps or turns. **Assigned to ChatGPT** (it owns `highways.js`; spec is item 0 in [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md)).
 3. Performance on Chris's machine (about 30 FPS): thin trees and roadside strips if needed.
 4. **Paint, rust and clean-up as hands-on jobs** (spec: [SYSTEMS_BLUEPRINT](./SYSTEMS_BLUEPRINT.md) section 6). Full tool and job checklist, including towing: [TOOLS_AND_JOBS](./TOOLS_AND_JOBS.md). Rules are built and tested (`src/rules/finish.js`: per-panel rust, paint coverage, gloss, dirt; grind, paint, buff, hose, weather, chip). Built (Nov 22): grinder, 5 spray cans, buffer and hose are held tools (Admin > Quick sets > Finish tools) that hold-click the aimed **fiberglass** panel; state saved per vehicle and panel (`home.finish`, `src/finishJobs.js`, `game/finishWork.js`). Steel body panels (doors, hood, engine lid, fenders) work too: they start painted, grinding takes them to bare steel, bare steel rusts as game hours pass, driving adds dirt (`game/finishTick.js`). The hose is now "Hose / power sprayer". Done Nov 22: spray cans run dry (four coats each) and all finish tools are for sale. Chips from hits done (rocks, cacti; hood, aprons, fenders). Front and rear aprons are finishable. Not yet (bumpers are chrome trim and the roof is not a separate model piece): rain exposure, real tool art, other body parts (bumpers, roof). Tires off rims comes after. The build-mode paint swatch is only a dev stand-in.
-5. Older plan (Nov 8, still unverified item by item): see [GAMEPLAN](./GAMEPLAN.md) and [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) (history). Cloud saves (Clerk + Vercel) stay last.
+6. Older plan (Nov 8, still unverified item by item): see [GAMEPLAN](./GAMEPLAN.md) and [PROGRESS_TRACKER](./PROGRESS_TRACKER.md) (history). Cloud saves (Clerk + Vercel) stay last.
 
-5. **Field kit and getting stuck** (Nov 22): tow truck in the phone's Contacts, 12 V pump + plug kit, and now silt beds / soft sand that bog a slow car (`src/bogDown.js`, `src/worlds/softGround.js`, `game/recoveryWork.js`) with a shovel and traction boards to get out. Next: winch that anchors to a tree (Chris: winches grab trees), then tow strap. Numbers are PROPOSAL: tune by feel.
+7. **Field kit and getting stuck** (Nov 22): tow truck in the phone's Contacts, 12 V pump + plug kit, and now silt beds / soft sand that bog a slow car (`src/bogDown.js`, `src/worlds/softGround.js`, `game/recoveryWork.js`) with a shovel and traction boards to get out. Next: winch that anchors to a tree (Chris: winches grab trees), then tow strap. Numbers are PROPOSAL: tune by feel.
 
 ## Open questions for Chris (still open as far as we know)
 - Explorer: should unfound places show real names or "???".
