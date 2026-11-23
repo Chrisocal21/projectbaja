@@ -8,6 +8,9 @@ import { standingVehicles } from './fleet.js';
 import { LABELS } from './MapPanel.jsx';
 import { headingForMode, discovered } from './compass.js';
 import { clockHour } from './clock.js';
+import { routeNow } from './navigation.js';
+import { regionAt, unproject } from './region.js';
+import { border } from '../worlds/border.js';
 
 const PW = 640, PH = 420, CX = PW / 2, CY = PH / 2, IX = CX - 28, IY = CY - 28, RAD = 34;   // a wide rounded rectangle like the GTA 6 minimap (320 x 210 on screen)
 const edgeness = (a, b) => Math.max(Math.abs(a - CX) / IX, Math.abs(b - CY) / IY);   // < 1 = inside the map, 1 = on its inner edge
@@ -17,10 +20,12 @@ const mix = (a, b, k) => { const x = hex(a), y = hex(b); return `rgb(${x.map((v,
 const nightK = h => (h >= 19.5 || h < 5.5 ? 1 : h < 7.5 ? (7.5 - h) / 2 : h < 17 ? 0 : (h - 17) / 2.5);
 const bbox = new WeakMap();
 const boxOf = pts => { let b = bbox.get(pts); if (!b) { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of pts) { if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x; if (p.z < z0) z0 = p.z; if (p.z > z1) z1 = p.z; } b = [x0, x1, z0, z1]; bbox.set(pts, b); } return b; };
+const miles = m => { const mi = m / 1609.34; return mi >= 0.2 ? mi.toFixed(1) + ' mi' : Math.max(50, Math.round(m * 3.281 / 50) * 50) + ' ft'; };
+const regionText = (x, z) => { try { const meta = border()?.meta; if (!meta) return ''; const [lat, lon] = unproject(x, z, meta), r = regionAt(lat, lon); return `${r.name}${r.country === 'MEX' ? ', MEX' : ''}`; } catch { return ''; } };
 const dist = m => (m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.max(10, Math.round(m / 10) * 10) + ' m');
 
 export default function Minimap() {
-  const cv = useRef(null), box = useRef(null), cap = useRef(null), zoomR = useRef(240);
+  const cv = useRef(null), box = useRef(null), cap = useRef(null), reg = useRef(null), rte = useRef(null), left = useRef(0), zoomR = useRef(240);
   useEffect(() => {
     let raf, last = 0, capAt = 0;
     const loop = t => {
@@ -29,7 +34,7 @@ export default function Minimap() {
       const el = cv.current, wrap = box.current; if (!el || !wrap) return;
       const hide = game.paused || game.flyMode; wrap.style.display = hide ? 'none' : ''; if (hide) return;
       draw(el.getContext('2d'));
-      if (t - capAt > 300 && cap.current) { capAt = t; cap.current.textContent = nearestText(); }
+      if (t - capAt > 300 && cap.current) { capAt = t; cap.current.textContent = nearestText(); if (reg.current) reg.current.textContent = regionText(game.pos.x, game.pos.z); if (rte.current) { rte.current.textContent = left.current > 0 ? miles(left.current) : ''; rte.current.style.display = left.current > 0 ? '' : 'none'; } }
     };
     const draw = g => {
       const px = game.pos.x, pz = game.pos.z, driving = !game.onFoot;
@@ -51,6 +56,9 @@ export default function Minimap() {
       lines.sort((a, b) => ORDER[a[1]] - ORDER[b[1]]);
       for (const [pts, k, step] of lines) road(pts, step, EDGEC[k], W[k] + 4);
       for (const [pts, k, step] of lines) road(pts, step, COL[k], W[k]);
+      // the route to your waypoint, along the roads (dashed straight line when no road leads there)
+      const rt = routeNow(px, pz, performance.now()); left.current = rt ? rt.left : 0;
+      if (rt) { g.lineJoin = g.lineCap = 'round'; if (rt.straight) g.setLineDash([16, 14]); const draw1 = (c, w) => { g.beginPath(); rt.pts.forEach((p, i) => { const [a, b] = toScreen(p.x, p.z); if (i) g.lineTo(a, b); else g.moveTo(a, b); }); g.strokeStyle = c; g.lineWidth = w; g.stroke(); }; draw1('rgba(60,0,40,0.75)', 15); draw1('#ff3fa4', 9); g.setLineDash([]); }
       // parked vehicles
       g.fillStyle = '#2aa9d8'; g.strokeStyle = PAL.halo; g.lineWidth = 3;
       for (const v of standingVehicles()) if (!v.forSale && v.pose) { const [a, b] = toScreen(v.pose.x, v.pose.z); if (edgeness(a, b) < 0.95) { g.beginPath(); g.arc(a, b, 6, 0, 7); g.stroke(); g.fill(); } }
@@ -65,13 +73,16 @@ export default function Minimap() {
           g.font = '700 21px "Barlow Condensed", sans-serif'; g.lineWidth = 6; g.strokeStyle = PAL.halo; g.fillStyle = PAL.text; g.strokeText(LABELS[id], a, b + 32); g.fillText(LABELS[id], a, b + 32);
         } else { const k = 1.02 / d; marker(g, CX + (a - CX) * k, CY + (b - CY) * k, 7, home, Math.atan2(b - CY, a - CX)); }
       }
+      // the waypoint pin (an arrow on the edge when it is off the map)
+      if (rt) { const [a, b] = toScreen(rt.wp.x, rt.wp.z), d = edgeness(a, b); if (d < 0.92) pin(g, a, b); else { const k = 1.02 / d; marker(g, CX + (a - CX) * k, CY + (b - CY) * k, 9, false, Math.atan2(b - CY, a - CX), '#ff3fa4'); } }
       // north badge: fixed in the bottom-left corner (the map turns, so it points where north is)
       { const bx = 46, by = PH - 46; g.save(); g.translate(bx, by); g.fillStyle = '#0b0e10'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 22, 0, 7); g.stroke(); g.fill(); g.fillStyle = '#fff'; g.font = '800 26px "Barlow Condensed", sans-serif'; g.fillText('N', 0, 9); g.restore(); }
       // you: fixed in the centre, pointing up
       g.save(); g.translate(CX, CY); g.fillStyle = '#ffffff'; g.strokeStyle = '#0b0e10'; g.lineWidth = 4; g.beginPath(); g.moveTo(0, -20); g.lineTo(14, 15); g.lineTo(0, 8); g.lineTo(-14, 15); g.closePath(); g.stroke(); g.fill(); g.restore();
     };
-    const marker = (g, x, y, r, home, ang) => {
-      g.save(); g.translate(x, y); g.fillStyle = home ? '#f2a33a' : '#35b873'; g.strokeStyle = '#0b0e10'; g.lineWidth = 3; g.beginPath();
+    const pin = (g, x, y) => { g.save(); g.translate(x, y); g.fillStyle = '#ff3fa4'; g.strokeStyle = '#fff'; g.lineWidth = 4; g.beginPath(); g.arc(0, -22, 13, Math.PI * 0.8, Math.PI * 2.2); g.lineTo(0, 0); g.closePath(); g.stroke(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(0, -22, 5, 0, 7); g.fill(); g.restore(); };
+    const marker = (g, x, y, r, home, ang, color) => {
+      g.save(); g.translate(x, y); g.fillStyle = color || (home ? '#f2a33a' : '#35b873'); g.strokeStyle = '#0b0e10'; g.lineWidth = 3; g.beginPath();
       if (ang != null) { g.rotate(ang); g.moveTo(r + 2, 0); g.lineTo(-r, r); g.lineTo(-r, -r); } else if (home) { g.moveTo(0, -r - 2); g.lineTo(r + 1, -1); g.lineTo(r + 1, r); g.lineTo(-r - 1, r); g.lineTo(-r - 1, -1); } else { g.moveTo(0, -r - 1); g.lineTo(r + 1, 0); g.lineTo(0, r + 1); g.lineTo(-r - 1, 0); }
       g.closePath(); g.stroke(); g.fill(); g.restore();
     };
@@ -82,5 +93,5 @@ export default function Minimap() {
     };
     raf = requestAnimationFrame(loop); return () => cancelAnimationFrame(raf);
   }, []);
-  return <div ref={box} className="minimap"><canvas ref={cv} width={PW} height={PH} /><div ref={cap} className="mm-cap" /></div>;
+  return <div ref={box} className="minimap"><canvas ref={cv} width={PW} height={PH} /><div ref={cap} className="mm-cap" /><div ref={reg} className="mm-region" /><div ref={rte} className="mm-route" /></div>;
 }
