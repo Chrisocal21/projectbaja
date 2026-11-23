@@ -274,12 +274,13 @@ function hwPieceGeometry({ r, a, b }, H, clearCrossings = true, lod = 0) {
     const k = ks[row], prev = r.pts[ks[row - 1]];
     const p = r.pts[k], nx = p.tz, nz = -p.tx;
     const dirtHidden = r.kind === 'dirt' && row && H.pavedAt(p.x, p.z, 1) && H.pavedAt(prev.x, prev.z, 1);
-    const pavedHidden = r.kind !== 'dirt' && row && H.higherRoadAt(p.x, p.z, r) && H.higherRoadAt(prev.x, prev.z, r);
     const merge = ribbonWidthAt(r, p);
     for (let j = 0; j <= segs; j++) {
       const d = (j / segs * 2 - 1) * half * merge, x = p.x + nx * d, z = p.z + nz * d;
       pos.push(x, height(x, z) + (r.kind === 'major' ? 0.034 : r.kind === 'secondary' ? 0.028 : 0.020) + (1 - r.index / H.roads.length) * 0.004, z); uv.push(j / segs, p.s / 30);
-      if (row && j && !dirtHidden && !pavedHidden) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
+      // Paved junction patches are disabled below. Keep both asphalt ribbons
+      // continuous; the road draw order resolves their overlap at crossings.
+      if (row && j && !dirtHidden) { const i0 = (row - 1) * (segs + 1) + j - 1, i1 = i0 + 1, i2 = row * (segs + 1) + j - 1, i3 = i2 + 1; idx.push(i0, i2, i1, i1, i2, i3); }
     }
     if (row) crossings.push(clearCrossings && (H.crossingDistance(p.x, p.z, r) < 13 || H.crossingDistance(prev.x, prev.z, r) < 13));
   }
@@ -302,7 +303,6 @@ function hwShoulderGeometry({ r, a, b }, H) {
     for (let k = a; k <= b; k++) {
       const p = r.pts[k], nx = p.tz, nz = -p.tx, row = k - a;
       const dirtHidden = r.kind === 'dirt' && (H.pavedAt(p.x, p.z, 7) || (row && H.pavedAt(r.pts[k - 1].x, r.pts[k - 1].z, 7)));
-      const pavedHidden = r.kind !== 'dirt' && (H.higherRoadAt(p.x, p.z, r, 3) || (row && H.higherRoadAt(r.pts[k - 1].x, r.pts[k - 1].z, r, 3)));
       const merge = ribbonWidthAt(r, p);
       const before = r.pts[Math.max(0, k - 10)], after = r.pts[Math.min(r.pts.length - 1, k + 10)];
       const bend = Math.atan2(before.tx * after.tz - before.tz * after.tx, before.tx * after.tx + before.tz * after.tz);
@@ -312,7 +312,7 @@ function hwShoulderGeometry({ r, a, b }, H) {
         const t = j / bands, d = side * (edge - 0.45 + verge * t) * merge;
         const x = p.x + nx * d, z = p.z + nz * d;
         pos.push(x, height(x, z) + 0.025, z); uv.push(t, p.s / 18);
-        if (row && j && !dirtHidden && !pavedHidden) { const a0 = base + (row - 1) * (bands + 1) + j - 1, b0 = a0 + 1, c0 = base + row * (bands + 1) + j - 1, d0 = c0 + 1;
+        if (row && j && !dirtHidden) { const a0 = base + (row - 1) * (bands + 1) + j - 1, b0 = a0 + 1, c0 = base + row * (bands + 1) + j - 1, d0 = c0 + 1;
           if (side > 0) idx.push(a0, c0, b0, b0, c0, d0); else idx.push(a0, b0, c0, b0, d0, c0); }
       }
     }
