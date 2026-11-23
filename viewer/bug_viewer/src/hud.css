@@ -418,3 +418,11 @@
 .full .minimap canvas { width: 320px; height: 210px; border-radius: 18px; border: 2px solid rgba(255, 255, 255, 0.85); }
 .minimap::after { width: 320px; height: 210px; border-radius: 18px; }
 .mm-cap { left: 14px; top: 12px; bottom: auto; transform: none; background: rgba(8, 11, 13, 0.7); font-size: 13px; max-width: 250px; }
+
+/* vehicle condition rows under the gauge (temp, engine, tires, suspension, alignment) */
+.dg-cond { display: grid; gap: 4px; padding: 7px 10px; background: var(--hud-bg); border: 1px solid var(--hud-line); min-width: 250px; }
+.dg-row { display: grid; grid-template-columns: 88px 1fr 70px; gap: 8px; align-items: center; }
+.dg-row small { font: 700 10px var(--hud-cond); letter-spacing: 0.16em; color: var(--hud-dim); }
+.dg-row i { height: 5px; background: rgba(255, 255, 255, 0.1); } .dg-row i b { display: block; height: 100%; background: var(--hud-ok); }
+.dg-row em { font: 700 12px var(--hud-cond); font-style: normal; color: var(--hud-text); text-align: right; white-space: nowrap; }
+.dg-row.warn i b { background: #f2a33a; } .dg-row.warn em { color: #ffd28e; } .dg-row.bad i b { background: var(--hud-bad); } .dg-row.bad em { color: #ffb3a6; }
