@@ -10,7 +10,8 @@ import { setWaypoint, clearWaypoint, waypoint, routeNow } from './navigation.js'
 import { whereAmI } from './whereAmI.js';
 
 const SITE_NAMES = { garage: "Walt's Garage", lot: "Honest Al's", gas: "Dusty's Fuel", shop: 'Baja Parts', barn: 'Hollis Farm', warehouse: 'Salvage & Surplus', proving: 'Proving Grounds' };
-const WIDTH = 960, HEIGHT = 1200, K = WIDTH / 640;   // K scales the sizes written for the old 640 px map
+const WIDTH = 960, HEIGHT = 1200, K = 1.25;   // map space is 960 x 1200; K sizes the marks in screen pixels. The backdrop is drawn finer (BW x BH) so a full-screen map stays sharp
+const BW = 1440, BH = 1800, OLD = 0.77;   // OLD: the screen scale of the old small map: the zoom thresholds below are still written for it
 const BOX = { x0: -20000, x1: 28000, z0: -8000, z1: 52000 };
 const point = (x, z) => [(x - BOX.x0) / (BOX.x1 - BOX.x0) * WIDTH, (z - BOX.z0) / (BOX.z1 - BOX.z0) * HEIGHT];
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -25,14 +26,14 @@ function backdrop() {
   if (backdropPromise) return backdropPromise;
   backdropPromise = (async () => {
     const land = await loadBorder();
-    const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT;
-    const g = c.getContext('2d'), image = g.createImageData(WIDTH, HEIGHT), d = image.data;
-    for (let py = 0; py < HEIGHT; py++) for (let px = 0; px < WIDTH; px++) {
-      const x = BOX.x0 + (px + 0.5) / WIDTH * (BOX.x1 - BOX.x0);
-      const z = BOX.z0 + (py + 0.5) / HEIGHT * (BOX.z1 - BOX.z0);
+    const c = document.createElement('canvas'); c.width = BW; c.height = BH;
+    const g = c.getContext('2d'), image = g.createImageData(BW, BH), d = image.data;
+    for (let py = 0; py < BH; py++) for (let px = 0; px < BW; px++) {
+      const x = BOX.x0 + (px + 0.5) / BW * (BOX.x1 - BOX.x0);
+      const z = BOX.z0 + (py + 0.5) / BH * (BOX.z1 - BOX.z0);
       const h = land.heightAt(x, z), water = land.waterAt(x, z) != null;
       const slope = clamp((land.heightAt(x - 110, z - 110) - land.heightAt(x + 110, z + 110)) / 120, -1, 1);
-      const k = (py * WIDTH + px) * 4;
+      const k = (py * BW + px) * 4;
       if (water) { const depth = clamp(-h / 400, 0, 1); d[k] = C.water[0] - depth * 22; d[k + 1] = C.water[1] - depth * 20; d[k + 2] = C.water[2] - depth * 14; }
       else { const high = clamp(h / 900, 0, 1), light = slope * 22; d[k] = C.land[0] - high * 38 + light; d[k + 1] = C.land[1] - high * 40 + light; d[k + 2] = C.land[2] - high * 44 + light; }
       d[k + 3] = 255;
@@ -50,18 +51,24 @@ const LEGEND = [
 
 export default function WestCoastMap() {
   useGame();
-  const ref = useRef(null), drag = useRef(null), view = useRef({ zoom: 1, ox: 0, oy: 0 }), [revision, redraw] = useState(0), [races, setRaces] = useState(true), wp = waypoint();
+  const ref = useRef(null), drag = useRef(null), view = useRef({ m: 1, ox: 0, oy: 0, init: false }), [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight }), [revision, redraw] = useState(0), [races, setRaces] = useState(true), wp = waypoint();
+  useEffect(() => { const on = () => setVp({ w: window.innerWidth, h: window.innerHeight }); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
+  const s0 = Math.max(vp.w / WIDTH, vp.h / HEIGHT);   // the least zoom: the map covers the whole screen
+  const fit = v => { const S = s0 * v.m; v.ox = clamp(v.ox, vp.w - WIDTH * S, 0); v.oy = clamp(v.oy, vp.h - HEIGHT * S, 0); };
   useEffect(() => { let active = true; backdrop().then(() => { if (active) redraw(n => n + 1); }); return () => { active = false; }; }, []);
   useEffect(() => {
     let active = true;
     backdrop().then(base => {
       if (!active || !ref.current) return;
-      const g = ref.current.getContext('2d'), { zoom, ox, oy } = view.current, z1 = zoom;
-      g.clearRect(0, 0, WIDTH, HEIGHT); g.save(); g.translate(ox, oy); g.scale(zoom, zoom); g.drawImage(base, 0, 0);
+      const g = ref.current.getContext('2d'), v = view.current;
+      if (!v.init) { v.init = true; v.m = Math.max(1, 4 * OLD / s0); const S0 = s0 * v.m, [a0, b0] = point(game.pos.x, game.pos.z); v.ox = vp.w / 2 - a0 * S0; v.oy = vp.h / 2 - b0 * S0; }
+      fit(v);
+      const { ox, oy } = v, z1 = s0 * v.m, zoom = z1 / OLD;   // z1: screen pixels per map unit; zoom: the old-map scale the thresholds use
+      g.clearRect(0, 0, vp.w, vp.h); g.save(); g.translate(ox, oy); g.scale(z1, z1); g.drawImage(base, 0, 0, WIDTH, HEIGHT);
       const roadLine = (pts, color, width, step = 10, hidden = () => false) => { g.beginPath(); let started = false; for (let i = 0; i < pts.length; i += step) { const p = pts[i]; if (hidden(p)) { started = false; continue; } const [a, b] = point(p.x, p.z); if (started) g.lineTo(a, b); else { g.moveTo(a, b); started = true; } } const last = pts[pts.length - 1]; if (last && !hidden(last)) { const [a, b] = point(last.x, last.z); if (started) g.lineTo(a, b); else g.moveTo(a, b); } g.lineJoin = g.lineCap = 'round'; g.strokeStyle = color; g.lineWidth = width / z1; g.stroke(); };
       const network = highways()?.roads || [];
       for (const r of [...network].sort((a, b) => (a.kind === 'dirt' ? -1 : 0) - (b.kind === 'dirt' ? -1 : 0))) {
-        if (r.kind === 'dirt' && zoom < 5) continue;
+        if (r.kind === 'dirt' && zoom < 3) continue;
         if (r.kind === 'dirt' && r.name.endsWith(' (dirt)') && zoom < 8) continue;
         if (zoom < 3 && !MAIN_ROADS.has(r.name)) continue;
         if (zoom < 5 && r.kind === 'secondary' && !MAIN_ROADS.has(r.name)) continue;
@@ -102,8 +109,8 @@ export default function WestCoastMap() {
       for (const place of REAL_PLACES) {
         if (zoom < place.zoom || !meta) continue;
         const { x, z } = projectPlace(place.lat, place.lon, meta), [a, b] = point(x, z);
-        const sx = a * zoom + ox, sy = b * zoom + oy, width = place.name.length * 7 * K + 13;
-        if (sx < 8 || sx > WIDTH - 8 || sy < 8 || sy > HEIGHT - 8) continue;
+        const sx = a * z1 + ox, sy = b * z1 + oy, width = place.name.length * 7 * K + 13;
+        if (sx < 8 || sx > vp.w - 8 || sy < 8 || sy > vp.h - 8) continue;
         const box = [sx + 4, sy - 13 * K, sx + 4 + width, sy + 4 * K];
         if (occupied.some(q => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1])) continue;
         occupied.push(box);
@@ -123,31 +130,31 @@ export default function WestCoastMap() {
       const [a, b] = point(game.pos.x, game.pos.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : game.pose?.h || 0;
       g.translate(a, b); g.rotate(arrowRot(yaw)); g.fillStyle = '#ff4a3c'; g.strokeStyle = '#fff'; g.lineWidth = 1.8 * K / z1;
       g.beginPath(); g.moveTo(0, -11 * K / z1); g.lineTo(7 * K / z1, 8 * K / z1); g.lineTo(0, 4 * K / z1); g.lineTo(-7 * K / z1, 8 * K / z1); g.closePath(); g.fill(); g.stroke(); g.restore();
-      g.fillStyle = C.ink; g.font = '800 18px "Barlow Condensed", sans-serif'; g.textAlign = 'left'; g.fillText('N', 28, 36); g.strokeStyle = C.ink; g.lineWidth = 2; g.beginPath(); g.moveTo(35, 44); g.lineTo(35, 78); g.moveTo(28, 52); g.lineTo(35, 44); g.lineTo(42, 52); g.stroke();
+      const nx = vp.w - 40; g.fillStyle = '#fff'; g.font = '800 18px "Barlow Condensed", sans-serif'; g.textAlign = 'left'; g.fillText('N', nx - 6, 112); g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(nx, 122); g.lineTo(nx, 158); g.moveTo(nx - 7, 130); g.lineTo(nx, 122); g.lineTo(nx + 7, 130); g.stroke();
     });
     return () => { active = false; };
-  }, [revision, races, game.pos.x, game.pos.z, game.pose?.h, game.face.x, game.face.z, game.home]);
-  const toCanvas = e => { const r = e.currentTarget.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * WIDTH, (e.clientY - r.top) / r.height * HEIGHT]; };
+  }, [revision, races, vp, game.pos.x, game.pos.z, game.pose?.h, game.face.x, game.face.z, game.home]);
+  const toCanvas = e => { const r = e.currentTarget.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * vp.w, (e.clientY - r.top) / r.height * vp.h]; };
   const wheel = e => {
     e.preventDefault();
-    const [px, py] = toCanvas(e), v = view.current, next = clamp(v.zoom * Math.exp(-e.deltaY * 0.0015), 1, 24), ratio = next / v.zoom;
-    v.ox = clamp(px - (px - v.ox) * ratio, WIDTH * (1 - next), 0); v.oy = clamp(py - (py - v.oy) * ratio, HEIGHT * (1 - next), 0); v.zoom = next;
+    const [px, py] = toCanvas(e), v = view.current, next = clamp(v.m * Math.exp(-e.deltaY * 0.0015), 1, Math.max(1, 24 * OLD / s0)), ratio = next / v.m;
+    v.ox = px - (px - v.ox) * ratio; v.oy = py - (py - v.oy) * ratio; v.m = next; fit(v);
     redraw(n => n + 1);
   };
   const pointerDown = e => { if (e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, ox: view.current.ox, oy: view.current.oy, moved: false }; };
-  const pointerMove = e => { const d = drag.current; if (!d) return; if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) d.moved = true; const r = e.currentTarget.getBoundingClientRect(), v = view.current; v.ox = clamp(d.ox + (e.clientX - d.x) / r.width * WIDTH, WIDTH * (1 - v.zoom), 0); v.oy = clamp(d.oy + (e.clientY - d.y) / r.height * HEIGHT, HEIGHT * (1 - v.zoom), 0); redraw(n => n + 1); };
+  const pointerMove = e => { const d = drag.current; if (!d) return; if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5) d.moved = true; const r = e.currentTarget.getBoundingClientRect(), v = view.current; v.ox = d.ox + (e.clientX - d.x) / r.width * vp.w; v.oy = d.oy + (e.clientY - d.y) / r.height * vp.h; fit(v); redraw(n => n + 1); };
   const pointerUp = e => {   // a click (not a drag) drops the waypoint there
     const d = drag.current; drag.current = null; if (!d || d.moved) return;
-    const [px, py] = toCanvas(e), v = view.current, x = BOX.x0 + ((px - v.ox) / v.zoom) / WIDTH * (BOX.x1 - BOX.x0), z = BOX.z0 + ((py - v.oy) / v.zoom) / HEIGHT * (BOX.z1 - BOX.z0);
+    const [px, py] = toCanvas(e), v = view.current, S = s0 * v.m, x = BOX.x0 + ((px - v.ox) / S) / WIDTH * (BOX.x1 - BOX.x0), z = BOX.z0 + ((py - v.oy) / S) / HEIGHT * (BOX.z1 - BOX.z0);
     let name = ''; try { name = whereAmI(x, z).place.replace(/^near /, ''); } catch { /* no name */ }
     setWaypoint(x, z, name || 'Map marker'); redraw(n => n + 1);
   };
-  return <div className="map-stage"><div className="map-row">
-    <canvas ref={ref} width={WIDTH} height={HEIGHT} className="map-canvas west-coast-map" onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onContextMenu={e => { e.preventDefault(); clearWaypoint(); redraw(n => n + 1); }} aria-label="West coast map. Scroll to zoom, drag to pan, click to set a waypoint, right click to clear it." />
+  return <>
+    <canvas ref={ref} width={vp.w} height={vp.h} className="map-canvas west-coast-map" onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }} onContextMenu={e => { e.preventDefault(); clearWaypoint(); redraw(n => n + 1); }} aria-label="West coast map. Scroll to zoom, drag to pan, click to set a waypoint, right click to clear it." />
     <aside className="map-legend"><h3>LEGEND</h3>
       {LEGEND.map(([k, t]) => <div key={k} className="lg-row"><i className={`lg lg-${k}`} /><span>{t}</span></div>)}
       <label className="lg-toggle"><input type="checkbox" checked={races} onChange={e => setRaces(e.target.checked)} /> Show race routes</label>
       <div className="lg-wp">{wp ? <><b>Waypoint: {wp.label}</b><button onClick={() => { clearWaypoint(); redraw(n => n + 1); }}>Clear waypoint</button></> : <small>Click anywhere to set a waypoint. The route follows the roads and shows on your minimap.</small>}</div>
-    </aside></div>
-    <p className="hint">Scroll to zoom | drag to pan | click: set waypoint | right click: clear it</p></div>;
+    </aside>
+    <p className="hint map-hint">Scroll to zoom | drag to pan | click: set waypoint | right click: clear it</p></>;
 }
