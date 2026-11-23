@@ -400,7 +400,7 @@
 .k-inv .ph-ico { background: linear-gradient(#f2a33a, #c9741a); }
 
 /* Forza-style speedo: no disc, a thin rev arc, a big italic three-digit speed, the gear in a ring. The minimap canvas must not be stretched by the 3D canvas rule. */
-.minimap canvas { position: static !important; inset: auto !important; }
+.full .minimap canvas { position: static !important; inset: auto !important; }
 .dg { width: 210px; height: 210px; filter: drop-shadow(0 2px 8px #000c); }
 .dg::before { display: none; }
 .dg circle { stroke-width: 4; }
