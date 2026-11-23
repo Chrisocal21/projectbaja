@@ -7,7 +7,9 @@ import { freshParts } from './engineRules.js';
 /** already lying in the garage from the start (the loose wheel and the driver's seat), so they are not spawned twice */
 export const ALREADY = ['wheelRR', 'seatDriver'];
 export const STAYS = ['shell'];   // the body shell stays on the car: it only lifts off a stripped car on the hoist, and is not a loose part
-export const apartSlots = () => BUG.slots.filter(s => !ALREADY.includes(s.id) && !STAYS.includes(s.id));
+/** what comes off for the opening: picked so every piece has a proper place in the garage (the rest stays bolted on) */
+export const LOOSE = ['engine', 'battery', 'wheelFL', 'wheelFR', 'wheelRL', 'seatPassenger', 'seatBack', 'doorL', 'doorR', 'fenderFL', 'fenderFR', 'steering', 'engineLid', 'hoodPanel', 'headlights', 'taillights'];
+export const apartSlots = () => BUG.slots.filter(s => LOOSE.includes(s.id));
 /** the car with every part off (the body shell stays: it only lifts off a stripped car on the hoist) */
 export const apartBuild = b => apartSlots().reduce((n, s) => withSlot(BUG, n, s.id, false), b);
 /** the loose part for each slot: [kind, id, extra] */
@@ -23,26 +25,27 @@ export function gridSpots(n) {
   for (let z = -4.8; z <= 5.4 && rows.length < n; z += 0.95) for (const x of cols) { if (rows.length < n && !skip.some(([sx, sz]) => Math.hypot(sx - x, sz - z) < 0.6)) rows.push([x, Math.round(z * 100) / 100, 0]); }
   return rows;
 }
-/** Parts racks along the right side of the garage (garage-local metres; length runs along z). Boards are 0.45, 1.05 and 1.65 m up; each lists what lies on it, left to right.
- *  Grouped so the car comes together in order: small drive parts, panels, big panels, bumpers. Heavy things (engine, wheels) go on the floor beside the lift. */
-export const RACK = { len: 2.4, boards: [0.45, 1.05, 1.65], ry: Math.PI / 2 };
-export const RACKS = [
-  { x: 3.2, z: 1.9, name: 'small parts', boards: [['battery', 'steering', 'pedals', 'plate', 'mats'], ['handles', 'headlights', 'taillights', 'sideWindows', 'turnSignals'], ['hoodTrim']] },
-  { x: 3.2, z: 4.5, name: 'panels and seats', boards: [['dash', 'seatPassenger', 'engineLid'], ['hoodPanel', 'nosePanel', 'tailPanel'], ['rearWindow']] },
-  { x: 5.2, z: 1.9, name: 'doors and fenders', boards: [['doorL', 'doorR', 'windshield'], ['fenderFL', 'fenderFR', 'fenderRL'], ['fenderRR', 'seatBack', 'sideTrim']] },
-  { x: 5.2, z: 4.5, name: 'bumpers', boards: [['frontBumper', 'rearBumper']] },
-];
-export const FLOOR_SPOTS = { engine: [4.3, -3.8], wheelFL: [2.6, -2.2], wheelFR: [2.6, -3.0], wheelRL: [2.6, -3.8] };
+/** Walt's first red supply shelf (home.js STARTER_FIXTURES_V1: x 6.5, z -3.0, facing into the garage). Board tops 0.58 / 1.48 / 2.38 m, 2.2 m usable.
+ *  Heavy doors and the battery low, fenders and steering wheel at chest height, light panels and lamps on top. The second red shelf stays free for customer boxes. */
+export const SHELF = { x: 6.5, z: -3.0, len: 2.2, boards: [0.58, 1.48, 2.38], ry: -Math.PI / 2,
+  rows: [['doorL', 'doorR', 'battery'], ['fenderFL', 'fenderFR', 'steering'], ['engineLid', 'hoodPanel', 'headlights', 'taillights']] };
+/** wheels stand upright on the bottom board of the middle blue tire shelf (x -6.5, z 0): surface-local x along the board */
+export const TIRE_SHELF = { lz: 0, level: 0, at: { wheelFL: -0.8, wheelFR: -0.27, wheelRL: 0.27, wheelRR: 0.8 } };
+/** on the floor along the right wall in front of the red shelves (grandpa's race car fills the back-right corner; the middle lane stays clear for driving onto the lift):
+ *  the three seats in a row against the wall facing in, the engine out in front of them where the hoist can reach it */
+export const FLOOR_SPOTS = { engine: [4.3, 2.6, 0], seatDriver: [6.0, 1.3, Math.PI / 2], seatPassenger: [6.0, 2.1, Math.PI / 2], seatBack: [6.0, 3.1, Math.PI / 2] };
+/** the shop's worn tires (home.js ensureShopTires) stand on the bottom board of the front blue tire shelf (z 2.4) */
+export const SHOP_TIRE_SHELF = { lz: 2.4, level: 0, at: [-0.8, -0.27, 0.27, 0.8] };
 const WIDTH = { 1: 0.34, 2: 0.5, 3: 0.72, 4: 0.9 };
-/** where each part goes: { [slotId]: { x, z, y, ry } } in garage-local metres, y = height above the floor. Unassigned parts get floor spots after the racks. */
+/** where each shelf / floor part goes: { [slotId]: { x, z, y, ry } } in garage-local metres, y = height above the floor. Wheels are placed on the tire shelf (TIRE_SHELF) instead. */
 export function layoutParts() {
   const out = {};
-  for (const r of RACKS) r.boards.forEach((ids, bi) => {
+  SHELF.rows.forEach((ids, bi) => {
     const ws = ids.map(id => WIDTH[BUG.slots.find(s => s.id === id).size] + 0.05), total = ws.reduce((a, b) => a + b, 0);
     let at = -total / 2;
-    ids.forEach((id, i) => { out[id] = { x: r.x, z: r.z + at + ws[i] / 2, y: RACK.boards[bi] + 0.03, ry: RACK.ry }; at += ws[i]; });
+    ids.forEach((id, i) => { out[id] = { x: SHELF.x - 0.05, z: SHELF.z + at + ws[i] / 2, y: SHELF.boards[bi] + 0.01, ry: SHELF.ry }; at += ws[i]; });
   });
-  for (const [id, [x, z]] of Object.entries(FLOOR_SPOTS)) out[id] = { x, z, y: 0, ry: 0.3 };
+  for (const [id, [x, z, ry]] of Object.entries(FLOOR_SPOTS)) out[id] = { x, z, y: 0, ry };
   return out;
 }
 const WHERE = { front: 'the front of the car', rear: 'the back of the car', driver: "the driver's door", passenger: 'the passenger door', cabin: 'a door' };
