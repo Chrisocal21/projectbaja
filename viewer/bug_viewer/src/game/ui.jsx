@@ -192,12 +192,12 @@ export function StorePanel({ onBuy, onSell, onClose, buyer = 'dusty' }) {
 }
 
 /** a shop out on the map: a barn, a junkyard, an off-road store or a gas-station mart. Each has its own shelf (game/roadShop.js); what you buy leaves it. */
-export function RoadShopPanel({ title, shelf, buyer, onBuy, onSell, onClose }) {
+export function RoadShopPanel({ title, shelf, buyer, onBuy, onShip, onSell, onClose }) {
   useGame();
   const sells = sellable(buyer);
   return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>{title}</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
     <div className="inv-sec">FOR SALE <span>{shelf.theme}{shelf.soldCount ? ' · ' + shelf.soldCount + ' already gone' : ''}</span></div>
-    {shelf.rows.length ? shelf.rows.map(r => <div key={r.id} className="inv-row"><span>{r.label}<small>{r.note}</small></span><span className="inv-btns"><button disabled={game.cash < r.price} onClick={() => onBuy(r)}>${r.price}</button></span></div>) : <p className="hint">Nothing left on the shelves.</p>}
+    {shelf.rows.length ? shelf.rows.map(r => <div key={r.id} className="inv-row"><span>{r.label}<small>{r.note}</small></span><span className="inv-btns"><button disabled={game.cash < r.price} onClick={() => onBuy(r)}>${r.price}</button>{r.ship && onShip && <button disabled={game.cash < r.price + r.ship.fee} title={`Delivered to Walt's garage in about ${r.ship.hours} hours`} onClick={() => onShip(r)}>Deliver ${r.price + r.ship.fee}</button>}</span></div>) : <p className="hint">Nothing left on the shelves.</p>}
     <div className="inv-sec">SELL TO {BUYERS[buyer].short.toUpperCase()} <span>{sells.length ? 'what you are carrying' : 'nothing you are carrying interests them'}</span></div>
     {sells.map(({ it, value, word }) => <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{word}</small></span><span className="inv-btns"><button onClick={() => onSell(it.uid, buyer)}>Sell ${value}</button></span></div>)}
     <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;

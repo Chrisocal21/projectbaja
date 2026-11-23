@@ -33,7 +33,7 @@ import { toggleLights } from './game/lights.js';
 import { useStand } from './game/standActions.js';
 import { useBin, takeBin } from './game/bins.js';
 import { sellItem } from './game/sell.js';
-import { openRoadShop, roadShelf, roadBuy, shopTitle, SHOP_BUYER } from './game/roadShop.js';
+import { openRoadShop, roadShelf, roadBuy, roadShip, shopTitle, SHOP_BUYER } from './game/roadShop.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
 import { apartBuild } from './game/teardown.js';
@@ -457,7 +457,7 @@ function App() {
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
     {panel === 'store' && <StorePanel onBuy={storeBuy} onSell={sellItem} onClose={resume} />}
-    {panel === 'roadshop' && game.roadShop && <RoadShopPanel title={game.roadShop.title} shelf={roadShelf()} buyer={SHOP_BUYER[game.roadShop.site.type] || 'mart'} onBuy={roadBuy} onSell={sellItem} onClose={resume} />}
+    {panel === 'roadshop' && game.roadShop && <RoadShopPanel title={game.roadShop.title} shelf={roadShelf()} buyer={SHOP_BUYER[game.roadShop.site.type] || 'mart'} onBuy={roadBuy} onShip={roadShip} onSell={sellItem} onClose={resume} />}
     {panel === 'warehouse' && <StorePanel buyer="warehouse" onSell={sellItem} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;

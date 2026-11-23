@@ -7,6 +7,8 @@ import { shopName, isShop } from '../worlds/shopSites.js';
 import { supplyPrice } from './garageSupplies.js';
 import { STORE_ITEMS } from './jobs.js';
 import { cajonCatalog } from './cajonParts.js';
+import { SITES } from '../worlds/county.js';
+import { newOrder } from './orderlogic.js';
 
 /** which buyer (game/market.js BUYERS) takes your goods at each kind of shop */
 export const SHOP_BUYER = { barn: 'barn', junk: 'junkyard', offroad: 'offroad', gas: 'mart', rest: 'mart' };
@@ -25,7 +27,24 @@ export function openRoadShop(site, brandName) { game.roadShop = { site: { ...sit
 export function roadShelf() {
   const rs = game.roadShop; if (!rs) return { rows: [], theme: '' };
   const sh = shelf(rs.site, ctx(), game.home?.shopSold, game.home?.hoursTotal || 0, game.home?.shopSoldAt);
-  return { ...sh, rows: sh.rows.map(r => ({ ...r, label: nameOfItem({ kind: r.kind, id: r.itemId }) })) };
+  return { ...sh, rows: sh.rows.map(r => ({ ...r, label: nameOfItem({ kind: r.kind, id: r.itemId }), ship: shipQuote(r.price) })) };
+}
+/** what sending a purchase to Walt's garage costs and how long it takes: a fee on the price, and hours by how far you are from the garage (PROPOSAL) */
+export function shipQuote(price) {
+  const km = Math.hypot(game.pos.x - SITES.garage.x, game.pos.z - SITES.garage.z) / 1000;
+  return { fee: Math.max(15, Math.round(price * 0.15)), hours: Math.min(36, Math.max(2, Math.ceil(2 + km * 0.7))) };
+}
+/** pay for it now and have it delivered to the garage's pickup area (the order system, game/orders.js) instead of carrying it */
+export function roadShip(row) {
+  const rs = game.roadShop; if (!rs) return;
+  if (game.dev) return say('Delivery is off in test sessions.');
+  const q = shipQuote(row.price), total = row.price + q.fee, name = nameOfItem({ kind: row.kind, id: row.itemId }), key = roadShelf().key;
+  if (game.cash < total) return say('Not enough cash.');
+  addCash(-total, `Bought at ${rs.title.toLowerCase()}, delivered: ${name}`);
+  const h = game.home, at = h.hoursTotal || 0;
+  game.home = { ...h, orders: [...(h.orders || []), { ...newOrder(row.kind, row.itemId, q.hours), label: name }],
+    shopSold: { ...(h.shopSold || {}), [key]: [...(h.shopSold?.[key] || []).filter(i => i !== row.id), row.id] }, shopSoldAt: { ...(h.shopSoldAt || {}), [key]: { ...(h.shopSoldAt?.[key] || {}), [row.id]: at } } };
+  save(); say(`Delivery paid: ${name} will be at the pickup area in about ${q.hours} hours`);
 }
 export function roadBuy(row) {
   const rs = game.roadShop; if (!rs) return;

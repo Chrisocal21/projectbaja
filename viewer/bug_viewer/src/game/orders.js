@@ -34,6 +34,7 @@ export function passTime(hours) {
   for (const o of r.arrived) {
     if (o.kind === 'car') { carArrives(o.id); continue; }
     if (o.kind === 'gift') { giftArrives(); continue; }   // Dusty's El Cajon: set down in Walt's yard, not boxed at the shop
+    if (o.label) { boxAtShop(o.kind, o.id); say(`Your delivery arrived at the pickup area: ${o.label}`); continue; }   // a road-shop purchase sent to the garage (game/roadShop.js)
     const stand = o.kind === 'garage' ? standFor(...itemOf(o.id)) : null, put = stand ? addStock(game.home, stand.id, 1) : { added: 0 };
     if (put.added) { game.home = put.home; say(`Your order arrived and went straight onto its stand: ${nameOf(o.kind, o.id, bodyId())} (${game.home.stock[stand.id]}/10)`); continue; }   // (a full stand: it waits at the pickup like any other box)
     if (o.kind === 'garage' && itemOf(o.id)[0] === 'epart') {   // small engine pieces come to Walt's door: the first order happens before the Bug runs, and the pickup is 1.6 km away
@@ -47,7 +48,7 @@ export function passTime(hours) {
 }
 
 /** a name for any order (parts, or a car from the Car sales app) */
-export const orderName = (o, body = bodyId()) => (o.kind === 'car' ? VEHICLE_TYPES[o.id]?.name || 'Vehicle' : o.kind === 'gift' ? "El Cajon, from Dusty (to Walt's yard)" : nameOf(o.kind, o.id, body));
+export const orderName = (o, body = bodyId()) => (o.label ? o.label : o.kind === 'car' ? VEHICLE_TYPES[o.id]?.name || 'Vehicle' : o.kind === 'gift' ? "El Cajon, from Dusty (to Walt's yard)" : nameOf(o.kind, o.id, body));
 export const carOnOrder = id => ordersOnTheWay().some(o => o.kind === 'car' && o.id === id);
 
 /** Car sales app (PROPOSAL): pay now, the car is brought to Al's lot after a few game hours and left there, keys in it */
