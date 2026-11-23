@@ -16,8 +16,7 @@ import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
 import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
 import { pegInteract } from './game/pegboard.js';
-import { HAUL_S } from './game/junkRules.js';
-import { haulJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob, jobById } from './game/jobs.js';
 import { unstuck } from './game/unstuck.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
@@ -227,7 +226,7 @@ function App() {
     else if (id === 'crank') crankBug();
     else if (id === 'job') setPanel('job');
     else if (id === 'trailer') setPanel('trailer');
-    else if (id.startsWith('junk:')) say('Hold left click to haul it out.');
+    else if (id.startsWith('junk:')) clearJunk(id.slice(5));   // one press of E and the pile is gone
     else if (id === 'bench') setPanel('fab');
     else if (id.startsWith('stand:')) useStand(id.slice(6));
     else if (id === 'peg') pegInteract();
@@ -318,7 +317,6 @@ function App() {
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
         else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));
-        else if (btn === 0 && game.target?.startsWith('junk:')) { const id = game.target.slice(5); startHold('Hauling…', () => haulJunk(id), false, HAUL_S * 1000); }   // junk goes out in held loads (game/junkRules.js)
         else if (btn === 0 && game.target === 'tirem') { const pl = planAtMachine(); if (pl?.ok) startHold(`${pl.verb}…`, doMachine, false, pl.seconds * 1000); else if (pl) say(pl.why); }   // the tire machine: the bar takes as long as the job
         else if (btn === 0 && (game.nearCar || game.work) && game.aim && toolInHand() && game.target?.startsWith('car:')) { const id = game.aim; startHold('Taking off…', () => (id.startsWith('up:') ? doDetachUpgrade(id.slice(3)) : doDetach(id, game.carZone))); }   // hold left on a part: the bar fills, it comes off onto the ground. game.work = any restorable vehicle you stand at (donors, the El Cajon); game.nearCar is only the one you drive
       }

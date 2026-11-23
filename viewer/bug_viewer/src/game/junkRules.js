@@ -10,4 +10,4 @@ export const sizeOf = (home, j) => leftOf(home, j) / loadsOf(j.kind);
 /** one load hauled -> the new count, and whether that was the last */
 export function haul(home, j) { const n = Math.min(loadsOf(j.kind), doneOf(home, j.id) + 1); return { n, last: n >= loadsOf(j.kind) }; }
 /** the prompt under the crosshair */
-export const haulPrompt = (home, j) => { const l = leftOf(home, j); return `Hold left click — Haul out ${j.label}${l < loadsOf(j.kind) ? ` (${l} load${l === 1 ? '' : 's'} left)` : ''}`; };
+export const haulPrompt = (home, j) => { const l = leftOf(home, j); return `Press E — Pick up ${j.label}`; };

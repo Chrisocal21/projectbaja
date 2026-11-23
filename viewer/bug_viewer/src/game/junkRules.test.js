@@ -10,8 +10,8 @@ test('a pile goes out in loads and shrinks with each one', () => {
   home = { junkLoads: { 'j-papers': haul(home, j).n } }; assert.equal(haul(home, j).last, true);
 });
 test('the prompt says how many loads are left, and every kind has loads', () => {
-  assert.match(haulPrompt({}, j), /^Hold left click — Haul out decades of newspapers$/);
-  assert.match(haulPrompt({ junkLoads: { 'j-papers': 2 } }, j), /\(1 load left\)/);
+  assert.match(haulPrompt({}, j), /^Press E — Pick up decades of newspapers$/);
+  assert.match(haulPrompt({ junkLoads: { 'j-papers': 2 } }, j), /^Press E/);
   for (const k of Object.keys(LOADS)) assert.ok(loadsOf(k) >= 2);
   assert.equal(loadsOf('mystery'), 2);
 });
