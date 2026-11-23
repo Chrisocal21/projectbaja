@@ -9,9 +9,9 @@ import { raceSignTexture, roadsideBoardTexture } from './raceSignTexture.js';
 
 const CHECKPOINT_EVERY = 1200, NEAR = 900;
 
-export function RouteSign({ name, series, finish = false }) {
+export function RouteSign({ name, series, finish = false, town = '' }) {
   const wood = series === 'MDR';
-  const map = useMemo(() => raceSignTexture(name, series, finish), [name, series, finish]);
+  const map = useMemo(() => raceSignTexture(name, series, finish, undefined, town), [name, series, finish, town]);
   useEffect(() => () => map.dispose(), [map]);
   return <>
     {[-1.35, 1.35].map(x => <mesh key={x} position={[x, 1.65, 0]} castShadow><boxGeometry args={[wood ? 0.18 : 0.11, 3.3, wood ? 0.18 : 0.11]} /><meshStandardMaterial color={wood ? '#796244' : '#807d72'} metalness={wood ? 0 : 0.5} roughness={0.8} /></mesh>)}
@@ -49,8 +49,8 @@ function CourseMarkers({ course, network }) {
   });
   if (!marks.all.length) return null;
   return <group ref={group} visible={false}><MergedStatic>
-    {marks.start && <group position={[marks.start.x, marks.start.y, marks.start.z]} rotation={[0, marks.start.h, 0]}><RouteSign name={course.name} series={course.series} /></group>}
-    {marks.finish && <group position={[marks.finish.x, marks.finish.y, marks.finish.z]} rotation={[0, marks.finish.h, 0]}><RouteSign name={course.name} series={course.series} finish /></group>}
+    {marks.start && <group position={[marks.start.x, marks.start.y, marks.start.z]} rotation={[0, marks.start.h, 0]}><RouteSign name={course.name} series={course.series} town={course.from} /></group>}
+    {marks.finish && <group position={[marks.finish.x, marks.finish.y, marks.finish.z]} rotation={[0, marks.finish.h, 0]}><RouteSign name={course.name} series={course.series} finish town={course.to || course.from} /></group>}
     {marks.warnings.map((p, i) => <group key={i} position={[p.x, p.y, p.z]} rotation={[0, p.h, 0]}><WarningPost /></group>)}
   </MergedStatic></group>;
 }

@@ -36,6 +36,7 @@ export function roadsideBoardTexture(name, subtitle, wood = false, onReady) {
   return texture;
 }
 
-export function raceSignTexture(name, series, finish = false, onReady) {
-  return roadsideBoardTexture(name, `${series} - ${finish ? 'FINISH' : 'START'}`, series === 'MDR', onReady);
+/** town: the place the race starts or finishes in, when it has one (raceCourses.js from / to) */
+export function raceSignTexture(name, series, finish = false, onReady, town = '') {
+  return roadsideBoardTexture(name, `${series} - ${finish ? 'FINISH' : 'START'}${town ? ' · ' + town.toUpperCase() : ''}`, series === 'MDR', onReady);
 }

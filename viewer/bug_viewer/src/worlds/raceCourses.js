@@ -11,19 +11,19 @@
 import { projectPlace } from '../game/realPlaces.js';
 
 export const RACE_COURSES = [
-  { id: 'mdr-ocotillo', series: 'MDR', spread: 3, name: 'MDR Ocotillo Loop', kind: 'loop', note: 'All dirt, a big loop south of I-8 at Ocotillo and Coyote Wells.',
+  { id: 'mdr-ocotillo', from: 'Ocotillo', series: 'MDR', spread: 3, name: 'MDR Ocotillo Loop', kind: 'loop', note: 'All dirt, a big loop south of I-8 at Ocotillo and Coyote Wells.',
     pts: [[32.745, -116.02], [32.73, -115.93, 'D'], [32.69, -115.91, 'D'], [32.65, -115.95, 'D'], [32.66, -116.03, 'D'], [32.71, -116.06, 'D']] },
-  { id: 'mdr-plaster-city', series: 'MDR', spread: 3, name: 'MDR Plaster City Loop', kind: 'loop', note: 'All dirt, a loop either side of I-8 round Plaster City.',
+  { id: 'mdr-plaster-city', from: 'Plaster City', series: 'MDR', spread: 3, name: 'MDR Plaster City Loop', kind: 'loop', note: 'All dirt, a loop either side of I-8 round Plaster City.',
     pts: [[32.83, -115.93], [32.84, -115.82, 'D'], [32.79, -115.76, 'D'], [32.73, -115.78, 'D'], [32.72, -115.86, 'D'], [32.76, -115.92, 'D']] },
   { id: 'mdr-flats', series: 'MDR', spread: 3, name: 'MDR The Flats Loop', kind: 'loop', note: 'All dirt, a flat fast loop across the Yuha flats.',
     pts: [[32.755, -115.80], [32.76, -115.72, 'D'], [32.715, -115.69, 'D'], [32.69, -115.75, 'D'], [32.71, -115.81, 'D']] },
-  { id: 'score-sf250', series: 'SCORE', name: 'San Felipe 250', kind: 'loop', note: 'Starts and finishes in San Felipe: dirt out through Valle Chico and the Laguna Salada edge, paved on Mex 5.',
+  { id: 'score-sf250', from: 'San Felipe', series: 'SCORE', name: 'San Felipe 250', kind: 'loop', note: 'Starts and finishes in San Felipe: dirt out through Valle Chico and the Laguna Salada edge, paved on Mex 5.',
     pts: [[31.025, -114.84], [31.25, -114.82, 'P'], [31.5, -114.95, 'P'], [31.55, -115.2, 'D'], [31.45, -115.45, 'D'], [31.25, -115.5, 'D'], [31.1, -115.25, 'D'], [31.05, -115.05, 'D'], [31.025, -114.84, 'D']] },
-  { id: 'score-b400', series: 'SCORE', name: 'Baja 400', kind: 'loop', note: 'A northern loop out of Ensenada: Valle de Guadalupe, Tecate side, Ojos Negros.',
+  { id: 'score-b400', from: 'Ensenada', series: 'SCORE', name: 'Baja 400', kind: 'loop', note: 'A northern loop out of Ensenada: Valle de Guadalupe, Tecate side, Ojos Negros.',
     pts: [[31.86, -116.61], [32.08, -116.6, 'P'], [32.3, -116.5, 'D'], [32.45, -116.45, 'D'], [32.2, -116.3, 'D'], [31.92, -116.3, 'D'], [31.86, -116.61, 'P']] },
-  { id: 'score-b500', series: 'SCORE', name: 'Baja 500', kind: 'loop', note: 'Ensenada loop: Ojos Negros, the Trinidad valley, Santo Tomas, home on Mex 1.',
+  { id: 'score-b500', from: 'Ensenada', series: 'SCORE', name: 'Baja 500', kind: 'loop', note: 'Ensenada loop: Ojos Negros, the Trinidad valley, Santo Tomas, home on Mex 1.',
     pts: [[31.86, -116.61], [31.92, -116.3, 'D'], [31.85, -116.05, 'D'], [31.35, -115.68, 'D'], [31.5, -116.0, 'D'], [31.6, -116.35, 'D'], [31.8, -116.6, 'P'], [31.86, -116.61, 'P']] },
-  { id: 'score-b1000', series: 'SCORE', name: 'Baja 1000', kind: 'point', note: 'Ensenada to La Paz down the peninsula: Mex 1 with dirt legs through the valleys and desert.',
+  { id: 'score-b1000', from: 'Ensenada', to: 'La Paz', series: 'SCORE', name: 'Baja 1000', kind: 'point', note: 'Ensenada to La Paz down the peninsula: Mex 1 with dirt legs through the valleys and desert.',
     pts: [[31.86, -116.61], [31.55, -116.4, 'D'], [31.33, -116.25, 'P'], [30.98, -116.2, 'D'], [30.48, -115.98, 'P'], [30.06, -115.73, 'P'], [29.9, -115.3, 'D'], [29.72, -114.72, 'P'], [29.35, -114.33, 'D'], [28.8, -114.1, 'P'], [27.96, -114.06, 'P'], [27.6, -113.5, 'D'], [27.29, -112.9, 'P'], [26.89, -111.98, 'P'], [26.4, -111.7, 'D'], [26.01, -111.35, 'P'], [25.5, -111.5, 'D'], [25.03, -111.66, 'P'], [24.6, -111.0, 'D'], [24.13, -110.3, 'P']] },
 ];
 

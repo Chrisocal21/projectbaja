@@ -84,3 +84,7 @@ test('mileMarkers numbers every mile along a route, counts down what is left, an
   assert.equal(mileMarkers([[0, 0], [1000, 0]]).length, 0);   // shorter than a mile: none
   assert.equal(mileMarkers([[0, 0], [RACE_MILE * 3.1, 0]]).length, 2);   // the last mark would sit right by the finish sign: dropped
 });
+test('named races say where they start and finish', () => {
+  const b = RACE_COURSES.find(c => c.id === 'score-b1000'); assert.equal(b.from, 'Ensenada'); assert.equal(b.to, 'La Paz');
+  assert.equal(RACE_COURSES.find(c => c.id === 'score-sf250').from, 'San Felipe');
+});
