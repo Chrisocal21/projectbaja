@@ -180,10 +180,10 @@ function StreamTerrain() {
 }
 
 // ---------------- road textures ----------------
-/** 2-lane blacktop: worn asphalt, yellow double centre line, white edge lines, gravel shoulders feathered into the desert (u across 8.8 m) */
+/** 2-lane blacktop: worn asphalt, painted lines and dusty dirt edges (u across 8.8 m) */
 export const blacktop = (center = 'double') => () => tex(512, 1024, (g, w, h) => {
   const r = rnd(center === 'double' ? 51 : 53), M = w / 8.8;
-  g.fillStyle = '#9b917f'; g.fillRect(0, 0, w, h); dots(g, r, w, h, 9000, ['#b0a690', '#8a806e', '#77705f'], 1, 3, 0.6);
+  g.fillStyle = '#927653'; g.fillRect(0, 0, w, h); dots(g, r, w, h, 9000, ['#b49a70', '#735d42', '#6b5842'], 1, 3, 0.6);
   const a0 = (8.8 - 7.2) / 2 * M;
   g.fillStyle = '#494947'; g.fillRect(a0, 0, w - 2 * a0, h);
   g.save(); g.beginPath(); g.rect(a0, 0, w - 2 * a0, h); g.clip();
@@ -238,7 +238,7 @@ export const shoulderTex = () => tex(256, 512, (g, w, h) => {
   g.fillStyle = '#a28b67'; g.fillRect(0, 0, w, h);
   blotches(g, r, w, h, 55, 0.07, 0.13, 35);
   dots(g, r, w, h, 9000, ['#c1aa80', '#79684e', '#b39a70', '#665844'], 1, 3.5, 0.6);
-  // Parallel scuffs and scattered larger stones break up the uniform gravel strip.
+  // Parallel scuffs and scattered stones break up the compacted dirt strip.
   for (const x of [w * 0.28, w * 0.58]) {
     g.strokeStyle = 'rgba(88,74,55,0.16)'; g.lineWidth = 4; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 9, h * 0.3, x - 8, h * 0.7, x + 3, h); g.stroke();
   }

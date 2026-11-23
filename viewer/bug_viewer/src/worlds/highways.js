@@ -97,7 +97,21 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         if (bd < 30) for (let i = 0, s = 0; i < n && s < 60; i++, s += STEP) { const w = 1 - smooth(0, 60, s); p[end + dir * i].x += bx * w; p[end + dir * i].z += bz * w; }
       }
     }
-    const floor = p.map(q => { const w = water(q.x, q.z); return w == null ? -Infinity : w + 1.2; });   // causeways stay above the water
+    // Sample the full paved deck, not just its centre. A narrow creek can pass
+    // under one wheel track while missing the centre sample entirely.
+    const floor = p.map(q => {
+      if (r.kind === 'dirt') return -Infinity;
+      const nx = q.tz, nz = -q.tx;
+      const levels = [0, -st.half, st.half].map(d => water(q.x + nx * d, q.z + nz * d)).filter(v => v != null);
+      return levels.length ? Math.max(...levels) + 1.2 : -Infinity;
+    });
+    if (r.kind !== 'dirt') {
+      // A water surface may appear for only one sample. Carry its clearance
+      // backward and forward at the road's grade limit so the deck approaches
+      // the crossing as a ramp instead of rising in one 4 m step.
+      for (let i = 1; i < n; i++) floor[i] = Math.max(floor[i], floor[i - 1] - 0.09 * Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z));
+      for (let i = n - 2; i >= 0; i--) floor[i] = Math.max(floor[i], floor[i + 1] - 0.09 * Math.hypot(p[i + 1].x - p[i].x, p[i + 1].z - p[i].z));
+    }
     const g0 = p.map((q, i) => Math.max(ground(q.x, q.z), floor[i]));
     const box = (h, k) => { const cs = new Float64Array(n + 1); for (let i = 0; i < n; i++) cs[i + 1] = cs[i] + h[i]; return h.map((_, i) => { const a = Math.max(0, i - k), b = Math.min(n - 1, i + k); return (cs[b + 1] - cs[a]) / (b - a + 1); }); };
     const k = Math.max(1, Math.round(st.grade / STEP / 2));
@@ -110,7 +124,6 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       for (let i = 1; i < n; i++) h[i] = Math.max(h[i - 1] - lim, Math.min(h[i - 1] + lim, h[i]));
       for (let i = n - 2; i >= 0; i--) h[i] = Math.max(h[i + 1] - lim, Math.min(h[i + 1] + lim, h[i]));
     }
-    h = h.map((v, i) => Math.max(v, floor[i]));
     h = h.map((v, i) => Math.max(v, floor[i]));
     // tie each end into a highway graded before it (junctions meet at one height)
     const target0 = (e, reach = 30) => { let target = null, bd = reach; for (const o of list) for (let i = 0; i < o.pts.length; i += 2) { const q = o.pts[i], d = Math.abs(q.x - e.x) + Math.abs(q.z - e.z); if (d < bd) { bd = d; target = q.hs; } } return target; };
@@ -149,8 +162,9 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     // may otherwise produce an 80 m artificial wall beside the road. Keep the
     // road close to the actual ground and spread the remaining cut/fill broadly.
     const earthwork = MAX_EARTHWORK[r.kind] ?? 12;
-    h = terrainGrade(h, g0, floor, p, earthwork, r.kind === 'dirt' ? 12 : 35, r.kind === 'dirt' ? 0.18 : 0.14)
-      || h.map((v, i) => Math.max(floor[i], Math.min(g0[i] + earthwork, Math.max(g0[i] - earthwork, v))));
+    const maxSlope = r.kind === 'dirt' ? 0.18 : 0.09;
+    h = terrainGrade(h, g0, floor, p, earthwork, r.kind === 'dirt' ? 12 : 35, maxSlope)
+      || terrainGrade(h, g0, floor, p, earthwork, 10000, maxSlope);
     p.forEach((q, i) => (q.hs = h[i]));
     list.push({ name: r.name, kind: r.kind, course: r.course, style: st, fadeEnd: r.pavedEnds?.length === 1, pts: p, total: path.total, index: list.length });
     built.set(r, list.at(-1));
@@ -165,7 +179,10 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     for (const [end, dir] of [[0, 1], [road.pts.length - 1, -1]]) {
       const tip = road.pts[end], inner = road.pts[end + dir];
       const ox = tip.x - inner.x, oz = tip.z - inner.z, olen = Math.hypot(ox, oz) || 1;
-      let best = null, distance = 125;
+      // The source map is deliberately sparse: some secondary road tips stop
+      // a few hundred metres before the through road. Pull the last graded
+      // stretch onto that road, rather than leaving a visible paved dead end.
+      let best = null, distance = 300;
       for (const other of list) {
         if (other === road || other.kind === 'dirt' || other.kind === 'ramp') continue;
         for (let i = 0; i < other.pts.length - 1; i++) {
@@ -229,7 +246,9 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         const a = other.pts[i], b = other.pts[i + 1], vx = b.x - a.x, vz = b.z - a.z;
         const t = Math.max(0, Math.min(1, ((farTip.x - a.x) * vx + (farTip.z - a.z) * vz) / (vx * vx + vz * vz || 1)));
         const x = a.x + vx * t, z = a.z + vz * t, d = Math.hypot(x - farTip.x, z - farTip.z);
-        if (d < 55 && (!exit || d < exit.d)) exit = { x, z, h: a.hs + (b.hs - a.hs) * t, d };
+        const limit = other.kind === 'dirt' ? 35 : 110;
+        const score = d + (other.kind === 'dirt' ? 110 : 0);
+        if (d < limit && (!exit || score < exit.score)) exit = { x, z, h: a.hs + (b.hs - a.hs) * t, d, score };
       }
     }
     if (exit && exit.d > 0.5) {
@@ -319,7 +338,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1)));
       const d = Math.hypot(x - a.x - dx * t, z - a.z - dz * t);
       if (d <= r.style.lanes + pad) return 'asphalt';
-      if (d <= r.style.half + pad) edge = 'gravel';
+      if (d <= r.style.half + pad) edge = 'dirt';
     }
     return edge;
   }
@@ -365,13 +384,12 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const d = Math.hypot(a.x + dx * t - x, a.z + dz * t - z); if (d > REACH) continue;
       let j = 0; while (j < n && nR[j] !== ri) j++;
       if (j === n) { if (n === MAXN) continue; n++; nR[j] = ri; nD[j] = Infinity; }
-      if (d < nD[j]) { nD[j] = d; nH[j] = a.hs + (b.hs - a.hs) * t; nI[j] = i; nT[j] = t; nI[j] = i; nT[j] = t; }
+      if (d < nD[j]) { nD[j] = d; nH[j] = a.hs + (b.hs - a.hs) * t; nI[j] = i; nT[j] = t; }
     }
     return n;
   }
   // Finish the road field first, then supply the feature height. Both the terrain mesh and
   // physics call blend, so the shallow tire-worn grade remains a single height surface.
-  function setFeatureHeight(fn) { featureHeight = fn; }
   function setFeatureHeight(fn) { featureHeight = fn; }
   /** the ground height h at (x, z) eased onto the highways' grade */
   function blend(x, z, h) {
@@ -404,17 +422,28 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         const feature = 1 - smooth(0.015, 0.18, Math.abs(featureHeight(x, z)));
         const lane = 1 - smooth(st.lanes, st.half + st.shoulder, nD[j]);
         grade -= 0.2 * lane * endFade * straight * feature * dirtWeight;
+        if (road.course) {
+          // Race turns have a raised outside lip. The bank is part of the same
+          // height field as the tires and ribbon, with a level centre line and
+          // a long taper into each straight and paved crossing.
+          const before = pts[Math.max(0, i - 9)], after = pts[Math.min(pts.length - 1, i + 9)];
+          const curvature = Math.atan2(before.tx * after.tz - before.tz * after.tx, before.tx * after.tx + before.tz * after.tz);
+          const cx = a.x + (b.x - a.x) * t, cz = a.z + (b.z - a.z) * t;
+          const outer = Math.sign(curvature) * ((x - cx) * a.tz - (z - cz) * a.tx);
+          grade += 1.6 * smooth(0.025, 0.18, Math.abs(curvature))
+            * smooth(0, st.half + 1.5, outer) * endFade * dirtWeight;
+        }
       }
       sh += w4 * grade;
     }
     return sw ? h + (sh / sw - h) * wmax : h;
   }
-  /** 'asphalt' on the lanes, 'gravel' on the paved edge, else null */
+  /** 'asphalt' on the lanes, compacted dirt on the paved edge, else null */
   function surfaceKey(x, z) {
     const paved = pavedSurfaceAt(x, z); if (paved) return paved;
     const q = near(x, z); if (!q) return null;
     if (q.road.kind === 'dirt') return q.d <= q.road.style.lanes ? 'dirt' : q.d <= q.road.style.half ? 'looseDirt' : null;
-    return q.d <= q.road.style.lanes ? 'asphalt' : q.d <= q.road.style.half ? 'gravel' : null;
+    return q.d <= q.road.style.lanes ? 'asphalt' : q.d <= q.road.style.half ? 'dirt' : null;
   }
   /** on (or within pad m of) a highway's paved width */
   const isNear = (x, z, pad = 0) => { const q = near(x, z); return !!q && q.d <= q.road.style.half + pad; };

@@ -18,7 +18,7 @@ test('a highway follows its line and is paved there', () => {
   assert.equal(H.roads.length, 1);
   const q = H.near(300, 2); assert.ok(q && q.d < 2.5 && Math.abs(q.h - 5) < 1e-6);
   assert.equal(H.surfaceKey(300, 1), 'asphalt');
-  assert.equal(H.surfaceKey(300, HW_STYLE.major.half - 0.3), 'gravel');
+  assert.equal(H.surfaceKey(300, HW_STYLE.major.half - 0.3), 'dirt');
   assert.equal(H.surfaceKey(300, 80), null);
   assert.equal(H.near(300, 200), null);
   assert.ok(H.isNear(300, 0) && !H.isNear(300, 40));
@@ -38,6 +38,28 @@ test('a highway stays above water and bends round a keep-clear place', () => {
   assert.ok(H.roads[0].pts.every(p => p.hs >= 1.2 - 1e-6));
   assert.ok(H.roads[0].pts.every(p => Math.hypot(p.x - 500, p.z) >= 79));
   assert.equal(H.surfaceKey(500, 0), null);
+});
+
+test('pavement spans a narrow waterway under either wheel track with a gentle grade', () => {
+  const water = (x, z) => x > 410 && x < 590 && z > 2 && z < 7 ? 3 : null;
+  const H = makeHighways([{ name: 'Crossing', kind: 'major', pts: [[0, 0], [1000, 0]] }], () => 0, { water });
+  const pts = H.roads[0].pts;
+  assert.ok(pts.some(p => p.x > 450 && p.x < 550 && p.hs >= 4.2));
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
+    assert.ok(Math.abs(pts[i].hs - pts[i - 1].hs) / d < 0.091);
+  }
+});
+
+test('a race dirt turn banks its outside while ordinary dirt remains lightly cut', () => {
+  const route = [[0, 0], [140, 0], [210, 30], [250, 100], [250, 230]];
+  const H = makeHighways([{ name: 'Race', kind: 'dirt', course: 'loop', pts: route }], () => 5);
+  const road = H.roads[0], k = road.pts.findIndex(p => p.x > 195 && p.z > 20);
+  const p = road.pts[k], a = road.pts[k - 8], b = road.pts[k + 8];
+  const turn = Math.sign(a.tx * b.tz - a.tz * b.tx), nx = p.tz, nz = -p.tx;
+  const at = d => H.blend(p.x + nx * d, p.z + nz * d, 5);
+  assert.ok(at(turn * 3) > at(0) + 0.2, `outside ${at(turn * 3)} centre ${at(0)}`);
+  assert.ok(at(turn * 3) > at(-turn * 3) + 0.3);
 });
 
 test('junctions meet at one height', () => {
@@ -77,6 +99,15 @@ test('a longer mapped gap joins even when the approach is built first', () => {
   assert.ok(H.crossingDistance(approach.pts[0].x, approach.pts[0].z, approach) < 1);
   assert.ok(Math.abs(approach.pts[0].hs) < 0.01);
 });
+test('a sparse mapped paved spur joins a through road across a 220 m source gap', () => {
+  const H = makeHighways([
+    { name: 'Through', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'Spur', kind: 'secondary', pts: [[0, 220], [0, 1000]] },
+  ], () => 0);
+  const spur = H.roads.find(r => r.name === 'Spur');
+  assert.ok(H.crossingDistance(spur.pts[0].x, spur.pts[0].z, spur) < 1);
+  assert.ok(Math.abs(spur.pts[0].hs) < 0.01);
+});
 
 test('pavement owns a dirt-road crossing in surface and grade', () => {
   const H = makeHighways([
@@ -111,6 +142,17 @@ test('a dirt branch connects its far end only when another road is nearby', () =
   const far = branch.pts.at(-1);
   const cross = H.roads.find(r => r.name === 'Cross trail');
   assert.ok(Math.min(...cross.pts.map(p => Math.hypot(p.x - far.x, p.z - far.z))) < 5);
+});
+
+test('a baked trail reaches paved roads at both ends', () => {
+  const H = makeHighways([
+    { name: 'South', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'North', kind: 'secondary', pts: [[-500, 500], [500, 500]] },
+    { name: 'Dirt road', kind: 'dirt', pts: [[35, 25], [60, 260], [40, 465]] },
+  ], () => 0);
+  const trail = H.roads.find(r => r.name === 'Dirt road');
+  assert.ok(H.crossingDistance(trail.pts[0].x, trail.pts[0].z, trail) < 1);
+  assert.ok(H.crossingDistance(trail.pts.at(-1).x, trail.pts.at(-1).z, trail) < 1);
 });
 
 test('a mapped mountain road grades through a ridge without a sheer fill', () => {

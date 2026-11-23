@@ -1,20 +1,21 @@
 // Road routing for the map's waypoint line (PURE, loads under node). The roads are polylines; this joins them into a graph (points along each
 // road, plus joins where two roads pass close together) and finds the shortest way along it. No road close to the start or the end = no route.
 const hyp = Math.hypot;
-/** roads: [[{x,z},...], ...]. -> graph { nodes: [{x,z}], adj: [[[neighbour, metres], ...]] } */
+/** roads: [[{x,z},...], ...] or [{kind,pts}]. Edges retain their surface for vehicle-aware routing. */
 export function buildGraph(roads, { maxNodes = 40000, join = 45 } = {}) {
-  const total = roads.reduce((n, r) => n + r.length, 0), stride = Math.max(1, Math.ceil(total / maxNodes));
+  const total = roads.reduce((n, r) => n + (r.pts || r).length, 0), stride = Math.max(1, Math.ceil(total / maxNodes));
   const nodes = [], adj = [], cell = new Map(), key = (x, z) => Math.floor(x / join) + ',' + Math.floor(z / join);
-  const link = (a, b) => { const d = hyp(nodes[a].x - nodes[b].x, nodes[a].z - nodes[b].z); adj[a].push([b, d]); adj[b].push([a, d]); };
-  roads.forEach((pts, ri) => {
+  const link = (a, b, kind) => { const d = hyp(nodes[a].x - nodes[b].x, nodes[a].z - nodes[b].z); adj[a].push([b, d, kind]); adj[b].push([a, d, kind]); };
+  roads.forEach((road, ri) => {
+    const pts = road.pts || road, kind = road.kind || 'paved';
     let prev = -1;
     for (let i = 0; i < pts.length; i += stride) {
       const p = i + stride >= pts.length ? pts[pts.length - 1] : pts[i], id = nodes.length;
       nodes.push({ x: p.x, z: p.z, ri }); adj.push([]);
-      if (prev >= 0) link(prev, id);
+      if (prev >= 0) link(prev, id, kind);
       prev = id;
       const k = key(p.x, p.z), cx = Math.floor(p.x / join), cz = Math.floor(p.z / join);
-      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (const o of cell.get((cx + dx) + ',' + (cz + dz)) || []) if (nodes[o].ri !== ri && hyp(nodes[o].x - p.x, nodes[o].z - p.z) <= join) link(o, id);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (const o of cell.get((cx + dx) + ',' + (cz + dz)) || []) if (nodes[o].ri !== ri && hyp(nodes[o].x - p.x, nodes[o].z - p.z) <= join) link(o, id, 'join');
       (cell.get(k) || cell.set(k, []).get(k)).push(id);
       if (i + stride >= pts.length) break;
     }
@@ -26,13 +27,15 @@ export function nearestNode(g, x, z, maxD = 600) {
   return best;
 }
 /** the way along the roads from (x0,z0) to (x1,z1): [{x,z}, ...] starting and ending on the roads, or null when no road is close or they are not connected */
-export function findRoute(g, x0, z0, x1, z1, maxD = 600) {
+export function findRoute(g, x0, z0, x1, z1, maxD = 600, vehicle = 'road') {
   const a = nearestNode(g, x0, z0, maxD), b = nearestNode(g, x1, z1, maxD); if (a < 0 || b < 0) return null;
-  const dist = new Map([[a, 0]]), from = new Map(), open = heap(), done = new Set(); open.push(hyp(g.nodes[a].x - g.nodes[b].x, g.nodes[a].z - g.nodes[b].z), a);
+  const offroad = vehicle === 'offroad', factor = kind => kind === 'dirt' ? (offroad ? 0.58 : 2.2) : kind === 'gravel' ? (offroad ? 0.8 : 1.5) : 1;
+  const heuristic = u => hyp(g.nodes[u].x - g.nodes[b].x, g.nodes[u].z - g.nodes[b].z) * (offroad ? 0.58 : 1);
+  const dist = new Map([[a, 0]]), from = new Map(), open = heap(), done = new Set(); open.push(heuristic(a), a);
   while (open.size()) {
     const u = open.pop(); if (done.has(u)) continue; done.add(u);
     if (u === b) { const out = []; for (let c = b; c !== undefined; c = from.get(c)) out.push({ x: g.nodes[c].x, z: g.nodes[c].z }); return out.reverse(); }
-    for (const [v, w] of g.adj[u]) { const nd = dist.get(u) + w; if (nd < (dist.get(v) ?? Infinity)) { dist.set(v, nd); from.set(v, u); open.push(nd + hyp(g.nodes[v].x - g.nodes[b].x, g.nodes[v].z - g.nodes[b].z), v); } }
+    for (const [v, w, kind] of g.adj[u]) { const nd = dist.get(u) + w * factor(kind); if (nd < (dist.get(v) ?? Infinity)) { dist.set(v, nd); from.set(v, u); open.push(nd + heuristic(v), v); } }
   }
   return null;
 }

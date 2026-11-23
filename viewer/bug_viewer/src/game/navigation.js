@@ -5,7 +5,7 @@ import { highways, ROADS } from '../worlds/county.js';
 import { buildGraph, findRoute, remaining, offRoute } from './routing.js';
 
 let graph = null;
-const graphOf = () => graph || (graph = buildGraph([...(highways()?.roads || []).map(r => r.pts), ...ROADS.map(r => r.path?.pts)].filter(p => p && p.length > 1)));
+const graphOf = () => graph || (graph = buildGraph([...(highways()?.roads || []), ...ROADS.map(r => ({ kind: r.kind, pts: r.path?.pts }))].filter(r => r.pts?.length > 1)));
 const nav = { key: '', route: null, t: -99, straight: true };
 export const waypoint = () => game.home?.waypoint || null;
 export function setWaypoint(x, z, label) {
@@ -16,10 +16,11 @@ export function clearWaypoint(quiet) { if (!waypoint()) return; game.home = { ..
 export function routeNow(px, pz, now) {
   const wp = waypoint(); if (!wp) return null;
   if (Math.hypot(wp.x - px, wp.z - pz) < 35) { clearWaypoint(true); say(`You have arrived: ${wp.label}.`); return null; }
-  const key = wp.x + ',' + wp.z, stale = !nav.route || nav.key !== key || (now - nav.t > 2000 && !nav.straight && offRoute(nav.route, px, pz) > 120) || (now - nav.t > 6000 && nav.straight);
+  const vehicle = game.active === 'pickup84' || game.active === 'cajon' ? 'offroad' : 'road';
+  const key = wp.x + ',' + wp.z + ',' + vehicle, stale = !nav.route || nav.key !== key || (now - nav.t > 2000 && !nav.straight && offRoute(nav.route, px, pz) > 120) || (now - nav.t > 6000 && nav.straight);
   if (stale) {
     nav.key = key; nav.t = now;
-    let path = null; try { path = findRoute(graphOf(), px, pz, wp.x, wp.z, 900); } catch { path = null; }
+    let path = null; try { path = findRoute(graphOf(), px, pz, wp.x, wp.z, 900, vehicle); } catch { path = null; }
     nav.straight = !path; nav.route = [{ x: px, z: pz }, ...(path || []), { x: wp.x, z: wp.z }];
   }
   return { pts: nav.route, straight: nav.straight, left: remaining(nav.route, px, pz), wp };

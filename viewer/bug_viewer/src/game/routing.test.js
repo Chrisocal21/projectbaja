@@ -9,6 +9,15 @@ test('a route follows the roads and joins roads that cross, and gives up when th
   assert.ok(offRoute(r, 250, 3) < 10); assert.ok(offRoute(r, 250, 400) > 200);
   assert.equal(findRoute(g, 10, 5, 5500, 5), null, 'the far road is not connected'); assert.equal(findRoute(g, 3000, 3000, 10, 5), null, 'no road near the start');
 });
+test('an off-road vehicle takes a longer dirt shortcut while a road vehicle stays on pavement', () => {
+  const paved = line(0, 0, 1000, 0);
+  const dirt = [...line(0, 0, 0, 200), ...line(0, 200, 1000, 200).slice(1), ...line(1000, 200, 1000, 0).slice(1)];
+  const g = buildGraph([{ kind: 'major', pts: paved }, { kind: 'dirt', pts: dirt }]);
+  const road = findRoute(g, 0, 0, 1000, 0, 50, 'road');
+  const offroad = findRoute(g, 0, 0, 1000, 0, 50, 'offroad');
+  assert.ok(routeLength(road) < 1100);
+  assert.ok(routeLength(offroad) > 1300 && offroad.some(p => p.z > 150));
+});
 test('regions: states and countries from lat and lon', () => {
   const at = (lat, lon) => regionAt(lat, lon).name;
   assert.equal(at(32.628, -115.454), 'Baja California'); assert.equal(at(32.792, -115.563), 'California'); assert.equal(at(32.693, -114.627), 'Arizona');

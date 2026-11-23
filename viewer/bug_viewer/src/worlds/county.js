@@ -328,8 +328,8 @@ function grade(r) {
   done.push(r);
 }
 const ROAD_STYLE = {
-  highway: { core: 4.4, shoulder: 10, classify: ad => (ad <= 3.6 ? SID.asphalt : SID.gravel) },
-  street: { core: 4.6, shoulder: 9, classify: ad => (ad <= 4 ? SID.asphalt : SID.concrete) },
+  highway: { core: 4.4, shoulder: 10, classify: ad => (ad <= 3.6 ? SID.asphalt : SID.dirt) },
+  street: { core: 4.6, shoulder: 9, classify: ad => (ad <= 4 ? SID.asphalt : SID.dirt) },
   gravel: { core: 3.6, shoulder: 8, classify: ad => (ad <= 2.6 ? SID.gravel : SID.dirt) },
   dirt: { core: 3.2, shoulder: 7, classify: ad => (ad <= 2.2 ? SID.dirt : SID.looseDirt) },
 };
