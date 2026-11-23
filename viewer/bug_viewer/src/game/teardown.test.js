@@ -31,3 +31,11 @@ test('every loose part has its own place: a rack board it fits on, or a floor sp
   for (const r of RACKS) r.boards.forEach(b => { const w = b.reduce((n, id) => n + [0, 0.34, 0.5, 0.72, 0.9][BUG.slots.find(s => s.id === id).size] + 0.05, 0); assert.ok(w <= RACK.len - 0.05, r.name + ' board is too full: ' + w); });
   assert.ok(Object.keys(FLOOR_SPOTS).every(k => lay[k].y === 0));
 });
+import { tipFor } from './teardown.js';
+test('each next step carries a how-to line, with the special cases for the engine, the battery and wheels', () => {
+  const slot = id => BUG.slots.find(s => s.id === id), b = apartBuild(whole);
+  assert.match(tipFor(slot('engine'), b), /hoist/); assert.match(tipFor(slot('battery'), b), /flat.*charger/); assert.match(tipFor(slot('wheelFL'), b), /jack/);
+  assert.match(tipFor(slot('doorL'), b), /driver's door.*bolt it on/); assert.match(tipFor(slot('plate'), b), /back of the car/);
+  assert.match(tipFor(slot('dash'), whole), /Click it/); assert.match(tipFor(slot('steering'), { ...whole }), /Open the driver's door first/);
+  assert.ok(nextStep(b).tip.length > 20);
+});

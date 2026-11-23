@@ -45,10 +45,20 @@ export function layoutParts() {
   for (const [id, [x, z]] of Object.entries(FLOOR_SPOTS)) out[id] = { x, z, y: 0, ry: 0.3 };
   return out;
 }
+const WHERE = { front: 'the front of the car', rear: 'the back of the car', driver: "the driver's door", passenger: 'the passenger door', cabin: 'a door' };
+/** one line of how-to for fitting this slot: where to stand, what tool, and the special cases. b: the build (to know whether a lid is shut over it) */
+export function tipFor(slot, b) {
+  if (slot.id === 'engine') return 'The engine is heavy and needs the hoist, so this one is done in the garage. Set it on an engine stand first if you want to check its pieces. Pick it up, stand at the back of the car and hold left click.';
+  if (slot.id === 'battery') return 'This one is flat. Fit it, then put it on the battery charger (garage power on) before the key will turn her over.';
+  if (slot.wheel) return 'Wheels need the jack. Pick the wheel up, stand at the bare hub and hold left click.';
+  const lid = slot.cover && isFitted(BUG, b, slot.cover) ? ` Open the ${BUG.covers[slot.cover].name} first (E at the car).` : '';
+  const tool = slot.tool === 'wrench' ? ' with your wrench in the pack' : '';
+  return `Click it to pick it up, go to ${WHERE[slot.zone] || 'the car'} and hold left click on the car to bolt it on${tool}.${lid}`;
+}
 /** the next thing to fit, as a short hint: the drive parts first, then the body. null when the car is whole. */
 export function nextStep(b) {
   const order = s => (['start', 'steer', 'drive', 'grip'].includes(s.fn) ? 0 : 1);
   const open = BUG.slots.filter(s => !isFitted(BUG, b, s.id) && checkFit(BUG, b, s, {}).code !== 'blocked').sort((a, c) => order(a) - order(c));
   const fitted = BUG.slots.filter(s => isFitted(BUG, b, s.id)).length;
-  return open.length ? { slot: open[0], fitted, total: BUG.slots.length, text: `Putting her back together: ${fitted}/${BUG.slots.length} on · next: ${open[0].name.toLowerCase()}${open[0].cover && isFitted(BUG, b, open[0].cover) ? ` (open the ${BUG.covers[open[0].cover].name} first)` : ''}` } : null;
+  return open.length ? { slot: open[0], tip: tipFor(open[0], b), fitted, total: BUG.slots.length, text: `Putting her back together: ${fitted}/${BUG.slots.length} on · next: ${open[0].name.toLowerCase()}${open[0].cover && isFitted(BUG, b, open[0].cover) ? ` (open the ${BUG.covers[open[0].cover].name} first)` : ''}` } : null;
 }

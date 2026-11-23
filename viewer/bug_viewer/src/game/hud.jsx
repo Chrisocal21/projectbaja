@@ -63,7 +63,7 @@ export function BuildHint() {
   useGame();
   if (!game.onFoot || game.buildMode || game.dev || !game.build) return null;
   const n = nextStep(game.build); if (!n) return null;
-  return <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', background: '#000a', color: '#f3e6c4', padding: '4px 12px', borderRadius: 4, fontSize: 13, pointerEvents: 'none', zIndex: 5 }}>{n.text}</div>;
+  return <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', background: '#000a', color: '#f3e6c4', padding: '4px 12px', borderRadius: 4, fontSize: 13, pointerEvents: 'none', zIndex: 5 }}>{n.text}<div style={{ fontSize: 11, opacity: 0.8, marginTop: 2, maxWidth: 520, textAlign: 'center' }}>{n.tip}</div></div>;
 }
 
 export function Crosshair() {
