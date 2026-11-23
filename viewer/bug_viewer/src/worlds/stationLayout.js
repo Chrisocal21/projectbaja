@@ -3,6 +3,8 @@
 // spot and a pole sign. The brands are knock-offs (worlds/brands.js), never a real company. Frame: x across the lot, y up, z toward the road.
 // parts: [x, y, z, w, h, d, colour]; spots: [x, z] positions you press E at.
 import { GAS_BRANDS } from './brands.js';
+import { shopLayout } from './shopLayout.js';
+import { isShop } from './shopSites.js';
 
 const hash = (a, b, k = 0) => { const s = Math.sin(a * 12.9898 + b * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
 const pick = (list, h) => list[Math.min(list.length - 1, Math.floor(h * list.length))];
@@ -31,6 +33,7 @@ export function variantOf(site) {
 export const siteToWorld = (s, lx, lz) => [s.x + lx * Math.cos(s.ry) + lz * Math.sin(s.ry), s.z - lx * Math.sin(s.ry) + lz * Math.cos(s.ry)];
 
 export function stationLayout(site) {
+  if (isShop(site)) return shopLayout(site);   // barns, junkyards and off-road stores (shopLayout.js)
   if (site.type === 'rest') return restLayout();
   const v = variantOf(site), b = GAS_BRANDS[v.brand], parts = [], spots = { pump: [] };
   const { storeW: sw, storeD: sd, storeX: sx } = v, back = -11, front = back + sd / 2;

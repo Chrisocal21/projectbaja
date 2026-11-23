@@ -7,6 +7,7 @@ import { TARGETS } from '../worlds/siteData.js';
 import { SITES, junctions } from '../worlds/county.js';
 import { stationLayout, siteToWorld } from '../worlds/stationLayout.js';
 import { GAS_BRANDS } from '../worlds/brands.js';
+import { shopName, isShop } from '../worlds/shopSites.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { aimedProp } from './furnish.js';
@@ -229,8 +230,8 @@ export default function Walker({ world, sun }) {
     }
     game.nearStation = null;
     for (const st of stationsNear(px, pz)) {   // highway gas stations and rest stops: fuel, shop, wash and the quick-fix bay
-      const L = st.layout, w = (lx, lz) => siteToWorld(st.s, lx, lz), brand = L.brand >= 0 ? GAS_BRANDS[L.brand].name : 'REST STOP';
-      if (Math.hypot(px - st.s.x, pz - st.s.z) < 40) game.nearStation = { name: brand, type: st.s.type };
+      const L = st.layout, w = (lx, lz) => siteToWorld(st.s, lx, lz), brand = L.brand >= 0 ? GAS_BRANDS[L.brand].name : isShop(st.s) ? shopName(st.s) : 'REST STOP';
+      if (Math.hypot(px - st.s.x, pz - st.s.z) < 40) game.nearStation = { name: brand, brand: L.brand >= 0 ? brand : undefined, type: st.s.type, site: st.s };
       for (const [lx, lz] of L.spots.pump) { const [x, z] = w(lx, lz); if (Math.hypot(px - x, pz - z) < 14) nearPump = true; if (!foot && game.fueled) continue; consider('pump', x, z, 5, false, 1, AIM_TARGET.pump); }
       if (L.spots.shop && foot) { const [x, z] = w(...L.spots.shop); consider('stshop', x, z, 3, false, 0.8, { r: 1.4, h: 2.2 }); }
       if (L.spots.wash) { const [x, z] = w(...L.spots.wash); consider('wash', x, z, 5, false, 0.9, { r: 2, h: 2.4 }); }

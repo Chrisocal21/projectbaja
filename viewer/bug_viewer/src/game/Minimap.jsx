@@ -81,7 +81,7 @@ export default function Minimap() {
       for (const s of junctions()?.roadside?.sites || []) {   // gas stations (G) and rest stops (R)
         if (Math.abs(s.x - px) > 900 || Math.abs(s.z - pz) > 900) continue;
         const [a, b] = toScreen(s.x, s.z); if (edgeness(a, b) > 0.9) continue;
-        g.save(); g.fillStyle = s.type === 'gas' ? '#f2a33a' : '#3a8fd8'; g.strokeStyle = '#0b0e10'; g.lineWidth = 3; g.beginPath(); g.arc(a, b, 9, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = '800 12px sans-serif'; g.textAlign = 'center'; g.fillText(s.type === 'gas' ? 'G' : 'R', a, b + 4); g.restore();
+        const mk = { gas: ['#f2a33a', 'G'], rest: ['#3a8fd8', 'R'], barn: ['#c0392b', 'B'], junk: ['#8e8e8e', 'J'], offroad: ['#e0661a', 'O'] }[s.type] || ['#3a8fd8', 'R']; g.save(); g.fillStyle = mk[0]; g.strokeStyle = '#0b0e10'; g.lineWidth = 3; g.beginPath(); g.arc(a, b, 9, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = '800 12px sans-serif'; g.textAlign = 'center'; g.fillText(mk[1], a, b + 4); g.restore();
       }
       for (const v of standingVehicles()) if (!v.forSale && v.pose) { const [a, b] = toScreen(v.pose.x, v.pose.z); if (edgeness(a, b) < 0.95) { g.beginPath(); g.arc(a, b, 6, 0, 7); g.stroke(); g.fill(); } }
       g.restore();

@@ -18,6 +18,8 @@ import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
 import { GAS_BRANDS } from './brands.js';
 import { stationLayout } from './stationLayout.js';
+import { shopName, isShop } from './shopSites.js';
+import { SHOP_SIGN } from './shopLayout.js';
 import { planStreetLights } from './streetLights.js';
 import { REAL_PLACES, projectPlace } from '../game/realPlaces.js';
 import Home from './Home.jsx';
@@ -491,6 +493,20 @@ function RoadsidePlaces() {
   }, [sites, layouts]);
   return <instancedMesh ref={mesh} args={[null, null, Math.max(1, n)]} frustumCulled={false} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.8} /></instancedMesh>;
 }
+/** the name board on every barn, junkyard and off-road store (worlds/shopSites.js names, shopLayout.js spots); drawn only within 900 m */
+function ShopSigns() {
+  const list = useMemo(() => (junctions().roadside.sites || []).filter(isShop).map(s => ({ s, l: stationLayout(s), tex: null })), []), { camera } = useThree(), refs = useRef([]), tick = useRef(0);
+  const mats = useMemo(() => list.map(({ s }) => { const [bg, fg, ac] = SHOP_SIGN[s.type]; return new THREE.MeshStandardMaterial({ map: signTex([[shopName(s).toUpperCase(), 64, fg]], bg, fg, ac), roughness: 0.6 }); }), [list]);
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 0.5) return; tick.current = 0;
+    const p = game.onFoot ? camera.position : game.pos;
+    list.forEach(({ s }, i) => { const g = refs.current[i]; if (g) g.visible = Math.hypot(s.x - p.x, s.z - p.z) < DETAIL_RADIUS; });
+  });
+  return <>{list.map(({ s, l }, i) => { const { sign } = l.spots;
+    return <group key={i} ref={el => (refs.current[i] = el)} position={[s.x, height(s.x, s.z), s.z]} rotation={[0, s.ry, 0]} visible={false}>
+      <mesh position={[sign.x, sign.y, sign.z]} material={mats[i]}><planeGeometry args={[sign.w, sign.h]} /></mesh>
+    </group>; })}</>;
+}
 /** the brand on every highway gas station (worlds/brands.js: two knock-offs, never Dusty's): a pole sign by the road and a sign on the store front; drawn only within 900 m */
 function GasBrandSigns() {
   const sites = useMemo(() => junctions().roadside.sites, []), layouts = useMemo(() => sites.map(stationLayout), [sites]), { camera } = useThree(), refs = useRef([]), tick = useRef(0);
@@ -729,6 +745,7 @@ export default function CountyScene() {
     {REAL && <HighwayFurniture />}
     {REAL && <RoadsidePlaces />}
     {REAL && <GasBrandSigns />}
+    {REAL && <ShopSigns />}
     {REAL && <StreetLights />}
     {REAL && <RoadsideWrecks />}
     {REAL && <RoadsideDriveways />}

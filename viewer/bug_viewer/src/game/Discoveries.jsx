@@ -1,3 +1,4 @@
+import { shopName, isShop } from '../worlds/shopSites.js';
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game } from './store.js';
@@ -21,7 +22,7 @@ export default function Discoveries() {
     const towns = meta ? REAL_PLACES.map(p => ({ name: p.name, ...projectPlace(p.lat, p.lon, meta) })) : [];
     setDiscoverables(buildDiscoverables({
       towns, places: Object.entries(PLACE_NAMES).filter(([k]) => SITES[k]).map(([k, name]) => ({ id: k, name, x: SITES[k].x, z: SITES[k].z })),
-      stops: sites.map((s, i) => (idx[i] >= 0 ? { ...s, name: `${gasBrand(idx[i]).name} station` } : s)), wrecks: wreckSites(sites).map((w, k) => ({ id: w.site, name: WRECKS[k % WRECKS.length].name, x: w.x, z: w.z })),
+      stops: sites.map((s, i) => (idx[i] >= 0 ? { ...s, name: `${gasBrand(idx[i]).name} station` } : isShop(s) ? { ...s, name: shopName(s) } : s)), wrecks: wreckSites(sites).map((w, k) => ({ id: w.site, name: WRECKS[k % WRECKS.length].name, x: w.x, z: w.z })),
       courses: raceCourses(),
     }));
     return () => setDiscoverables([]);

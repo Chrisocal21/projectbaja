@@ -5,6 +5,10 @@ import { sellValue } from './selling.js';
 
 export const BUYERS = {
   dusty: { name: "Dusty's corner store", short: 'Dusty', rates: { parts: 1, supplies: 1, tools: 1, tires: 1, junk: 1 } },
+  mart: { name: 'the mart', short: 'the mart', rates: { supplies: 0.8, tools: 0.8 } },   // a gas-station shop: small stuff only
+  barn: { name: 'the barn', short: 'the barn', rates: { supplies: 0.9, tools: 1.0, junk: 1.3, parts: 0.6, tires: 0.8 } },
+  junkyard: { name: 'the junkyard', short: 'the yard', rates: { parts: 0.75, tools: 0.7, tires: 1.5, junk: 2 } },
+  offroad: { name: 'the off-road store', short: 'the store', rates: { parts: 1.05, tools: 0.9, supplies: 0.8, tires: 1.2 } },
   warehouse: { name: 'Salvage & Surplus', short: 'the warehouse', rates: { parts: 0.9, tools: 1, tires: 1.4, junk: 1.8 } },   // no supplies: it is a scrapyard
 };
 export const CAT_NAMES = { parts: 'parts', supplies: 'supplies', tools: 'tools', tires: 'tires', junk: 'junk' };

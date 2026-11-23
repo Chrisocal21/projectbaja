@@ -562,4 +562,4 @@
 .lg-row { margin: 5px 0; font-size: 11px; }
 .map-full .map-hint { font-size: 11px; color: #d4e2df; }
 @media (max-width: 800px) { .dg-side { width: 135px; max-width: 135px; } .dg-health-item { grid-template-columns: 15px minmax(0,1fr) auto; } .minimap { transform: scale(.74); transform-origin: bottom left; } .full .hud { transform: scale(.76); transform-origin: bottom right; } }
-.lg-gas, .lg-rest { width: 14px; height: 14px; margin: 0 4px; border-radius: 50%; border: 2px solid #0b0e10; background: #f2a33a; } .lg-rest { background: #3a8fd8; }
+.lg-gas, .lg-rest, .lg-barn, .lg-junk, .lg-offroad { width: 14px; height: 14px; margin: 0 4px; border-radius: 50%; border: 2px solid #0b0e10; background: #f2a33a; } .lg-rest { background: #3a8fd8; } .lg-barn { background: #c0392b; } .lg-junk { background: #8e8e8e; } .lg-offroad { background: #e0661a; }

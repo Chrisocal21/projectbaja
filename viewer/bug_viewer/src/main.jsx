@@ -33,6 +33,7 @@ import { toggleLights } from './game/lights.js';
 import { useStand } from './game/standActions.js';
 import { useBin, takeBin } from './game/bins.js';
 import { sellItem } from './game/sell.js';
+import { openRoadShop, roadShelf, roadBuy, shopTitle, SHOP_BUYER } from './game/roadShop.js';
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
 import { apartBuild } from './game/teardown.js';
@@ -49,7 +50,7 @@ import { BuildMenu, BuildHud } from './game/BuildMenu.jsx';
 import { HudOverlay, KeyHints, BuildHint, Crosshair } from './game/hud.jsx';
 import OfficePC from './game/OfficePC.jsx';
 import { regionById } from './game/regions.js';
-import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, StorePanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
+import { TitleScreen, PauseMenu, ShopPanel, DealerPanel, StorePanel, RoadShopPanel, ContainerPanel, InventoryPanel, ShellPanel, LetterPanel, FabPanel, JobPanel, TrailerPanel } from './game/ui.jsx';
 import { PhonePanel } from './game/Phone.jsx';
 import { UpdateToast, startUpdateWatch, confirmNewGame, takeResumeFlag } from './game/update.jsx';
 import { WALK_START } from './worlds/siteData.js';
@@ -217,7 +218,7 @@ function App() {
     else if (id === 'car:why') say(game.carPlan?.why || '');
     else if (id === 'warehouse') setPanel('warehouse');
     else if (id === 'store') { dustyVisit(); game.storeTitle = null; setPanel('store'); }
-    else if (id === 'stshop') { game.storeTitle = game.nearStation?.name ? game.nearStation.name + ' MART' : 'ROADSIDE MART'; setPanel('store'); }   // the shop at a highway gas station   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)
+    else if (id === 'stshop') { const ns = game.nearStation; if (ns?.site) { openRoadShop(ns.site, ns.brand); setPanel('roadshop'); } }   // the shop at a highway gas station   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)
     else if (id.startsWith('veh:')) { const v = id.slice(4), drive = vehicleType(v).kind === 'truck'; game.rebuilding = true; switchTo(v, drive); if (drive) interact('enter'); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 1200); }
     else if (id === 'dealer') setPanel('dealer');
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
@@ -456,6 +457,7 @@ function App() {
     {panel === 'inv' && <InventoryPanel onClose={resume} />}
     {panel?.startsWith('shell:') && <ShellPanel uid={+panel.slice(6)} onFit={u => { setPanel(null); doFit(u); }} onScrap={u => { game.items = game.items.filter(i => i.uid !== u); addCash(150); say('Scrapped the shell: +$150'); resume(); }} onClose={resume} />}
     {panel === 'store' && <StorePanel onBuy={storeBuy} onSell={sellItem} onClose={resume} />}
+    {panel === 'roadshop' && game.roadShop && <RoadShopPanel title={game.roadShop.title} shelf={roadShelf()} buyer={SHOP_BUYER[game.roadShop.site.type] || 'mart'} onBuy={roadBuy} onSell={sellItem} onClose={resume} />}
     {panel === 'warehouse' && <StorePanel buyer="warehouse" onSell={sellItem} onClose={resume} />}
     {panel === 'garage' && <div className="drawer">{sidebar}<button className="drawer-close" onClick={resume}>Done - resume driving</button></div>}
   </div>;
