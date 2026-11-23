@@ -72,10 +72,10 @@ export function toggleOpen() {
 export const LETTER = [
   'Kid —',
   "If you're reading this, the garage is yours. Don't let your mother sell it.",
-  "The Bug in the garage was your grandma's. She hasn't run since '09 — I had her apart chasing rust, she picked up a flat on the back, and I pulled the driver's seat to fix the runner. Battery's good. Put her back together and give her a few cranks; she'll wake up.",
+  "The Bug in the garage was your grandma's. She hasn't run since '09 — I had her half apart chasing rust, she picked up a flat on the back, and I pulled the seats to fix the runners. Every piece is there: on the red shelf, the tire rack and the floor. Battery's been sitting, so charge it. Put her back together and give her a few cranks; she'll wake up.",
   "Al in Dry Wells will sell you anything with wheels. Count your fingers after. Dusty at the gas station is good people.",
   'The old Proving Grounds down Highway 9 are closed, but nobody checks the fence.',
-  "My old race car's in the back corner of the garage, under a tarp and forty years of boxes. The shocks, rims and race tires off her are for the Bug - they won't clear the stock body, so you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
+  "Once she runs, the big shocks and tires you can order won't clear the stock body - you'll have to weld in shock hoops first. Plenty of scrap around. Buy a welder and a bender, do it right.",
   'Folks around here will bring you their little jobs if the lights are on. Take them. That garage paid for itself one oil change at a time.',
   'Fix her up. Then fix the place up. Then go fast.',
   '— Walt',

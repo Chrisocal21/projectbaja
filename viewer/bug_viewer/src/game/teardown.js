@@ -31,7 +31,7 @@ export const SHELF = { x: 6.5, z: -3.0, len: 2.2, boards: [0.58, 1.48, 2.38], ry
   rows: [['doorL', 'doorR', 'battery'], ['fenderFL', 'fenderFR', 'steering'], ['engineLid', 'hoodPanel', 'headlights', 'taillights']] };
 /** wheels stand upright on the bottom board of the middle blue tire shelf (x -6.5, z 0): surface-local x along the board */
 export const TIRE_SHELF = { lz: 0, level: 0, at: { wheelFL: -0.8, wheelFR: -0.27, wheelRL: 0.27, wheelRR: 0.8 } };
-/** on the floor along the right wall in front of the red shelves (grandpa's race car fills the back-right corner; the middle lane stays clear for driving onto the lift):
+/** on the floor along the right wall in front of the red shelves (the middle lane stays clear for driving onto the lift):
  *  the three seats in a row against the wall facing in, the engine out in front of them where the hoist can reach it */
 export const FLOOR_SPOTS = { engine: [4.3, 2.6, 0], seatDriver: [6.0, 1.3, Math.PI / 2], seatPassenger: [6.0, 2.1, Math.PI / 2], seatBack: [6.0, 3.1, Math.PI / 2] };
 /** the shop's worn tires (home.js ensureShopTires) stand on the bottom board of the front blue tire shelf (z 2.4) */

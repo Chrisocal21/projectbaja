@@ -30,8 +30,9 @@ Pillar 3 is a promise, not a feature. When a new system is proposed, ask which p
 - **Outside:** bald tires, scrap metal, a dead refrigerator, tumbleweeds, a 1966 trailer, a windmill and a water tank.
 - **Inside:** rotting boxes, old paint cans, old oil, decades of newspapers, old tools and neglected machines.
 - **Electricity starts off.** The player flips Walt's hand-wired breaker.
-- **Grandma's 1971 Bug-style car** sits in the garage, partly dismantled. It hasn't run since 2009. Its rear-right wheel is off after a flat, and Walt had started dealing with rust.
-- **Walt's old #7 desert racing buggy** is under a tarp on the property.
+- **Grandma's 1971 Bug-style car** sits in the garage, about half dismantled. It hasn't run since 2009. Its rear-right wheel is off after a flat, and Walt had it apart dealing with rust. Its loose parts are on Walt's shelves, the tire rack and the floor; putting it back together is the opening.
+- **Walt's old #7 desert racing buggy** is not at Walt's Garage. It sits covered under a tarp in a shed behind the co-driver's son's engine shop in **Iron Flats**. It can be moved later. (Changed by Chris, Nov 22 2026, to free space in Walt's garage.)
+- **Parts:** upgrade parts (shocks, tires, rims) can be ordered online from the start. Some specialty and custom parts come later from the co-driver's son's shop.
 - **A letter from Walt** sets the tone. Its defining line: "Fix her up. Then fix the place up. Then go fast."
 - **No compulsory "quest accepted" popups.** The player explores, notices and chooses.
 
@@ -55,6 +56,7 @@ Pillar 3 is a promise, not a feature. When a new system is proposed, ask which p
 
 **UNKNOWN (do not invent):**
 - the accident year, the place and who was at fault
+- how the #7 came to be in the son's shed, and whether the son knows it is Walt's car
 - the full text of Walt's letter
 - every name except Walt's and the townsfolk locked below
 - the player's name and appearance

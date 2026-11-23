@@ -59,8 +59,6 @@ solid.push(...LOOT_COLLIDERS);
 // proving grounds HQ (12 x 8 m block) and the parts shop (9 x 6)
 const PG = SITES.proving; solid.push(...wall(PG, [-6, -14], [6, -14]), ...wall(PG, [-6, -6], [-2.2, -6]), ...wall(PG, [2.2, -6], [6, -6]), ...wall(PG, [-6, -14], [-6, -6]), ...wall(PG, [6, -14], [6, -6]));
 const SH = SITES.shop; solid.push(...wall(SH, [-4.5, -3], [4.5, -3]), ...wall(SH, [-4.5, 3], [4.5, 3]), ...wall(SH, [-4.5, -3], [-4.5, 3]), ...wall(SH, [4.5, -3], [4.5, 3]));
-// grandpa's race car (back-right of the garage)
-solid.push(blob(G, 4.3, -4.1, 0.95), blob(G, 4.3, -2.7, 0.95), blob(G, 4.3, -1.3, 0.95));
 // grandpa's trailer + water tank
 solid.push(...wall(G, [21, -4], [21, 6], 0.7), ...wall(G, [24, -4], [24, 6], 0.7), ...wall(G, [21, -4.5], [24, -4.5], 0.7), ...wall(G, [21, 6.5], [24, 6.5], 0.7), blob(G, 16, -6, 1.6));
 // the car lot's fence, office and props, moved into the world
