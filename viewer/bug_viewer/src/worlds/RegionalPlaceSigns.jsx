@@ -6,7 +6,7 @@ import { border } from './border.js';
 import { nearestRaceRoad, raceShoulder, approachRoadPoint } from './raceFixtures.js';
 import { roadsideBoardTexture } from './raceSignTexture.js';
 
-const MARKED = new Set(['Ensenada', 'San Quintín', 'Guerrero Negro', 'Santa Rosalía', 'Mulegé', 'Loreto', 'La Paz', 'Cabo San Lucas', 'Mexicali', 'San Felipe', 'Yuma']);
+const MARKED = new Set(['Ensenada', 'San Quintín', 'Guerrero Negro', 'Santa Rosalía', 'Mulegé', 'Loreto', 'La Paz', 'Cabo San Lucas', 'Mexicali', 'San Felipe', 'Yuma', 'Ocotillo Wells', 'Plaster City', 'Tecate', 'Rosarito', 'Julian', 'Campo', 'Jacumba', 'Cataviña', 'El Rosario', 'Bahía de los Ángeles', 'Punta Prieta', 'San Ignacio', 'Ciudad Constitución', 'Los Barriles', 'San José del Cabo']);
 
 function PlaceSign({ name, road, pose, approach = false }) {
   const map = useMemo(() => roadsideBoardTexture(name, approach ? 'ADELANTE' : road.toUpperCase()), [name, road, approach]);

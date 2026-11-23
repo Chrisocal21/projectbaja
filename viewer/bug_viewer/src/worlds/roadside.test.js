@@ -30,3 +30,14 @@ test('gas stations come from interchanges and are deterministic', () => {
   assert.deepEqual(a.sites, b.sites);
   for (const s of a.sites) assert.ok(s.type === 'rest' || s.type === 'gas');
 });
+
+test('a town gets a gas station by its road, and a lonely one a rest stop along it', () => {
+  const roads = [{ name: 'Mex 5', kind: 'major', pts: Array.from({ length: 41 }, (_, i) => [i * 500 - 10000, 0]) }];
+  const places = [{ x: 0, z: 300, gas: true, rest: false }, { x: 6000, z: -200, gas: true, rest: true }, { x: 0, z: 9000, gas: true, rest: true }];   // the last is too far from any road
+  const R = buildRoadside(roads, { furniture: [], ramps: [] }, { bounds, places });
+  const near = (p, type) => R.sites.filter(s => s.type === type && Math.hypot(s.x - p.x, s.z - p.z) < 1800);
+  assert.equal(near(places[0], 'gas').length >= 1, true);
+  assert.ok(near(places[1], 'gas').length >= 1 && near(places[1], 'rest').length >= 1);
+  assert.equal(R.sites.some(s => Math.hypot(s.x, s.z - 9000) < 1800), false);
+  const g = near(places[0], 'gas')[0]; assert.ok(Math.abs(g.z) > 30 && Math.abs(g.z) < 40 && g.z > 0, 'on the town side of the road');
+});

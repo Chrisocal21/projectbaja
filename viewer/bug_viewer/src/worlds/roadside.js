@@ -7,7 +7,7 @@ import { isFreeway } from './junctions.js';
 
 const hyp = Math.hypot;
 const right = d => [-d[1], d[0]];
-const REST_GAP = 5000, REST_OFF = 42, REST_NO_JUNCTION = 500, GAS_OFF = 32, SPACING = 400, GAS_APART = 4500, GAS_ROAD_GAP = 11000;
+const REST_GAP = 8500, REST_OFF = 42, REST_NO_JUNCTION = 500, GAS_OFF = 32, SPACING = 400, GAS_APART = 4500, GAS_ROAD_GAP = 11000, TOWN_REACH = 1800, TOWN_GAS_APART = 1500, TOWN_REST_ALONG = 700;
 
 /** a small stable hash (0..1) so placement does not change between loads */
 const hash = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
@@ -23,7 +23,7 @@ function slopeOk(ground, x, z, r, max) {
  * roads: [{ name, kind, pts: [[x, z], ...] }]; junction: { furniture, ramps } from buildJunctions
  * opts: { ground(x, z) -> height or undefined, bounds: { x0, x1, z0, z1 } }
  */
-export function buildRoadside(roads, junction, { ground, bounds } = {}) {
+export function buildRoadside(roads, junction, { ground, bounds, places = [] } = {}) {
   const sites = [];
   const busy = [];   // anywhere a junction is: no rest area there
   for (const f of junction.furniture) busy.push([f.x, f.z]);
@@ -32,6 +32,32 @@ export function buildRoadside(roads, junction, { ground, bounds } = {}) {
   const inBounds = (x, z) => !bounds || (x > bounds.x0 + 400 && x < bounds.x1 - 400 && z > bounds.z0 + 400 && z < bounds.z1 - 400);
   const clearOf = (x, z) => !sites.some(s => hyp(s.x - x, s.z - z) < SPACING);
   const gasClear = (x, z) => !sites.some(s => s.type === 'gas' && hyp(s.x - x, s.z - z) < GAS_APART);
+
+  // ---- towns: a gas station on the nearest main road beside each town that has one, and for the lonely places a rest stop a little way along it.
+  // These go in first, so the open-road stations (spaced GAS_APART from every gas station) thin out near a town instead of doubling up.
+  for (const p of places) {
+    if (!p.gas && !p.rest) continue;
+    let best = null;
+    for (const road of roads) {
+      if (!(isFreeway(road) || road.kind === 'major' || road.kind === 'secondary')) continue;
+      for (let i = 0; i < road.pts.length - 1; i++) {
+        const a = road.pts[i], b = road.pts[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.z - a[1]) * dz) / l2)), q = [a[0] + dx * t, a[1] + dz * t], d = hyp(q[0] - p.x, q[1] - p.z);
+        if (d < TOWN_REACH && (!best || d < best.d)) { const l = Math.sqrt(l2); best = { d, q, u: [dx / l, dz / l] }; }
+      }
+    }
+    if (!best) continue;
+    const r = right(best.u), side = ((p.x - best.q[0]) * r[0] + (p.z - best.q[1]) * r[1]) >= 0 ? 1 : -1;   // the side the town is on
+    const tryAt = (along, off, type, slope) => {
+      for (const s of [side, -side]) {
+        const x = best.q[0] + best.u[0] * along + r[0] * off * s, z = best.q[1] + best.u[1] * along + r[1] * off * s;
+        if (!inBounds(x, z) || !clearOf(x, z) || (type === 'gas' && sites.some(q => q.type === 'gas' && hyp(q.x - x, q.z - z) < TOWN_GAS_APART)) || !slopeOk(ground, x, z, slope[0], slope[1])) continue;
+        sites.push({ type, x, z, ry: Math.atan2(-r[0] * s, -r[1] * s) }); return true;
+      }
+      return false;
+    };
+    if (p.gas) for (const along of [0, -120, 120, -260, 260]) if (tryAt(along, GAS_OFF + 4, 'gas', [16, 2.5])) break;
+    if (p.rest) for (const along of [TOWN_REST_ALONG, -TOWN_REST_ALONG, TOWN_REST_ALONG * 1.6, -TOWN_REST_ALONG * 1.6]) if (tryAt(along, REST_OFF, 'rest', [18, 2.2])) break;
+  }
 
   // ---- gas stations at interchanges: next to the side road, past the stop sign
   const stops = junction.furniture.filter(f => f.type === 'stop');   // any junction where a side road meets a through road

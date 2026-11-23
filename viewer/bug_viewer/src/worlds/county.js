@@ -16,6 +16,7 @@ import { makePavedCover } from './roadCover.js';
 import { buildJunctions } from './junctions.js';
 import { buildRoadside } from './roadside.js';
 import { buildShops } from './shopSites.js';
+import { REAL_PLACES, projectPlace } from '../game/realPlaces.js';
 import { buildRaceCourses } from './raceCourses.js';
 import { tableHeight, planFeatures, planRoadFeatures, planHighwayFeatures, buildField } from './offroadFeatures.js';
 const ringMetric = REAL ? () => 0 : ringMetric0;   // the real map has real mountains: no made-up rim
@@ -305,7 +306,7 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there
   const graded = HW.roads.filter(r => r.kind !== 'ramp' && r.kind !== 'dirt').map(r => ({ name: r.name, kind: r.kind, pts: r.pts.filter((_, i, a) => i % 8 === 0 || i === a.length - 1).map(q => [q.x, q.z]) }));
-  const rs = buildRoadside(graded, { ...jn, furniture: jn.furniture.filter(f => clear(f)) }, { ground: realBase, bounds: BD.bounds });
+  const rs = buildRoadside(graded, { ...jn, furniture: jn.furniture.filter(f => clear(f)) }, { ground: realBase, bounds: BD.bounds, places: REAL_PLACES.filter(p => p.stop).map(p => ({ ...projectPlace(p.lat, p.lon, BD.meta), gas: p.stop !== 'rest', rest: p.stop === 'both' || p.stop === 'rest' })) });
   const dirtRoads = HW.roads.filter(r => r.kind === 'dirt').map(r => ({ name: r.name, kind: 'dirt', pts: r.pts.filter((_, i, a) => i % 6 === 0 || i === a.length - 1).map(q => [q.x, q.z]) }));
   const shops = buildShops([...graded, ...dirtRoads], rs.sites, { ground: realBase, bounds: BD.bounds });   // barns, junkyards, off-road stores (worlds/shopSites.js)
   JN.roadside = { ...rs, sites: [...rs.sites, ...shops].filter(q => clear(q) && (HW.near(q.x, q.z)?.d ?? 99) > 26) };   // not in a built place, and clear of every road
