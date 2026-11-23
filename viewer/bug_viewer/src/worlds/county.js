@@ -47,6 +47,8 @@ let HW = null, JN = null, RACE = null, FEAT = null, FIELD = null;   // FEAT/FIEL
 export const highways = () => HW;
 /** ?realmap: the race courses (worlds/raceCourses.js): SCORE routes that mix dirt with the highways, and MDR dirt loops. [{ id, series, name, kind, start, finish, line, dirtLength, ... }] */
 export const raceCourses = () => RACE?.courses || [];
+/** The baked desert connectors and long dirt routes after their ends are joined to pavement. */
+export const trailRoutes = () => HW?.roads.filter(r => r.kind === 'dirt' && r.name === 'Dirt road') || [];
 /** ?realmap: ramps and signs at the real junctions ({ ramps, furniture, junctions, deadEnds }) */
 export const junctions = () => JN;   // ~55 m average: washes sit below it, ridges above
 function hmAt(arr, x, z) {
