@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { WEAR } from '../weather.js';
 import { tankOf, fuelOf, fillUp, PRICE_PER_L } from '../rules/fuel.js';
+import { FRESH } from '../wear.js';
+import { fixQuote, fixedWear } from './stationRules.js';
 import { createTx, snapshotOf } from '../rules/atomic.js';
 import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, rimById, labelFor } from '../build.js';
 
@@ -120,6 +122,12 @@ export function interact(id) {
       if (litres < 1) say(`Not enough cash for gas ($${f.price} for a fill-up).`);
       else { const price = Math.ceil(litres * PRICE_PER_L); addCash(-price, 'Gas'); game.home = { ...game.home, fuel: { ...(game.home.fuel || {}), [fid]: have + litres } }; save(); say(`Filled ${Math.round(litres)} L: $${price}`); }
     }
+  }
+  else if (id === 'stfix') {   // the quick-fix bay at a highway station or rest stop (game/stationRules.js)
+    const w = game.home?.wear?.[game.active] || FRESH(), q = fixQuote(w);
+    if (!q.cost) say("Mechanic: 'Nothing wrong with it. Go on, get out of here.'");
+    else if (game.cash < q.cost) say(`Mechanic: 'That's $${q.cost} to do the lot and you're short.'`);
+    else { addCash(-q.cost, 'Roadside repair'); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: fixedWear(w) } }; save(); say(`Mechanic fixed it all: $${q.cost}`); }
   }
   else if (id === 'wash') { if (game.wear <= 0.02) say("Clerk: 'Car's already clean, pal.'"); else if (game.cash < 120) say('Not enough cash for a wash.'); else { addCash(-120, 'Car wash'); setWear(Math.max(0, game.wear - 0.12)); say('Hand wash & wax — $120. Looks a bit better.'); } }
 }

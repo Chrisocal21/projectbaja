@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadBorder, border } from '../worlds/border.js';
 import { game, useGame } from './store.js';
-import { SITES, ROADS, highways, pavedRoadAt, raceCourses } from '../worlds/county.js';
+import { SITES, ROADS, highways, pavedRoadAt, raceCourses, junctions } from '../worlds/county.js';
 import { standingVehicles } from './fleet.js';
 import { discovered } from './compass.js';
 import { arrowRot } from './mapmath.js';
@@ -45,7 +45,7 @@ function backdrop() {
 
 const LEGEND = [
   ['you', 'You'], ['pin', 'Your waypoint (click the map)'], ['home', "Walt's Garage"], ['place', 'Places you have found'], ['town', 'Towns and cities'],
-  ['start', 'Race start'], ['finish', 'Race finish'], ['score', 'SCORE race route (Baja 1000, 500, 400, SF 250)'], ['mdr', 'MDR dirt loop'], ['road', 'Highway'], ['dirt', 'Dirt road'], ['car', 'Parked vehicle'],
+  ['gas', 'Gas station + shop (fuel, wash, repair)'], ['rest', 'Rest stop (wash, repair)'], ['start', 'Race start'], ['finish', 'Race finish'], ['score', 'SCORE race route (Baja 1000, 500, 400, SF 250)'], ['mdr', 'MDR dirt loop'], ['road', 'Highway'], ['dirt', 'Dirt road'], ['car', 'Parked vehicle'],
 ];
 
 export default function WestCoastMap() {
@@ -136,6 +136,10 @@ export default function WestCoastMap() {
       }
       if (zoom >= 3) {
         for (const [key, site] of Object.entries(SITES)) if (discovered(game.home).has(key)) { const [a, b] = point(site.x, site.z); g.fillStyle = key === 'garage' ? '#f2a33a' : '#35b873'; g.strokeStyle = '#0b0e10'; g.lineWidth = 1.8 * K / z1; g.beginPath(); g.arc(a, b, 5.5 * K / z1, 0, 7); g.fill(); g.stroke(); if (zoom >= 5 || key === 'garage') label(SITE_NAMES[key] || key, site.x + 170, site.z - 100, '#2f3640', 13); }
+      }
+      if (zoom >= 3) for (const s of junctions()?.roadside?.sites || []) {   // gas stations (G) and rest stops (R)
+        const [a, b] = point(s.x, s.z), r = 6.5 * K / z1; g.fillStyle = s.type === 'gas' ? '#f2a33a' : '#3a8fd8'; g.strokeStyle = '#0b0e10'; g.lineWidth = 1.6 * K / z1; g.beginPath(); g.arc(a, b, r, 0, 7); g.fill(); g.stroke();
+        g.fillStyle = '#fff'; g.font = `800 ${9 * K / z1}px sans-serif`; g.textAlign = 'center'; g.fillText(s.type === 'gas' ? 'G' : 'R', a, b + 3.2 * K / z1);
       }
       for (const v of standingVehicles()) if (!v.forSale) { const [a, b] = point(v.pose.x, v.pose.z); g.fillStyle = '#2aa9d8'; g.strokeStyle = '#fff'; g.lineWidth = 1.5 * K / z1; g.beginPath(); g.arc(a, b, 4.5 * K / z1, 0, Math.PI * 2); g.fill(); g.stroke(); }
       // the route and the waypoint

@@ -4,7 +4,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { lookScale, settings } from './settings.js';
 import { TARGETS } from '../worlds/siteData.js';
-import { SITES } from '../worlds/county.js';
+import { SITES, junctions } from '../worlds/county.js';
+import { stationLayout, siteToWorld } from '../worlds/stationLayout.js';
+import { GAS_BRANDS } from '../worlds/brands.js';
 import { activeType, vehicleType, localTo, standingVehicles } from './fleet.js';
 import { nearestProp, benchSpot, PEG } from './fixtures.js';
 import { aimedProp } from './furnish.js';
@@ -51,7 +53,7 @@ import { isFitted } from '../rules/restore.js';
 
 const PROMPTS = {
   shop: 'Press E — Baja parts shop', enter: 'Press E — Get in', exit: 'Press E — Get out', tarp: 'Press E — Look over the pickup', al: 'Press E — Talk to Al',
-  peg: 'Press E — Pegboard: hang a tool, or take one', pc: 'Press E — Use the office PC', pump: 'Press E — Fill the tank ($0.80 a litre)', store: 'Press E — Corner store',
+  peg: 'Press E — Pegboard: hang a tool, or take one', pc: 'Press E — Use the office PC', pump: 'Press E — Fill the tank ($0.80 a litre)', store: 'Press E — Corner store', stshop: 'Press E — Go in the shop', wash: 'Press E — Hose the car down ($120)', stfix: 'Press E — Quick fix: the mechanic does every worn part',
   letter: "Press E — Read the letter on the bench", breaker: 'Press E — Flip the main breaker', racecar: 'Press E — Pull the tarp back', trailer: "Press E — Grandpa's trailer", bench: 'Press E — Workbench (fabricate)', dealer: "Press E — Look over the '84 4x4 ($4,800)",
 };
 export const promptText = id => {
@@ -128,6 +130,12 @@ function carAction0(zone, ap, W) {   // ap = the part of the car the crosshair i
 const AIM_DEFAULT = { r: 1.0, h: 1.8 };
 const ITEM_AIM = { 1: { r: 0.17, h: 0.3 }, 2: { r: 0.25, h: 0.4 }, 3: { r: 0.34, h: 0.5 }, 4: { r: 0.42, h: 0.6 } };   // an item's hit volume by its size: about the size of the crate it is drawn as
 const AIM_TARGET = { tarp: { r: 1.4, h: 0.8 }, al: { r: 1.0, h: 1.8 }, bench: { r: 1.3, h: 1.2 }, letter: { r: 0.4, h: 0.2, dy: 0.98 }, breaker: { r: 0.5, h: 1.0, dy: 0.9 }, openSwitch: { r: 0.6, h: 1.2, dy: 0.5 }, pump: { r: 0.8, h: 1.8 }, store: { r: 2.5, h: 3.0 } };
+let STATION_LIST = null;
+/** the highway stations within 60 m of (x, z), with their layouts (computed once) */
+function stationsNear(x, z) {
+  STATION_LIST ||= (junctions()?.roadside?.sites || []).map(s => ({ s, layout: stationLayout(s) }));
+  return STATION_LIST.filter(q => Math.abs(q.s.x - x) < 60 && Math.abs(q.s.z - z) < 60);
+}
 const SHOP = SITES.shop, PUMPS = TARGETS.filter(t => t.id === 'pump');
 
 /** First-person player on foot. Active while `game.onFoot`; otherwise the car is driven. Also decides what "Press E" would do right now. */
@@ -218,6 +226,15 @@ export default function Walker({ world, sun }) {
       if (!foot && !t.car) continue;
       if (t.id === 'bench') { const b = nearestProp(game.props, 'workbench', px, pz); if (!b) continue; const [bx, bz] = benchSpot(b); consider('bench', bx, bz, t.r, t.face, t.bonus || 1, AIM_TARGET.bench); continue; }   // Stage 4d: the workbench is a prop, E works wherever it stands
       consider(t.id, t.x, t.z, t.r, t.face, t.bonus || 1, AIM_TARGET[t.id]);
+    }
+    game.nearStation = null;
+    for (const st of stationsNear(px, pz)) {   // highway gas stations and rest stops: fuel, shop, wash and the quick-fix bay
+      const L = st.layout, w = (lx, lz) => siteToWorld(st.s, lx, lz), brand = L.brand >= 0 ? GAS_BRANDS[L.brand].name : 'REST STOP';
+      if (Math.hypot(px - st.s.x, pz - st.s.z) < 40) game.nearStation = { name: brand, type: st.s.type };
+      for (const [lx, lz] of L.spots.pump) { const [x, z] = w(lx, lz); if (Math.hypot(px - x, pz - z) < 14) nearPump = true; if (!foot && game.fueled) continue; consider('pump', x, z, 5, false, 1, AIM_TARGET.pump); }
+      if (L.spots.shop && foot) { const [x, z] = w(...L.spots.shop); consider('stshop', x, z, 3, false, 0.8, { r: 1.4, h: 2.2 }); }
+      if (L.spots.wash) { const [x, z] = w(...L.spots.wash); consider('wash', x, z, 5, false, 0.9, { r: 2, h: 2.4 }); }
+      if (L.spots.fix) { const [x, z] = w(...L.spots.fix); consider('stfix', x, z, 5, false, 0.9, { r: 2, h: 2.4 }); }
     }
     if (!nearPump) game.fueled = false;
     if (foot) { const [wx, wz] = toW(SITES.warehouse, -9.4, 0); consider('warehouse', wx, wz, 3.2, false, 0.8, { r: 0.9, h: 1.5 }); }   // the scrap buyer's counter

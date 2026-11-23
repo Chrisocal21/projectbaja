@@ -3,7 +3,7 @@
 // parked vehicles and you. Drawn straight to a canvas on its own timer (not React state) so it never forces a 60 fps re-render.
 import React, { useEffect, useRef } from 'react';
 import { game } from './store.js';
-import { SITES, ROADS, highways } from '../worlds/county.js';
+import { SITES, ROADS, highways, junctions } from '../worlds/county.js';
 import { standingVehicles } from './fleet.js';
 import { LABELS } from './MapPanel.jsx';
 import { headingForMode, discovered } from './compass.js';
@@ -78,6 +78,11 @@ export default function Minimap() {
       if (rt) { g.lineJoin = g.lineCap = 'round'; if (rt.straight) g.setLineDash([16, 14]); const draw1 = (c, w) => { g.beginPath(); rt.pts.forEach((p, i) => { const [a, b] = toScreen(p.x, p.z); if (i) g.lineTo(a, b); else g.moveTo(a, b); }); g.strokeStyle = c; g.lineWidth = w; g.stroke(); }; draw1('rgba(60,0,40,0.75)', 15); draw1('#ff3fa4', 9); g.setLineDash([]); }
       // parked vehicles
       g.fillStyle = '#2aa9d8'; g.strokeStyle = PAL.halo; g.lineWidth = 3;
+      for (const s of junctions()?.roadside?.sites || []) {   // gas stations (G) and rest stops (R)
+        if (Math.abs(s.x - px) > 900 || Math.abs(s.z - pz) > 900) continue;
+        const [a, b] = toScreen(s.x, s.z); if (edgeness(a, b) > 0.9) continue;
+        g.save(); g.fillStyle = s.type === 'gas' ? '#f2a33a' : '#3a8fd8'; g.strokeStyle = '#0b0e10'; g.lineWidth = 3; g.beginPath(); g.arc(a, b, 9, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = '800 12px sans-serif'; g.textAlign = 'center'; g.fillText(s.type === 'gas' ? 'G' : 'R', a, b + 4); g.restore();
+      }
       for (const v of standingVehicles()) if (!v.forSale && v.pose) { const [a, b] = toScreen(v.pose.x, v.pose.z); if (edgeness(a, b) < 0.95) { g.beginPath(); g.arc(a, b, 6, 0, 7); g.stroke(); g.fill(); } }
       g.restore();
       // places: marker + name inside the map, a pin on the edge when they are further out

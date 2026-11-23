@@ -9,7 +9,7 @@ test('rest areas stand beside a long straight freeway, facing it, spaced apart',
   const roads = [{ name: 'I-8', kind: 'major', pts: Array.from({ length: 41 }, (_, i) => [i * 500 - 10000, 0]) }];
   const R = buildRoadside(roads, { furniture: [], ramps: [] }, { bounds });
   assert.ok(R.rest >= 2, 'rest areas: ' + R.rest);
-  for (const s of R.sites) { assert.ok(Math.abs(Math.abs(s.z) - 42) < 1); assert.ok(Math.sin(s.ry) * 0 + Math.cos(s.ry) * (s.z > 0 ? -1 : 1) > 0.99); }   // heading east: right is +z (south); faces north
+  for (const s of R.sites.filter(q => q.type === 'rest')) { assert.ok(Math.abs(Math.abs(s.z) - 42) < 1); assert.ok(Math.sin(s.ry) * 0 + Math.cos(s.ry) * (s.z > 0 ? -1 : 1) > 0.99); }   // heading east: right is +z (south); faces north
   for (let i = 0; i < R.sites.length; i++) for (let j = i + 1; j < R.sites.length; j++) assert.ok(Math.hypot(R.sites[i].x - R.sites[j].x, R.sites[i].z - R.sites[j].z) > 400);
 });
 

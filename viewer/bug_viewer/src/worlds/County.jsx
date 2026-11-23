@@ -16,7 +16,8 @@ import { Ribbon, tex, rnd, blotches, dots, crack, wrapDraw, blurred, circuitTex,
 import Sites, { Mesas } from './Sites.jsx';
 import { TOWN } from './siteData.js';
 import { signTex } from '../lot/CarLot.jsx';
-import { GAS_BRANDS, gasIndexes } from './brands.js';
+import { GAS_BRANDS } from './brands.js';
+import { stationLayout } from './stationLayout.js';
 import Home from './Home.jsx';
 import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
 import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
@@ -472,44 +473,35 @@ function HighwayFurniture() {
 
 // ---------------- rest areas + gas stations along the real highways (worlds/roadside.js, PROPOSAL: no collision yet) ----------------
 // parts are boxes in the place's own frame: x across, y up, z toward the road: [x, y, z, w, h, d, colour]
-const PLACE_PARTS = {
-  rest: [ [0, 1.6, -14, 7, 3.2, 4, '#c9bfa6'], [-6, 3.4, 2, 8, 0.3, 5, '#8a5a3a'],
-    [-9.4, 1.6, 0.2, 0.3, 3.2, 0.3, '#6b4a30'], [-2.6, 1.6, 0.2, 0.3, 3.2, 0.3, '#6b4a30'], [-9.4, 1.6, 3.8, 0.3, 3.2, 0.3, '#6b4a30'], [-2.6, 1.6, 3.8, 0.3, 3.2, 0.3, '#6b4a30'],
-    [5, 0.5, -2, 2.2, 0.9, 1.4, '#7a5530'], [5, 0.5, 4, 2.2, 0.9, 1.4, '#7a5530'], [10, 0.5, 1, 2.2, 0.9, 1.4, '#7a5530'],
-    [0, 2, 19, 0.2, 4, 0.2, '#888'], [0, 4.2, 19, 3.2, 1.8, 0.15, '#1d4f91']],
-  gas: [ [0, 2, -11, 12, 4, 6, '#d8cfae'], [0, 5, 4, 14, 0.6, 8, '#c8372d'],
-    [-5, 2.5, 1, 0.4, 5, 0.4, '#e8e8e8'], [5, 2.5, 1, 0.4, 5, 0.4, '#e8e8e8'], [-5, 2.5, 7, 0.4, 5, 0.4, '#e8e8e8'], [5, 2.5, 7, 0.4, 5, 0.4, '#e8e8e8'],
-    [-3, 0.8, 4, 0.8, 1.6, 0.6, '#f0f0f0'], [3, 0.8, 4, 0.8, 1.6, 0.6, '#f0f0f0'],
-    [-14, 4.5, 14, 0.3, 9, 0.3, '#888'], [-14, 9.4, 14, 3, 2.4, 0.3, '#f0c020']],
-};
 function RoadsidePlaces() {
   const mesh = useRef();
   const sites = useMemo(() => junctions().roadside.sites, []);
-  const n = sites.reduce((a, s) => a + PLACE_PARTS[s.type].length, 0);
+  const layouts = useMemo(() => sites.map(stationLayout), [sites]);
+  const n = layouts.reduce((a, l) => a + l.parts.length, 0);
   useEffect(() => {
     const base = new THREE.Matrix4(), part = new THREE.Matrix4(), col = new THREE.Color(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3(1, 1, 1);
     let k = 0;
-    for (const s of sites) {
+    for (const [si, s] of sites.entries()) {
       const y = height(s.x, s.z); q.setFromEuler(e.set(0, s.ry, 0)); base.compose(new THREE.Vector3(s.x, y, s.z), q, one);
-      for (const [x, py, z, w, h, d, c] of PLACE_PARTS[s.type]) { part.compose(new THREE.Vector3(x, py + height(s.x + x*Math.cos(s.ry) + z*Math.sin(s.ry), s.z - x*Math.sin(s.ry) + z*Math.cos(s.ry)) - y, z), new THREE.Quaternion(), new THREE.Vector3(w, h, d)); mesh.current.setMatrixAt(k, base.clone().multiply(part)); mesh.current.setColorAt(k++, col.set(c)); }
+      for (const [x, py, z, w, h, d, c] of layouts[si].parts) { part.compose(new THREE.Vector3(x, py + height(s.x + x*Math.cos(s.ry) + z*Math.sin(s.ry), s.z - x*Math.sin(s.ry) + z*Math.cos(s.ry)) - y, z), new THREE.Quaternion(), new THREE.Vector3(w, h, d)); mesh.current.setMatrixAt(k, base.clone().multiply(part)); mesh.current.setColorAt(k++, col.set(c)); }
     }
     mesh.current.instanceMatrix.needsUpdate = true; if (mesh.current.instanceColor) mesh.current.instanceColor.needsUpdate = true;
-  }, [sites]);
+  }, [sites, layouts]);
   return <instancedMesh ref={mesh} args={[null, null, Math.max(1, n)]} frustumCulled={false} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial roughness={0.8} /></instancedMesh>;
 }
 /** the brand on every highway gas station (worlds/brands.js: two knock-offs, never Dusty's): a pole sign by the road and a sign on the store front; drawn only within 900 m */
 function GasBrandSigns() {
-  const sites = useMemo(() => junctions().roadside.sites, []), idx = useMemo(() => gasIndexes(sites), [sites]), { camera } = useThree(), refs = useRef([]), tick = useRef(0);
+  const sites = useMemo(() => junctions().roadside.sites, []), layouts = useMemo(() => sites.map(stationLayout), [sites]), { camera } = useThree(), refs = useRef([]), tick = useRef(0);
   const mats = useMemo(() => GAS_BRANDS.map(b => new THREE.MeshStandardMaterial({ map: signTex([[b.name, 104, b.fg], [b.sub, 34, b.accent]], b.bg, b.fg, b.accent), roughness: 0.6 })), []);
   useFrame((_, dt) => {
     tick.current += dt; if (tick.current < 0.5) return; tick.current = 0;
     const p = game.onFoot ? camera.position : game.pos;
     sites.forEach((s, i) => { const g = refs.current[i]; if (g) g.visible = Math.hypot(s.x - p.x, s.z - p.z) < DETAIL_RADIUS; });
   });
-  return <>{sites.map((s, i) => { if (idx[i] < 0) return null; const m = mats[idx[i] % GAS_BRANDS.length];
+  return <>{sites.map((s, i) => { const l = layouts[i]; if (l.brand < 0) return null; const m = mats[l.brand], { sign, storeSign } = l.spots;
     return <group key={i} ref={el => (refs.current[i] = el)} position={[s.x, height(s.x, s.z), s.z]} rotation={[0, s.ry, 0]} visible={false}>
-      <mesh position={[-14, 9.4, 14.2]} material={m}><planeGeometry args={[3, 1.5]} /></mesh>
-      <mesh position={[0, 2.6, -7.95]} material={m}><planeGeometry args={[6, 3]} /></mesh>
+      <mesh position={[sign.x, sign.y, sign.z]} material={m}><planeGeometry args={[sign.w, sign.h]} /></mesh>
+      <mesh position={[storeSign.x, storeSign.y, storeSign.z]} material={m}><planeGeometry args={[storeSign.w, storeSign.h]} /></mesh>
     </group>; })}</>;
 }
 // ---------------- dressing wrecks at the roadside stops (the Salvage Road blockout pickup and step van; game/roadsideLoot.js sceneryWrecks) ----------------
