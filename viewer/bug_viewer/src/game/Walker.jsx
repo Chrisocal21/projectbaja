@@ -202,11 +202,12 @@ export default function Walker({ world, sun }) {
     if (wallCache.src !== world.obstacles) wallCache = { src: world.obstacles, list: world.obstacles.filter(c => c[3] === 99) };   // solid walls only: nothing can be reached through them
     const consider = (id, x, z, r, face, bonus = 1, shape = AIM_DEFAULT) => {
       const dx = x - px, dz = z - pz, d = Math.hypot(dx, dz); if (d > r) return;
-      if (foot && wallBlocks(eye, x, z, shape.own ? wallCache.list.filter(w => w[0] !== x || w[1] !== z) : wallCache.list)) return;   // own: a bin or chest is solid itself, so its own circle must not block the view of it
+      if (foot && wallBlocks(eye, x, z, shape.own ? wallCache.list.filter(w => Math.hypot(w[0] - x, w[1] - z) > w[2] + 0.7) : wallCache.list)) return;   // own: a bin or chest is solid itself, so its own circle must not block the view of it
    // (cheap distance first: the terrain height below is costly and most targets are far away)
       if (foot && world.id === 'county' && s.y > world.height(x, z) + 1.4) return;
       if (foot && !(shape.box ? aimsAtBox(eye, look, { x, z, y: s.y, ...shape.box }, r) : aimsAt(eye, look, { x, z, y: s.y + (shape.dy || 0), h: shape.h, r: shape.r }, r))) return;
       if (d * bonus < bd) { bd = d * bonus; best = id; }
+      return d;   // reached and aimed at: how far
     };
     if (Math.hypot(px - SHOP.x, pz - SHOP.z) < 11) consider('shop', SHOP.x, SHOP.z, 11, false, 1, { r: 3.5, h: 4 });
     let nearPump = false;
@@ -228,7 +229,10 @@ export default function Walker({ world, sun }) {
     const wv = foot && !game.buildMode ? pickWork({ x: px, z: pz }, workVehicles()) : null;   // the restorable vehicle you stand at: the Bug, or a donor / project
     game.work = wv ? { id: wv.id, active: wv.v.active, uid: wv.v.uid, name: wv.v.name, build: wv.v.build, pose: wv.v.pose, width: wv.v.width, length: wv.v.length, def: wv.v.def, lx: wv.lx, lz: wv.lz, zone: zoneAt(wv.v.def, wv.lx, wv.lz) } : null;
     game.inGarage = !!pose && inGarageZone(px, pz) && inGarageZone(pose.x, pose.z);
-    if (foot) for (const it of game.items) if (it.loc === 'world') consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0 });
+    let aimedItem = null, aimedD = 1e9;   // the nearest loose item the crosshair is actually on: it beats the bench it lies on (the bench's own spot is always closer)
+    if (foot) for (const it of game.items) if (it.loc === 'world') { const d = consider('item:' + it.uid, it.x, it.z, it.kind === 'shell' ? 3.6 : 2.4, true, 0.5, it.kind === 'shell' ? { r: 0.9, h: 0.9, dy: it.y || 0 } : { r: 0.45, h: 0.5, dy: it.y || 0, own: (it.y || 0) > 0.5 });   // own: lying on a bench or shelf, so the furniture's own solid circles must not hide it
+      if (d && d < aimedD) { aimedD = d; aimedItem = 'item:' + it.uid; } }
+    if (aimedItem && best === 'bench') best = aimedItem;
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
     if (foot && raceCarStage() < 2) consider('racecar', raceCarWorld.x, raceCarWorld.z, 3.6, false, 0.6, { r: 1.6, h: 1.5 });
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
