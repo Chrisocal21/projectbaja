@@ -1,6 +1,7 @@
 // Storage bins (PURE, loads under node): a bin, tool chest or rack holds items by size up to a capacity, and remembers them (items keep
 // loc 'bin' and bin: <prop uid>, so they save with the game). PROPOSAL numbers.
 export const BINS = {
+  shelfSupplies: { name: 'Equipment shelving', cap: 18 },
   partsBin: { name: 'Parts bin', cap: 12 },
   toolChest: { name: 'Tool chest', cap: 10 },
   yardRack: { name: 'Steel parts rack', cap: 24 },

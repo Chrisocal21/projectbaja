@@ -144,7 +144,7 @@ export function InventoryPanel({ onClose }) {
   useGame();
   const h = held(), pack = packItems(), vehs = vehiclesNear(), shed = inGarageZone(game.pos.x, game.pos.z), shelf = garageItems();
   const shown = [game.active, ...vehs.filter(v => v !== game.active)];   // the one you drive is always listed; parked ones appear when you walk up to them
-  const toShelf = it => shed && <button onClick={() => storeInGarage(it.uid)}>Shelve</button>;
+  const toShelf = it => shed && <button onClick={() => storeInGarage(it.uid)}>Shelve in backstock</button>;
   const putIn = it => vehs.map(v => <button key={v} onClick={() => stowInCar(it.uid, v)}>{vehs.length > 1 ? `Put in ${vehicleType(v).name}` : 'Put in car'}</button>);
   return <div className="overlay"><div className="card inv"><h2>INVENTORY</h2>
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
@@ -156,7 +156,7 @@ export function InventoryPanel({ onClose }) {
         {list.length ? list.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
       </React.Fragment>; })}
     <div className="inv-sec">SCRAP METAL <span>{game.mats?.scrap || 0} pieces · used at the workbench</span></div>
-    <div className="inv-sec">GARAGE SHELVES <span>{shelf.length} parts{shed ? '' : ' · only reachable in your garage'}</span></div>
+    <div className="inv-sec">STORAGE ROOM ? BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
     <div className="menu"><button className="big" onClick={onClose}>Close (Tab)</button></div></div></div>;
 }

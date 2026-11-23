@@ -1,3 +1,5 @@
+import { signTex } from '../lot/CarLot.jsx';
+import LiftHardware from './LiftHardware.jsx';
 import { brushedFinish, matteFinish } from './shopFinishes.js';
 import ShopBoxGeometry from './ShopBoxGeometry.jsx';
 import { Wrench, Jack } from '../game/ToolModel.jsx';
@@ -16,13 +18,13 @@ import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
 import { sizeOf } from '../game/junkRules.js';
 import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
-import { boxItems } from '../game/items.js';
+import { boxItems, nameOfItem } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { tickTray } from '../game/tireMachine.js';
 import { tickEngineStand } from '../game/engineStand.js';
 import { tickBenches } from '../game/benches.js';
 import { holoMaterials, ghostify, footprint, HOLO } from '../hologram.js';
-import { wood, metalTex, ShelfStuff, pegTex } from './Sites.jsx';
+import { wood, metalTex, pegTex } from './Sites.jsx';
 import { PEG_SLOTS, PEG, pegState } from '../game/fixtures.js';
 import { useGLTF, RoundedBox } from '@react-three/drei';
 import { rimGeometry } from '../Rims.jsx';
@@ -419,14 +421,28 @@ function Junk({ kind }) {
 const P = ({ p, s, c = '#fff', rot, map, m = 0, r = 0.8 }) => <mesh position={p} rotation={rot} castShadow receiveShadow><ShopBoxGeometry size={s} /><M c={c} map={map} m={m} r={r} /></mesh>;
 const C = ({ p, a, c = '#fff', rot, m = 0, r = 0.8, map }) => <mesh position={p} rotation={rot} castShadow receiveShadow><cylinderGeometry args={a} /><M c={c} m={m} r={r} map={map} /></mesh>;
 /** Stage 4d: Walt's workbench, two-post lift and pegboard as props (the same shapes the fixed garage used to draw) */
+function RackLabel({ text, color, width, height, p }) {
+  const map = useMemo(() => signTex([[text.toUpperCase(), 62, '#fff4da']], color, '#fff4da', '#ccaa70'), [text, color]);
+  React.useEffect(() => () => map.dispose(), [map]);
+  return <mesh position={p}><planeGeometry args={[width, height]} /><meshStandardMaterial map={map} /></mesh>;
+}
+function EquipmentCartons({ uid }) {
+  useGame();
+  return game.items.filter(it => it.loc === 'bin' && it.bin === uid).map((it, i) =>
+    <group key={it.uid} position={[(i % 6 - 2.5) * 0.36, 0.58 + Math.floor(i / 6) * 0.9, 0.05]}>
+      <P p={[0, 0.13, 0]} s={[0.33, 0.26, 0.46]} c="#bb9771" />
+      <RackLabel text={nameOfItem(it)} color="#61513e" width={0.29} height={0.11} p={[0, 0.14, 0.232]} />
+    </group>);
+}
 const Arm = ({ a, b, w = 0.1 }) => { const dx = b[0] - a[0], dz = b[2] - a[2]; return <P p={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} s={[Math.hypot(dx, dz), 0.07, w]} c="#e8b43a" m={0.4} r={0.5} rot={[0, Math.atan2(-dz, dx), 0]} />; };
 function CarLiftModel() {
   return <group position={[0, 0.12, 0]}>
+    <LiftHardware />
     {[-1, 1].map(s => <group key={s} position={[s * 1.65, 0, 0]}>
       <P p={[0, 0.015, 0]} s={[0.62, 0.03, 0.6]} c="#3a3d40" m={0.5} />
       <P p={[0, 1.8, 0]} s={[0.3, 3.6, 0.34]} c="#b8302a" m={0.35} r={0.5} />
       <P p={[-s * 0.2, 0.34, 0]} s={[0.24, 0.3, 0.42]} c="#3a3d40" m={0.6} r={0.4} />
-      <Arm a={[-s * 0.25, 0.25, 0.12]} b={[-s * 1.0, 0.2, 1.05]} /><Arm a={[-s * 0.25, 0.25, -0.12]} b={[-s * 1.0, 0.2, -1.0]} />
+      <Arm a={[-s * 0.25, 0.25, 0.12]} b={[-s * 0.27, 0.25, 1.05]} /><Arm a={[-s * 0.25, 0.25, -0.12]} b={[-s * 0.27, 0.25, -1.0]} />
     </group>)}
     <P p={[0, 3.72, 0]} s={[3.64, 0.18, 0.26]} c="#b8302a" m={0.35} r={0.5} />
     <P p={[1.95, 1.1, 0]} s={[0.26, 0.4, 0.3]} c="#2c4f7a" m={0.4} r={0.5} />
@@ -440,13 +456,14 @@ function BenchModel({ T }) {
       <P p={[x, 0.43, 0]} s={[0.13, 0.86, 1]} c="#353b3d" m={0.45} r={0.7} />
       <P p={[x, 0.04, 0]} s={[0.22, 0.08, 1.08]} c="#292b2b" m={0.5} />
     </React.Fragment>)}
-    <P p={[0, 0.32, -0.04]} s={[4.8, 0.6, 0.75]} c="#9f3229" map={T.red} r={0.72} m={0.2} />
-    {[-1.62, 0, 1.62].map(x => <group key={x}>
-      <P p={[x, 0.54, 0.39]} s={[1.53, 0.22, 0.035]} c="#aa392e" map={T.red} r={0.7} m={0.2} />
-      <P p={[x, 0.43, 0.415]} s={[1.53, 0.018, 0.012]} c="#4a1e19" r={0.9} />
-      <P p={[x, 0.54, 0.425]} s={[0.42, 0.035, 0.025]} c="#b8b6a9" m={0.55} r={0.55} />
+    <P p={[0,0.47,-0.03]} s={[4.8,0.76,0.88]} c="#272c30" m={0.42} />
+    {[-1.8,-0.6,0.6,1.8].map(x => <group key={x}>
+      {[0.23,0.43,0.59,0.73].map((y,i) => <group key={y} position={[x,y,0.42]}>
+        <P p={[0,0,0]} s={[1.16,[0.23,0.15,0.14,0.12][i],0.038]} c="#50565a" m={0.46} r={0.42} />
+        <P p={[0,0.037,0.032]} s={[1.03,0.025,0.039]} c="#bfc4c5" m={0.68} r={0.32} />
+      </group>)}
     </group>)}
-    <P p={[0, 0.11, -0.02]} s={[4.7, 0.055, 0.8]} c="#444341" m={0.35} r={0.85} />
+    <P p={[0,1.03,-0.53]} s={[5.2,0.16,0.035]} c="#abb1b1" m={0.63} />
     {/* Cast vise at the end of the bench, with replaceable jaws and sliding spindle handle. */}
     <group position={[-2.13, 0.98, 0.23]}>
       <C p={[0, 0.03, 0]} a={[0.14, 0.17, 0.06, 24]} c="#464f51" m={0.56} />
@@ -479,6 +496,25 @@ function PegboardModel({ uid }) {
   </>;
 }
 /** placed props that never change shape are baked into a few meshes (MergedStatic); structure pieces and the pegboard (tools hang on it) are not */
+// Soft contact shading in the shop also reads under diffuse daylight when the roof blocks the sun.
+const contactSize = { workbench: [5.3,1.28], toolChest: [1.32,0.68], tireChanger: [1.14,1.08],
+  welder: [0.72,1.02], bender: [0.91,0.89], portableGenerator: [1.04,0.76] };
+let contactMap;
+function ShopContact({ size }) {
+  if (!contactMap) {
+    const data = new Uint8Array(64*64*4);
+    for (let y=0; y<64; y++) for (let x=0; x<64; x++) {
+      const edge = Math.max(Math.abs((x-31.5)/31.5), Math.abs((y-31.5)/31.5));
+      data[(y*64+x)*4+3] = Math.round(72*Math.min(1,(1-edge)*3)**2);
+    }
+    contactMap = new THREE.DataTexture(data,64,64);
+    contactMap.magFilter = THREE.LinearFilter;
+    contactMap.needsUpdate = true;
+  }
+  return <mesh position={[0,0.006,0]} rotation={[-Math.PI/2,0,0]}>
+    <planeGeometry args={size} /><meshBasicMaterial map={contactMap} transparent depthWrite={false} polygonOffset polygonOffsetFactor={-2} />
+  </mesh>;
+}
 const MERGE_OK = id => !isPiece(id) && id !== 'pegboard';
 export function PropModel({ id, T, mat, uid }) {
   if (isPiece(id)) return <StructureModel id={id} mat={mat} />;
@@ -489,21 +525,25 @@ export function PropModel({ id, T, mat, uid }) {
     case 'gate': return <>{[-2, 2].map(x => <P key={x} p={[x, 0.75, 0]} s={[0.2, 1.5, 0.2]} map={T.oldWood} c="#8a7458" />)}{[0.4, 0.78, 1.16].map(y => <P key={y} p={[0, y, 0]} s={[3.8, 0.07, 0.05]} c="#8d9396" m={0.6} r={0.4} />)}<P p={[0, 0.78, 0]} s={[4.2, 0.05, 0.05]} c="#8d9396" m={0.6} rot={[0, 0, 0.19]} /></>;
     case 'floodlight': return <><C p={[0, 3, 0]} a={[0.07, 0.11, 6, 10]} c="#7c8083" m={0.6} r={0.4} /><P p={[0, 6.05, 0.15]} s={[0.9, 0.08, 0.1]} c="#555" m={0.5} />{[-0.3, 0.3].map(x => <group key={x} position={[x, 6.05, 0.3]} rotation={[0.5, 0, 0]}><P p={[0, 0, 0]} s={[0.38, 0.3, 0.16]} c="#3a3d40" m={0.5} /><mesh position={[0, 0, 0.085]}><planeGeometry args={[0.32, 0.24]} /><meshStandardMaterial color="#fff6dc" emissive="#fff2d0" emissiveIntensity={2.5} /></mesh></group>)}<pointLight position={[0, 5.6, 1.2]} intensity={70} distance={28} decay={1.5} color="#fff2d6" /></>;
     case 'yardRack': return <>{[-1, 1].flatMap(x => [-0.4, 0.4].map(z => <P key={x + '' + z} p={[x, 1.1, z]} s={[0.07, 2.2, 0.07]} c="#2f5f9e" m={0.5} r={0.5} />))}{[0.3, 1.1, 1.9].map(y => <P key={y} p={[0, y, 0]} s={[2.1, 0.05, 0.9]} c="#d9962f" m={0.4} r={0.5} />)}{[[-0.6, 0.48, 0.5], [0.4, 0.5, 0.6], [-0.3, 1.3, 0.55], [0.6, 1.26, 0.4]].map(([x, y, w], i) => <P key={'b' + i} p={[x, y, 0]} s={[w, 0.32, 0.5]} c={['#b58b55', '#a9854f', '#c29a62'][i % 3]} r={1} />)}</>;
-    case 'shelfTires': case 'shelfSupplies': return <>
-      {[-1.15, 1.15].flatMap(x => [-0.35, 0.35].map(z => <group key={x + '' + z}>
-        <P p={[x, 1.4, z]} s={[0.075, 2.8, 0.075]} c="#8b672d" m={0.48} r={0.76} />
-        <P p={[x, 0.025, z]} s={[0.14, 0.05, 0.14]} c="#34312b" m={0.5} />
-        {[0.55, 1.45, 2.35].map(y => <P key={y} p={[x, y, z]} s={[0.16, 0.07, 0.16]} c="#55432c" m={0.6} />)}
-      </group>))}
-      {[0.55, 1.45, 2.35].map(y => <group key={y}>
-        <P p={[0, y, 0]} s={[2.4, 0.055, 0.8]} c="#4a4b47" m={0.52} r={0.8} />
-        {[-0.4, 0.4].map(z => <P key={z} p={[0, y + 0.025, z]} s={[2.4, 0.08, 0.035]} c="#655843" m={0.48} r={0.82} />)}
-      </group>)}
-      {[-0.35, 0.35].map(z => <P key={z} p={[0, 1.4, z]} s={[2.3, 0.045, 0.045]} c="#61513a" m={0.5} rot={[0, 0, z > 0 ? 0.78 : -0.78]} />)}
-      {id === 'shelfTires'
-        ? null   // Stage 4c: the shelving starts empty; real tires you set on it are drawn by placement/GarageCargo.jsx
-        : <>{[['oil', 0.58, -0.8], ['jerry', 0.58, 0.1], ['battery', 0.58, 0.9], ['paint', 1.48, -0.8], ['rim', 1.78, 0.1], ['bolts', 1.48, 0.8], ['oil', 2.38, -0.7], ['filter', 2.38, -0.05], ['paint', 2.38, 0.65], ['spray', 1.48, 0.95]].map(([k, y, x], i) => <group key={i} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}><ShelfStuff kind={k} p={[0, y, 0]} /></group>)}</>}
-    </>;
+    case 'shelfTires': case 'shelfSupplies': {
+      const tires = id === 'shelfTires', enamel = tires ? '#2959ae' : '#ae5232';
+      return <>
+        {[-1.15, 1.15].flatMap(x => [-0.36, 0.36].map(z =>
+          <P key={x + '/' + z} p={[x, 1.4, z]} s={[0.065, 2.8, 0.065]} c={enamel} m={0.36} />))}
+        {[0.55, 1.45, 2.35].map(y => <group key={y}>
+          {tires ? [-0.21, 0, 0.21].map(z => <P key={z} p={[0,y,z]} s={[2.35,0.06,0.15]} c="#747d80" m={0.45} />)
+            : <P p={[0,y,0]} s={[2.4,0.06,0.8]} c="#a5aaa4" m={0.4} />}
+          {[-0.38, 0.38].map(z => <P key={z} p={[0,y-0.03,z]} s={[2.4,0.10,0.04]} c={enamel} m={0.32} />)}
+        </group>)}
+        {tires && [-1.15, 1.15].map(x => <group key={x}>
+          {[0.55,1.45,2.35,2.77].map(y => <P key={y} p={[x,y,0]} s={[0.05,0.05,0.73]} c={enamel} m={0.45} />)}
+          {[1,1.9].map((y,i) => <P key={y} p={[x,y,0]} s={[0.035,1.1,0.041]} rot={[(i ? -1 : 1)*0.65,0,0]} c={enamel} m={0.42} />)}
+          {[-0.36,0.36].map(z => <P key={z} p={[x,0.018,z]} s={[0.14,0.036,0.12]} c={enamel} />)}
+        </group>)}
+        {!tires && <P p={[0,1.43,-0.38]} s={[2.26,2.58,0.032]} c="#767975" m={0.36} />}
+        {!tires && <EquipmentCartons uid={uid} />}
+      </>;
+    }
     case 'workbench': return <BenchModel T={T} />;
     case 'carLift': return <CarLiftModel />;
     case 'pegboard': return <PegboardModel uid={uid} />;
@@ -513,12 +553,40 @@ export function PropModel({ id, T, mat, uid }) {
         {[0,0.045,0.09].map(z => <P key={z} p={[0,0.028,z-0.035]} s={[0.12,0.008,0.009]} c="#656662" />)}
       </group>)}
 
-      <P p={[0, 0.4, 0]} s={[0.95, 0.8, 0.85]} c="#2d6a9f" m={0.3} r={0.5} />
+      <P p={[0, 0.4, 0]} s={[0.95, 0.8, 0.85]} c="#ac3428" m={0.3} r={0.5} />
+      <P p={[0, 0.47, 0.432]} s={[0.77, 0.49, 0.018]} c="#70251e" m={0.26} />
+      <P p={[0, 0.63, 0.445]} s={[0.71, 0.085, 0.012]} c="#343a3c" />
+      {[-0.23, -0.14, -0.05, 0.04, 0.13].map(x =>
+        <P key={x} p={[x, 0.41, 0.446]} s={[0.036, 0.17, 0.014]} c="#444b49" />)}
+      <C p={[-0.33, 0.95, -0.28]} a={[0.105, 0.105, 0.06, 24]} rot={[Math.PI / 2, 0, 0]} c="#555e60" m={0.55} />
+      <C p={[-0.33, 0.95, -0.246]} a={[0.087, 0.087, 0.012, 24]} rot={[Math.PI / 2, 0, 0]} c="#e8dfc6" />
+      <P p={[-0.35, 0.97, -0.237]} s={[0.009, 0.072, 0.006]} rot={[0, 0, 0.73]} c="#9c3a2e" />
+      <P p={[-0.33, 0.835, -0.28]} s={[0.044, 0.07, 0.045]} c="#87744b" m={0.5} />
+      <P p={[0.045, 1.244, 0.18]} s={[0.13, 0.038, 0.07]} c="#737975" m={0.65} />
       <C p={[0, 0.83, 0.05]} a={[0.4, 0.4, 0.06, 24]} c="#9aa0a6" m={0.6} r={0.4} />
       {[0, 1, 2, 3].map(i => <P key={i} p={[Math.cos(i * Math.PI / 2 + 0.7) * 0.33, 0.9, 0.05 + Math.sin(i * Math.PI / 2 + 0.7) * 0.33]} s={[0.08, 0.08, 0.08]} c="#555" m={0.5} />)}
       <P p={[0, 1.3, -0.36]} s={[0.14, 1.0, 0.14]} c="#3a3d40" m={0.5} />
       <P p={[0, 1.78, -0.1]} s={[0.1, 0.1, 0.6]} c="#3a3d40" m={0.5} />
+      <P p={[0,1.78,-0.1]} s={[0.145,0.145,0.63]} c="#aa3529" m={0.36} />
+      <Tube a={[0.08,1.73,0.08]} b={[0.22,1.04,-0.07]} r={0.018} />
+      <Tube a={[0.22,1.04,-0.07]} b={[0.09,0.81,-0.35]} r={0.018} />
+      <C p={[0,1.91,0.18]} a={[0.033,0.033,0.22,12]} c="#a9acad" m={0.6} />
       <C p={[0, 1.5, 0.18]} a={[0.02, 0.02, 0.5, 8]} c="#c9ced2" m={0.7} />
+    </>;
+    case 'portableGenerator': return <>
+      {[-0.29,0.29].map(z => <group key={z}>
+        {[0.13,0.67].map(y => <Tube key={y} a={[-0.43,y,z]} b={[0.43,y,z]} r={0.027} />)}
+        {[-0.43,0.43].map(x => <Tube key={x} a={[x,0.13,z]} b={[x,0.67,z]} r={0.027} />)}
+      </group>)}
+      {[-0.43,0.43].map(x => <Tube key={x} a={[x,0.67,-0.29]} b={[x,0.67,0.29]} r={0.027} />)}
+      <P p={[0,0.59,0]} s={[0.78,0.14,0.5]} c="#aa3529" m={0.36} />
+      <C p={[-0.25,0.67,0]} a={[0.061,0.061,0.035,14]} c="#292c29" />
+      <C p={[-0.16,0.32,0]} a={[0.16,0.16,0.41,20]} rot={[Math.PI/2,0,0]} c="#616767" m={0.5} />
+      <C p={[-0.16,0.32,0.22]} a={[0.14,0.14,0.055,20]} rot={[Math.PI/2,0,0]} c="#922e24" />
+      <P p={[0.19,0.36,0]} s={[0.29,0.28,0.42]} c="#383e40" m={0.4} />
+      {[-0.09,-0.03,0.03,0.09].map(dx => <P key={dx} p={[0.19+dx,0.35,0.216]} s={[0.017,0.17,0.012]} c="#1d2121" />)}
+      {[-0.25,0.25].map(z => <C key={z} p={[0.35,0.115,z]} a={[0.115,0.115,0.068,16]} rot={[Math.PI/2,0,0]} c="#252827" />)}
+      {[-0.24,0.24].map(z => <P key={z} p={[-0.36,0.065,z]} s={[0.072,0.13,0.074]} c="#363936" />)}
     </>;
     case 'compressor': return <>
       <C p={[0, 0.3, 0]} a={[0.22, 0.22, 0.9, 24]} c="#873e32" m={0.42} r={0.82} rot={[0, 0, Math.PI / 2]} />
@@ -538,7 +606,18 @@ export function PropModel({ id, T, mat, uid }) {
       {[[-0.4, 0], [0.4, 0], [0, 0.55]].map(([x, z], i) => <mesh key={i} position={[x, 0.04, z]}><sphereGeometry args={[0.04, 8, 6]} /><M c="#111" /></mesh>)}
       <group position={[0, 0.45, 1.5]}><ProcEngine stockExhaust={false} /></group>
     </>;
-    case 'toolChest': return <><P p={[0, 0.55, 0]} s={[1.2, 0.95, 0.55]} c="#b3261e" map={T.red} m={0.4} r={0.45} />{[0.2, 0.38, 0.56, 0.74, 0.9].map(y => <React.Fragment key={y}><P p={[0, y, 0.28]} s={[1.12, 0.012, 0.012]} c="#4a1410" /><P p={[0, y + 0.06, 0.29]} s={[0.5, 0.025, 0.025]} c="#d8d8d8" m={0.8} r={0.3} /></React.Fragment>)}<P p={[0, 1.1, 0]} s={[1.0, 0.22, 0.5]} c="#c22d24" map={T.red} m={0.4} r={0.45} />{[-0.5, 0.5].flatMap(x => [-0.22, 0.22].map(z => <C key={x + '' + z} p={[x, 0.05, z]} a={[0.05, 0.05, 0.04, 10]} c="#222" rot={[Math.PI / 2, 0, 0]} />))}</>;
+    case 'toolChest': return <>
+      <P p={[0,0.65,0]} s={[1.2,0.94,0.55]} c="#363b40" m={0.46} />
+      <P p={[0,1.14,0]} s={[1.22,0.045,0.57]} c="#b7baba" m={0.65} />
+      {[0.32,0.54,0.72,0.87,1.02].map((y,i) => <group key={y}>
+        <P p={[0,y,0.28]} s={[1.14,[0.23,0.18,0.15,0.135,0.135][i],0.032]} c="#50555a" m={0.40} />
+        <P p={[0,y+0.043,0.309]} s={[1.02,0.023,0.034]} c="#bec5c5" m={0.68} />
+      </group>)}
+      {[-0.49,0.49].flatMap(x => [-0.21,0.21].map(z => <group key={x+'/'+z}>
+        <C p={[x,0.078,z]} a={[0.078,0.078,0.045,16]} rot={[0,0,Math.PI/2]} c="#292c2b" />
+        <P p={[x,0.145,z]} s={[0.058,0.075,0.05]} c="#979b98" m={0.65} />
+      </group>))}
+    </>;
     case 'lift': return <>{[-1.55, 1.55].map(x => <React.Fragment key={x}><P p={[x, 1.9, 0]} s={[0.32, 3.8, 0.42]} c="#c8372b" map={T.red} m={0.3} r={0.5} /><P p={[x, 0.03, 0]} s={[0.7, 0.06, 0.7]} c="#555" m={0.5} /><P p={[x * 0.62, 0.45, 0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? 0.45 : -0.45, 0]} /><P p={[x * 0.62, 0.45, -0.32]} s={[1.2, 0.08, 0.14]} c="#444" m={0.6} rot={[0, x > 0 ? -0.45 : 0.45, 0]} /></React.Fragment>)}<P p={[0, 3.85, 0]} s={[3.5, 0.18, 0.28]} c="#c8372b" map={T.red} m={0.3} /><P p={[1.55, 1.5, 0.25]} s={[0.25, 0.35, 0.12]} c="#2b2b2b" /></>;
     case 'partsBin': return <><P p={[0, 0.2, 0]} s={[0.6, 0.4, 0.4]} c="#3c6e8f" m={0.3} r={0.6} /><P p={[0, 0.4, 0.2]} s={[0.62, 0.04, 0.03]} c="#26465c" /><P p={[0, 0.26, 0.205]} s={[0.3, 0.1, 0.01]} c="#e8e2d2" /></>;
     case 'partsWasher': return <>
@@ -559,13 +638,30 @@ export function PropModel({ id, T, mat, uid }) {
       <P p={[0.05,0.4,0.19]} s={[0.064,0.75,0.064]} rot={[-0.48,0,0]} c="#923e32" m={0.4} />
 <P p={[0, 0.06, 0]} s={[1, 0.08, 0.1]} c="#c8372b" /><P p={[0, 0.06, 0]} s={[0.1, 0.08, 0.8]} c="#c8372b" /><C p={[0, 0.5, 0]} a={[0.05, 0.05, 0.9, 8]} c="#c8372b" /><P p={[0.25, 0.92, 0]} s={[0.4, 0.1, 0.1]} c="#c8372b" /><C p={[0.46, 0.92, 0]} a={[0.16, 0.16, 0.03, 16]} c="#666" m={0.6} rot={[0, 0, Math.PI / 2]} /></>;
     case 'welder': return <>
+      <P p={[0,0.77,0.19]} s={[0.48,0.14,0.41]} c="#374047" m={0.45} />
+      <C p={[-0.12,0.98,0.1]} a={[0.105,0.105,0.13,20]} rot={[0,0,Math.PI/2]} c="#9c6548" m={0.55} />
+      {[-0.194,-0.046].map(x => <C key={x} p={[x,0.98,0.1]} a={[0.12,0.12,0.018,20]} rot={[0,0,Math.PI/2]} c="#33383a" />)}
+      <P p={[-0.08,0.79,0.408]} s={[0.13,0.058,0.018]} c="#70382f" />
+      {[-0.17,0.17].map(x => <C key={x} p={[x,0.13,0.31]} a={[0.087,0.087,0.045,14]} rot={[0,0,Math.PI/2]} c="#27292a" />)}
+
       {Array.from({length:6},(_,i) => <P key={i} p={[0,0.33+i*0.045,0.377]} s={[0.34,0.014,0.009]} c="#1e3038" />)}
       <C p={[0,1.39,-0.2]} a={[0.032,0.057,0.09,12]} c="#a68a50" m={0.65} />
 <P p={[0, 0.5, 0]} s={[0.5, 0.45, 0.75]} c="#1f5fae" m={0.3} r={0.5} /><P p={[0, 0.74, 0.39]} s={[0.4, 0.28, 0.02]} c="#222" /><C p={[0.1, 0.8, 0.41]} a={[0.04, 0.04, 0.02, 12]} c="#ddd" m={0.6} rot={[Math.PI / 2, 0, 0]} /><C p={[0, 1.05, -0.2]} a={[0.11, 0.11, 0.6, 14]} c="#3f6b3a" m={0.4} r={0.4} /><P p={[0, 0.22, 0]} s={[0.55, 0.06, 0.85]} c="#333" m={0.5} />{[-0.22, 0.22].map(x => <C key={x} p={[x, 0.12, -0.3]} a={[0.12, 0.12, 0.05, 14]} c="#222" rot={[0, 0, Math.PI / 2]} />)}<mesh position={[0.3, 0.55, 0.2]} rotation={[0.4, 0, 0.9]}><torusGeometry args={[0.18, 0.015, 6, 16]} /><M c="#222" /></mesh></>;
     case 'bender': return <>
-      {[-0.31,0.31].flatMap(x => [-0.31,0.31].map(z => <C key={x+':'+z} p={[x,0.074,z]} a={[0.029,0.029,0.028,6]} c="#96948c" m={0.77} />))}
-      <C p={[0.93,0.98,0]} a={[0.042,0.042,0.24,12]} rot={[0,0,Math.PI/2]} c="#232728" />
-<P p={[0, 0.45, 0]} s={[0.25, 0.9, 0.25]} c="#3a3d40" m={0.5} /><P p={[0, 0.03, 0]} s={[0.8, 0.06, 0.8]} c="#555" m={0.5} /><C p={[0, 0.95, 0]} a={[0.2, 0.2, 0.08, 20]} c="#d9962f" m={0.5} r={0.4} /><C p={[0.5, 0.98, 0]} a={[0.03, 0.03, 1.1, 8]} c="#3a3d40" m={0.6} rot={[0, 0, Math.PI / 2]} /><C p={[-0.3, 1.0, 0.15]} a={[0.02, 0.02, 0.9, 8]} c="#cfcfcf" m={0.7} rot={[Math.PI / 2, 0, 0.2]} /></>;
+      {[-0.34,0.34].map(x => <group key={x}>
+        <P p={[x,0.13,0]} s={[0.06,0.065,0.72]} c="#28559a" m={0.45} />
+        {[-1,1].map(k => <group key={k}>
+          <Tube a={[x,0.13,k*0.33]} b={[x*0.63,0.86,k*0.18]} r={0.035} c="#315ba0" />
+          <C p={[x,0.063,k*0.32]} a={[0.063,0.063,0.05,12]} rot={[0,0,Math.PI/2]} c="#343736" />
+        </group>)}
+      </group>)}
+      <P p={[0,0.15,0]} s={[0.67,0.045,0.59]} c="#305897" m={0.4} />
+      <C p={[0,0.28,0]} a={[0.12,0.12,0.48,18]} rot={[0,0,Math.PI/2]} c="#555957" m={0.56} />
+      <P p={[0,0.87,0]} s={[0.65,0.07,0.49]} c="#315a99" m={0.45} />
+      {[0.92,0.953,0.986].map((y,i) => <C key={y} p={[-0.13,y,0]} a={[i===1?0.15:0.19,i===1?0.15:0.19,0.031,28]} c="#878e90" m={0.7} />)}
+      <P p={[0.22,1,0.065]} s={[0.75,0.055,0.085]} c="#858b89" m={0.6} />
+      <P p={[0.58,1,0.065]} s={[0.17,0.065,0.09]} c="#292d2c" />
+    </>;
     case 'computer': return <><P p={[0, 0.74, 0]} s={[1.6, 0.05, 0.8]} map={T.newWood} />{[-0.7, 0.7].map(x => <P key={x} p={[x, 0.37, 0]} s={[0.06, 0.74, 0.7]} c="#5b4630" />)}<P p={[0.1, 1.0, -0.1]} s={[0.5, 0.42, 0.42]} c="#d8d2bc" /><mesh position={[0.1, 1.0, 0.115]}><planeGeometry args={[0.38, 0.29]} /><meshStandardMaterial color="#123" emissive="#3ad07a" emissiveIntensity={0.5} /></mesh><P p={[-0.35, 0.79, 0.12]} s={[0.45, 0.035, 0.16]} c="#d8d2bc" /><C p={[0.6, 0.83, 0.15]} a={[0.04, 0.04, 0.12, 10]} c="#f2f2e8" /><P p={[0, 0.45, 0.6]} s={[0.5, 0.06, 0.45]} c="#2b2b2b" /><C p={[0, 0.22, 0.6]} a={[0.03, 0.03, 0.44, 6]} c="#555" m={0.5} /></>;
     case 'couch': return <><P p={[0, 0.22, 0]} s={[2, 0.3, 0.85]} c="#6b5a3a" /><P p={[0, 0.65, -0.35]} s={[2, 0.6, 0.18]} c="#6b5a3a" />{[-0.48, 0.48].map(x => <P key={x} p={[x, 0.44, 0.04]} s={[0.92, 0.14, 0.72]} c="#7a6844" />)}{[-0.95, 0.95].map(x => <P key={x} p={[x, 0.5, 0]} s={[0.16, 0.5, 0.85]} c="#5a4a30" />)}<P p={[0.6, 0.46, 0.1]} s={[0.3, 0.02, 0.25]} c="#c8a46a" rot={[0, 0.4, 0]} /></>;
     case 'neon': return <><P p={[0, 1.6, 0]} s={[1.4, 0.55, 0.06]} c="#1a1010" /><mesh position={[0, 1.6, 0.04]}><planeGeometry args={[1.2, 0.4]} /><meshStandardMaterial color="#ff4a6a" emissive="#ff2a5a" emissiveIntensity={2.4} /></mesh><C p={[0, 0.65, 0]} a={[0.04, 0.04, 1.3, 6]} c="#555" /></>;
@@ -628,7 +724,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><RaceCar T={T} /></group>
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><ShrinkingPile j={j}><Junk kind={j.kind} /></ShrinkingPile></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{contactSize[p.id] && <ShopContact size={contactSize[p.id]} />}{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
     {PLACEMENT && <GarageCargo />}
     <Customer />
     <Ghost T={T} />

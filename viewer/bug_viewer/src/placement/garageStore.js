@@ -15,7 +15,8 @@ export const garageGrid = () => gridOnly(game.items);
 export function placeHeldGarage(surface, cand) {
   const it = held(); if (!it) return false;
   Object.assign(it, { loc: 'garage', spot: 'grid', surf: cand.surface, x: cand.x, z: cand.z, y: cand.y || 0, ry: cand.rot || 0 });
-  delete it.pose; game.items = [...game.items]; save(); say(`${nameOfItem(it)} → ${surface.name.toLowerCase()}`);
+  if (cand.pose) it.pose = cand.pose; else delete it.pose;
+  game.items = [...game.items]; save(); say(`${nameOfItem(it)} → ${surface.name.toLowerCase()}`);
   return true;
 }
 

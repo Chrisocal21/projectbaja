@@ -2,6 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHighways, HW_STYLE } from './highways.js';
 
+test('straight dirt wears below its grade and eases out near features and road ends', () => {
+  const H = makeHighways([{ name: 'trail', kind: 'dirt', pts: [[0, 0], [400, 0]] }], () => 5);
+  const grade = H.near(200, 0).h;
+  assert.ok(Math.abs(H.blend(200, 0, 5) - (grade - 0.2)) < 0.02);
+  assert.ok(Math.abs(H.blend(3, 0, 5) - grade) < 0.03);
+  H.setFeatureHeight(() => 0.3);
+  assert.ok(Math.abs(H.blend(200, 0, 5) - grade) < 0.02);
+});
+
 const hill = (x, z) => 20 * Math.exp(-((x - 500) ** 2) / 20000);   // a 20 m bump at x = 500
 
 test('a highway follows its line and is paved there', () => {
@@ -90,6 +99,18 @@ test('a regional dirt branch meets the final paved alignment', () => {
   const dirt = H.roads.find(r => r.kind === 'dirt');
   assert.ok(H.crossingDistance(dirt.pts[0].x, dirt.pts[0].z, dirt) < 1);
   assert.equal(H.surfaceKey(dirt.pts[0].x, dirt.pts[0].z), 'asphalt');
+});
+
+test('a dirt branch connects its far end only when another road is nearby', () => {
+  const H = makeHighways([
+    { name: 'Main', kind: 'major', pts: [[-500, 0], [500, 0]] },
+    { name: 'Cross trail', kind: 'dirt', pts: [[-300, 480], [300, 480]] },
+    { name: 'Dirt road', kind: 'dirt', pts: [[40, 90], [40, 450]] },
+  ], () => 0);
+  const branch = H.roads.find(r => r.name === 'Dirt road');
+  const far = branch.pts.at(-1);
+  const cross = H.roads.find(r => r.name === 'Cross trail');
+  assert.ok(Math.min(...cross.pts.map(p => Math.hypot(p.x - far.x, p.z - far.z))) < 5);
 });
 
 test('a mapped mountain road grades through a ridge without a sheer fill', () => {

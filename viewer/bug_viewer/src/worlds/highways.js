@@ -217,6 +217,29 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const p = road.pts[best.end + best.dir * i], w = 1 - smooth(0, taper, i * STEP);
       p.x += dx * w; p.z += dz * w; p.hs += dh * w;
     }
+    // A second nearby road makes a useful loop. Keep distant ends as trail
+    // destinations instead of dragging them across open desert.
+    const farEnd = best.end === 0 ? road.pts.length - 1 : 0;
+    const farDir = farEnd === 0 ? 1 : -1;
+    const farTip = road.pts[farEnd];
+    let exit = null;
+    for (const other of list) {
+      if (other === road || other.kind === 'ramp') continue;
+      for (let i = 0; i < other.pts.length - 1; i++) {
+        const a = other.pts[i], b = other.pts[i + 1], vx = b.x - a.x, vz = b.z - a.z;
+        const t = Math.max(0, Math.min(1, ((farTip.x - a.x) * vx + (farTip.z - a.z) * vz) / (vx * vx + vz * vz || 1)));
+        const x = a.x + vx * t, z = a.z + vz * t, d = Math.hypot(x - farTip.x, z - farTip.z);
+        if (d < 55 && (!exit || d < exit.d)) exit = { x, z, h: a.hs + (b.hs - a.hs) * t, d };
+      }
+    }
+    if (exit && exit.d > 0.5) {
+      const dx = exit.x - farTip.x, dz = exit.z - farTip.z, dh = exit.h - farTip.hs;
+      const reach = Math.max(90, exit.d * 2.5, Math.abs(dh) / 0.07);
+      for (let i = 0; i < road.pts.length && i * STEP < reach; i++) {
+        const p = road.pts[farEnd + farDir * i], w = 1 - smooth(0, reach, i * STEP);
+        p.x += dx * w; p.z += dz * w; p.hs += dh * w;
+      }
+    }
   }
 
   // Attach authored turnouts to their actual parent after all paved junction
@@ -329,7 +352,8 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     return best;
   }
   // every highway within REACH, each at its own closest point (roads that run side by side must blend, not jump where "closest" switches)
-  const MAXN = 8, nR = new Int32Array(MAXN), nD = new Float64Array(MAXN), nH = new Float64Array(MAXN);
+  const MAXN = 8, nR = new Int32Array(MAXN), nD = new Float64Array(MAXN), nH = new Float64Array(MAXN), nI = new Int32Array(MAXN), nT = new Float64Array(MAXN);
+  let featureHeight = () => 0;
   function nearAll(x, z) {
     const c = Math.floor((x - x0) / CELL), rr = Math.floor((z - z0) / CELL);
     if (c < 0 || rr < 0 || c >= NX || rr >= NZ) return 0;
@@ -341,10 +365,14 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const d = Math.hypot(a.x + dx * t - x, a.z + dz * t - z); if (d > REACH) continue;
       let j = 0; while (j < n && nR[j] !== ri) j++;
       if (j === n) { if (n === MAXN) continue; n++; nR[j] = ri; nD[j] = Infinity; }
-      if (d < nD[j]) { nD[j] = d; nH[j] = a.hs + (b.hs - a.hs) * t; }
+      if (d < nD[j]) { nD[j] = d; nH[j] = a.hs + (b.hs - a.hs) * t; nI[j] = i; nT[j] = t; nI[j] = i; nT[j] = t; }
     }
     return n;
   }
+  // Finish the road field first, then supply the feature height. Both the terrain mesh and
+  // physics call blend, so the shallow tire-worn grade remains a single height surface.
+  function setFeatureHeight(fn) { featureHeight = fn; }
+  function setFeatureHeight(fn) { featureHeight = fn; }
   /** the ground height h at (x, z) eased onto the highways' grade */
   function blend(x, z, h) {
     const n = nearAll(x, z); if (!n) return h;
@@ -360,7 +388,24 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const st = road.style, ease = Math.min(REACH - st.half, Math.max(st.shoulder, Math.abs(nH[j] - h) * CUT));   // deep cuts and tall fills get gentler banks
       const w = nD[j] <= st.half ? 1 : 1 - smooth(st.half, st.half + ease, nD[j]); if (w <= 0) continue;
       const weight = road.kind === 'dirt' ? w * dirtWeight : w;
-      const w4 = weight ** 4; wmax = Math.max(wmax, weight); sw += w4; sh += w4 * nH[j];
+      const w4 = weight ** 4; wmax = Math.max(wmax, weight); sw += w4;
+      let grade = nH[j];
+      if (road.kind === 'dirt') {
+        const pts = road.pts, i = nI[j], t = nT[j];
+        const fromStart = (i + t) * STEP, fromEnd = (pts.length - 1 - i - t) * STEP;
+        const endFade = smooth(0, 22, Math.min(fromStart, fromEnd));
+        const bend = pts[Math.min(i + 3, pts.length - 1)];
+        const prev = pts[Math.max(0, i - 2)];
+        const a = pts[i], b = pts[i + 1];
+        const heading = Math.atan2(b.x - a.x, b.z - a.z);
+        const nearbyHeading = Math.atan2(bend.x - prev.x, bend.z - prev.z);
+        const turn = Math.abs(Math.atan2(Math.sin(heading - nearbyHeading), Math.cos(heading - nearbyHeading)));
+        const straight = 1 - smooth(0.12, 0.32, turn);
+        const feature = 1 - smooth(0.015, 0.18, Math.abs(featureHeight(x, z)));
+        const lane = 1 - smooth(st.lanes, st.half + st.shoulder, nD[j]);
+        grade -= 0.2 * lane * endFade * straight * feature * dirtWeight;
+      }
+      sh += w4 * grade;
     }
     return sw ? h + (sh / sw - h) * wmax : h;
   }
@@ -373,5 +418,5 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   }
   /** on (or within pad m of) a highway's paved width */
   const isNear = (x, z, pad = 0) => { const q = near(x, z); return !!q && q.d <= q.road.style.half + pad; };
-  return { roads: list, kept, near, pavedAt, higherRoadAt, crossingDistance, blend, surfaceKey, isNear };
+  return { roads: list, kept, near, pavedAt, higherRoadAt, crossingDistance, blend, setFeatureHeight, surfaceKey, isNear };
 }

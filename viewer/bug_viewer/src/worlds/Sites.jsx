@@ -1,3 +1,4 @@
+import LiftHardware from './LiftHardware.jsx';
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SITES, height } from './county.js';
@@ -87,10 +88,17 @@ const garageFloorWear = () => canvasTex(512, 512, (g, w, h) => {
 /** pegboard: grey hardboard with a hole grid and painted tool outlines */
 export const pegTex = () => canvasTex(512, 160, (g, w, h) => {
   const r = rnd(1968);
-  g.fillStyle = '#817b6d'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#404449'; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 25; i++) { const x = r() * w, y = r() * h, radius = 10 + r() * 35, stain = g.createRadialGradient(x, y, 0, x, y, radius); stain.addColorStop(0, r() < 0.5 ? 'rgba(35,31,25,0.22)' : 'rgba(208,195,163,0.22)'); stain.addColorStop(1, 'rgba(35,31,25,0)'); g.fillStyle = stain; g.fillRect(x - radius, y - radius, radius * 2, radius * 2); }
   g.fillStyle = 'rgba(30,28,24,0.75)'; for (let y = 6; y < h; y += 10) for (let x = 6; x < w; x += 10) { g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.fill(); }
-  g.strokeStyle = 'rgba(200,40,30,0.6)'; g.lineWidth = 2; for (let i = 0; i < 12; i++) { const x = 30 + i * 38; g.strokeRect(x, 30, 10, 70 + (i % 3) * 15); }
+  // Faded wrench outlines graduate by size across the mechanic's shadow board.
+  const wrench = new Path2D('M -3 21 L -3 63 C -11 67 -10 80 0 81 C 10 80 11 67 3 63 L 3 21 C 14 17 14 6 9 1 L 6 12 L -2 14 L -7 8 L -4 0 C -17 5 -15 18 -3 21 Z');
+  g.strokeStyle = 'rgba(135,56,39,0.64)'; g.lineWidth = 2;
+  for (let i = 0; i < 10; i++) {
+    g.save(); g.translate(36 + i * 46, 37); g.rotate((i % 3 - 1) * 0.035);
+    const scale = 0.66 + i * 0.055; g.scale(scale, scale); g.stroke(wrench);
+    g.beginPath(); g.arc(0, 72, 4, 0, Math.PI * 2); g.stroke(); g.restore();
+  }
   for (let i = 0; i < 240; i++) { g.fillStyle = `rgba(39,32,24,${r() * 0.14})`; g.fillRect(r() * w, r() * h, 1 + r() * 5, 1 + r() * 2); }
 }, [1, 1]);
 const Arm = ({ a, b, w = 0.1, c = '#e8b43a' }) => { const dx = b[0] - a[0], dz = b[2] - a[2], len = Math.hypot(dx, dz); return <mesh position={[(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]} rotation={[0, Math.atan2(-dz, dx), 0]} castShadow><boxGeometry args={[len, 0.07, w]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.5} /></mesh>; };
@@ -98,17 +106,18 @@ const Arm = ({ a, b, w = 0.1, c = '#e8b43a' }) => { const dx = b[0] - a[0], dz =
 function CarLift() {
   const red = '#b8302a';
   return <group position={[0, 0.12, -0.5]}>
+    <LiftHardware />
     {[-1, 1].map(s => <group key={s} position={[s * 1.65, 0, 0]}>
       <Box p={[0, 0.015, 0]} s={[0.62, 0.03, 0.6]} color="#3a3d40" metal={0.5} />
       <Box p={[0, 1.8, 0]} s={[0.3, 3.6, 0.34]} color={red} metal={0.35} rough={0.5} />
       <Box p={[-s * 0.16, 1.8, 0]} s={[0.04, 3.4, 0.14]} color="#7a1f1a" metal={0.4} cast={false} />
       {[0.14, 0.24].map(y => <Box key={y} p={[0, y, 0]} s={[0.31, 0.05, 0.35]} color={y === 0.14 ? '#f2c230' : '#1a1a1a'} cast={false} />)}
       <Box p={[-s * 0.2, 0.34, 0]} s={[0.24, 0.3, 0.42]} color="#3a3d40" metal={0.6} rough={0.4} />
-      <Arm a={[-s * 0.25, 0.25, 0.12]} b={[-s * 1.0, 0.2, 1.05]} /><Arm a={[-s * 0.25, 0.25, -0.12]} b={[-s * 1.0, 0.2, -1.0]} />
-      {[1.05, -1.0].map(z => <mesh key={z} position={[-s * 1.0, 0.25, z]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.06, 12]} /><meshStandardMaterial color="#1a1a1a" roughness={0.8} /></mesh>)}
+      <Arm a={[-s * 0.25, 0.25, 0.12]} b={[-s * 0.27, 0.25, 1.05]} /><Arm a={[-s * 0.25, 0.25, -0.12]} b={[-s * 0.27, 0.25, -1.0]} />
+
     </group>)}
     <Box p={[0, 3.72, 0]} s={[3.64, 0.18, 0.26]} color={red} metal={0.35} rough={0.5} />
-    <group position={[1.95, 1.1, 0]}><Box p={[0, 0, 0]} s={[0.26, 0.4, 0.3]} color="#2c4f7a" metal={0.4} rough={0.5} /><Box p={[0, 0.3, 0]} s={[0.14, 0.2, 0.14]} color="#1a1a1a" metal={0.5} /></group>
+    <group position={[1.95, 1.1, 0]}><Box p={[0, 0, 0]} s={[0.26, 0.4, 0.3]} color="#2c4f7a" metal={0.4} rough={0.5} /></group>
   </group>;
 }
 /** stuff on a shelf: oil quarts, jerry cans, paint, a spare rim, a battery, a coffee can of bolts */
@@ -168,7 +177,7 @@ function Garage() {
   const wallSide = useMemo(() => { const m = corrugatedTex('#8a9893', 33); m.repeat.set(4, 1); return m; }, []);
   const wallFront = useMemo(() => { const m = corrugatedTex('#8a9893', 35); m.repeat.set(1.3, 1); return m; }, []);
   const roof = useMemo(() => metalTex('#59615f', 9), []);
-  const floor = useMemo(() => propertyTexture(7, 5, 4), []);
+  const floor = useMemo(() => concreteTex(47), []);
   const floorWear = useMemo(garageFloorWear, []);
   const apron = useMemo(() => propertyTexture(7, 3, 2), []);
   const ply = useMemo(() => { const m = wood('#a88a5c', '#5a4428', true, 41); m.repeat.set(6, 1); return m; }, []);

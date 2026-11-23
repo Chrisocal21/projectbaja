@@ -103,6 +103,7 @@ const ALL_BUILD_ITEMS = [
   { id: 'carLift', name: 'Two-post car lift', price: 1500, zone: 'garage', r: 0, carBay: true, pickR: 1.7, posts: LIFT_POSTS, cat: 'Garage', note: "Walt's lift: the car drives in between the posts. To move it, aim at it and click (Shift+X stores it, X sells it)" },
   { id: 'pegboard', name: 'Pegboard (5.4 m)', price: 60, zone: 'garage', r: 0, wallMount: true, wallLen: 5.4, pickR: 2, cat: 'Garage', note: 'Hang tools on it: E. To move it, aim at it and click (Shift+X stores it, X sells it)' },
   { id: 'tireChanger', name: 'Tire machine', price: 350, zone: 'garage', r: 0.6, pickR: 1.1, cat: 'Garage', note: 'Hold a wheel, rim or tire up to it and hold left click: take a tire off, mount one, patch a puncture, inflate (with the compressor). To move it, aim at it with empty hands and click' },
+  { id: 'portableGenerator', name: 'Portable generator', price: 220, zone: 'any', r: 0.48, cat: 'Garage', note: 'Portable generator display' },
   { id: 'compressor', name: 'Air compressor', price: 220, zone: 'garage', r: 0.4, cat: 'Garage', note: "Walt's compressor: to move it, aim at it and click" },
   { id: 'engineOnStand', name: 'Spare engine on a stand', price: 300, zone: 'garage', r: 0.5, cat: 'Garage', note: "An engine Walt was rebuilding. To move it, aim at it and click (Shift+X stores it, X sells it)" },
   { id: 'welder', name: 'MIG welder + cart', price: 450, zone: 'garage', r: 0.45, cat: 'Fabrication', note: 'Weld in shock hoops, cages, brackets' },

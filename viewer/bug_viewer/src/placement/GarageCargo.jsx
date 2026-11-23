@@ -31,7 +31,7 @@ export default function GarageCargo() {
   const mine = garageGrid().filter(it => byId[it.surf]);
   return <group ref={root} position={[G.x, G.y || 0, G.z]} rotation={[0, G.rot, 0]}>
     <group ref={items}>{mine.map(it => { const s = byId[it.surf], c = toCar(s, it.x, it.z, it.y || 0);
-      return <group key={it.uid} position={[c.x, c.y, c.z]} rotation={[0, s.at.rotY + (it.ry || 0), 0]} userData={{ uid: it.uid }}><React.Suspense fallback={null}><ItemBody it={it} pose={null} /></React.Suspense></group>; })}</group>
+      return <group key={it.uid} position={[c.x, c.y, c.z]} rotation={[0, s.at.rotY + (it.ry || 0), 0]} userData={{ uid: it.uid }}><React.Suspense fallback={null}><ItemBody it={it} pose={it.pose || null} /></React.Suspense></group>; })}</group>
     <Ghost veh="garage" src={garageAim} />
     <Controller root={root} items={items} />
   </group>;
@@ -81,9 +81,9 @@ function Controller({ root, items }) {
       const it = grid.find(i => i.uid === best.uid); s = it && surfaces.find(x => x.id === it.surf); if (!s) return show('');
       const c = root.current.worldToLocal(best.point); local = fromCar(s, c.x, c.z);
     }
-    const hp = holdOf(h), existing = grid.map(garagePl), pid = pidOf(h), T = GAME_PLACEABLES[pid], free = !keys.shift, item = posed(T, null);
-    const p = snapPoint(s, local.x, local.z, free ? 'free' : 0, item.footprint, hp.rot);
-    let cand = placement({ id: 'ghost', item: pid, surface: s.id, x: p.x, z: p.z, rot: hp.rot, free });
+    const hp = holdOf(h), existing = grid.map(garagePl), pid = pidOf(h), T = GAME_PLACEABLES[pid], free = !keys.shift, pose = s.defaultPose || null, item = posed(T, pose);
+    const p = snapPoint(s, local.x, pose ? s.size[1] / 2 : local.z, free ? 'free' : 0, item.footprint, hp.rot);
+    let cand = placement({ id: 'ghost', item: pid, surface: s.id, x: p.x, z: p.z, rot: hp.rot, free, pose });
     cand.y = restY(cand, item, existing, GAME_PLACEABLES);
     const clipped = free ? clipTo(s, item, cand, existing, GAME_PLACEABLES) : cand, didClip = clipped !== cand; cand = clipped;
     const reason = why(s, item, cand, existing, GAME_PLACEABLES);

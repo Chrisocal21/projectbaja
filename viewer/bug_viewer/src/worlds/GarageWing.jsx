@@ -5,13 +5,27 @@ import * as THREE from 'three';
 import { OFFICE, STAIRS, LOFT, ANNEX, WING, PARTS_ROOM, WING_UP, deskOf } from './office.js';
 import { signTex } from '../lot/CarLot.jsx';
 import OriginalWall from './OriginalWall.jsx';
-import { game } from '../game/store.js';
+import { garageItems, nameOfItem } from '../game/items.js';
+import { game, useGame } from '../game/store.js';
 import { upgradeLevel, hasStage } from '../game/upgrades.js';
 
 const Box = ({ p, s, map, color = '#b7a58a', rot }) => <mesh position={p} rotation={rot} castShadow receiveShadow><ShopBoxGeometry size={s} /><meshStandardMaterial map={map} color={color} roughness={0.88} roughnessMap={matteFinish} /></mesh>;
-function Label({ text, p, w = 1.8 }) {
-  const map = useMemo(() => signTex([[text, 54, '#4d3023']], '#d7c6a1', '#6f5034', '#826343'), [text]);
-  return <Box p={p} s={[w, 0.32, 0.035]} map={map} color="#fff" />;
+function BackstockCarton({ slot, contents }) {
+  const title = nameOfItem(contents[0]);
+  const count = contents.length;
+  const label = useMemo(() => signTex([[title, 42], [count === 1 ? 'BACKSTOCK' : count + ' ITEMS', 35]], '#f0e3bc', '#302d26', '#766744'), [title, count]);
+  React.useEffect(() => () => label.dispose(), [label]);
+  return <group position={[-8.59 + slot % 3 * 0.49, 0.74 + Math.floor(slot / 3) * 0.8, -5.2]}>
+    <Box p={[0,0.165,0]} s={[0.44,0.33,0.45]} color="#ac845a" />
+    <Box p={[0,0.332,0]} s={[0.057,0.004,0.45]} color="#d1ad79" />
+    <mesh position={[0,0.17,0.226]}><planeGeometry args={[0.34,0.17]} /><meshStandardMaterial map={label} /></mesh>
+  </group>;
+}
+function StorageRoomStock() {
+  useGame();
+  const cartons = Array.from({ length: 9 }, () => []);
+  garageItems().forEach((item, index) => cartons[index % cartons.length].push(item));
+  return cartons.map((contents, slot) => contents.length ? <BackstockCarton key={slot} slot={slot} contents={contents} /> : null);
 }
 export default function GarageWing({ wall, timber, roof, floor, power }) {
   const { x0, x1, z0, z1, H, entry } = OFFICE;
@@ -34,7 +48,6 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     </mesh>)}
     <Box p={[-10.2, 2.75, 6.8]} s={[6.5, 0.15, 1.8]} map={roof} color="#fff" rot={[0.12, 0, 0]} />
     {[-13, -7.5].map(x => <Box key={x} p={[x, 1.35, 7.5]} s={[0.15, 2.7, 0.15]} map={timber} />)}
-    <Label text="OFFICE · RECEPTION" p={[-10.2, 3.1, 6.15]} w={4.5} />
     {[-12.4, -8.7].map(x => <group key={x}>
       <Box p={[x, 4.35, 6.12]} s={[1.05, 1.2, 0.05]} color="#394848" />
       {[-0.57, 0, 0.57].map(dx => <Box key={dx} p={[x + dx, 4.35, 6.17]} s={[0.06, 1.3, 0.08]} map={timber} />)}
@@ -44,18 +57,24 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-11.8, 0.6, 1.7]} s={[1.7, 1, 1]} map={timber} />
     <Box p={[-11.8, 1.15, 1.7]} s={[1.9, 0.12, 1.2]} map={timber} color="#76583c" />
     <Box p={[-11.5, 1.25, 1.7]} s={[0.35, 0.08, 0.25]} color="#34332b" />
+    {/* Painted tongue-and-groove counter front with an oak cap and a recessed kick plate. */}
+    {Array.from({ length: 11 }, (_, i) => <Box key={i} p={[-12.55 + i * 0.15, 0.65, 2.208]}
+      s={[0.146, 0.85, 0.025]} color={i % 3 === 0 ? '#496461' : '#516d69'} />)}
+    <Box p={[-11.8, 0.19, 2.21]} s={[1.7, 0.09, 0.04]} color="#393931" />
+    <Box p={[-11.8, 1.07, 2.23]} s={[1.72, 0.045, 0.045]} map={timber} />
+    <Box p={[-11.5, 1.36, 1.69]} s={[0.055, 0.18, 0.05]} color="#4a4942" />
+    <Box p={[-11.5, 1.5, 1.69]} s={[0.43, 0.25, 0.042]} color="#363b37" />
+    <Box p={[-11.5, 1.5, 1.665]} s={[0.385, 0.206, 0.006]} color="#586860" />
     {/* Repair tickets and a small parts ledger on Walt's counter. */}
     <Box p={[-12.25, 1.225, 1.5]} s={[0.34, 0.008, 0.25]} color="#b9ac8d" rot={[0, 0.18, 0]} />
     <Box p={[-12.25, 1.231, 1.5]} s={[0.27, 0.003, 0.2]} color="#d8d0b7" rot={[0, 0.18, 0]} />
     <Box p={[-11.72, 1.22, 1.98]} s={[0.43, 0.035, 0.31]} color="#504738" rot={[0, -0.12, 0]} />
     <Box p={[-11.72, 1.24, 1.98]} s={[0.38, 0.003, 0.27]} color="#c8bfa8" rot={[0, -0.12, 0]} />
-    <Label text="WALT'S · REPAIRS" p={[-11.8, 0.8, 2.22]} w={1.5} />
     {/* Bathroom doorway faces the reception; storage shares the rear service area. */}
     <Box p={[-12.6, 1.4, -2]} s={[1.2, 2.6, 0.12]} map={timber} />
     <Box p={[-10.55, 1.4, -2]} s={[0.3, 2.6, 0.12]} map={timber} />
     <Box p={[-11.3, 2.55, -2]} s={[1.4, 0.3, 0.12]} map={timber} />
     <Box p={[-10.4, 1.4, -4]} s={[0.12, 2.6, 4]} map={timber} />
-    <Label text="BATH / SHOWER" p={[-11.3, 2.55, -1.92]} />
     <Box p={[-12.35, 0.35, -4.9]} s={[0.55, 0.48, 0.8]} color="#e1dcc8" />
     <Box p={[-12.35, 0.8, -5.35]} s={[0.6, 0.65, 0.25]} color="#e1dcc8" />
     <mesh position={[-12.35, 0.62, -4.8]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.22, 0.055, 8, 20]} /><meshStandardMaterial color="#f4ead5" /></mesh>
@@ -65,13 +84,10 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-12.7, 0.95, -3]} s={[0.7, 0.18, 0.7]} color="#ded9c8" />
     <Box p={[-13.06, 1.65, -3]} s={[0.025, 0.7, 0.65]} color="#9cafaf" />
     {[0.7, 1.5, 2.3].map(y => <Box key={y} p={[-8.1, y, -5.2]} s={[1.6, 0.08, 0.6]} map={timber} />)}
-    <Label text="PARTS STORAGE" p={[-8.1, 2.65, -5]} w={1.6} />
-    {[0, 1, 2].map(i => <group key={i}>
-      <Box p={[-8.5 + i * 0.45, 0.98, -5.2]} s={[0.38, 0.5, 0.45]} color={['#8d5b39', '#76694f', '#594f3c'][i]} />
-      <Box p={[-8.5 + i * 0.45, 1.235, -5.2]} s={[0.05, 0.008, 0.45]} color="#b6a587" />
-      <Box p={[-8.5 + i * 0.45, 0.98, -4.973]} s={[0.18, 0.1, 0.004]} color="#b9ad91" />
-    </group>)}
+    <StorageRoomStock />
     <Box p={[-10.1, LOFT.y - 0.1, -3.9]} s={[5.8, 0.2, 3.8]} map={timber} />
+    {[-9.02, -7.58].map(x => <Box key={x} p={[x, STAIRS.count / 12 - 0.055, 4 - STAIRS.count / 6]}
+      s={[0.085, 0.19, STAIRS.count * Math.hypot(1 / 3, 1 / 6)]} rot={[Math.atan(0.5), 0, 0]} color="#414b49" />)}
     {Array.from({ length: STAIRS.count }, (_, i) => <Box key={i} p={[-8.3, 0.12 + (i + 1) / 6 - 0.06, 4 - (i + 0.5) / 3]} s={[1.6, 0.12, 1 / 3]} map={timber} />)}
     {[-9.15, -7.45].map(x => <group key={x}>
       <Box p={[x, 2.62, 1]} s={[0.06, 0.06, 6.8]} color="#514536" rot={[Math.atan(0.5), 0, 0]} />
@@ -80,7 +96,6 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-11.15, 4.12, -1.95]} s={[3.7, 0.08, 0.08]} color="#514536" />
     {[-12.9, -12, -11, -10, -9.4].map(x => <Box key={x} p={[x, 3.62, -1.95]} s={[0.06, 1, 0.06]} color="#514536" />)}
     <Box p={[-11.8, 3.55, -4.9]} s={[1.4, 0.65, 1.6]} map={timber} />
-    <Label text="LOFT · ARCHIVE" p={[-11, 4.5, -5.85]} w={2.5} />
     {[[-11, 2.5, 2], [-11, 5.25, -4]].map((p, i) => <pointLight key={i} position={p} color="#ffca81" intensity={power ? 13 : 0} distance={8} decay={2} />)}
   </group>;
 }
@@ -99,7 +114,6 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     <Box p={[(x1 + door.x1) / 2, H / 2, z1]} s={[x1 - door.x1, H, t]} map={wall} color="#fff" />
     <Box p={[(door.x0 + door.x1) / 2, (2.6 + H) / 2, z1]} s={[door.x1 - door.x0, H - 2.6, t]} map={wall} color="#fff" />
     <Box p={[cx, H + 0.1, cz]} s={[x1 - x0 + 0.3, 0.16, d + 0.3]} map={roof} color="#fff" />
-    <Label text="CUSTOMER OFFICE" p={[(door.x0 + door.x1) / 2, 3.2, z1 + 0.12]} w={2.6} />
     {[[x0 - 0.02, 1.2], [x0 - 0.02, 4.3]].map(([x, z], i) => <Box key={i} p={[x, 2.2, z]} s={[0.05, 1.2, 1.6]} color={glass} />)}
     {/* the service counter, beside the widened doorway */}
     <Box p={[counter.x, 0.55, cz0]} s={[0.8, 1.1, cl]} map={timber} />
@@ -119,7 +133,6 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     {[-0.22,0.22].flatMap(x => [-0.35,0.35].map(z => <Box key={x+':'+z} p={[x0+1.7+x,0.19,4.5+z]} s={[0.045,0.38,0.045]} color="#545652" />))}
     {level >= 2 ? <>
       {/* parts room: shelving along both side walls, a supplier desk beside the parts counter */}
-      <Label text="PARTS ROOM" p={[cx, level >= 3 ? 2.6 : 3.4, z0 + 0.12]} w={2.2} />
       {PARTS_ROOM.shelves.map((sh, k) => level >= 3 && k === 0 ? null : <group key={k}>{[0.4, 1.1, 1.8, 2.5].map(y => <Box key={y} p={[sh.x, y, (sh.z0 + sh.z1) / 2]} s={[0.5, 0.06, sh.z1 - sh.z0]} map={timber} />)}
         {[sh.z0, (sh.z0 + sh.z1) / 2, sh.z1].map(z => <Box key={z} p={[sh.x, 1.3, z]} s={[0.5, 2.6, 0.06]} map={timber} color="#76583c" />)}
         {Array.from({ length: 9 }, (_, i) => <Box key={i} p={[sh.x, [0.58, 1.28, 1.98][i % 3], sh.z0 + 0.4 + i * 0.45]} s={[0.36, 0.3, 0.34]} color={['#8d5b39', '#76694f', '#594f3c'][i % 3]} />)}</group>)}
@@ -129,7 +142,6 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
       </>; })()}
     </> : <>
     {/* back room: a desk and filing cabinets */}
-    <Label text="BACK ROOM" p={[cx, 3.4, z0 + 0.12]} w={2.2} />
     <Box p={[x0 + 1.0, 0.75, -4.6]} s={[1.0, 0.07, 1.9]} map={timber} color="#a88a5c" />
     {[-5.5, -3.7].map(z => <Box key={z} p={[x0 + 1.0, 0.36, z]} s={[0.9, 0.72, 0.08]} map={timber} />)}
     {[-5.4, -4.7].map(z => <group key={z} position={[x1-0.5,0,z]}>
@@ -173,7 +185,6 @@ function TeamFloor({ wall, timber, H, power }) {
     <Box p={[cx, y + 0.7, z0 + 0.13]} s={[x1 - x0 - 0.2, 1.4, 0.05]} color="#c8b48c" />
     <Box p={[x1 - 0.13, y + 0.7, -3]} s={[0.05, 1.4, 5.9]} color="#c8b48c" />
     <Box p={[cx, H - 0.06, 0]} s={[x1 - x0 - 0.2, 0.06, z1 - z0 - 0.2]} color="#d6ccb4" />
-    <Label text="TEAM ROOM" p={[-15.0, y + 2.45, z0 + 0.14]} w={1.5} />
     {/* the team table with chairs */}
     <Box p={[tb.x, y + 0.74, tz]} s={[0.9, 0.07, tb.z1 - tb.z0]} map={timber} color="#a88a5c" />
     {[tb.z0 + 0.1, tb.z1 - 0.1].map(z => [-0.35, 0.35].map(dx => <Box key={`${z}${dx}`} p={[tb.x + dx, y + 0.37, z]} s={[0.08, 0.74, 0.08]} map={timber} />))}
@@ -192,7 +203,6 @@ function TeamFloor({ wall, timber, H, power }) {
       <Box p={[fx - 0.01, y + 1.6, bz]} s={[0.05, 1.54, bl]} color="#b89a6a" />
       {[[-4.5, 1.2, 0.9], [-3.3, 1.9, 0.8], [-2.3, 2.1, 1.0], [-4.2, 2.15, 0.7]].map(([z, h, w2], i) => <Box key={i} p={[face, y + h - 0.2, z]} s={[0.02, 0.04, w2]} color={['#a2382c', '#38639f', '#c9a640', '#4d7a4c'][i]} />)}
       {[[-4.6, 1.5], [-3.7, 1.0], [-2.8, 1.55], [-1.9, 1.1]].map(([z, h], i) => <Box key={z} p={[face - 0.005, y + h, z]} s={[0.012, 0.34, 0.26]} color="#e2dac2" rot={[0.04 * (i - 1.5), 0, 0]} />)}
-      <group position={[face - 0.03, y + 2.28, bz]} rotation={[0, -Math.PI / 2, 0]}><Label text="RACE PLANNING" p={[0, 0, 0]} w={1.8} /></group>
     </>; })()}
     {[[x0 - 0.02, -1.2], [x0 - 0.02, -3.2]].map(([x, z], i) => <Box key={i} p={[x, y + 1.5, z]} s={[0.05, 1.1, 1.4]} color="#394848" />)}
     <pointLight position={[cx, y + 2.6, -3.2]} color="#ffca81" intensity={power ? 12 : 0} distance={8} decay={2} />
@@ -212,7 +222,6 @@ function OfficeAnnex({ wall, timber, roof, floor, power }) {
     <Box p={[cx, H + 0.1, cz]} s={[x1 - x0 + 0.3, 0.16, z1 - z0 + 0.3]} map={roof} color="#fff" />
     <Box p={[x0 + 0.5, 0.74, cz]} s={[0.05, 0.74, 1.3]} map={timber} color="#8a6a44" />
     <Box p={[x0 + 0.52, 1.12, cz]} s={[0.9, 0.04, 0.6]} map={timber} color="#a88a5c" />
-    <Label text="BACK OFFICE" p={[cx, H - 0.6, z1 - 0.05]} w={2.2} />
     <pointLight position={[cx, H - 0.8, cz]} color="#ffca81" intensity={power ? 11 : 0} distance={7} decay={2} />
   </group>;
 }

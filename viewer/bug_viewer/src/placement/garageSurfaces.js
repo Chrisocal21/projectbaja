@@ -50,7 +50,7 @@ export function garageSurfaces(props, defs, G, groundY, skipUid = 0) {
   for (const p of props) {
     if (!RACK_PROPS.includes(p.id) || p.uid === skipUid) continue;
     const m = toLocalG(G, p.x, p.z), base = groundY(p.x, p.z) - gy, rotY = (p.ry || 0) - G.rot;
-    if (p.id === 'shelfTires') SHELF.boards.forEach((y, i) => out.push(mk(`Tire shelf ${i + 1}`, garage({ id: rackSurfId(p.uid, i), size: SHELF.size, clearance: SHELF.clearance[i] }), { x: m.lx, y: base + y, z: m.lz, rotY })));
+    if (p.id === 'shelfTires') SHELF.boards.forEach((y, i) => out.push({ ...mk(`Tire shelf ${i + 1}`, garage({ id: rackSurfId(p.uid, i), size: SHELF.size, clearance: SHELF.clearance[i] }), { x: m.lx, y: base + y, z: m.lz, rotY }), defaultPose: 'upright' }));
     else out.push(mk('Tire stack', garage({ id: rackSurfId(p.uid, 0), size: STACK.size, clearance: STACK.clearance }), { x: m.lx, y: base + STACK.top, z: m.lz, rotY }));
   }
   return out;
