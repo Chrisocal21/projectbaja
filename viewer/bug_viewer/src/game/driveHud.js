@@ -8,7 +8,8 @@ export function driveHudHtml(o) {
   const sp = o.topMph > 0 ? o.mph / o.topMph : 0, rv = o.gear && o.redline ? o.rpm / o.redline : 0, hot = rv > 0.92;
   const fuelPct = o.tank > 0 ? Math.max(0, Math.min(100, (o.fuel / o.tank) * 100)) : 0;
   const chips = [[o.surface, ''], ...(o.flags || [])].filter(c => c[0]).map(([t, l]) => `<span class="dg-chip ${l || ''}">${t}</span>`).join('');
-  return `<div class="dg"><svg viewBox="0 0 200 200">${track}${arc(sp, 'dg-speed')}${o.gear ? `<circle class="dg-track in" cx="100" cy="100" r="68" stroke-dasharray="${(SWEEP * 0.85).toFixed(1)} ${ARC.toFixed(1)}" transform="rotate(135 100 100) scale(1)"/>` : ''}</svg>`
-    + `<div class="dg-c"><b>${Math.round(o.mph)}</b><i>MPH</i>${o.gear ? `<em class="${hot ? 'red' : ''}">G${o.gear}</em>` : ''}</div>${o.gear ? `<div class="dg-rev${hot ? ' red' : ''}"><u style="width:${Math.round(Math.min(1, rv) * 100)}%"></u></div>` : ''}</div>`
+  const n = String(Math.round(o.mph)).padStart(3, '0'), z = n.match(/^0*/)[0].length >= 3 ? 2 : n.match(/^0*/)[0].length, num = `<s>${n.slice(0, z)}</s>${n.slice(z)}`;   // Forza style: three digits, the leading zeros dimmed
+  return `<div class="dg"><svg viewBox="0 0 200 200">${track}${o.gear ? arc(rv, `dg-speed dg-rev${hot ? ' red' : ''}`) : ''}</svg>${o.gear ? `<div class="dg-gear${hot ? ' red' : ''}">${o.gear}</div>` : ''}`
+    + `<div class="dg-c"><b>${num}</b><i>MPH</i></div></div>`
     + `<div class="dg-side"><div class="dg-fuel${fuelPct < 15 ? ' low' : ''}"><small>FUEL</small><i><b style="width:${fuelPct.toFixed(0)}%"></b></i><em>${Math.round(o.fuel)} L${o.fuelWord ? ' ' + o.fuelWord : ''}</em></div><div class="dg-chips">${chips}</div><div class="dg-foot">${o.foot || ''}</div></div>`;
 }
