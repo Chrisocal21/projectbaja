@@ -70,7 +70,7 @@ const NEEDS = [
   ['carb', 'There is no carburetor on the engine: no fuel gets in.', 'The carburetor is shot (%): it floods and will not draw fuel.'],
   ['coil', 'There is no ignition coil on the engine: no spark.', 'The ignition coil is shot (%): no spark.'],
   ['distributor', 'There is no distributor on the engine: no spark gets to the plugs.', 'The distributor is shot (%): the spark goes nowhere.'],
-  ['plugs', 'There are no spark plugs in the engine: no spark.', 'The spark plugs are fouled (%): they will not fire.'],
+  ['plugs', 'There are no spark plugs in the engine: no spark. A new set can be ordered on the phone (Internet, Supplies).', 'The spark plugs are fouled (%): they will not fire.'],
   ['intakeManifold', 'There is no intake manifold: the carburetor has nothing to sit on and no air gets in.', 'The intake manifold is cracked (%): it sucks air and will not idle.', 1],
   ['oilFilter', 'There is no oil filter: the oil would pump straight onto the floor.', 'The oil filter is clogged (%): the engine would starve for oil.', 1],
   ['valveCoverL', 'The left valve cover is off: oil would spray everywhere.', 'The left valve cover is cracked (%): it pours oil.', 1],

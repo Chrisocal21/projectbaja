@@ -12,10 +12,11 @@ export const LOOSE = ['engine', 'battery', 'wheelFL', 'wheelFR', 'wheelRL', 'sea
 export const apartSlots = () => BUG.slots.filter(s => LOOSE.includes(s.id));
 /** the car with every part off (the body shell stays: it only lifts off a stripped car on the hoist) */
 export const apartBuild = b => apartSlots().reduce((n, s) => withSlot(BUG, n, s.id, false), b);
+const noPlugs = p => { const o = { ...p }; delete o.plugs; return o; };
 /** the loose part for each slot: [kind, id, extra] */
 export function apartItems(rng = Math.random) {
   return apartSlots().map(s => s.wheel ? ['stock', 'wheel', { set: 'stock' }]
-    : s.id === 'engine' ? ['stock', 'engine', { parts: freshParts(rng) }]
+    : s.id === 'engine' ? ['stock', 'engine', { parts: noPlugs(freshParts(rng)) }]   // Walt pulled the plugs: ordering a new set is the first order
     : s.id === 'battery' ? ['stock', 'battery', { charge: 0.1 }]   // dead flat: the charger is the lesson
     : ['stock', s.id]);
 }
@@ -59,7 +60,13 @@ export function tipFor(slot, b) {
   return `Click it to pick it up, go to ${WHERE[slot.zone] || 'the car'} and hold left click on the car to bolt it on${tool}.${lid}`;
 }
 /** the next thing to fit, as a short hint: the drive parts first, then the body. null when the car is whole. */
-export function nextStep(b) {
+export const PLUGS_TIP = "She has no spark plugs: Walt pulled them. Order a set on your phone (Internet, Supplies tab). They get dropped off inside the garage door. Put the engine on the engine stand, set the plugs beside it and fit them, then hoist the engine in.";
+/** eng: the loose engine item, if any (to see whether its plugs are in) */
+export function nextStep(b, eng) {
+  const n = nextStepOf(b);
+  return n && n.slot.id === 'engine' && eng?.parts && !eng.parts.plugs ? { ...n, tip: PLUGS_TIP } : n;
+}
+function nextStepOf(b) {
   const order = s => (['start', 'steer', 'drive', 'grip'].includes(s.fn) ? 0 : 1);
   const open = BUG.slots.filter(s => !isFitted(BUG, b, s.id) && checkFit(BUG, b, s, {}).code !== 'blocked').sort((a, c) => order(a) - order(c));
   const fitted = BUG.slots.filter(s => isFitted(BUG, b, s.id)).length;

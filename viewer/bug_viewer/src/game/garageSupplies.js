@@ -10,6 +10,7 @@ export const SUPPLIES = {
 export const GARAGE_SUPPLIES = [
   ...Object.entries(SUPPLIES).map(([id, s]) => ['supply:' + id, s.name, s.price, 'supplies', 'for customer jobs']),
   ['stock:battery', '12V car battery', 60, 'supplies', 'fits the Bug; the El Cajon has its own'],
+  ['epart:plugs', 'Spark plugs (set of 4)', 16, 'supplies', "new, for the Bug's engine; dropped off at the garage door"],
   ['tool:wrench', 'Wrench', 15, 'tools', 'bolts most things on and off'],
   ['tool:jack', 'Floor jack', 90, 'tools', 'change tires anywhere'],
 ];

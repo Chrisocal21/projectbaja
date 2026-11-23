@@ -92,7 +92,7 @@ function takeOnto(it) {
 }
 const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — right-click to put that down.');
 
-export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry }); commit(); }
+export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry, ...(kind === 'epart' ? { cond: 100 } : {}) }); commit(); }   // a bought engine piece is new
 const near = (d = 1.4, jitter = 0.5) => ({ x: game.pos.x + game.face.x * d + (Math.random() - 0.5) * jitter, z: game.pos.z + game.face.z * d + (Math.random() - 0.5) * jitter });
 export function dropNearPlayer(kind, id, extra = {}) {
   const t = activeType(), car = [...(game.pose && t ? [{ x: game.pose.x, z: game.pose.z, h: game.pose.h, width: t.width, length: t.length }] : []), ...(game.projects || []).map(p => { const d = defOf(p); return { x: p.pose.x, z: p.pose.z, h: p.pose.h, width: d.width, length: d.length }; })];   // not under the car you drive, nor under any project

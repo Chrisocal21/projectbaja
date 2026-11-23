@@ -40,4 +40,7 @@ test('each next step carries a how-to line, with the special cases for the engin
   assert.match(tipFor(slot('doorL'), b), /driver's door.*bolt it on/); assert.match(tipFor(slot('plate'), b), /back of the car/);
   assert.match(tipFor(slot('dash'), whole), /Click it/); assert.match(tipFor(slot('steering'), { ...whole }), /Open the driver's door first/);
   assert.ok(nextStep(b).tip.length > 20);
+  const eng = { parts: apartItems(() => 0.5).find(i => i[1] === 'engine')[2].parts };
+  assert.equal(eng.parts.plugs, undefined, 'the engine starts with no plugs'); assert.match(nextStep(b, eng).tip, /Order a set/);
+  assert.doesNotMatch(nextStep(b, { parts: { ...eng.parts, plugs: { c: 100 } } }).tip, /Order/);
 });
