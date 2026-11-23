@@ -16,7 +16,7 @@ const BOX = { x0: -20000, x1: 28000, z0: -8000, z1: 52000 };
 const point = (x, z) => [(x - BOX.x0) / (BOX.x1 - BOX.x0) * WIDTH, (z - BOX.z0) / (BOX.z1 - BOX.z0) * HEIGHT];
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const MAIN_ROADS = new Set(['I-5', 'I-8', 'I-10', 'I-15', 'US-101', 'CA-86', 'CA-111', 'Mex 1', 'Mex 1D', 'Mex 2', 'Mex 2D', 'Mex 5']);
-const C = { land: [228, 220, 200], water: [126, 164, 190], ink: '#2f3640', halo: '#f1ebdc', major: '#ffffff', majorEdge: '#8d8470', minor: '#fbf7ec', dirt: '#b98a4e', pink: '#ff3fa4', score: '#e8742a', mdr: '#8a5cc2' };
+const C = { land: [215, 204, 176], water: [66, 122, 151], ink: '#1a3039', halo: '#f0e5cb', major: '#f9f7e9', majorEdge: '#52616a', minor: '#e9e4d4', dirt: '#ad7650', pink: '#ff4aa8', score: '#e8742a', mdr: '#8a5cc2' };
 const SERIES_COLOR = { SCORE: C.score, MDR: C.mdr };
 // US - Mexico border, the real line through San Ysidro, Calexico and the Colorado River (lon, lat): drawn dashed, with the country names either side
 const BORDER = [[-117.12, 32.534], [-117.03, 32.543], [-115.5, 32.67], [-114.72, 32.718]];
@@ -35,7 +35,7 @@ function backdrop() {
       const slope = clamp((land.heightAt(x - 110, z - 110) - land.heightAt(x + 110, z + 110)) / 120, -1, 1);
       const k = (py * BW + px) * 4;
       if (water) { const depth = clamp(-h / 400, 0, 1); d[k] = C.water[0] - depth * 22; d[k + 1] = C.water[1] - depth * 20; d[k + 2] = C.water[2] - depth * 14; }
-      else { const high = clamp(h / 900, 0, 1), light = slope * 22; d[k] = C.land[0] - high * 38 + light; d[k + 1] = C.land[1] - high * 40 + light; d[k + 2] = C.land[2] - high * 44 + light; }
+      else { const high = clamp(h / 900, 0, 1), light = slope * 30, grain = (Math.sin(x * .018) * Math.cos(z * .024)) * 2.5; d[k] = C.land[0] - high * 62 + light + grain; d[k + 1] = C.land[1] - high * 67 + light + grain; d[k + 2] = C.land[2] - high * 64 + light + grain; }
       d[k + 3] = 255;
     }
     g.putImageData(image, 0, 0);
@@ -74,13 +74,30 @@ export default function WestCoastMap() {
         if (zoom < 5 && r.kind === 'secondary' && !MAIN_ROADS.has(r.name)) continue;
         const w = (r.kind === 'major' ? 3.6 : r.kind === 'secondary' ? 2.4 : 1.6) * K;
         const dirt = r.kind === 'dirt', hidden = dirt ? undefined : p => highways().higherRoadAt(p.x, p.z, r), step = dirt ? 1 : 2;
-        roadLine(r.pts, dirt ? '#7a5a2c' : C.majorEdge, w + 1.6 * K, step, hidden);
+        roadLine(r.pts, dirt ? '#5a4234' : C.majorEdge, w + 1.8 * K, step, hidden);
         roadLine(r.pts, dirt ? C.dirt : r.kind === 'major' ? C.major : C.minor, w, step, hidden);
       }
       if (zoom >= 8) {
         for (const r of ROADS) {
           g.beginPath(); let started = false; r.path.pts.forEach((p, i) => { if (i % 6) return; if ((r.kind === 'dirt' || r.kind === 'gravel') && pavedRoadAt(p.x, p.z, 4)) { started = false; return; } const [a, b] = point(p.x, p.z); if (started) g.lineTo(a, b); else { g.moveTo(a, b); started = true; } });
-          g.lineJoin = g.lineCap = 'round'; g.strokeStyle = C.majorEdge; g.lineWidth = 5 * K / z1; g.stroke(); g.strokeStyle = r.kind === 'highway' ? C.major : C.minor; g.lineWidth = (r.kind === 'highway' ? 3 : 2) * K / z1; g.stroke();
+          const loose = r.kind === 'dirt' || r.kind === 'gravel';
+          g.lineJoin = g.lineCap = 'round'; g.strokeStyle = loose ? '#5a4234' : C.majorEdge; g.lineWidth = 5 * K / z1; g.stroke(); g.strokeStyle = loose ? C.dirt : r.kind === 'highway' ? C.major : C.minor; g.lineWidth = (r.kind === 'highway' ? 3 : 2.5) * K / z1; g.stroke();
+        }
+      }
+      // One shield per named main route keeps orientation clear without repeating
+      // labels across every road segment in the data set.
+      if (zoom >= 3 && zoom <= 11) {
+        const shields = new Map();
+        for (const r of network) if (MAIN_ROADS.has(r.name) && r.pts?.length > 8) {
+          const old = shields.get(r.name); if (!old || r.pts.length > old.pts.length) shields.set(r.name, r);
+        }
+        for (const [name, r] of shields) {
+          const p = r.pts[Math.floor(r.pts.length * .5)], [a, b] = point(p.x, p.z), sx = a * z1 + ox, sy = b * z1 + oy;
+          if (sx < 290 || sx > vp.w - 70 || sy < 85 || sy > vp.h - 70) continue;
+          const iw = Math.max(34, name.length * 8 + 14) * K / z1, ih = 21 * K / z1;
+          g.fillStyle = '#f8f7ed'; g.strokeStyle = '#41535e'; g.lineWidth = 2 * K / z1;
+          g.beginPath(); g.roundRect(a - iw / 2, b - ih / 2, iw, ih, 5 * K / z1); g.fill(); g.stroke();
+          g.fillStyle = '#263c49'; g.font = `800 ${12 * K / z1}px "Barlow Condensed", sans-serif`; g.textAlign = 'center'; g.fillText(name, a, b + 4 * K / z1);
         }
       }
       const meta = border()?.meta;
@@ -124,7 +141,7 @@ export default function WestCoastMap() {
       // the route and the waypoint
       const rt = routeNow(game.pos.x, game.pos.z, performance.now());
       if (rt) {
-        g.beginPath(); rt.pts.forEach((p, i) => { const [a, b] = point(p.x, p.z); if (i) g.lineTo(a, b); else g.moveTo(a, b); }); g.lineJoin = g.lineCap = 'round'; if (rt.straight) g.setLineDash([9 * K / z1, 7 * K / z1]); g.strokeStyle = C.pink; g.lineWidth = 4 * K / z1; g.stroke(); g.setLineDash([]);
+        g.beginPath(); rt.pts.forEach((p, i) => { const [a, b] = point(p.x, p.z); if (i) g.lineTo(a, b); else g.moveTo(a, b); }); g.lineJoin = g.lineCap = 'round'; if (rt.straight) g.setLineDash([9 * K / z1, 7 * K / z1]); g.strokeStyle = '#521c42'; g.lineWidth = 9 * K / z1; g.stroke(); g.strokeStyle = C.pink; g.lineWidth = 5 * K / z1; g.stroke(); g.setLineDash([]);
         const [a, b] = point(rt.wp.x, rt.wp.z), r = 9 * K / z1; g.fillStyle = C.pink; g.strokeStyle = '#fff'; g.lineWidth = 2.4 * K / z1; g.beginPath(); g.arc(a, b - r * 1.6, r, Math.PI * 0.8, Math.PI * 2.2); g.lineTo(a, b); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(a, b - r * 1.6, r * 0.38, 0, 7); g.fill();
       }
       const [a, b] = point(game.pos.x, game.pos.z), yaw = game.onFoot ? Math.atan2(game.face.x, game.face.z) : game.pose?.h || 0;

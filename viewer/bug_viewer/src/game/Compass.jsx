@@ -28,7 +28,7 @@ export default function Compass() {
   { const w = where.current, now = performance.now(); if (now - w.t > 500) { w.t = now; try { w.v = whereAmI(game.pos.x, game.pos.z); } catch { w.v = { place: '', road: '' }; } } }
   const hd = headingNow(), known = discovered(game.home), px = d => W / 2 + relative(hd, d) * PX;
   const ticks = []; for (let d = 0; d < 360; d += 15) if (Math.abs(relative(hd, d)) < SPAN / 2) ticks.push(d);
-  return <><div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', width: W, height: 46, pointerEvents: 'none', color: 'var(--hud-text)', background: 'var(--hud-bg)', border: '1px solid var(--hud-line)', overflow: 'hidden', zIndex: 5, WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent)', maskImage: 'linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent)' }}>
+  return <><div className="hud-compass" style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', width: W, height: 46, pointerEvents: 'none', color: 'var(--hud-text)', overflow: 'hidden', zIndex: 5, WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent)', maskImage: 'linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent)' }}>
     {ticks.map(d => { const card = d % 45 === 0; return <React.Fragment key={d}>
       <i style={{ position: 'absolute', left: px(d), top: card ? 4 : 8, width: 1, height: card ? 9 : 5, background: card ? 'var(--hud-text)' : 'var(--hud-dim)' }} />
       {card && <span style={{ ...txt, left: px(d), top: 16, color: d % 90 === 0 ? 'var(--hud-acc)' : 'var(--hud-text)', fontSize: d % 90 === 0 ? 15 : 12 }}>{compassPoint(d)}</span>}
