@@ -129,3 +129,6 @@ Chris looked at the tires on the blue tire shelves (the Bug's four wheels and th
 
 ## Race-mile markers (Claude, Nov 22)
 - `worlds/RaceMarkers.jsx` now also draws a `MileMarkers` board at every 1609 m along each race route (the whole line, paved and dirt): the course name and "MILE 12 · 31 LEFT", on the shoulder, facing a driver going the race direction. Wood posts for MDR, steel for SCORE, same as the start signs. Built only within 700 m of the camera. Placement math is `mileMarkers` in `worlds/raceCourses.js` (tested). Not checked by eye; the board is the same stock sign texture, so any look pass you do on the start and finish signs should carry over.
+
+## Paintable bumpers and roof (Claude, Nov 22)
+The hands-on finish tools (grinder, spray cans, buffer, hose; `src/finishJobs.js`) work on body pieces whose material is body paint (`B_Body_*` in the car GLB). The front and rear **bumpers** (`B_FrontBumper`, `B_BackBumper`) are chrome trim, so a finish would not show on them, and the **roof** is not a separate piece (it is part of the shell). If you rework the Bug body model: please give the roof its own named mesh (e.g. `B_Body_Roof`) and, if bumpers should be paintable, a painted-metal material on them. Tell Claude the final names and it adds the piece ids to `src/catalog/bodies.json` and `isBodyPanelSlot`.
