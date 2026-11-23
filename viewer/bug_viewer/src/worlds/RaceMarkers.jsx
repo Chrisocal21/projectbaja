@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { raceCourses, groundHeight, highways } from './county.js';
 import { border } from './border.js';
-import { pointsAlong } from './raceCourses.js';
+import { pointsAlong, mileMarkers } from './raceCourses.js';
 import MergedStatic from './MergedStatic.jsx';
 import { nearestRaceRoad, raceShoulder } from './raceFixtures.js';
-import { raceSignTexture } from './raceSignTexture.js';
+import { raceSignTexture, roadsideBoardTexture } from './raceSignTexture.js';
 
 const CHECKPOINT_EVERY = 1200, NEAR = 900;
 
@@ -55,7 +55,36 @@ function CourseMarkers({ course, network }) {
   </MergedStatic></group>;
 }
 
+/** the race-mile boards along a route, like the real races have: the course name, "MILE 12 · 31 LEFT", on the shoulder facing the driver. Only the ones within 700 m are built. */
+function MileMarkers({ course, network }) {
+  const { camera } = useThree(), tick = useRef(0), cache = useRef(new Map()), [shown, setShown] = React.useState([]);
+  const marks = useMemo(() => {
+    const waterAt = (x, z) => border().waterAt(x, z);
+    return mileMarkers(course.line).map(m => {
+      const q = network.near(m.x, m.z), half = q && q.d < 40 ? q.road.style.half : 5;
+      const at = raceShoulder({ ...m, half }, network, waterAt, groundHeight, 1, 2);
+      return at ? { ...m, ...at, h: m.h + Math.PI } : null;   // turned to face the driver
+    }).filter(Boolean);
+  }, [course, network]);
+  useEffect(() => () => { for (const t of cache.current.values()) t.dispose(); cache.current.clear(); }, []);
+  useFrame((_, dt) => {
+    tick.current += dt; if (tick.current < 1) return; tick.current = 0;
+    const { x, z } = camera.position, next = marks.filter(m => (m.x - x) ** 2 + (m.z - z) ** 2 < 700 * 700);
+    if (next.length !== shown.length || next.some((m, i) => m !== shown[i])) setShown(next);
+  });
+  const wood = course.series === 'MDR';
+  return <>{shown.map(m => {
+    const key = course.id + m.mile; let map = cache.current.get(key);
+    if (!map) { map = roadsideBoardTexture(course.name, `MILE ${m.mile} · ${m.left} LEFT`, wood); cache.current.set(key, map); }
+    return <group key={key} position={[m.x, m.y, m.z]} rotation={[0, m.h, 0]} scale={0.62}>
+      {[-1.35, 1.35].map(x => <mesh key={x} position={[x, 1.65, 0]} castShadow><boxGeometry args={[wood ? 0.18 : 0.11, 3.3, wood ? 0.18 : 0.11]} /><meshStandardMaterial color={wood ? '#796244' : '#807d72'} metalness={wood ? 0 : 0.5} roughness={0.8} /></mesh>)}
+      <mesh position={[0, 2.7, 0.07]} castShadow><boxGeometry args={[3.4, 1.55, 0.09]} /><meshStandardMaterial map={map} roughness={0.86} /></mesh>
+      <mesh position={[0, 2.7, -0.015]}><boxGeometry args={[3.48, 1.63, 0.05]} /><meshStandardMaterial color={wood ? '#6e593e' : '#746f5f'} roughness={0.9} /></mesh>
+    </group>;
+  })}</>;
+}
+
 export default function RaceMarkers() {
   const courses = useMemo(() => raceCourses(), []), network = useMemo(() => highways(), []);
-  return network ? <>{courses.map(course => <CourseMarkers key={course.id} course={course} network={network} />)}</> : null;
+  return network ? <>{courses.map(course => <React.Fragment key={course.id}><CourseMarkers course={course} network={network} /><MileMarkers course={course} network={network} /></React.Fragment>)}</> : null;
 }

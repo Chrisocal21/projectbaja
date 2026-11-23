@@ -196,3 +196,12 @@ export function pointsAlong(line, spacing) {
   }
   return out;
 }
+
+/** a race mile in game metres, and the markers along a route: one at every mile with its number and how many miles are left, facing the driver coming along it.
+ * line: [[x, z], ...] the whole route; returns [{ x, z, h, mile, left }] (h: the direction of travel, forward = (sin h, cos h)). The route's very start and end have their own signs. */
+export const RACE_MILE = 1609;
+export function mileMarkers(line, mile = RACE_MILE) {
+  let total = 0; for (let i = 1; i < line.length; i++) total += hyp(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]);
+  const pts = pointsAlong(line, mile), n = Math.round(total / mile * 10) / 10;
+  return pts.filter(p => (pts.indexOf(p) + 1) * mile < total - mile * 0.25).map((p, i) => ({ ...p, mile: i + 1, left: Math.max(1, Math.round(total / mile - (i + 1))) }));
+}

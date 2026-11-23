@@ -74,3 +74,13 @@ test('pointsAlong puts a point every spacing metres, facing the way the line run
   assert.ok(Math.abs(p[2].x - 1000) < 1e-6 && Math.abs(p[2].z - 200) < 1e-6 && Math.abs(p[2].h) < 1e-9);
   assert.deepEqual(pointsAlong([[0, 0], [100, 0]], 400), []);
 });
+
+import { mileMarkers, RACE_MILE } from './raceCourses.js';
+test('mileMarkers numbers every mile along a route, counts down what is left, and keeps clear of the end', () => {
+  const m = mileMarkers([[0, 0], [RACE_MILE * 5.5, 0]]);
+  assert.deepEqual(m.map(q => q.mile), [1, 2, 3, 4, 5]);
+  assert.deepEqual(m.map(q => q.left), [5, 4, 3, 2, 1]);   // 5.5 miles in all
+  assert.ok(Math.abs(m[0].x - RACE_MILE) < 1 && Math.abs(m[0].h - Math.PI / 2) < 1e-6);
+  assert.equal(mileMarkers([[0, 0], [1000, 0]]).length, 0);   // shorter than a mile: none
+  assert.equal(mileMarkers([[0, 0], [RACE_MILE * 3.1, 0]]).length, 2);   // the last mark would sit right by the finish sign: dropped
+});
