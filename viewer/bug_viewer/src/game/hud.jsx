@@ -63,7 +63,7 @@ export function BuildHint() {
   useGame();
   if (!game.onFoot || game.buildMode || game.dev || !game.build) return null;
   const n = nextStep(game.build, game.items.find(i => i.kind === 'stock' && i.id === 'engine' && i.loc !== 'car')); if (!n) return null;
-  return <div style={{ position: 'fixed', top: 96, left: '50%', transform: 'translateX(-50%)', background: '#000a', color: '#f3e6c4', padding: '4px 12px', borderRadius: 4, fontSize: 13, pointerEvents: 'none', zIndex: 5 }}>{n.text}<div style={{ fontSize: 11, opacity: 0.8, marginTop: 2, maxWidth: 520, textAlign: 'center' }}>{n.tip}</div></div>;
+  return <div className="hud-guide"><small>ASSEMBLY</small><b>{n.text.replace('Putting her back together: ', '')}</b><p>{n.tip}</p><div className="bar"><i style={{ width: `${(n.fitted / n.total) * 100}%` }} /></div></div>;
 }
 
 export function Crosshair() {

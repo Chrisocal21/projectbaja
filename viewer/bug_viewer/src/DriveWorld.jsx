@@ -2,6 +2,7 @@ import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef 
 import { activeBuild } from './game/lights.js';
 import { wearMods, FRESH, onLanding, onBottomOut, onHit, drive, effects, clues } from './wear.js';
 import { bugAsleep } from './game/home.js';
+import { driveHudHtml } from './game/driveHud.js';
 import { startFuel, tankOf, burn, throttleCap, gaugeWord } from './rules/fuel.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, useGame, say } from './game/store.js';
@@ -399,7 +400,16 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
     { const st = s.current; updateAudio({ on: !game.onFoot && !game.paused && !game.travelling, rpm: st.rpm, throttle: st.thr || 0, speed: st.v, slip: Math.min(1, st.slip || 0), loose: dustiness(st.sfKey), air: st.air, wade: st.wade || 0 }); }
-    if (hud.current) { const html = game.onFoot ? '' : `<b>${Math.round(Math.abs(st.v) * 2.23694)}</b><i>MPH</i><small>top ${Math.round(MAXV * 2.23694)} · FUEL ${Math.round(FUEL[game.active] ?? 0)} L${gaugeWord(FUEL[game.active] ?? 0, tankOf(game.active)) ? ' ' + gaugeWord(FUEL[game.active] ?? 0, tankOf(game.active)) : ''} · ${st.surface}${st.slip > 0.14 ? ' · SLIDING' : ''}${st.air ? ' · AIRBORNE' : ''}${st.rolled ? ' · ROLLED (R to stand it up)' : ''}${st.impactT > 0 ? (st.impact > 8 ? ' · HARD LANDING' : ' · LANDED') : ''}${st.bottomT > 0 ? ' · BOTTOMED OUT' : ''}${st.wade > 0.05 ? ' · WADING ' + Math.round(st.wade * 100) + ' cm' : st.wetT > 0 ? ' · WET BRAKES' : ''}${st.drown > 0 ? ' · ENGINE DROWNED' : ''}${st.gear ? ' · G' + st.gear + ' ' + Math.round(st.rpm / 100) * 100 + ' rpm' : ''}${st.engHot ? (st.engDerate < 1 ? ' · ENGINE OVERHEATING: LOSING POWER' : ' · ENGINE HOT: ease off, keep moving for air') : ''}` + (GATES.length ? `  |  Gate ${rc.next + 1}/${GATES.length}  ${rc.t.toFixed(1)}s  |  Best ${f(rc.best)}${rc.flash > 0 ? `  |  LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `  |  ${world.area(st.x, st.z)}${game.dev ? '  |  keys 0-9 - = [ ] teleport' : ''}`) + '</small>'; if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; } }
+    if (hud.current) {
+      const fu = FUEL[game.active] ?? 0, fw = gaugeWord(fu, tankOf(game.active)), fl = [];
+      if (st.slip > 0.14) fl.push(['SLIDING', 'warn']); if (st.air) fl.push(['AIRBORNE', '']); if (st.rolled) fl.push(['ROLLED: R to stand up', 'bad']);
+      if (st.impactT > 0) fl.push([st.impact > 8 ? 'HARD LANDING' : 'LANDED', st.impact > 8 ? 'bad' : '']); if (st.bottomT > 0) fl.push(['BOTTOMED OUT', 'warn']);
+      if (st.wade > 0.05) fl.push(['WADING ' + Math.round(st.wade * 100) + ' cm', 'warn']); else if (st.wetT > 0) fl.push(['WET BRAKES', 'warn']); if (st.drown > 0) fl.push(['ENGINE DROWNED', 'bad']);
+      if (st.engHot) fl.push([st.engDerate < 1 ? 'OVERHEATING: LOSING POWER' : 'ENGINE HOT: ease off', st.engDerate < 1 ? 'bad' : 'warn']);
+      const foot = GATES.length ? `Gate ${rc.next + 1}/${GATES.length} &nbsp; ${rc.t.toFixed(1)}s &nbsp; Best ${f(rc.best)}${rc.flash > 0 ? ` &nbsp; LAP ${f(rc.last)}${rc.last === rc.best ? ' NEW BEST!' : ''}` : ''}` : `${world.area(st.x, st.z)}${game.dev ? ' | keys 0-9 - = [ ] teleport' : ''}`;
+      const html = game.onFoot ? '' : driveHudHtml({ mph: Math.abs(st.v) * 2.23694, topMph: MAXV * 2.23694, gear: st.gear, rpm: st.rpm, redline: 5600, fuel: fu, tank: tankOf(game.active), fuelWord: fw, surface: st.surface, flags: fl, foot });
+      if (hud.current.__h !== html) { hud.current.__h = html; hud.current.innerHTML = html; }
+    }
   };
   // fixed 120 Hz physics: frame-rate independent springs/tires; at most 5 catch-up steps per frame (no spiral of death)
   const acc = useRef(0);

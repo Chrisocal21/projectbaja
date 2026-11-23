@@ -61,7 +61,7 @@ export function PhonePanel({ onResume, onSettings, onWiki, onUpgrades, onMap, on
       : story ? <StoryLog view={story} setView={setStory} />
       : saveView ? <div className="phone-soon"><h3>Save</h3><SaveTools /><AccountBox /><button onClick={() => setSaveView(false)}>Back</button></div>
       : soon ? <div className="phone-soon"><div className="ph-ico"><Ico d={ICONS[soon.key]} /></div><h3>{soon.label}</h3><p>{SOON[soon.key] || 'Coming soon'}</p><small>Placeholder: not built yet</small><button onClick={() => setSoon(null)}>Back</button></div>
-      : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
+      : <div className="phone-grid">{apps.map(a => <button key={a.key} className={`ph-app k-${a.key}${a.soon ? ' soon' : ''}`} onClick={() => a.soon ? setSoon(a) : a.fn()}><span className="ph-ico"><Ico d={ICONS[a.key]} /></span><span>{a.label}</span>{a.sub && <small>{a.sub}</small>}</button>)}</div>}
     {teleports?.length > 0 && !soon && !adminView && !explorerView && !camView && !wxView && !carsView && !ordersView && !saveView && !story && !jobsView && !bankView && !netView && <details className="phone-tp"><summary>Testing teleport (developer)</summary>{teleports.map(t => <button key={t.key} onClick={() => onTeleport(t.key)}>{t.key} · {t.name}</button>)}</details>}
     <button className="phone-home" onClick={onResume}>Close (P)</button><div className="phone-pill" />
   </div></div>;
