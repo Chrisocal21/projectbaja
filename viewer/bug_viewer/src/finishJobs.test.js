@@ -52,3 +52,9 @@ test('body panels are steel, start painted, rust only after grinding and waiting
   assert.ok(el.some(([k]) => k === 'up:hood') && !el.some(([k]) => k === 'doorR') && el.some(([k]) => k === 'doorL'));
   const d = dirtyVehicle({}, 'bug', el, 0.2); assert.equal(d.finish.bug.doorL.dirt, 0.2); assert.equal(stepJob('hose', d.finish.bug.doorL, 0.1).ok, true);
 });
+import { canLeft, canTag, CAN_SECS } from './finishJobs.js';
+test('a spray can runs out: new, part used, empty; other tools never do', () => {
+  assert.equal(canLeft({ id: 'spray-red' }), CAN_SECS); assert.equal(canTag({ id: 'spray-red' }), '');
+  assert.equal(canTag({ id: 'spray-red', paint: CAN_SECS / 4 }), ' · 25% left'); assert.equal(canTag({ id: 'spray-red', paint: 0 }), ' · empty');
+  assert.equal(canLeft({ id: 'hose' }), Infinity); assert.equal(canTag({ id: 'grinder', paint: 0 }), '');
+});

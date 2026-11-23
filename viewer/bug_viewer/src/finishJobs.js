@@ -13,6 +13,12 @@ export const CANS = { 'spray-white': ['White spray paint', '#f2f2ee'], 'spray-re
 for (const [id, [name, color]] of Object.entries(CANS)) FINISH_TOOLS[id] = { name, size: 1, verb: 'Spraying', secs: 3, color, rule: (p, w) => paint(p, w, color) };
 
 export const isFinishTool = id => !!FINISH_TOOLS[id];
+/** A spray can holds four full coats' worth of spraying (CAN_SECS seconds of holding); a new can has `paint` unset. PROPOSAL: tune by feel. */
+export const CAN_SECS = FINISH_TOOLS['spray-white'].secs * 4;
+export const isCan = id => !!CANS[id];
+export const canLeft = it => (it && isCan(it.id) ? Math.max(0, it.paint ?? CAN_SECS) : Infinity);
+/** how a can reads in a name: "" when new, " · 40% left", " · empty" */
+export const canTag = it => { if (!it || !isCan(it.id) || it.paint === undefined) return ''; const l = canLeft(it); return l <= 0.001 ? ' · empty' : ` · ${Math.max(1, Math.round(l / CAN_SECS * 100))}% left`; };
 /** TOOLS entries (name, size) for game/items.js */
 export const FINISH_TOOL_ITEMS = Object.fromEntries(Object.entries(FINISH_TOOLS).map(([id, t]) => [id, { name: t.name, size: t.size }]));
 

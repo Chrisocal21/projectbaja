@@ -5,7 +5,7 @@ import { toolInHand } from './items.js';
 import { partById, bodyById } from '../build.js';
 import { defOfBuild } from '../rules/vehicles.js';
 import { newPanel } from '../rules/finish.js';
-import { FINISH_TOOLS, isFinishTool, stepJob, getFinish, setFinish, isBodyPanelSlot, bodySeed } from '../finishJobs.js';
+import { FINISH_TOOLS, isFinishTool, canLeft, isCan, CAN_SECS, stepJob, getFinish, setFinish, isBodyPanelSlot, bodySeed } from '../finishJobs.js';
 
 let timer = 0, last = 0, worked = 0;
 
@@ -39,12 +39,16 @@ export function startFinish() {
   if (tg.why) { say(tg.why); return true; }
   const first = stepJob(tool.id, getFinish(game.home, tg.vehId, tg.key) || tg.seed(), 0.01, tg.base);
   if (!first.ok) { say(first.why); return true; }
+  if (canLeft(tool) <= 0.001) { say('That can is empty. Dusty sells more.'); return true; }
   last = performance.now(); worked = 0; game.holdBar = { t0: last, dur: 1e9, label: `${first.verb} the ${tg.name}…`, frac: 0, work: true };
   timer = setInterval(() => {
-    const now = performance.now(), dt = Math.min(0.25, (now - last) / 1000); last = now;
+    const now = performance.now(); let dt = Math.min(0.25, (now - last) / 1000); last = now;
     const cur = finishTarget(); if (!cur || cur.key !== tg.key || cur.vehId !== tg.vehId) return;   // looked away: nothing happens until you look back
+    const left = canLeft(tool); if (left <= 0.001) { say('The can ran dry.'); stopFinish(true); return; }
+    if (isCan(tool.id)) dt = Math.min(dt, left);   // the last of the can gives a short coat
     const r = stepJob(tool.id, getFinish(game.home, tg.vehId, tg.key) || tg.seed(), dt, tg.base);
     if (!r.ok) { say(r.why); stopFinish(true); return; }
+    if (isCan(tool.id)) tool.paint = Math.max(0, (tool.paint ?? CAN_SECS) - dt);
     game.home = setFinish(game.home, tg.vehId, tg.key, r.panel); game.finishRev = (game.finishRev || 0) + 1;
     worked += dt / FINISH_TOOLS[tool.id].secs; if (game.holdBar) game.holdBar.frac = Math.min(1, worked);
   }, 90);
