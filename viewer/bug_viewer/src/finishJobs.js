@@ -46,7 +46,7 @@ export function finishMaterial(panel) {
 }
 
 /** Steel body panels you can finish: doors, hood, engine lid, fenders (slot ids from rules/vehicles.js). */
-export const isBodyPanelSlot = id => /^(engineLid|hoodPanel|door[LR]|fender[FR][LR])$/.test(id || '');
+export const isBodyPanelSlot = id => /^(engineLid|hoodPanel|nosePanel|tailPanel|door[LR]|fender[FR][LR])$/.test(id || '');
 /** A body panel nobody has touched: the car's paint, a little worn. Rust stays hidden under a full coat. */
 export const bodySeed = colour => newPanel('steel', { coverage: 1, color: colour || '#729ba6', gloss: 0.45, bare: false });
 
@@ -54,7 +54,7 @@ export const bodySeed = colour => newPanel('steel', { coverage: 1, color: colour
 export function eligiblePanels(build, partById, bodyColour) {
   const out = [];
   for (const slot of Object.keys(build?.parts || {})) if (partById[build.parts[slot]]?.material?.unpainted) out.push(['up:' + slot, () => newPanel('glass')]);
-  for (const id of ['engineLid', 'hoodPanel', 'doorL', 'doorR', 'fenderFL', 'fenderFR', 'fenderRL', 'fenderRR']) if (!(build?.stripped || []).includes(id)) out.push([id, () => bodySeed(bodyColour)]);
+  for (const id of ['engineLid', 'hoodPanel', 'nosePanel', 'tailPanel', 'doorL', 'doorR', 'fenderFL', 'fenderFR', 'fenderRL', 'fenderRR']) if (!(build?.stripped || []).includes(id)) out.push([id, () => bodySeed(bodyColour)]);
   return out;
 }
 
@@ -68,7 +68,7 @@ export function weatherHome(home, hours, exposure = 1) {
 
 /** Driving kicks dirt up on every panel of the vehicle (seeding untouched ones so there is something to wash). */
 /** Which panels take a knock: the nose or the tail, on the left or the right (body panel slot ids, rules/vehicles.js). */
-export const hitPanels = (front, right) => (front ? ['hoodPanel', right ? 'fenderFR' : 'fenderFL'] : ['engineLid', right ? 'fenderRR' : 'fenderRL']);
+export const hitPanels = (front, right) => (front ? ['hoodPanel', 'nosePanel', right ? 'fenderFR' : 'fenderFL'] : ['engineLid', 'tailPanel', right ? 'fenderRR' : 'fenderRL']);
 /** How hard a hit is, 0..1, from the speed you hit at (m/s): nothing under a walking-pace bump, a full hit at about 15 m/s (PROPOSAL). */
 export const hitHardness = speed => Math.max(0, Math.min(1, (speed - 3) / 12));
 /** A hit chips the paint on these panels (only those you still have on the car). Returns the same home if nothing changed. */

@@ -15,7 +15,7 @@ export function finishTarget() {
   if (!build || !id) return null;
   const vehId = W ? W.id : game.active;
   if (isBodyPanelSlot(id)) { const colour = build.colors?.paint || bodyById[build.body]?.defaultPaint; return { vehId, key: id, base: 'steel', seed: () => bodySeed(colour), name: (defOfBuild(build).slots.find(s => s.id === id)?.name || id).toLowerCase() }; }
-  if (!id.startsWith('up:')) return { why: 'Only body panels (doors, hood, engine lid, fenders) and fiberglass panels can be finished.' };
+  if (!id.startsWith('up:')) return { why: 'Only body panels (doors, hood, engine lid, aprons, fenders) and fiberglass panels can be finished.' };
   const part = partById[build.parts?.[id.slice(3)]];
   if (!part?.material?.unpainted) return { why: 'That part has no panel finish.' };
   return { vehId, key: id, base: 'glass', seed: () => newPanel('glass'), name: (part.name || id.slice(3)).toLowerCase() };
