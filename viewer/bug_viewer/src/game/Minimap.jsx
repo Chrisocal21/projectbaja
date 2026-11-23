@@ -28,6 +28,8 @@ export default function Minimap() {
   const cv = useRef(null), box = useRef(null), cap = useRef(null), reg = useRef(null), rte = useRef(null), left = useRef(0), zoomR = useRef(240);
   useEffect(() => {
     let raf, last = 0, capAt = 0;
+    const terrain = document.createElement('canvas'); terrain.width = 80; terrain.height = 53;
+    const tg = terrain.getContext('2d');
     const loop = t => {
       raf = requestAnimationFrame(loop);
       if (t - last < 50) return; last = t;
@@ -46,14 +48,22 @@ export default function Minimap() {
       const PAL = { base: mix('#b8ab8c', '#18222b', nk), dirt: mix('#b78955', '#675543', nk), dirtEdge: mix('#59442e', '#15171a', nk), paved: mix('#e5e4d8', '#82929c', nk), major: mix('#ffffff', '#c3d5db', nk), edge: mix('#555b54', '#111b23', nk), text: mix('#1d292d', '#f4f6ee', nk), halo: mix('#f4ead1', '#101b22', nk) };
       g.clearRect(0, 0, PW, PH); g.save();
       g.beginPath(); g.roundRect(4, 4, PW - 8, PH - 8, RAD); g.clip();
-      g.fillStyle = PAL.base; g.fillRect(0, 0, PW, PH);
-      // Broad land texture follows world coordinates, so it stays fixed while the map turns.
-      for (let y = 0; y < PH; y += 28) for (let x = 0; x < PW; x += 28) {
-        const dx = x - CX, dy = y - CY, wx = px + (dx * cs + dy * sn) / s, wz = pz + (-dx * sn + dy * cs) / s;
-        const grain = Math.sin(wx * 0.014) * Math.cos(wz * 0.011) + Math.sin(wx * 0.045 + wz * 0.025) * 0.35;
-        g.fillStyle = grain > 0 ? `rgba(245,218,165,${((grain + 0.3) * (1 - nk * 0.5) * 0.065).toFixed(3)})` : `rgba(35,46,43,${((-grain + 0.3) * (1 - nk * 0.4) * 0.09).toFixed(3)})`;
-        g.fillRect(x, y, 28, 28);
+      // Sample the real height field into a small smooth image. The old square
+      // tiles looked like a debug grid and hid the road shapes at night.
+      const land = border(), pixels = tg.createImageData(terrain.width, terrain.height), day = hex('#c8b88f'), night = hex('#263441'), base = day.map((v, i) => v + (night[i] - v) * nk);
+      for (let y = 0; y < terrain.height; y++) for (let x = 0; x < terrain.width; x++) {
+        const dx = (x + .5) / terrain.width * PW - CX, dy = (y + .5) / terrain.height * PH - CY;
+        const wx = px + (dx * cs + dy * sn) / s, wz = pz + (-dx * sn + dy * cs) / s;
+        const h = land?.heightAt(wx, wz) || 0, high = Math.max(0, Math.min(1, h / 650));
+        const hill = land ? Math.max(-1, Math.min(1, (land.heightAt(wx - 22, wz - 22) - land.heightAt(wx + 22, wz + 22)) / 55)) : 0;
+        const grain = Math.sin(wx * .022) * Math.cos(wz * .017) * 2;
+        const k = (y * terrain.width + x) * 4;
+        pixels.data[k] = base[0] - high * (30 - nk * 7) + hill * 13 + grain;
+        pixels.data[k + 1] = base[1] - high * (39 - nk * 8) + hill * 13 + grain;
+        pixels.data[k + 2] = base[2] - high * (38 - nk * 7) + hill * 12 + grain;
+        pixels.data[k + 3] = 255;
       }
+      tg.putImageData(pixels, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(terrain, 0, 0, PW, PH);
       const reach = R * 2.6, near = pts => { const b = boxOf(pts); return b[1] > px - reach && b[0] < px + reach && b[3] > pz - reach && b[2] < pz + reach; };
       const road = (pts, step, color, w) => { g.beginPath(); for (let i = 0; i < pts.length; i += step) { const p = pts[i], [a, b] = toScreen(p.x, p.z); if (i) g.lineTo(a, b); else g.moveTo(a, b); } const end = pts[pts.length - 1], [ex, ey] = toScreen(end.x, end.z); g.lineTo(ex, ey); g.lineJoin = g.lineCap = 'round'; g.strokeStyle = color; g.lineWidth = w; g.stroke(); };
       const net = highways()?.roads || [], lines = [];

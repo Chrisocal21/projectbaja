@@ -11,7 +11,7 @@ const ICON = {
   ALIGNMENT: 'M3 5h18M3 19h18M7 3v6m10-6v6M7 15v6m10-6v6M9 12h6',
 };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const conditions = rows => rows.map(r => `<div class="dg-health-item ${r.level || ''}" title="${esc(`${r.label}: ${r.note}`)}" aria-label="${esc(`${r.label}: ${r.note}`)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[r.label] || ICON.ENGINE}"/></svg><span><small>${esc(r.label)}</small><b>${esc(r.note)}</b></span><i><em style="width:${Math.round(Math.max(0, Math.min(1, r.frac)) * 100)}%"></em></i></div>`).join('');
+const conditions = rows => rows.map(r => `<div class="dg-health-item ${r.level || ''}" title="${esc(`${r.label}: ${r.note}`)}" aria-label="${esc(`${r.label}: ${r.note}`)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[r.label] || ICON.ENGINE}"/></svg><small>${esc(r.label)}</small><b>${esc(r.note)}</b><i><em style="width:${Math.round(Math.max(0, Math.min(1, r.frac)) * 100)}%"></em></i></div>`).join('');
 /** o: { mph, topMph, gear, rpm, redline, fuel, tank, fuelWord, surface, flags: [[text, 'warn'|'bad'|''], ...], foot } */
 export function driveHudHtml(o) {
   const sp = o.topMph > 0 ? o.mph / o.topMph : 0, rv = o.gear && o.redline ? o.rpm / o.redline : 0, hot = rv > 0.92;
