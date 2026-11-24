@@ -23,3 +23,13 @@ test('the first start explains what is wrong: no battery, then no fuel', () => {
   assert.ok(startCheck({ battery: true, litres: 1 }).ok);
   assert.equal(gaugeWord(0, 38), 'EMPTY'); assert.equal(gaugeWord(3, 38), 'LOW'); assert.equal(gaugeWord(20, 38), '');
 });
+
+test('the jerry can pours into the tank until the can is empty or the tank is full', async () => {
+  const { pourStep, canFuel, canFuelTag, CAN_L, POUR_LPS } = await import('./fuel.js');
+  let can = 20, tank = 5; for (let i = 0; i < 100; i++) { const r = pourStep(can, tank, 38, 0.1); can = r.can; tank = r.tank; }
+  assert.ok(Math.abs(tank - 25) < 1e-9 && can < 1e-9, 'all 20 L went in');
+  const r = pourStep(20, 37.9, 38, 1); assert.ok(Math.abs(r.tank - 38) < 1e-9 && Math.abs(r.can - 19.9) < 1e-9, 'a full tank stops it');
+  assert.equal(pourStep(0, 5, 38, 1).moved, 0);
+  assert.equal(canFuel({ fuel: 99 }), CAN_L); assert.equal(canFuel({}), 0); assert.ok(POUR_LPS > 0);
+  assert.equal(canFuelTag({ kind: 'junk', id: 'jerrycan', fuel: 12.4 }), ' · 12 L'); assert.equal(canFuelTag({ kind: 'junk', id: 'jerrycan' }), ' · empty'); assert.equal(canFuelTag({ kind: 'junk', id: 'drum' }), '');
+});

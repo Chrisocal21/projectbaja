@@ -60,7 +60,7 @@ The map has water, mud-free dirt, sand, jumps and flips, so a car will end up so
 | Tool | Job | Status |
 |---|---|---|
 | Spare tire, tire plug kit, 12 V air pump | fix a flat and re-inflate away from the garage | plug kit + 12 V pump HAVE; spare PLANNED |
-| Jerry can, water jug | fuel and coolant in the field | PLANNED |
+| Jerry can, water jug | fuel and coolant in the field | jerry can HAVE (Nov 23): holds 20 L, fill at a pump with it in your hands (E), hold-click the car to pour; $12 at Dusty's and marts; water jug PLANNED |
 | Fire extinguisher | engine fire (heat model exists) | PLANNED |
 | Shovel, traction boards | dig out of sand, bridge a soft spot | HAVE (Nov 22): silt beds and soft sand on the map bog a slow or wheel-spinning car (`src/bogDown.js`, `src/worlds/softGround.js`); hold-click a wheel with the shovel to dig it (5 s), or with the boards to lay them (they stay on the ground: drive out, walk back for them). Airing down floats you. Y won't free a bogged car; the tow does |
 | Tow strap, recovery strap, shackles | pull a stuck or dead vehicle with another | PLANNED |

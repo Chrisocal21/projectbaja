@@ -34,6 +34,8 @@ Chris stopped for the night on Nov 22 after the getting-stuck build (commit `f29
 7. **Phone Contacts app**: Dusty's store, Off-road parts, Tow truck. The tow brings you and the car to Walt's from anywhere: a fee plus distance, takes game hours (`game/tow.js`). Dusty's and Off-road "Call" open Internet ordering for now.
 8. **Getting stuck** (`src/bogDown.js`, `src/worlds/softGround.js`, `game/recoveryWork.js`): silt (pale powder: open flats, a ring round the dry lakebed) and soft sand (deep washes, dune hearts); never near Walt's. Crawl or spin the wheels and you sink (the car sits lower, HUD says SOFT GROUND / BOGGING DOWN / STUCK); speed (~25 mph silt, ~20 soft sand) and aired-down tires float you. Out with a **shovel** ($25, hold-click each wheel 5 s) or **traction boards** ($95, lay at a wheel, drive out, walk back for them), or the tow. Y no longer frees a bogged car. Questions for Chris: can you see the silt? Too easy or too hard to get stuck? Does digging out feel right?
 
+9. **Jerry can** (Nov 23): holds 20 L. Hold it, press E at a pump to fill it (80 cents a litre), hold left click on the car to pour it in the tank (`game/fuelCan.js`). Sold at Dusty's and gas marts ($12). Check it in the game.
+
 **Next build: the winch** (Opus 5.5, high effort: physics). Chris: winches grab onto trees near you (`world.trunks(x, z)` already lists nearby trunks). Decide first: a **winch bolted to the car** (an installed part, powered by the car) or a **hand winch / come-along** you carry and crank? After that: tow strap between two vehicles.
 
 **Waiting on Chris:** what Dusty's and the off-road shop should say or do when you call them (no lore invented, so they open ordering for now); the winch choice above; feel notes from playing.

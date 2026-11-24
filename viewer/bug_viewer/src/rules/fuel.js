@@ -21,3 +21,14 @@ export function startCheck({ battery, litres, engine, charge }) {
   return { ok: true, why: '' };
 }
 export const gaugeWord = (litres, cap) => (litres <= 0 ? 'EMPTY' : litres / cap < 0.15 ? 'LOW' : '');
+
+// ---- the jerry can (field kit): carry fuel out to a stranded car ----
+export const CAN_L = 20, POUR_LPS = 2;   // litres it holds; litres poured per second (PROPOSAL)
+export const canFuel = it => Math.max(0, Math.min(CAN_L, it?.fuel || 0));
+/** " · 12 L" on the can's name */
+export const canFuelTag = it => (it?.kind === 'junk' && it.id === 'jerrycan' ? (canFuel(it) > 0.05 ? ` · ${Math.round(canFuel(it))} L` : ' · empty') : '');
+/** one pouring step into a tank: { can, tank, moved } (stops when the can is empty or the tank full) */
+export function pourStep(can, tank, cap, dt) {
+  const moved = Math.max(0, Math.min(can, cap - tank, POUR_LPS * dt));
+  return { can: can - moved, tank: tank + moved, moved };
+}

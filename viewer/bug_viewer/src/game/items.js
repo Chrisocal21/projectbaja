@@ -10,6 +10,7 @@ import { SUPPLIES } from './jobs.js';
 import { FINISH_TOOL_ITEMS, canTag } from '../finishJobs.js';
 import { PRESSURE_TOOL_ITEMS } from '../tirePressure.js';
 import { RECOVERY_TOOLS } from '../bogDown.js';
+import { canFuelTag } from '../rules/fuel.js';
 import { containers, containerById, spots, CONTAINER_RULES, STARTER } from './loot.js';
 import { VEHICLES } from '../rules/vehicles.js';
 import { defOf } from './projects.js';
@@ -36,7 +37,7 @@ export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.s
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
 const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '') || '';   // tire machine: wheels and tires can be punctured or flat
-export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${it.grimy ? 'dirty' : Math.round(it.cond ?? 70) + '%'})` : withTread(baseName(it), it) + wheelState(it) + canTag(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '');
+export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${it.grimy ? 'dirty' : Math.round(it.cond ?? 70) + '%'})` : withTread(baseName(it), it) + wheelState(it) + canTag(it) + canFuelTag(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '');
 const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
