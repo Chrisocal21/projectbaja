@@ -16,7 +16,7 @@ import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
 import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
 import { pegInteract } from './game/pegboard.js';
-import { clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { scrapTire, clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob, jobById } from './game/jobs.js';
 import { unstuck } from './game/unstuck.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
@@ -227,6 +227,7 @@ function App() {
     else if (id === 'letter') { game.home = { ...game.home, letter: true }; setPanel('letter'); }
     else if (id === 'breaker') flipBreaker();
     else if (id === 'openSwitch') toggleOpen();
+    else if (id === 'tirepile') scrapTire();
     else if (id === 'racecar') uncoverRaceCar();
     else if (id === 'crank') crankBug();
     else if (id === 'job') setPanel('job');

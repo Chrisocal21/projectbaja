@@ -24,7 +24,9 @@ import { isPiece } from '../worlds/structures.js';
 import { binText } from './bins.js';
 import { isBin } from './binRules.js';
 import { haulPrompt } from './junkRules.js';
-import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal } from './home.js';
+import { junkWorld, isCleared, garageClean, onProperty, raceCarWorld, raceCarStage, SCRAP_HEAPS, heapTaken, bugAsleep, homeLocal, tirePileWorld } from './home.js';
+import { isScrapTire, JUNK_TIRE_PAY } from './yardTires.js';
+import { isTire } from '../placement/gameItems.js';
 import { jobById } from './jobs.js';
 import { STANDS } from './stock.js';
 import { standText } from './standActions.js';
@@ -63,6 +65,7 @@ export const promptText = id => {
   if (id === 'racecar') return raceCarStage() === 0 ? 'Press E — Pull the tarp halfway back' : 'Press E — Pull the tarp off completely';
   if (!id) return '';
   if (id.startsWith('stand:')) return standText(id.slice(6));
+  if (id === 'tirepile') return isScrapTire(held()) ? `Press E — Throw the bald tire on the scrap pile (+$${JUNK_TIRE_PAY})` : 'This one still has rubber: set it on a tire rack';
   if (id === 'warehouse') return 'Press E — Salvage & Surplus: sell scrap, tires and parts';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id === 'openSwitch') return game.home?.open ? 'Press E — Turn the OPEN light off (close up)' : 'Press E — Turn the OPEN light on (open for business)';
@@ -267,6 +270,7 @@ export default function Walker({ world, sun }) {
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
     if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
+    if (foot && held() && isTire(held())) consider('tirepile', tirePileWorld.x, tirePileWorld.z, 3.4, false, 0.8, { r: 1.5, h: 1.4 });   // yard cleanup
     if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8, { r: 0.9, h: 2.0 });
     if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6, { r: 0.8, h: 0.9 });
     if (foot) for (const v of standingVehicles()) { const t = vehicleType(v.id), l = localTo(v.pose, px, pz); if (Math.abs(l.lx) < t.width / 2 + 1.9 && Math.abs(l.lz) < t.length / 2 + 1.6) consider(v.forSale ? 'dealer' : 'veh:' + v.id, v.pose.x, v.pose.z, 9, false, 0.7, { box: { hx: t.width / 2, hz: t.length / 2, h: 1.7, yaw: v.pose.h } }); }

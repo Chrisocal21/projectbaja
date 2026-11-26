@@ -18,7 +18,7 @@ import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
 import { sizeOf } from '../game/junkRules.js';
 import { OfficePhoto } from './OfficePhoto.jsx';
-import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage } from '../game/home.js';
+import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage, tickYard, tirePileWorld } from '../game/home.js';
 import { boxItems, nameOfItem } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { tickTray } from '../game/tireMachine.js';
@@ -714,10 +714,23 @@ function Ghost({ T }) {
   return <group ref={ref}><group ref={inner} key={item.id + ':' + (item.struct ? game.buildMode.mat || 'sheet' : '')}><PropModel id={item.id} T={T} mat={item.struct ? game.buildMode.mat || 'sheet' : undefined} /></group><group ref={foot} /></group>;
 }
 
+/** the scrap tire pile by the lot: a pad, yellow posts and a sign. The stack grows with every tire you throw on it. */
+function TirePile() {
+  useGame();
+  const n = Math.min(24, game.home?.tiresScrapped || 0), { x, z } = tirePileWorld;
+  return <group position={[x, groundHeight(x, z), z]} rotation={[0, G.rot, 0]}>
+    <mesh position={[0, 0.03, 0]} receiveShadow><boxGeometry args={[2.8, 0.06, 2.8]} /><meshStandardMaterial color="#6b5a3a" roughness={1} /></mesh>
+    {[[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]].map(([a, b]) => <mesh key={a + ',' + b} position={[a, 0.45, b]} castShadow><boxGeometry args={[0.12, 0.9, 0.12]} /><meshStandardMaterial color="#c9a227" roughness={0.8} /></mesh>)}
+    <mesh position={[-1.3, 1.15, -1.3]} rotation={[0, Math.PI / 4, 0]} castShadow><boxGeometry args={[1.1, 0.5, 0.06]} /><meshStandardMaterial color="#c9a227" roughness={0.7} /></mesh>
+    {Array.from({ length: n }, (_, i) => { const col = i % 4, row = Math.floor(i / 4); return <mesh key={i} position={[(col % 2 ? 0.55 : -0.55) + Math.sin(i * 7) * 0.08, 0.17 + row * 0.22, (col < 2 ? -0.55 : 0.55) + Math.cos(i * 5) * 0.08]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 8, 20]} /><meshStandardMaterial color="#1f1f20" roughness={0.95} /></mesh>; })}
+  </group>;
+}
+
 /** the customer car on the driveway (odd jobs) + the clock that sends the next one */
 function Customer() {
   useGame();
-  useFrame((_, dt) => { tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); tickBenches(Math.min(dt, 0.1)); });
+  const yardT = useRef(0);
+  useFrame((_, dt) => { if ((yardT.current += dt) > 0.5) { yardT.current = 0; tickYard(); } tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); tickBenches(Math.min(dt, 0.1)); });
   const j = game.job && jobById[game.job.id]; if (!j) return null;
   return <group position={[game.job.x, groundHeight(game.job.x, game.job.z), game.job.z]} rotation={[0, game.job.h, 0]}><Pickup body={j.car[0]} roof={j.car[1]} primer={j.car[0]} /></group>;
 }
@@ -732,6 +745,7 @@ export default function Home() {
     {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{contactSize[p.id] && <ShopContact size={contactSize[p.id]} />}{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
     {PLACEMENT && <GarageCargo />}
     <Customer />
+    <TirePile />
     <Ghost T={T} />
     <IconBaker Model={PropModel} T={T} />
   </>;

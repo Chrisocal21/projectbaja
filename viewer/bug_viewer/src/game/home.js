@@ -21,6 +21,7 @@ import { spillBin } from './bins.js';
 import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
+import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
@@ -64,6 +65,7 @@ export function flipBreaker() {
 /** open for business = power is on AND the sign light is switched on. Only this brings customers. */
 export const isOpen = () => !!(game.home?.open && game.home?.power);
 export function toggleOpen() {
+  if (!game.home.open && !game.dev && yardBlocks(game.home)) { say(`Nobody is pulling into a yard like this. ${yardLeft(game.items)} old tires still to clear: bald ones go on the scrap pile, good ones on a tire rack.`); return; }
   if (!game.home.power) { say('The sign light needs power: flip the main breaker inside the garage first.'); return; }
   const open = !game.home.open; game.home = { ...game.home, open }; save();
   say(open ? 'The light over the sign is on, and so are the road signs: you are open for business.' : 'Sign light off: you are closed. No new customers until you open again.');
@@ -265,6 +267,33 @@ export function ensureShopTires() {
   }
   save();
 }
+// ---------------- the yard cleanup (rules: yardTires.js) ----------------
+export const tirePileWorld = (() => { const [x, z] = toWorld(G, TIRE_PILE.lx, TIRE_PILE.lz); return { x, z }; })();
+/** a NEW game: the old tires lie all over the property (this takes the place of the four that used to wait on the front shelf) */
+export function spawnYardTires() {
+  if (game.home.yard) return;
+  game.home = { ...game.home, tiresV: 1, yard: { done: false } };
+  for (const t of yardTires()) {
+    const { lx, lz, ry, ...item } = t, [x, z] = toWorld(G, lx, lz);
+    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...item, loc: 'world', x, z, y: 0, ry: G.rot + ry });
+  }
+  game.items = [...game.items]; save();
+}
+/** throw the bald tire in your hands on the pile */
+export function scrapTire() {
+  const it = game.items.find(i => i.loc === 'hand'); if (!it) return;
+  if (!isScrapTire(it)) { say(it.cust ? 'That is a customer wheel. Better not.' : 'That one still has rubber on it: set it on a tire rack.'); return; }
+  game.items = game.items.filter(i => i !== it);
+  game.home = { ...game.home, tiresScrapped: (game.home.tiresScrapped || 0) + 1 };
+  addCash(JUNK_TIRE_PAY, 'Scrap tire'); say(`Onto the pile (+$${JUNK_TIRE_PAY}).`); save();
+}
+/** run now and then while playing: notices when the last yard tire is dealt with */
+export function tickYard() {
+  const next = yardCheck(game.home, game.items); if (next === game.home) return;
+  game.home = next; save(); say('That is the last of the old tires. Flip the OPEN switch when you are ready for customers.');
+}
+export const yardProgress = () => (yardBlocks(game.home) ? { left: yardLeft(game.items), total: YARD_TOTAL, pay: JUNK_TIRE_PAY } : null);
+
 /** grandpa's letter is a normal item now (once per save): it lies on the workbench where the old fixed letter was. Skipped if one already exists. */
 export function ensureLetterItem() {
   if ((game.home.letterV || 0) >= 2) return;

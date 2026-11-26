@@ -2,10 +2,9 @@
 import { game, save } from './store.js';
 import { SITES, toWorld, height, groundHeight } from '../worlds/county.js';
 import { allocUid } from './saveFormat.js';
-import { apartSlots, apartItems, layoutParts, gridSpots, TIRE_SHELF, SHOP_TIRE_SHELF } from './teardown.js';
-import { ensureStarterFixtures, ensureShopTires } from './home.js';
+import { apartSlots, apartItems, layoutParts, gridSpots, TIRE_SHELF } from './teardown.js';
+import { ensureStarterFixtures, spawnYardTires } from './home.js';
 import { rackSurfId } from '../placement/garageSurfaces.js';
-import { isTire } from '../placement/gameItems.js';
 
 export function spawnApartParts() {
   ensureStarterFixtures();   // the shelves have to be standing before parts go on them (seeded once per save, so this is safe)
@@ -28,10 +27,6 @@ export function spawnApartParts() {
   const w = old('stock', 'wheel'); if (w && tires) Object.assign(w, { loc: 'garage', spot: 'grid', surf: rackSurfId(tires.uid, TIRE_SHELF.level), x: TIRE_SHELF.at.wheelRR, z: 0, y: 0, ry: 0, pose: 'upright' });
   const s = old('stock', 'seatDriver'), sp = lay.seatDriver;
   if (s && sp) { const [x, z] = toWorld(G, sp.x, sp.z); Object.assign(s, { x, z, y: groundHeight(x, z) - height(x, z), ry: G.rot + sp.ry }); }
-  // the shop's worn tires leave the floor for the front tire shelf
-  ensureShopTires();
-  const front = game.props.find(p => p.id === 'shelfTires' && near(p, SHOP_TIRE_SHELF.lz));
-  if (front) game.items.filter(i => i.loc === 'world' && isTire(i) && Math.hypot(i.x - G.x, i.z - G.z) < 8).slice(0, SHOP_TIRE_SHELF.at.length)
-    .forEach((t, i) => Object.assign(t, { loc: 'garage', spot: 'grid', surf: rackSurfId(front.uid, SHOP_TIRE_SHELF.level), x: SHOP_TIRE_SHELF.at[i], z: 0, y: 0, ry: 0, pose: 'upright' }));
+  spawnYardTires();   // the old shop tires are not on the shelf: they lie all over the property, yours to clear
   game.items = [...game.items]; save();
 }
