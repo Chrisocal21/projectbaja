@@ -32,6 +32,11 @@ Build order, one at a time:
 6. People: walking, talking, waiting.
 7. Garage atmosphere.
 
+## Nov 27: Codex's garage-tier work reviewed and committed; the office finished
+- Codex (ChatGPT) ran out mid-job. Its back-shop tier work is committed (73b91ae): service counter -> chassis setup -> race control, storage signs, Walt's bench moves to the back shop with what is on it. Claude removed invented story from its side-bay family board (only the Bug photo stays) and moved the rack signs off the posts.
+- The office (Codex's next item) is done by Claude: one counter (Walt's), one stair (Walt's, into the team room through a doorway off his loft), plus two walking bugs fixed. Details in CHATGPT_HANDOFF "Office and stairs".
+- **Chris's new idea (Nov 27), for step 2:** start with fewer racks, and let the player build more by crafting them from scrap metal, wood and the like (minor crafting). `home.js RECIPES` / `fabricate` (the workbench) already makes shock hoops from scrap, so racks would be new recipes there. Not built yet.
+
 ## START HERE (Nov 23)
 Chris stopped for the night on Nov 22 after the getting-stuck build (commit `f2985d8`). Everything below is built, tested and pushed, but **none of it has been checked in the game yet**. No screenshot was possible (the headless browser freezes once the big map starts). First job tomorrow: Chris plays through the list, then Claude tunes.
 

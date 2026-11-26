@@ -190,7 +190,7 @@ export default function Walker({ world, sun }) {
         const before = homeLocal(oldX, oldZ), next = homeLocal(s.x, s.z), level = s.y - SITES.garage.y;
         const onStairs = before.lx >= STAIRS.x0 && before.lx <= STAIRS.x1 && before.lz > STAIRS.z0 && before.lz < STAIRS.z1;
         const rail = onStairs && (next.lx < STAIRS.x0 || next.lx > STAIRS.x1)
-          || level > 2.6 && before.lz <= LOFT.z1 && next.lz > LOFT.z1 && (next.lx < STAIRS.x0 || next.lx > STAIRS.x1);
+          || level > 2.6 && inOffice(next.lx, next.lz) && before.lz <= LOFT.z1 && next.lz > LOFT.z1 && (next.lx < STAIRS.x0 || next.lx > STAIRS.x1);
         const target = walkingLevel(next.lx, next.lz, level);
         if (rail || inOffice(next.lx, next.lz) && target > Math.max(0.12, level) + 0.4) { s.x = oldX; s.z = oldZ; s.vx = 0; s.vz = 0; }
         // the wing's second floor (stage office3): the stair and upstairs floor; a step too high or a drop off the edge is a wall

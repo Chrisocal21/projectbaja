@@ -70,8 +70,7 @@ test('office level 1: the wing meets the office wall, its doorway is two opening
   assert.ok(crossing(-15.5, WING.z1), 'the customer door is open');
   assert.ok(!crossing(WING.x0, 2), 'the west wall blocks'); assert.ok(!crossing(-15.5, WING.z0), 'the north wall blocks');
   assert.ok(!crossing(-17, WING.z1), 'the front wall beside the door blocks');
-  assert.ok(!crossing(WING.counter.x, 1), 'the counter blocks');
-  assert.ok(crossing(-14.6, 3.2) && crossing(OFFICE.x0, 3.2), 'you can still get from the doorway into the wing past the counter');
+  assert.ok(crossing(-14.6, 1) && crossing(-14.6, 3.2) && crossing(OFFICE.x0 - 0.5, 2), 'no second counter: the doorway to Walt\'s counter is open');
 });
 test('office level 2: shelving and the supplier desk block, but the way from the doorway to the front door stays open', () => {
   assert.equal(officeLevelOf(new Set(['office1', 'office2'])), 2);
@@ -80,18 +79,22 @@ test('office level 2: shelving and the supplier desk block, but the way from the
   assert.ok(crossing(-15.2, -3), 'the middle of the parts room is clear'); assert.ok(crossing(-15.5, 4) && crossing(-14.6, 3.2), 'doorway to front door still open');
   assert.ok(wingWallCircles(1).length < cs.length, 'level 1 has no shelves');
 });
-test('office level 3: a stair climbs the west wall to a second floor; you cannot be lifted onto it from below', () => {
+test("office level 3: the team room upstairs is reached from Walt's loft through a doorway in his west wall, not a second stair", () => {
   assert.equal(officeLevelOf(new Set(['office1', 'office2', 'office3'])), 3);
-  const { stair: s, floor: f, y } = WING_UP, mid = (s.x0 + s.x1) / 2;
-  assert.equal(wingLevel(mid, s.zBottom + 0.3), 0.12, 'ground at the foot of the stair');
-  assert.ok(Math.abs(wingLevel(mid, s.zTop + 0.01) - y) < 0.2, 'the top step meets the upstairs floor');
-  let last = 0.12; for (let z = s.zBottom; z >= s.zTop; z -= 0.05) { const h = wingLevel(mid, z); assert.ok(h >= last - 1e-9 && h - last < 0.25, 'steps only rise, in small steps'); last = h; }
-  const inFloor = [(f.x0 + f.x1) / 2, (f.z0 + f.z1) / 2];
+  const { floor: f, door: d, y } = WING_UP, inFloor = [(f.x0 + f.x1) / 2, (f.z0 + f.z1) / 2];
+  assert.ok(!('stair' in WING_UP) && !('landing' in WING_UP), 'one stair: Walt\'s');
   assert.equal(wingLevel(...inFloor, 0.12), 0.12, 'under the upstairs floor you stay on the ground'); assert.equal(wingLevel(...inFloor, y), y);
-  assert.ok(inWing(...inFloor) && inWing(mid, s.zTop));
+  assert.equal(y, LOFT.y, 'the team room floor is level with the loft');
+  // walking west along the loft, through the doorway, onto the team room floor: never a gap to fall through
+  const z = (d.z0 + d.z1) / 2; assert.ok(z > LOFT.z0 && z < LOFT.z1, 'the doorway opens off the loft');
+  for (let x = -9; x >= -16; x -= 0.05) {
+    const h = inOffice(x, z) ? walkingLevel(x, z, y) : inWing(x, z) ? wingLevel(x, z, y) : null;
+    if (h !== null) assert.equal(h, y, `a drop at x ${x.toFixed(2)}`);
+  }
+  assert.equal(f.x1, OFFICE.x0); assert.equal(LOFT.x0, OFFICE.x0);
   const cs = wingWallCircles(3);
-  assert.ok(cs.filter(c => c[4] == null && c[3] === 2.7 && c[0] < s.x1 + 0.5 && c[1] < 1.4 && c[1] > s.zTop).length === 0, "nothing stands at the stair foot");
-  assert.ok(!cs.some(c => c[4] == null && Math.abs(c[0] - PARTS_ROOM.shelves[0].x) < 0.01 && c[3] === 2.7), 'the west shelving is gone');
+  assert.ok(cs.some(c => c[4] == null && Math.abs(c[0] - PARTS_ROOM.shelves[0].x) < 0.01 && c[3] === 2.7), 'the west shelving stays');
+  assert.ok(cs.some(c => c[4] === 2.6 && Math.abs(c[1] - f.z1) < 0.1), 'a rail along the open edge, upstairs only');
   assert.ok(cs.some(c => c[4] === 2.6), 'the team table only bites upstairs');
   assert.ok(wingWallCircles(2).every(c => c[4] == null), 'before level 3 nothing is upstairs');
 });

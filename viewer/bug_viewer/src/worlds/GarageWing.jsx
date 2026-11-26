@@ -32,7 +32,8 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
   return <group>
     <Box p={[-10.1, 0.06, 0]} s={[6.8, 0.12, 12.6]} map={floor} color="#fff" />
     {/* west wall: solid, unless the "Office expansion" upgrade has cut a doorway through it (game/upgrades.js, openings.js WALLS.OW) */}
-    <OriginalWall which="OW" map={wall} lining={timber} open={game.home?.openings || []} height={H} />
+    <OriginalWall which="OW" map={wall} lining={timber} open={game.home?.openings || []} height={H}
+      upper={hasStage('office3') ? { u0: WING_UP.door.z0, u1: WING_UP.door.z1, y0: LOFT.y, y1: LOFT.y + WING_UP.door.h } : null} />   {/* office level 3: the loft opens into the team room */}
     {upgradeLevel('office') >= 1 && (hasStage('office1') ? <OfficeWing level={hasStage('office3') ? 3 : hasStage('office2') ? 2 : 1} wall={wall} timber={timber} roof={roof} floor={floor} power={power} /> : <OfficeAnnex wall={wall} timber={timber} roof={roof} floor={floor} power={power} />)}
     <Box p={[-10.1, H / 2, z0]} s={[6.2, H, 0.2]} map={wall} color="#fff" />
     <Box p={[(x0 + entry.x0) / 2, H / 2, z1]} s={[entry.x0 - x0, H, 0.2]} map={wall} color="#fff" />
@@ -85,7 +86,7 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
     <Box p={[-13.06, 1.65, -3]} s={[0.025, 0.7, 0.65]} color="#9cafaf" />
     {[0.7, 1.5, 2.3].map(y => <Box key={y} p={[-8.1, y, -5.2]} s={[1.6, 0.08, 0.6]} map={timber} />)}
     <StorageRoomStock />
-    <Box p={[-10.1, LOFT.y - 0.1, -3.9]} s={[5.8, 0.2, 3.8]} map={timber} />
+    <Box p={[-10.2, LOFT.y - 0.1, -3.9]} s={[6.0, 0.2, 3.8]} map={timber} />
     {[-9.02, -7.58].map(x => <Box key={x} p={[x, STAIRS.count / 12 - 0.055, 4 - STAIRS.count / 6]}
       s={[0.085, 0.19, STAIRS.count * Math.hypot(1 / 3, 1 / 6)]} rot={[Math.atan(0.5), 0, 0]} color="#414b49" />)}
     {Array.from({ length: STAIRS.count }, (_, i) => <Box key={i} p={[-8.3, 0.12 + (i + 1) / 6 - 0.06, 4 - (i + 0.5) / 3]} s={[1.6, 0.12, 1 / 3]} map={timber} />)}
@@ -101,10 +102,9 @@ export default function GarageWing({ wall, timber, roof, floor, power }) {
 }
 
 /** office level 1 (stage 'office1'): the annex grown into a wing the full depth of the office. Customer door at the front, waiting seats,
- *  a service counter beside the widened doorway, a back room with a desk and files. Basic boxes (ChatGPT polishes). */
+ *  a back room with a desk and files. Walt's counter, just inside the widened doorway, serves it. Basic boxes (ChatGPT polishes). */
 function OfficeWing({ level, wall, timber, roof, floor, power }) {
-  const { x0, x1, z0, z1, door, counter } = WING, H = level >= 3 ? WING_UP.H : WING.H, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, t = 0.2, d = z1 - z0, glass = '#394848';
-  const cz0 = (counter.z0 + counter.z1) / 2, cl = counter.z1 - counter.z0 + 0.5;
+  const { x0, x1, z0, z1, door } = WING, H = level >= 3 ? WING_UP.H : WING.H, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, t = 0.2, d = z1 - z0, glass = '#394848';
   return <group>
     <Box p={[cx, 0.06, cz]} s={[x1 - x0, 0.12, d]} map={floor} color="#fff" />
     <Box p={[x0, H / 2, cz]} s={[t, H, d + t]} map={wall} color="#fff" />
@@ -115,10 +115,7 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     <Box p={[(door.x0 + door.x1) / 2, (2.6 + H) / 2, z1]} s={[door.x1 - door.x0, H - 2.6, t]} map={wall} color="#fff" />
     <Box p={[cx, H + 0.1, cz]} s={[x1 - x0 + 0.3, 0.16, d + 0.3]} map={roof} color="#fff" />
     {[[x0 - 0.02, 1.2], [x0 - 0.02, 4.3]].map(([x, z], i) => <Box key={i} p={[x, 2.2, z]} s={[0.05, 1.2, 1.6]} color={glass} />)}
-    {/* the service counter, beside the widened doorway */}
-    <Box p={[counter.x, 0.55, cz0]} s={[0.8, 1.1, cl]} map={timber} />
-    <Box p={[counter.x, 1.15, cz0]} s={[1.0, 0.1, cl + 0.1]} map={timber} color="#76583c" />
-    {level >= 2 && <Box p={[counter.x + 0.52, 1.5, cz0]} s={[0.04, 0.6, cl + 0.1]} color="#4b5a58" />}
+    {/* no counter of its own: Walt's counter, just inside the widened doorway, serves the wing */}
     {/* waiting area by the front door: two benches and a low table */}
     {[3.9, 5.1].map(z => <group key={z} position={[x0 + 0.5, 0, z]}>
       {[-0.35,0.35].map(end => <group key={end}>
@@ -132,8 +129,8 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
     <Box p={[x0 + 1.7, 0.39, 4.5]} s={[0.6, 0.05, 0.9]} map={timber} color="#8a6a44" />
     {[-0.22,0.22].flatMap(x => [-0.35,0.35].map(z => <Box key={x+':'+z} p={[x0+1.7+x,0.19,4.5+z]} s={[0.045,0.38,0.045]} color="#545652" />))}
     {level >= 2 ? <>
-      {/* parts room: shelving along both side walls, a supplier desk beside the parts counter */}
-      {PARTS_ROOM.shelves.map((sh, k) => level >= 3 && k === 0 ? null : <group key={k}>{[0.4, 1.1, 1.8, 2.5].map(y => <Box key={y} p={[sh.x, y, (sh.z0 + sh.z1) / 2]} s={[0.5, 0.06, sh.z1 - sh.z0]} map={timber} />)}
+      {/* parts room: shelving along both side walls, a supplier desk across from Walt's counter */}
+      {PARTS_ROOM.shelves.map((sh, k) => <group key={k}>{[0.4, 1.1, 1.8, 2.5].map(y => <Box key={y} p={[sh.x, y, (sh.z0 + sh.z1) / 2]} s={[0.5, 0.06, sh.z1 - sh.z0]} map={timber} />)}
         {[sh.z0, (sh.z0 + sh.z1) / 2, sh.z1].map(z => <Box key={z} p={[sh.x, 1.3, z]} s={[0.5, 2.6, 0.06]} map={timber} color="#76583c" />)}
         {Array.from({ length: 9 }, (_, i) => <Box key={i} p={[sh.x, [0.58, 1.28, 1.98][i % 3], sh.z0 + 0.4 + i * 0.45]} s={[0.36, 0.3, 0.34]} color={['#8d5b39', '#76694f', '#594f3c'][i % 3]} />)}</group>)}
       {(() => { const dk = deskOf(level); return <>
@@ -159,31 +156,22 @@ function OfficeWing({ level, wall, timber, roof, floor, power }) {
   </group>;
 }
 
-/** office level 3 (stage 'office3'): the wing's second floor. A stair up the west wall, the team room (a long table) and the race planning wall.
- *  The wall above the old office's roofline closes the east side. Basic boxes (ChatGPT polishes). */
+/** office level 3 (stage 'office3'): the wing's second floor, the team room. You come up Walt's own stair and through a doorway at loft height in the
+ *  old office's west wall; there is no second stair. A long table, and the race planning wall on the north wall. Basic boxes (ChatGPT polishes). */
 function TeamFloor({ wall, timber, H, power }) {
-  const { y, stair: s, floor: f, landing: l, table: tb, board } = WING_UP, { x0, x1, z0, z1 } = WING, tz = (tb.z0 + tb.z1) / 2, slab = 0.2, cx = (x0 + x1) / 2;
-  const run = (s.zBottom - s.zTop) / s.count, rise = (y - 0.12) / s.count, w = s.x1 - s.x0, sx = (s.x0 + s.x1) / 2;
+  const { y, floor: f, door: dr, table: tb, board } = WING_UP, { x0, x1, z0, z1 } = WING, tz = (tb.z0 + tb.z1) / 2, slab = 0.2, cx = (x0 + x1) / 2;
   return <group>
-    {/* the upstairs floor (a slab under it) and the landing at the top of the stair */}
-    {[f, l].map((r, i) => <Box key={i} p={[(r.x0 + r.x1) / 2, y - slab / 2, (r.z0 + r.z1) / 2]} s={[r.x1 - r.x0, slab, r.z1 - r.z0]} map={timber} color="#9a8467" />)}
+    {/* the upstairs floor, a slab under it */}
+    <Box p={[(f.x0 + f.x1) / 2, y - slab / 2, (f.z0 + f.z1) / 2]} s={[f.x1 - f.x0, slab, f.z1 - f.z0]} map={timber} color="#9a8467" />
     {/* the east side above the old office's wall */}
     <Box p={[x1, (OFFICE.H + H) / 2, (z0 + z1) / 2]} s={[0.2, H - OFFICE.H, z1 - z0]} map={wall} color="#fff" />
-    {/* the stair: 16 treads climbing north, a closed side under it, and a rail along the open side */}
-    {Array.from({ length: s.count }, (_, i) => <Box key={i} p={[sx, 0.12 + (i + 0.5) * rise, s.zBottom - (i + 0.5) * run]} s={[w, 0.1, run + 0.02]} map={timber} />)}
-    {[-1, 1].map(side => <Box key={side} p={[sx + side * (w / 2 - 0.04), (y + 0.12) / 2 - 0.09, (s.zBottom + s.zTop) / 2]}
-      s={[0.075, 0.16, Math.hypot(s.zBottom - s.zTop, y - 0.12)]} color="#494d49" rot={[Math.atan2(rise, run), 0, 0]} />)}
-    {[0.48, 0.96].map(h => <Box key={h} p={[s.x1, (y + 0.12) / 2 + h, (s.zBottom + s.zTop) / 2]}
-      s={[0.045, 0.045, Math.hypot(s.zBottom - s.zTop, y - 0.12)]} color="#565b55" rot={[Math.atan2(rise, run), 0, 0]} />)}
-    {[0, 0.25, 0.5, 0.75, 1].map(t => <Box key={t} p={[s.x1, 0.12 + t * (y - 0.12) + 0.48, s.zBottom + t * (s.zTop - s.zBottom)]}
-      s={[0.045, 0.96, 0.045]} color="#565b55" />)}
     {/* the open floor edge: a rail along the south side */}
     <Box p={[(f.x0 + f.x1) / 2, y + 0.95, f.z1]} s={[f.x1 - f.x0, 0.06, 0.06]} color="#514536" />
-    {[f.x0 + 0.1, (f.x0 + f.x1) / 2, f.x1 - 0.1].map(x => <Box key={x} p={[x, y + 0.5, f.z1]} s={[0.05, 1, 0.05]} color="#514536" />)}
-    {/* plain timber panelling on the walls and a pale ceiling, so the room reads as an office and not a shed */}
+    {[f.x0 + 0.1, f.x0 + (f.x1 - f.x0) / 3, f.x0 + 2 * (f.x1 - f.x0) / 3, f.x1 - 0.1].map(x => <Box key={x} p={[x, y + 0.5, f.z1]} s={[0.05, 1, 0.05]} color="#514536" />)}
+    {/* plain timber panelling on the walls (the east side leaves the doorway from the loft clear) and a pale ceiling */}
     <Box p={[x0 + 0.13, y + 0.7, -3]} s={[0.05, 1.4, 5.9]} color="#c8b48c" />
     <Box p={[cx, y + 0.7, z0 + 0.13]} s={[x1 - x0 - 0.2, 1.4, 0.05]} color="#c8b48c" />
-    <Box p={[x1 - 0.13, y + 0.7, -3]} s={[0.05, 1.4, 5.9]} color="#c8b48c" />
+    {[[f.z0, dr.z0], [dr.z1, f.z1]].map(([a, b]) => <Box key={a} p={[x1 - 0.13, y + 0.7, (a + b) / 2]} s={[0.05, 1.4, b - a]} color="#c8b48c" />)}
     <Box p={[cx, H - 0.06, 0]} s={[x1 - x0 - 0.2, 0.06, z1 - z0 - 0.2]} color="#d6ccb4" />
     {/* the team table with chairs */}
     <Box p={[tb.x, y + 0.74, tz]} s={[0.9, 0.07, tb.z1 - tb.z0]} map={timber} color="#a88a5c" />
@@ -197,12 +185,12 @@ function TeamFloor({ wall, timber, H, power }) {
           <Box p={[-side * 0.17, 0.22, dz]} s={[0.028, 0.44, 0.028]} color="#464d4b" />
         </React.Fragment>)}
       </group>))}
-    {/* the race planning wall, on the old office's wall: a framed cork board with paper and route strips pinned on (blank: no names or routes yet) */}
-    {(() => { const bz = (board.z0 + board.z1) / 2, bl = board.z1 - board.z0, fx = board.x + 0.0, face = board.x - 0.035; return <>
-      <Box p={[fx, y + 1.6, bz]} s={[0.05, 1.7, bl + 0.16]} map={timber} color="#4f3a26" />
-      <Box p={[fx - 0.01, y + 1.6, bz]} s={[0.05, 1.54, bl]} color="#b89a6a" />
-      {[[-4.5, 1.2, 0.9], [-3.3, 1.9, 0.8], [-2.3, 2.1, 1.0], [-4.2, 2.15, 0.7]].map(([z, h, w2], i) => <Box key={i} p={[face, y + h - 0.2, z]} s={[0.02, 0.04, w2]} color={['#a2382c', '#38639f', '#c9a640', '#4d7a4c'][i]} />)}
-      {[[-4.6, 1.5], [-3.7, 1.0], [-2.8, 1.55], [-1.9, 1.1]].map(([z, h], i) => <Box key={z} p={[face - 0.005, y + h, z]} s={[0.012, 0.34, 0.26]} color="#e2dac2" rot={[0.04 * (i - 1.5), 0, 0]} />)}
+    {/* the race planning wall on the north wall: a framed cork board with paper and route strips pinned on (blank: no names or routes yet) */}
+    {(() => { const bx = (board.x0 + board.x1) / 2, bl = board.x1 - board.x0, face = board.z + 0.035; return <>
+      <Box p={[bx, y + 1.6, board.z]} s={[bl + 0.16, 1.7, 0.05]} map={timber} color="#4f3a26" />
+      <Box p={[bx, y + 1.6, board.z + 0.01]} s={[bl, 1.54, 0.05]} color="#b89a6a" />
+      {[[-1.1, 1.2, 0.9], [0.1, 1.9, 0.8], [1.1, 2.1, 1.0], [-0.8, 2.15, 0.7]].map(([dx, h, w2], i) => <Box key={i} p={[bx + dx, y + h - 0.2, face]} s={[w2, 0.04, 0.02]} color={['#a2382c', '#38639f', '#c9a640', '#4d7a4c'][i]} />)}
+      {[[-1.2, 1.5], [-0.3, 1.0], [0.6, 1.55], [1.5, 1.1]].map(([dx, h], i) => <Box key={dx} p={[bx + dx, y + h, face + 0.005]} s={[0.26, 0.34, 0.012]} color="#e2dac2" rot={[0, 0, 0.04 * (i - 1.5)]} />)}
     </>; })()}
     {[[x0 - 0.02, -1.2], [x0 - 0.02, -3.2]].map(([x, z], i) => <Box key={i} p={[x, y + 1.5, z]} s={[0.05, 1.1, 1.4]} color="#394848" />)}
     <pointLight position={[cx, y + 2.6, -3.2]} color="#ffca81" intensity={power ? 12 : 0} distance={8} decay={2} />

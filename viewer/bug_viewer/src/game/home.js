@@ -7,7 +7,7 @@ import { OPENING_PRICE, snapCut, openWhy, wallCircles, segByKey, SEGMENTS } from
 import { MATERIALS, DEFAULT_MAT, matOf, matName, piecePrice, PIECES, isPiece, inBuilding, snap as snapPiece, supported, conflicts, dependents, circles as pieceCircles, probePoints, floorRect } from '../worlds/structures.js';
 import { startCheck, fuelOf } from '../rules/fuel.js';
 import { engineStartCheck, pieceClue } from './engineRules.js';
-import { inOffice, wingFree, annexWallCircles, wingWallCircles, officeLevelOf, WING } from '../worlds/office.js';
+import { OFFICE, inOffice, wingFree, annexWallCircles, wingWallCircles, officeLevelOf, WING, WING_UP } from '../worlds/office.js';
 import { LANE, STALL, lotZ1 } from '../worlds/lot.js';
 import { garageLevelOf, nearestBay, inExtension, levelOpenings, extensionWallCircles, extension } from '../worlds/garageLevels.js';
 import { ownedStages } from '../worlds/upgrades.js';
@@ -425,10 +425,12 @@ let cache = { v: -1, list: [] };
 /** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
 export function propObstacles() {
   const v = game.propsV || 0, mv = game.buildMode?.moving?.uid || 0, office = upgradeLevel('office') >= 1;
-  const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
+  const ud = officeLevelOf(ownedStages(game.home)) >= 3 ? WING_UP.door : null;   // office level 3: Walt's loft opens into the team room at loft height
+  const wc = wallCircles(openingKeys()).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz), upper = ud && Math.abs(cx - OFFICE.x0) < 0.01 && cz > ud.z0 + 0.01 && cz < ud.z1 - 0.01; return [wx, wz, r, upper ? G.y + 2.7 : 99]; });
   const extC = extensionWallCircles(garageLevelOf(ownedStages(game.home))).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });
   const ol = officeLevelOf(ownedStages(game.home)), wing = ol >= 1;
-  const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r, top = 99, bottom]) => { const [wx, wz] = toWorld(G, cx, cz); return bottom == null ? [wx, wz, r, top] : [wx, wz, r, top, bottom]; }) : [];
+  // tops and bottoms in office.js are above the garage slab; the walker compares them with its own height in the world, so they are lifted by G.y here
+  const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r, top = 99, bottom]) => { const [wx, wz] = toWorld(G, cx, cz), t = top === 99 ? 99 : G.y + top; return bottom == null ? [wx, wz, r, t] : [wx, wz, r, t, G.y + bottom]; }) : [];
   if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== ol) cache = { v, mv, office, wing: ol, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
