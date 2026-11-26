@@ -44,7 +44,7 @@ export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
 /** pack: small parts only. car: the cab, plus a roof deck when a roof rack is fitted (anything up to "large") */
-export const CAPACITY = { pack: 4, cab: 4, roof: 6 };
+export const CAPACITY = { pack: 4, cab: 6, roof: 8 };   // Nov 27 (Chris: more room in the vehicle): the Bug's back seat counts too, cab 4 -> 6, roof rack 6 -> 8. PROPOSAL
 /** the pack's size: 4, plus what the camper's gear locker adds (game/upgrades.js effects) */
 export const packCap = () => CAPACITY.pack + effects().packBonus;
 export const hasRack = () => !!game.build?.parts?.roofRack;

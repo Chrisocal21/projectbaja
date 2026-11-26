@@ -160,7 +160,7 @@ export function InventoryBody() {
         {list.length ? list.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
       </React.Fragment>; })}
     <div className="inv-sec">MATERIALS <span>scrap metal {game.mats?.scrap || 0} · wood {game.mats?.wood || 0} · used at the workbench</span></div>
-    <div className="inv-sec">STORAGE ROOM ? BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
+    <div className="inv-sec">STORAGE ROOM · BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
   </>;
 }

@@ -194,11 +194,11 @@ export default function Items() {
   </>;
 }
 
-const CAB = [[-0.3, 0.62, -0.6], [0.3, 0.62, -0.6], [0, 0.95, -0.6], [0, 0.62, -1.15]];
-const TRUCK_CAB = [[0.35, 1.05, 0.55], [-0.35, 1.05, 0.55], [0, 1.35, 0.55]];   // (model turned 180 deg: nose is +z)
+const CAB = [[-0.3, 0.62, -0.6], [0.3, 0.62, -0.6], [0, 0.95, -0.6], [0, 0.62, -1.15], [-0.3, 0.62, -1.15], [0.3, 0.62, -1.15]];   // the last three: the back seat
+const TRUCK_CAB = [[0.35, 1.05, 0.55], [-0.35, 1.05, 0.55], [0, 1.35, 0.55], [0.35, 1.35, 0.55]];   // (model turned 180 deg: nose is +z)
 const PICKUP_LOAD = { cab: TRUCK_CAB, bedY: 0.98, bedZ: 1.35 };
 /** the El Cajon (measured from the model, bed floor y 0.60 from the cab wall z -0.75 back to the tailgate z -2.45; the bench seat top is ~0.95): crates on the passenger half of the seat, then the bed */
-const CAJON_LOAD = { cab: [[-0.4, 1.05, -0.1], [0, 1.05, -0.1], [-0.4, 1.35, -0.1]], bedY: 0.6, bedZ: 0.8 };
+const CAJON_LOAD = { cab: [[-0.4, 1.05, -0.1], [0, 1.05, -0.1], [-0.4, 1.35, -0.1], [0, 1.35, -0.1]], bedY: 0.6, bedZ: 0.8 };
 /** what a vehicle is carrying: the Bug's cab and roof rack, a truck's cab and bed. Rendered inside the vehicle so it moves with it. */
 export function Cargo({ veh }) {
   useGame();
@@ -206,13 +206,13 @@ export function Cargo({ veh }) {
   if (v !== 'bug') {   // truck: crates stand in two rows on the bed floor
     let row = [0, 0];
     const L = v === 'cajon' ? CAJON_LOAD : PICKUP_LOAD;   // where this truck's cab seat and bed floor are
-    return <>{mine.map((it, i) => { const [w, , d] = DIM[sizeOf(it.kind, it.id)]; if (it.spot === 'cab') return <group key={it.uid} position={L.cab[i % 3]}><Crate item={it} scale={0.7} /></group>;
+    return <>{mine.map((it, i) => { const [w, , d] = DIM[sizeOf(it.kind, it.id)]; if (it.spot === 'cab') return <group key={it.uid} position={L.cab[i % L.cab.length]}><Crate item={it} scale={0.7} /></group>;
       const side = row[0] <= row[1] ? 0 : 1, z = -(L.bedZ + row[side] + d / 2); row[side] += d + 0.06; return <group key={it.uid} position={[side ? 0.42 : -0.42, L.bedY, z]}><Crate item={it} /></group>; })}</>;
   }
   const cab = mine.filter(i => i.spot === 'cab'), roof = mine.filter(i => i.spot === 'roof');
   let z = -0.5;
   return <>
-    {cab.map((it, i) => <group key={it.uid} position={CAB[i % 4]}><Crate item={it} scale={0.8} /></group>)}
+    {cab.map((it, i) => <group key={it.uid} position={CAB[i % CAB.length]}><Crate item={it} scale={0.8} /></group>)}
     {roof.map(it => { const d = DIM[sizeOf(it.kind, it.id)][2] * 0.85, p = z + d / 2; z += d + 0.05; return <group key={it.uid} position={[0, 1.66, p]}><Crate item={it} scale={0.85} /></group>; })}
   </>;
 }
