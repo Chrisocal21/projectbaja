@@ -16,7 +16,7 @@ import { switchTo, buyVehicle, activeType, vehicleType } from './game/fleet.js';
 import { isPiece } from './worlds/structures.js';
 import { furn, turnRy, aimedProp } from './game/furnish.js';
 import { pegInteract } from './game/pegboard.js';
-import { ensureBugBay, scrapTire, clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
+import { asBlueprint, ensureBugBay, scrapTire, clearJunk, flipBreaker, toggleOpen, nextCatItem, nextInCat, hotbar, startMove, movePropTo, ensureStarterFixtures, ensureShopTires, ensureWallItemsOnWalls, ensureLetterItem, ensureJunkItems, migrateGrid, nearestOpening, closeOpening, placeProp, removeProp, storeProp, BUILD_ITEMS, buildById, uncoverRaceCar, takeHeap, fabricate, upgradeTrailer, sleep, crankBug } from './game/home.js';
 import { doJob, jobById } from './game/jobs.js';
 import { unstuck } from './game/unstuck.js';
 import { spawns as COUNTY_SPAWNS } from './worlds/county.js';
@@ -65,6 +65,7 @@ import { startPressure, stopPressure, pressureToolInHand } from './game/pressure
 import { startRecovery, stopRecovery, recoveryToolInHand } from './game/recoveryWork.js';
 import { startPour, stopPour, canInHand, fillCanAtPump } from './game/fuelCan.js';
 import HoldBar from './game/HoldBar.jsx';
+import { feedBlueprint, startBpWork, stopBpWork } from './game/bpWork.js';
 import { placementKey, placementClick } from './placement/input.js';   // vehicle cargo placement: no-ops unless ?placement=1
 import SettingsPanel from './game/SettingsPanel.jsx';
 import PerfHud from './game/PerfHud.jsx';
@@ -81,7 +82,7 @@ const categories = [...new Set(slots.map(s => s.category))];
 /** Stage 4b: the held build item is furniture (not a building piece or a cut doorway): free placement + the new rotate / click controls */
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
-const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); stopRecovery(); stopPour(); game.holdBar = null; };
+const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); stopRecovery(); stopPour(); stopBpWork(); game.holdBar = null; };
 const doService = part => { const w = game.home?.wear?.[game.active] || FRESH(), c = partCost(w, part); if (!c) return; if (game.cash < c) return say('Not enough cash for the parts: $' + c + '.'); addCash(-c, 'Service: ' + PART_NAME[part]); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: serviced(w, part) } }; save(); say(PART_NAME[part] + ' done.'); };
 const startHold = (label, fn, tap = false, ms = HOLD_MS) => { ms = Math.max(200, Math.round(ms * effects().holdScale)); game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
@@ -235,6 +236,7 @@ function App() {
     else if (id === 'job') setPanel('job');
     else if (id === 'trailer') setPanel('trailer');
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));   // one press of E and the pile is gone
+    else if (id.startsWith('bp:')) feedBlueprint(+id.slice(3));   // a blueprint: E puts in the materials you have (game/bpWork.js)
     else if (id === 'bench') setPanel('fab');
     else if (id.startsWith('stand:')) useStand(id.slice(6));
     else if (id === 'peg') pegInteract();
@@ -295,14 +297,14 @@ function App() {
         if (e.code === 'BracketRight') return cyc(1); if (e.code === 'BracketLeft') return cyc(-1);
         if (e.code === 'Period' || e.code === 'Comma') { game.buildMode = { ...bm, item: nextCatItem(bm.item, e.code === 'Period' ? 1 : -1) }; say(`${buildById[game.buildMode.item].cat}: ${buildById[game.buildMode.item].name}`); return; }
         if (e.code === 'KeyR') { game.buildMode = { ...bm, ry: ((bm.ry || 0) + Math.PI / 4) % (Math.PI * 2) }; return; }
-        if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); } return; }
+        if (e.code === 'KeyE') { if (bm.x !== undefined) { if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat, asBlueprint(bm)); } return; }
         if (e.code === 'KeyX' && bm.direct && bm.moving) { const u = bm.moving.uid; game.buildMode = null; if (e.shiftKey) storeProp(u); else removeProp(u); return; }   // Stage 4f: the piece in your hands
         if (e.code === 'KeyX' && e.shiftKey) { const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) storeProp(n[0].uid); else say('Nothing to store here.'); return; }
         if (e.code === 'KeyX') { const o = nearestOpening(bm.x, bm.z), n0 = game.props.map(q => Math.hypot(q.x - bm.x, q.z - bm.z)).sort((a, b) => a - b)[0]; if (o && o.d < 2.5 && (n0 === undefined || o.d <= n0)) { closeOpening(o.key); return; } const n = game.props.map(q => [q, Math.hypot(q.x - bm.x, q.z - bm.z)]).sort((a, b) => a[1] - b[1])[0]; if (n && n[1] < 3) removeProp(n[0].uid); else say('Nothing built here.'); return; }
       }
       if (p === null && game.onFoot && !e.repeat && e.code === 'KeyB' && !bm) { if (game.canBuild) setPanel('build'); else if (game.onProperty) say('Clear the junk out of the garage first.'); return; }
-      if (e.code === 'KeyV' && !e.repeat && p === null && !bm && game.onFoot && document.pointerLockElement && game.target?.startsWith('furn:')) {   // furniture only moves on purpose: aim at it and press V
-        const q = game.props.find(o => o.uid === +game.target.slice(5)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } return;
+      if (e.code === 'KeyV' && !e.repeat && p === null && !bm && game.onFoot && document.pointerLockElement && (game.target?.startsWith('furn:') || game.target?.startsWith('bp:'))) {   // furniture only moves on purpose: aim at it and press V (a blueprint too)
+        const q = game.props.find(o => o.uid === +game.target.slice(game.target.indexOf(':') + 1)); if (q) { game.buildMode = { item: q.id, ry: q.ry || 0, direct: true, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.replace(/ \(.*\)/, '').toLowerCase()}: click to set it down, Q/E or wheel to turn, Shift+X store, X sell, Esc cancel`); } return;
       }
       if (e.code === 'KeyY' && !e.repeat && p === null && !game.buildMode) { unstuck(); return; }
       if (e.code === 'KeyL' && !e.repeat && p === null && !game.buildMode) { toggleLights(); return; }
@@ -327,11 +329,12 @@ function App() {
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
         else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));
+        else if (btn === 0 && game.target?.startsWith('bp:')) startBpWork(+game.target.slice(3));   // a blueprint: hold to build it (the wrench in hand)
         else if (btn === 0 && game.target === 'tirem') { const pl = planAtMachine(); if (pl?.ok) startHold(`${pl.verb}…`, doMachine, false, pl.seconds * 1000); else if (pl) say(pl.why); }   // the tire machine: the bar takes as long as the job
         else if (btn === 0 && (game.nearCar || game.work) && game.aim && toolInHand() && game.target?.startsWith('car:')) { const id = game.aim; startHold('Taking off…', () => (id.startsWith('up:') ? doDetachUpgrade(id.slice(3)) : doDetach(id, game.carZone))); }   // hold left on a part: the bar fills, it comes off onto the ground. game.work = any restorable vehicle you stand at (donors, the El Cajon); game.nearCar is only the one you drive
       }
       if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = bm.direct ? null : { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
-      if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (furnishing(bm) && !bm.moving) { const hit = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), furn.cx, furn.cz, game.face, 7, furn.aim); if (hit) { const q = game.props.find(o => o.uid === hit.uid); game.buildMode = { ...bm, item: q.id, ry: q.ry || 0, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.toLowerCase()}: click to set it down, Esc to cancel`); return; } } if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat); }
+      if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (furnishing(bm) && !bm.moving) { const hit = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), furn.cx, furn.cz, game.face, 7, furn.aim); if (hit) { const q = game.props.find(o => o.uid === hit.uid); game.buildMode = { ...bm, item: q.id, ry: q.ry || 0, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.toLowerCase()}: click to set it down, Esc to cancel`); return; } } if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat, asBlueprint(bm)); }
       if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); } };   // (a scrap heap is picked through with a click too)
@@ -446,7 +449,7 @@ function App() {
     <Minimap />
     <HoldBar />
     {panel !== 'build' && <BuildHud />}
-    {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null }; resume(); }} />}
+    {panel === 'build' && <BuildMenu onClose={resume} onPick={(id, mat, buy) => { const bm = game.buildMode; game.buildMode = { ...(bm || {}), item: id, ry: bm?.ry || 0, mat: mat || bm?.mat, moving: null, buy: buy ? id : null }; resume(); }} />}
     {pro && <ProDebug />}
     {panel === 'settings' && <SettingsPanel onClose={() => setPanel('pause')} />}
     {panel === 'wiki' && <WikiPanel onClose={resume} />}

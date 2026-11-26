@@ -2,7 +2,11 @@
 
 Chris's idea (Nov 27): the build menu turns into benches you physically build: a crafting bench, a workbench, a table saw, a welding bench, a tube bender and so on. Storage (tire rack, battery rack...) is just storage you can place anywhere. Walt's garage gets dialed back to a plain mom-and-pop shop, and bringing it all in is your job. Materials are bought, scrapped or found in the world, the way Conan Exiles, Satisfactory, Deadside or The Front do it, but **slight**: this is still a mechanic and racing game first.
 
-Everything below is a **PROPOSAL** until Chris picks. Numbers are guesses to tune by feel.
+Everything below is a **PROPOSAL** unless marked picked. Numbers are guesses to tune by feel.
+
+**Chris picked (Nov 27): all four recs.** Starting garage B (Walt's machines there but broken), physical material stacks, four materials now, machines bought with benches you build.
+
+**Phase 1 built (Nov 27):** blueprints for the tire shelving, supply shelving and parts rack (`game/blueprints.js`, `game/bpWork.js`). Materials are put in from the tally until Phase 4 makes them physical.
 
 ## The idea in one line
 You place a blueprint, bring the materials, and build it by hand. What you can make depends on which benches you have built.

@@ -18,7 +18,7 @@ import { PLACEMENT } from '../placement/flag.js';
 import { wallSnap } from '../game/wallhang.js';
 import { sizeOf } from '../game/junkRules.js';
 import { OfficePhoto } from './OfficePhoto.jsx';
-import { WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage, tickYard, tirePileWorld } from '../game/home.js';
+import { asBlueprint, WALL_MOUNT, junkWorld, isCleared, buildById, placeWhy, snapWorld, snapCutWorld, snapLiftWorld, garageLevel, trailerHas, RACECAR, SCRAP_HEAPS, heapTaken, raceCarStage, tickYard, tirePileWorld } from '../game/home.js';
 import { boxItems, nameOfItem } from '../game/items.js';
 import { tickJobs, jobById } from '../game/jobs.js';
 import { tickTray } from '../game/tireMachine.js';
@@ -705,13 +705,32 @@ function Ghost({ T }) {
     else { const d = 4 + (item.len || 0) * 0.5; furn.cx = camera.position.x; furn.cz = camera.position.z; { const dv = camera.getWorldDirection(new THREE.Vector3()); furn.aim = { origin: { x: camera.position.x, y: camera.position.y, z: camera.position.z }, dir: { x: dv.x, y: dv.y, z: dv.z } }; } ({ x, z } = ghostSpot(camera.position.x, camera.position.z, game.face, d, furn.shift)); }   // Stage 4b: free by default, Shift = 0.5 m grid
     if (item.carBay) { const bs = snapLiftWorld(x, z); if (bs) { x = bs.x; z = bs.z; ry = bs.ry; } }   // the lift locks onto the nearest bay spot
     if (item.wallMount) { const ws = wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, level: garageLevel() }); if (ws) { x = ws.x; z = ws.z; ry = ws.ry; } }   // the pegboard snaps flush to the nearest garage wall
-    const why = placeWhy(item, x, z, !!game.buildMode.moving, ry, game.buildMode.mat);
+    const why = placeWhy(item, x, z, !!game.buildMode.moving || asBlueprint(game.buildMode), ry, game.buildMode.mat);   // (a blueprint costs no cash)
     mats.set(why ? HOLO.bad : HOLO.ok);
     ref.current.position.set(x, item.struct || item.cut ? height(x, z) : groundHeight(x, z), z); ref.current.rotation.set(0, ry, 0);
     if (game.buildMode.x !== x || game.buildMode.z !== z || game.buildMode.why !== why || ((item.struct || item.cut || item.wallMount || item.carBay) && game.buildMode.ry !== ry)) { game.buildMode = { ...game.buildMode, x, z, why, ...(item.struct || item.cut || item.wallMount || item.carBay ? { ry } : {}) }; emit(); }
   });
   if (!item) return null;
   return <group ref={ref}><group ref={inner} key={item.id + ':' + (item.struct ? game.buildMode.mat || 'sheet' : '')}><PropModel id={item.id} T={T} mat={item.struct ? game.buildMode.mat || 'sheet' : undefined} /></group><group ref={foot} /></group>;
+}
+
+/** a blueprint standing where it will be built (game/blueprints.js): the whole piece as an amber hologram, and the real thing rising out of the floor as the work goes on
+ *  (the solid copy is cut off by a clipping plane at the height the work has reached) */
+function BlueprintProp({ uid, id, T }) {
+  const holo = useRef(), solid = useRef(), { gl } = useThree(), mats = useMemo(() => holoMaterials(), []), plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), []), top = useRef(2.2), v = useMemo(() => new THREE.Vector3(), []);
+  useEffect(() => { gl.localClippingEnabled = true; mats.set(HOLO.amber); return () => mats.dispose(); }, [gl, mats]);
+  useEffect(() => {
+    const g = solid.current; if (!g) return;
+    g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(g), base = g.getWorldPosition(new THREE.Vector3()).y; if (!b.isEmpty()) top.current = Math.max(0.3, b.max.y - base);
+    g.traverse(o => { if (!o.isMesh || o.userData.clipped) return; o.material = Array.isArray(o.material) ? o.material.map(m => { const c = m.clone(); c.clippingPlanes = [plane]; c.clipShadows = true; return c; }) : Object.assign(o.material.clone(), { clippingPlanes: [plane], clipShadows: true }); o.userData.clipped = true; });
+  }, [plane]);
+  useFrame(({ clock }) => {
+    if (!holo.current || !solid.current) return;
+    ghostify(holo.current, mats); mats.pulse(clock.elapsedTime * 0.5);
+    const w = game.props.find(q => q.uid === uid)?.bp?.work || 0;
+    solid.current.getWorldPosition(v); plane.constant = v.y + w * top.current; solid.current.visible = w > 0.002;
+  });
+  return <><group ref={holo}><PropModel id={id} T={T} /></group><group ref={solid}><PropModel id={id} T={T} /></group></>;
 }
 
 /** the scrap tire pile by the lot: a pad, yellow posts and a sign. The stack grows with every tire you throw on it. */
@@ -742,7 +761,7 @@ export default function Home() {
     <group position={[G.x, G.y, G.z]} rotation={[0, G.rot, 0]}><Forecourt /><Trailer T={T} /><Windmill /><Tank T={T} /><OfficePhoto /></group>{/* grandpa's #7 is not here: it sits in a shed behind the co-driver's son's shop in Iron Flats (docs/CANON.md). RaceCar stays for when it is moved. */}
     {junkWorld.filter(j => !isCleared(j.id)).map(j => <group key={j.id} position={[j.x, groundHeight(j.x, j.z), j.z]} rotation={[0, j.lx * 0.7, 0]}><ShrinkingPile j={j}><Junk kind={j.kind} /></ShrinkingPile></group>)}
     {SCRAP_HEAPS.filter(h => !heapTaken(h.id)).map((h, i) => <group key={h.id} position={[h.x, groundHeight(h.x, h.z), h.z]} rotation={[0, i * 1.3, 0]}><ScrapHeap seed={i} /></group>)}
-    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{contactSize[p.id] && <ShopContact size={contactSize[p.id]} />}{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</group>)}
+    {game.props.filter(p => p.uid !== game.buildMode?.moving?.uid).map(p => <group key={p.uid} position={[p.x, isPiece(p.id) ? height(p.x, p.z) : groundHeight(p.x, p.z), p.z]} rotation={[0, p.ry || 0, 0]}>{p.bp ? <BlueprintProp uid={p.uid} id={p.id} T={T} /> : <>{contactSize[p.id] && <ShopContact size={contactSize[p.id]} />}{MERGE_OK(p.id) ? <MergedStatic><PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} /></MergedStatic> : <PropModel id={p.id} T={T} mat={p.mat} uid={p.uid} />}</>}</group>)}
     {PLACEMENT && <GarageCargo />}
     <Customer />
     <TirePile />

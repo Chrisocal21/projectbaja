@@ -23,7 +23,8 @@ import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, onBench, benchDrops, peg
 import { wornTires } from './tires.js';
 import { SIDE_BAY, BUG_BAY, OLD_BUG_SPOT, inSideBay, onBugSpot } from '../worlds/sideBay.js';
 import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
-import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
+import { dropRackTires } from '../placement/garageStore.js';
+import { isBlueprintable, newBp, refundMats, matsText, costText } from './blueprints.js';   // shop furniture you build by hand (Phase 1, docs/CRAFTING_PLAN.md)   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
 // ---------------- the mess ----------------
@@ -240,9 +241,15 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (!moving && !creative() && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
 }
-export function placeProp(id, x, z, ry, mat) {
+/** build mode is holding a blueprint (something you can build by hand), not a ready-made piece to buy: the build menu's "Buy ready-made" sets bm.buy to that item */
+export const asBlueprint = bm => !!bm && isBlueprintable(bm.item) && bm.buy !== bm.item && !bm.moving;
+export function placeProp(id, x, z, ry, mat, bp = false) {
   if (!isDecoration(id)) { say('Building is for decorations now. The house itself grows through Upgrades (U).'); return false; }
-  const item = buildById[id], why = placeWhy(item, x, z, false, ry, mat); if (why) { say(why); return false; }
+  const item = buildById[id], why = placeWhy(item, x, z, bp, ry, mat); if (why) { say(why); return false; }   // (a blueprint costs no cash: the moving flag skips the cash check)
+  if (bp && isBlueprintable(id)) {   // a blueprint: the ghost stays where you put it until you bring the materials and build it (game/bpWork.js)
+    game.props = [...game.props, { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry, bp: newBp(), paid: 0 }];
+    game.propsV = (game.propsV || 0) + 1; save(); say(`Blueprint down: ${item.name.replace(/ \(.*\)/, '').toLowerCase()}. It needs ${costText(id)}: press E at it to put them in, then hold left click with the wrench.`); return true;
+  }
   if (item.cut) {   // cut a doorway through an original wall: no prop, just an entry in the opening list
     const l = homeLocal(x, z), seg = snapCut(l.lx, l.lz);
     const free = creative(); if (!free) addCash(-item.price, `Built: ${item.name}`);
@@ -391,6 +398,7 @@ function dropFixtureItems(p) {
 export function storeProp(uidN) {
   const p = game.props.find(q => q.uid === uidN); if (!p) return false;
   if (isPiece(p.id)) { say('Building pieces cannot be stored: take them down with X.'); return false; }
+  if (p.bp) { say('That is still a blueprint: finish it, or take it down with X (what you put in comes back).'); return false; }
   dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p); spillBin(p);
   const r = storeMove(game.props, storedProps(), uidN); game.props = r.props; game.home = { ...game.home, stored: r.stored };
   game.propsV = (game.propsV || 0) + 1; save(); say(`Stored the ${buildById[p.id].name.toLowerCase()} (take it out from the build menu, B)`); return true;
@@ -422,6 +430,11 @@ export function removeProp(uidN) {
     if (dependents(all.find(q => q.uid === p.uid), all).length) return say('Take the walls, floor and roof off that foundation first.');
   }
   dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p); spillBin(p);
+  if (p.bp || (p.made && typeof p.made === 'object')) {   // built by hand: the materials come back, not cash (canon #024)
+    const mb = refundMats(p), mats = { ...game.mats }; for (const [m, n] of Object.entries(mb)) mats[m] = (mats[m] || 0) + n;
+    game.mats = mats; game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; save();
+    return say(`Took down the ${p.bp ? 'blueprint for the ' : ''}${buildById[p.id].name.replace(/ \(.*\)/, '').toLowerCase()}${matsText(mb) ? ` (${matsText(mb)} back)` : ''}`);
+  }
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back, 'Took down a prop (refund)'); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
@@ -506,12 +519,10 @@ export function crankBug() {
 
 // ---------------- fabrication at the workbench ----------------
 /** is this build item placed inside the garage? */
-export const hasInGarage = id => game.props.some(p => { const l = homeLocal(p.x, p.z); return p.id === id && insideGarage(l.lx, l.lz); });
+export const hasInGarage = id => game.props.some(p => { const l = homeLocal(p.x, p.z); return p.id === id && !p.bp && insideGarage(l.lx, l.lz); });   // (a blueprint is not there yet)
 // prop: true = it makes a piece of shop furniture, which goes into Stored (build mode, B, places it). Amounts are PROPOSALs.
+// The racks and shelves moved off the bench (Phase 1): they are blueprints now, built by hand where they stand (game/blueprints.js).
 export const RECIPES = [
-  { id: 'shelfTires', prop: true, name: 'Tire & rim shelving', scrap: 4, wood: 3, tools: [], note: 'Angle iron bolted up, planks for the boards. It goes into Stored: place it with build mode (B).' },
-  { id: 'shelfSupplies', prop: true, name: 'Supply shelving', scrap: 3, wood: 4, tools: [], note: 'For oil, cans and boxed parts. It goes into Stored: place it with build mode (B).' },
-  { id: 'partsRack', prop: true, name: 'Parts rack', scrap: 3, wood: 3, tools: [], note: 'Three open boards for parts. It goes into Stored: place it with build mode (B).' },
   { id: 'shockHoops', name: 'Shock hoops (front + rear)', scrap: 10, wood: 0, tools: ['welder', 'bender'], note: 'Tube hoops that carry long-travel shocks and clear big tires. Weld them into the Bug with the welder.' },
 ];
 /** the old wooden crate (junk) broken up at the bench gives this much wood (PROPOSAL) */

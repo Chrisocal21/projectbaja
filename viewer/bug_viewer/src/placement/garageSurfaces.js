@@ -48,7 +48,7 @@ export function garageSurfaces(props, defs, G, groundY, skipUid = 0) {
   const gy = G.y || 0, out = [];
   out.push(mk('Garage floor', garage({ id: FLOOR_ID, size: FLOOR.size, blocks: floorBlocks(props, defs, G, skipUid) }), { x: 0, y: groundY(G.x, G.z) - gy, z: 0 }));
   for (const p of props) {
-    if (!RACK_PROPS.includes(p.id) || p.uid === skipUid) continue;
+    if (!RACK_PROPS.includes(p.id) || p.uid === skipUid || p.bp) continue;   // (a blueprint has no boards yet)
     const m = toLocalG(G, p.x, p.z), base = groundY(p.x, p.z) - gy, rotY = (p.ry || 0) - G.rot;
     if (p.id === 'shelfTires') SHELF.boards.forEach((y, i) => out.push({ ...mk(`Tire shelf ${i + 1}`, garage({ id: rackSurfId(p.uid, i), size: SHELF.size, clearance: SHELF.clearance[i] }), { x: m.lx, y: base + y, z: m.lz, rotY }), defaultPose: 'upright' }));
     else out.push(mk('Tire stack', garage({ id: rackSurfId(p.uid, 0), size: STACK.size, clearance: STACK.clearance }), { x: m.lx, y: base + STACK.top, z: m.lz, rotY }));

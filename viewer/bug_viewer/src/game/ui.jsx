@@ -208,6 +208,7 @@ export function FabPanel({ onMake, onDev, onClose }) {
   useGame();
   return <div className="overlay"><div className="card inv"><h2>WORKBENCH</h2>
     <p className="hint">Scrap metal: <b>{game.mats?.scrap || 0}</b> · wood: <b>{game.mats?.wood || 0}</b>. Shop tools: welder {hasInGarage('welder') ? '✓' : '✗'} · tube bender {hasInGarage('bender') ? '✓' : '✗'} (build them with B).</p>
+    <p className="hint">Racks and shelves are built where they stand now: B, pick one, put its blueprint down, bring the wood and scrap, then hold left click on it with the wrench.</p>
     {crateInHand() && <div className="inv-row"><span>Break up the old crate<small>+{CRATE_WOOD} wood</small></span><span className="inv-btns"><button onClick={() => breakCrate()}>Break it up</button></span></div>}
     {RECIPES.map(r => { const tools = r.tools.every(hasInGarage), sc = game.mats?.scrap || 0, wd = game.mats?.wood || 0, mats = sc >= r.scrap && wd >= (r.wood || 0), done = r.id === 'shockHoops' && game.build?.fab?.hoops;
       const cost = [`${r.scrap} scrap`, r.wood ? `${r.wood} wood` : ''].filter(Boolean).join(' + '), short = sc < r.scrap ? `scrap ${sc}/${r.scrap}` : `wood ${wd}/${r.wood}`;

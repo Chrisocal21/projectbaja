@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { WEAR_PARTS, FRESH, serviceJob, SERVICE_VERB, partCost } from '../wear.js';
+import { bpPrompt } from './bpWork.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { lookScale, settings } from './settings.js';
@@ -74,6 +75,7 @@ export const promptText = id => {
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
   if (id.startsWith('bin:')) return binText(+id.slice(4));
+  if (id.startsWith('bp:')) return bpPrompt(+id.slice(3));
   if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Press V — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }
   if (id === 'tirem') { const p = planAtMachine(); return p ? (p.ok ? `Hold left click — ${p.verb}` : p.why) : ''; }
   if (id.startsWith('heap:')) return 'Click — Pick through the scrap heap';
@@ -247,7 +249,8 @@ export default function Walker({ world, sun }) {
     if (!nearPump) game.fueled = false;
     if (foot) { const [wx, wz] = toW(SITES.warehouse, -9.4, 0); consider('warehouse', wx, wz, 3.2, false, 0.8, { r: 0.9, h: 1.5 }); }   // the scrap buyer's counter
     if (foot) for (const st of STANDS) { const [sx, sz] = toW(SITES.garage, st.lx, st.lz); consider('stand:' + st.id, sx, sz, 3.0, false, 0.7, { r: 0.55, h: 1.7 }); }   // Walt's supply stands
-    if (foot) for (const q of game.props) if (isBin(q.id)) consider('bin:' + q.uid, q.x, q.z, 2.4, false, 0.85, { r: 0.6, h: 1.1, own: true });   // bins, tool chests and racks hold things
+    if (foot) for (const q of game.props) if (q.bp) { const it = buildById[q.id]; consider('bp:' + q.uid, q.x, q.z, 3.4, false, 0.4, { box: { hx: (it?.len || 1) / 2 + 0.1, hz: 0.5, h: 2.2, yaw: q.ry || 0 }, own: true }); }   // a blueprint: put materials in, build it by hand (game/bpWork.js)
+    if (foot) for (const q of game.props) if (isBin(q.id) && !q.bp) consider('bin:' + q.uid, q.x, q.z, 2.4, false, 0.85, { r: 0.6, h: 1.1, own: true });   // bins, tool chests and racks hold things
     if (foot) { const pc = nearestProp(game.props, 'computer', px, pz); if (pc) consider('pc', pc.x, pc.z, 2.2, false, 0.9, { r: 1.1, h: 1.2 }); }
     if (foot && held()) { const tm = machineNear(); if (tm && planAtMachine()) consider('tirem', tm.x, tm.z, 2.8, false, 0.8, { r: 1.0, h: 1.6 }); }   // a wheel, rim or tire in hand, at the tire machine
     if (foot) { const pb = nearestProp(game.props, 'pegboard', px, pz); if (pb) consider('peg', pb.x, pb.z, 4.5, false, 0.9, { box: { hx: PEG.w / 2, hz: 0.6, y: s.y + PEG.y - PEG.h / 2, h: PEG.h, yaw: pb.ry || 0 } }); }

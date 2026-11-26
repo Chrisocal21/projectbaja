@@ -2,7 +2,8 @@
 // picker, and a hotbar (1-8). Plus the in-world placement HUD shown while you hold a piece.
 import React from 'react';
 import { game, useGame } from './store.js';
-import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar, storedProps, startPlaceStored } from './home.js';
+import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar, storedProps, startPlaceStored, asBlueprint } from './home.js';
+import { isBlueprintable, costText } from './blueprints.js';
 import { MATERIALS, DEFAULT_MAT, matName, piecePrice, nextMat } from '../worlds/structures.js';
 import { iconOf } from './icons.js';
 import { creative } from './settings.js';
@@ -62,9 +63,9 @@ export function BuildMenu({ onPick, onClose }) {
       <section className="bm-list">{storedProps().length > 0 && <div><h4 className="bm-sec">Stored</h4><div className="bm-grid">{storedProps().map(p => <button key={p.uid} className="bm-tile" onClick={() => { if (startPlaceStored(p.uid)) onClose(); }}><Icon id={p.id} /><span className="bm-tname">{shortName(buildById[p.id])}</span><span className="bm-tprice">Place</span></button>)}</div></div>}{groups.length ? groups.map(([c, list], gi) => <div key={c}>
         <h4 className="bm-sec"><b>{gi + 1}.</b> {c}</h4>
         <div className="bm-grid">{list.map(it => { const p = priceFor(it, mat), slot = hotbar().findIndex(e => e?.id === it.id);
-          return <button key={it.id} className={`bm-tile${it.id === sel ? ' on' : ''}${game.cash < p ? ' poor' : ''}`} onMouseEnter={() => setHover(it.id)} onMouseLeave={() => setHover(h => (h === it.id ? null : h))} onClick={() => { setSel(it.id); onPick(it.id, mat); }}>
+          return <button key={it.id} className={`bm-tile${it.id === sel ? ' on' : ''}${game.cash < p && !isBlueprintable(it.id) ? ' poor' : ''}`} onMouseEnter={() => setHover(it.id)} onMouseLeave={() => setHover(h => (h === it.id ? null : h))} onClick={() => { setSel(it.id); onPick(it.id, mat); }}>
             <Icon id={it.id} mat={mat} />{slot >= 0 && <kbd className="bm-slot">{slot + 1}</kbd>}
-            <span className="bm-tname">{shortName(it)}</span><span className="bm-tprice">{money(p)}</span>
+            <span className="bm-tname">{shortName(it)}</span><span className="bm-tprice">{isBlueprintable(it.id) ? 'Build it' : money(p)}</span>
           </button>; })}</div></div>) : <p className="bm-none">Nothing matches "{q}".</p>}</section>
       <aside className="bm-detail">
         <div className="bm-stage"><Icon id={shown.id} mat={mat} cls="big" /></div>
@@ -73,8 +74,10 @@ export function BuildMenu({ onPick, onClose }) {
         {blurb(shown) && <p>{blurb(shown)}</p>}
         {shown.struct && <><h5>MATERIAL <Key k="N" /></h5><div className="bm-mats">{MATERIALS.map(m => <button key={m.id} className={m.id === mat ? 'on' : ''} onClick={() => setMat(m.id)} title={m.name}>
           <Icon id={shown.id} mat={m.id} /><span>{m.name.replace(/ \(.*\)/, '')}</span><em>{money(piecePrice(shown.id, m.id))}</em></button>)}</div></>}
-        <div className="bm-cost"><span>COST</span><b className={short ? 'bad' : ''}>{money(price)}</b>{creative() && <small>Creative mode: building is free</small>}{shown.struct && <small>{matName(mat)}</small>}{short && <small className="bad">You have ${game.cash.toLocaleString()}</small>}</div>
-        <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Select <Key k="Enter" /></button>
+        {isBlueprintable(shown.id) && <div className="bm-cost"><span>BUILD IT YOURSELF</span><b>{costText(shown.id)}</b><small>Put the blueprint down, bring the materials (E), then hold left click with the wrench. You have {game.mats?.wood || 0} wood · {game.mats?.scrap || 0} scrap metal.</small></div>}
+        {isBlueprintable(shown.id) && <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Place blueprint <Key k="Enter" /></button>}
+        <div className="bm-cost"><span>{isBlueprintable(shown.id) ? 'OR BUY IT READY-MADE' : 'COST'}</span><b className={short ? 'bad' : ''}>{money(price)}</b>{creative() && <small>Creative mode: building is free</small>}{shown.struct && <small>{matName(mat)}</small>}{short && <small className="bad">You have ${game.cash.toLocaleString()}</small>}</div>
+        {isBlueprintable(shown.id) ? <button className="bm-go bm-buy" onClick={() => onPick(shown.id, mat, true)}>Buy ready-made</button> : <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Select <Key k="Enter" /></button>}
       </aside>
     </div>
     <footer className="bm-foot">
@@ -88,15 +91,15 @@ export function BuildMenu({ onPick, onClose }) {
 export function BuildHud() {
   useGame();
   const bm = game.buildMode; if (!bm) return null;
-  const it = buildById[bm.item], mat = bm.mat || DEFAULT_MAT, price = priceFor(it, mat), deg = Math.round(((bm.ry || 0) * 180) / Math.PI) % 360;
-  const status = bm.why || (bm.moving ? 'Click to set it down here' : 'Click to build');
+  const it = buildById[bm.item], mat = bm.mat || DEFAULT_MAT, price = priceFor(it, mat), deg = Math.round(((bm.ry || 0) * 180) / Math.PI) % 360, bp = asBlueprint(bm);
+  const status = bm.why || (bm.moving ? 'Click to set it down here' : bp ? 'Click to put the blueprint down' : 'Click to build');
   return <div className="bh">
     <div className="bh-card">
       <Icon id={it.id} mat={mat} />
       <div className="bh-info">
-        <small>{bm.moving ? 'MOVING' : it.cat.toUpperCase()}</small>
+        <small>{bm.moving ? 'MOVING' : bp ? 'BLUEPRINT' : it.cat.toUpperCase()}</small>
         <b>{shortName(it)}</b>
-        <span>{it.struct && !bm.moving ? `${matName(mat)} · ` : ''}{bm.moving ? 'free' : money(price)}{it.struct || it.cut ? '' : ` · ${deg}°`}</span>
+        <span>{it.struct && !bm.moving ? `${matName(mat)} · ` : ''}{bm.moving ? 'free' : bp ? costText(it.id) : money(price)}{it.struct || it.cut ? '' : ` · ${deg}°`}</span>
       </div>
       <div className={`bh-why ${bm.why ? 'bad' : 'ok'}`}><i />{status}</div>
     </div>

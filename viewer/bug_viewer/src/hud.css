@@ -616,3 +616,6 @@
 .phone .inv-scroll{max-height:none}
 .web-page{max-height:none;flex:1 1 auto;min-height:0}
 .phone>.web{overflow:hidden}
+
+/* blueprints (Phase 1): the second button in the build menu buys the piece ready-made */
+.bm-go.bm-buy { background: #3a4350; color: #e8ecf1 !important; }
