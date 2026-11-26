@@ -30,8 +30,19 @@ export function gridSpots(n) {
  *  Heavy doors and the battery low, fenders and steering wheel at chest height, light panels and lamps on top. The second red shelf stays free for customer boxes. */
 export const SHELF = { x: 6.5, z: -3.0, len: 2.2, boards: [0.58, 1.48, 2.38], ry: -Math.PI / 2,
   rows: [['doorL', 'doorR', 'battery'], ['fenderFL', 'fenderFR', 'steering'], ['engineLid', 'hoodPanel', 'headlights', 'taillights']] };
-/** wheels stand upright on the bottom board of the middle blue tire shelf (x -6.5, z 0): surface-local x along the board */
-export const TIRE_SHELF = { lz: 0, level: 0, at: { wheelFL: -0.8, wheelFR: -0.27, wheelRL: 0.27, wheelRR: 0.8 } };
+/** wheels stand upright on the bottom board of the middle blue tire shelf (x -6.5, z 0). Surface-local, measured from the board's corner
+ *  (placement/rules.js: x 0..2.2 along it, z 0..0.7 across): spread along the board, in the middle of its depth */
+export const TIRE_SHELF = { lz: 0, level: 0, z: 0.35, at: { wheelFL: 0.3, wheelFR: 0.83, wheelRL: 1.37, wheelRR: 1.9 } };
+/** saves started before Nov 26 put those wheels centred on the board's CORNER (x -0.8..0.8, z 0), so they stood half off the shelf and into the wall.
+ *  Returns the items with any such wheel moved onto the board (the same item when nothing changed). */
+export function fixShelfWheels(items) {
+  let n = 0;
+  const out = items.map(i => {
+    if (i.spot !== 'grid' || !/^rack:\d+:/.test(i.surf || '') || !(i.kind === 'stock' && i.id === 'wheel') || Math.abs(i.z || 0) > 0.01 || i.x < -1.11 || i.x > 1.11) return i;
+    n++; return { ...i, x: Math.round((i.x + 1.1) * 100) / 100, z: TIRE_SHELF.z };
+  });
+  return n ? out : items;
+}
 /** on the floor along the right wall in front of the red shelves (the middle lane stays clear for driving onto the lift):
  *  the three seats in a row against the wall facing in, the engine out in front of them where the hoist can reach it */
 export const FLOOR_SPOTS = { engine: [10, -4.3, 0], seatDriver: [11.75, 2.9, Math.PI / 2], seatPassenger: [11.75, 3.75, Math.PI / 2], seatBack: [11.75, 4.75, Math.PI / 2] };   // in the side bay (worlds/sideBay.js): engine behind her, seats along the outer wall clear of the way out

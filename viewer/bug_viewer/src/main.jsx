@@ -37,7 +37,7 @@ import { openRoadShop, roadShelf, roadBuy, roadShip, shopTitle, SHOP_BUYER } fro
 import { effects } from './game/upgrades.js';
 import { carFitReady } from './game/carSnap.js';
 import { apartBuild } from './game/teardown.js';
-import { spawnApartParts } from './game/teardownSpawn.js';
+import { spawnApartParts, ensureShelfWheels } from './game/teardownSpawn.js';
 import { mayStrip } from './game/salvage.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
 import { dustyVisit } from './game/cajonGift.js';
@@ -151,7 +151,7 @@ function App() {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize(apartBuild({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] }))); spawnApartParts(); }   // the Bug starts taken apart, every part on the garage floor (game/teardown.js) else if (game.build) setBuildRaw(normalize(game.build));
-    migrateGrid(); ensureBugBay(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot(); ensureMatFinds();   // Walt's wall shelving: movable props, seeded once per save
+    migrateGrid(); ensureBugBay(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot(); ensureMatFinds(); ensureShelfWheels();   // Walt's wall shelving: movable props, seeded once per save
     if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };

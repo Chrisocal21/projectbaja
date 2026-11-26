@@ -23,7 +23,8 @@ test('the next step starts with a drive part nothing blocks, and ends null when 
   assert.equal(nextStep(whole), null);
   assert.notEqual(nextStep(apartBuild(whole)).slot.id, 'steering', 'the steering wheel needs the dash first');
 });
-import { layoutParts, SHELF, TIRE_SHELF, FLOOR_SPOTS } from './teardown.js';
+import { layoutParts, SHELF, TIRE_SHELF, FLOOR_SPOTS, fixShelfWheels } from './teardown.js';
+import { SHELF as RACK } from '../placement/garageSurfaces.js';
 test('every loose part has its own place: the red shelf, the tire shelf or the floor corner, nothing doubled', () => {
   const lay = layoutParts(), ids = apartSlots().map(s => s.id), onTires = id => TIRE_SHELF.at[id] != null;
   assert.ok(ids.every(id => lay[id] || onTires(id)), 'every part is placed: ' + ids.filter(id => !lay[id] && !onTires(id)).join());
@@ -44,4 +45,15 @@ test('each next step carries a how-to line, with the special cases for the engin
   assert.ok(eng.parts.plugs.c < 15, 'the plugs are fouled'); assert.doesNotMatch(nextStep(b, eng).tip, /plugs/, 'the guide does not give the joke away');
   const out = { ...eng.parts }; delete out.plugs; assert.match(nextStep(b, { parts: out }).tip, /Order a set/);
   assert.doesNotMatch(nextStep(b, { parts: { ...eng.parts, plugs: { c: 100 } } }).tip, /Order/);
+});
+
+test("the Bug's wheels stand on the tire shelf board, not off its corner (and old saves are moved onto it)", () => {
+  const [w, d] = RACK.size, xs = Object.values(TIRE_SHELF.at);
+  for (const x of xs) assert.ok(x - 0.15 >= 0 && x + 0.15 <= w, x);
+  assert.ok(TIRE_SHELF.z - 0.3 >= 0 && TIRE_SHELF.z + 0.3 <= d);
+  const old = [-0.8, -0.27, 0.27, 0.8].map((x, i) => ({ uid: i, kind: 'stock', id: 'wheel', spot: 'grid', surf: 'rack:1:0', x, z: 0 })), other = { uid: 9, kind: 'tire', id: 't', spot: 'grid', surf: 'rack:1:0', x: 0.5, z: 0 };
+  const fixed = fixShelfWheels([...old, other]);
+  assert.deepEqual(fixed.slice(0, 4).map(i => [i.x, i.z]), [[0.3, 0.35], [0.83, 0.35], [1.37, 0.35], [1.9, 0.35]]);
+  assert.equal(fixed[4], other);
+  assert.equal(fixShelfWheels(fixed.slice(0, 4)).length, 4); const again = fixed.slice(0, 4); assert.equal(fixShelfWheels(again), again);
 });
