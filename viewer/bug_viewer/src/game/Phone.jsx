@@ -18,6 +18,7 @@ import { jobById, jobCheck, SUPPLIES } from './jobs.js';
 import { TOOLS, canCarry, giveToPlayer, dropNearPlayer } from './items.js';
 import { SaveTools } from './update.jsx';
 import ExplorerApp from './ExplorerApp.jsx';
+import BrowserApp from './BrowserApp.jsx';
 import { takePhoto, updatePhoto, deletePhoto, photos } from './photos.js';
 import { coordText, postedFeed } from './photologic.js';
 import { compassPoint } from './compass.js';
@@ -65,7 +66,7 @@ export function PhonePanel({ start, onResume, onSettings, onWiki, onUpgrades, on
       : carsView ? <CarSalesApp onBack={() => setCarsView(false)} />
       : wxView ? <WeatherApp onBack={() => setWxView(false)} />
       : ordersView ? <OrdersApp onBack={() => setOrdersView(false)} />
-      : netView ? <InternetApp onBack={() => setNetView(false)} />
+      : netView ? <BrowserApp onBack={() => setNetView(false)} parts={<InternetApp embedded />} als={<CarSalesApp embedded />} />
       : bankView ? <MoneyApp onBack={() => setBankView(false)} />
       : jobsView ? <JobsApp onBack={() => setJobsView(false)} />
       : story ? <StoryLog view={story} setView={setStory} />
@@ -122,17 +123,17 @@ function MoneyApp({ onBack }) {
 }
 
 /** the Internet app (real, first slice, PROPOSAL): order parts from an unnamed supplier; the box arrives at the shop pickup area after a few game hours */
-function InternetApp({ onBack }) {
+function InternetApp({ onBack, embedded }) {
   const [tab, setTab] = useState('part');
   const body = game.build?.body || 'classic', cat = { ...catalogFor(body), stock: cajonCatalog() }, list = cat[tab] || [], waiting = ordersOnTheWay(), hasCajon = !!cajonProject();   // 'stock' = the El Cajon's parts (once Dusty has delivered it)
   const rows = SUPPLY_TABS.some(([k]) => k === tab) ? suppliesIn(tab).map(r => ({ id: r.id, label: r.name, price: r.price, note: r.note, kind: 'garage' })) : list.map(p => ({ id: p.id, label: nameOf(tab, p.id, body), price: priceOf(tab, p.id), kind: tab }));   // supplies and tools are 'garage' orders
-  return <div className="phone-soon"><h3>Parts online</h3>
+  return <div className="phone-soon">{!embedded && <h3>Parts online</h3>}
     <small>Cash ${game.cash} · arrives at the pickup area about {effects().orderHours} game hour{effects().orderHours === 1 ? '' : 's'} after you order</small>
     <div className="phone-tabs">{[['part', 'Parts'], ['wheel', 'Tires'], ['rim', 'Rims'], ...(hasCajon ? [['stock', 'El Cajon']] : []), ...SUPPLY_TABS, ['gear', 'Gear']].map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
     {tab === 'gear' ? <div style={{ width: '100%', textAlign: 'left' }}>{game.home?.printer ? <p>Photo printer: owned.</p> : <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span>Photo printer<small> · ${PRINTER_PRICE} · prints your posted photos</small></span><button disabled={game.dev || game.cash < PRINTER_PRICE} onClick={buyPrinter}>Buy</button></div>}</div> : <div style={{ width: '100%', maxHeight: 230, overflow: 'auto', textAlign: 'left' }}>{rows.map(r => <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: '1px solid #ffffff18' }}>
       <span>{r.label}<small> · ${r.price}{r.note ? ` · ${r.note}` : ''}</small></span><button disabled={game.cash < r.price} onClick={() => placeOrder(r.kind, r.id)}>Order</button></div>)}</div>}
     {waiting.length > 0 && <div style={{ width: '100%', textAlign: 'left', maxHeight: 130, overflow: 'auto' }}><small>ON THE WAY</small>{groupOrders(waiting, o => orderName(o, body), etaText).map((g, i) => <div key={i}>{g.name}{g.n > 1 ? ` ×${g.n}` : ''}<small> · {etaText(g.left)}</small></div>)}</div>}
-    <button onClick={onBack}>Back</button></div>;
+    {!embedded && <button onClick={onBack}>Back</button>}</div>;
 }
 
 /** Contacts: the people and places you can call. Dusty's store and the off-road shop take orders (the same as the Internet app); the tow truck brings you home (game/tow.js). */
@@ -213,13 +214,13 @@ function WeatherApp({ onBack }) {
 }
 
 /** the Car sales app (real, PROPOSAL): the cars on Al's lot with the same prices as the dealer; buying orders one, which is left at Al's lot a few hours later */
-function CarSalesApp({ onBack }) {
+function CarSalesApp({ onBack, embedded }) {
   useGame();
-  return <div className="phone-soon"><h3>Car sales</h3><small>Honest Al's Used Cars</small>
+  return <div className="phone-soon">{!embedded && <><h3>Car sales</h3><small>Honest Al's Used Cars</small></>}
     <div style={{ width: '100%', maxHeight: 300, overflow: 'auto', textAlign: 'left' }}>{FOR_SALE.map(({ id }) => { const t = VEHICLE_TYPES[id], mine = ownsCar(id), onWay = carOnOrder(id), sellable = !!t.dims;
       return <div key={id} style={{ padding: '8px 0', borderBottom: '1px solid #ffffff18' }}>
         <b>{t.name}</b><div><small>"{t.pitch}"</small></div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 4 }}><span>${t.price.toLocaleString()}</span>
           <button disabled={mine || onWay || !sellable || game.dev || game.cash < t.price} onClick={() => orderCar(id)}>{mine ? 'Yours' : onWay ? 'On the way' : !sellable ? 'Not yet' : game.cash < t.price ? 'Need more cash' : 'Buy'}</button></div></div>; })}</div>
-    <button onClick={onBack}>Back</button></div>;
+    {!embedded && <button onClick={onBack}>Back</button>}</div>;
 }

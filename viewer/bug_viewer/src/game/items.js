@@ -225,6 +225,12 @@ export function ensureRoadsideLoot() {
   if (cs.length || ss.length) stockPlaces(cs, ss, game.build?.body, o => game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...o }));
   save();
 }
+/** a bundle of wood or scrap set down outside Walt's roller door (a delivery from the phone browser), beside any still lying there */
+export function dropMatAtGarage(mat, n) {
+  const G = SITES.garage, k = game.items.filter(i => i.loc === 'world' && i.kind === 'mat' && i.delivered).length;
+  const [x, z] = toWorld(G, -2.5 + (k % 5), 7.6 + Math.floor(k / 5) * 0.9);
+  game.items.push({ uid: uid(), kind: 'mat', id: mat, n, delivered: true, loc: 'world', x, z, y: 0, ry: G.rot + 0.2 }); commit();
+}
 /** wood and scrap lying out by the roadside stops and along the forest trails (game/matFinds.js): put down once per save, new games included */
 export function ensureMatFinds() {
   if ((game.home.matV || 0) >= 1) return;

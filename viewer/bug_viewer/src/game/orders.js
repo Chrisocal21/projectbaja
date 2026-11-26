@@ -1,7 +1,7 @@
 // Ordering parts from the phone (PROPOSAL, first slice, docs/GAMEPLAN.md job 4). Orders live in game.home.orders (saved with the game).
 // An unnamed supplier: no driver, no truck, no lore. When time is up the box is set down at the shop pickup area, like a bought part.
 import { game, save, say, addCash, priceOf, nameOf } from './store.js';
-import { boxAtShop, spawnItem } from './items.js';
+import { boxAtShop, spawnItem, dropMatAtGarage } from './items.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
@@ -33,7 +33,8 @@ export function passTime(hours) {
   game.home = { ...game.home, orders: r.orders };
   for (const o of r.arrived) {
     if (o.kind === 'car') { carArrives(o.id); continue; }
-    if (o.kind === 'gift') { giftArrives(); continue; }   // Dusty's El Cajon: set down in Walt's yard, not boxed at the shop
+    if (o.kind === 'gift') { giftArrives(); continue; }
+    if (o.kind === 'web') { dropMatAtGarage(o.mat, o.n); say(`Delivered to Walt's garage door: ${o.label}`); continue; }   // lumber, steel or a junk lot from the phone browser (game/webShop.js)   // Dusty's El Cajon: set down in Walt's yard, not boxed at the shop
     if (o.label) { boxAtShop(o.kind, o.id); say(`Your delivery arrived at the pickup area: ${o.label}`); continue; }   // a road-shop purchase sent to the garage (game/roadShop.js)
     const stand = o.kind === 'garage' ? standFor(...itemOf(o.id)) : null, put = stand ? addStock(game.home, stand.id, 1) : { added: 0 };
     if (put.added) { game.home = put.home; say(`Your order arrived and went straight onto its stand: ${nameOf(o.kind, o.id, bodyId())} (${game.home.stock[stand.id]}/10)`); continue; }   // (a full stand: it waits at the pickup like any other box)
