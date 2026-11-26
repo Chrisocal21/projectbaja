@@ -2,7 +2,7 @@
 // Pure data (no world, no three.js) so it can be tested. items.js puts them into game.items once per save (kind 'mat', id 'wood' | 'scrap', n pieces).
 // A find is a bundle you click to pick up; it goes straight onto your materials (game.mats), not into your hands. Counts and odds are PROPOSALs.
 
-export const MAT_NAMES = { wood: 'Wood planks', scrap: 'Scrap metal' };
+export const MAT_NAMES = { wood: 'Wood planks', scrap: 'Scrap metal', steel: 'Steel stock', bolts: 'Fasteners' };
 export const matName = (id, n) => `${MAT_NAMES[id] || id}${n ? ` (${n})` : ''}`;
 /** where a roadside find lies, in the place's own frame (x across, z toward the road): beside the loose-part spot at a gas stop, in front of the back box at a rest area */
 export const ROADSIDE_MAT = { gas: [-11.8, 2.2], rest: [-6.5, -7.6] };

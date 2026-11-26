@@ -1,6 +1,7 @@
 // The phone's Internet app as a browser (Chris, Nov 27, "think GTA phone"): an address bar, a home page of bookmarked sites, and each site its own
 // store with its own look. Sites and rules: game/web.js; buying: game/webShop.js. The parts store and Al's lot are the phone's existing apps,
 // passed in from Phone.jsx (`parts`, `als`) so nothing is drawn twice. Names, addresses and layout are PROPOSALs.
+import { tallyText } from './materials.js';
 import React, { useState } from 'react';
 import { game, useGame } from './store.js';
 import { WEB_SITES, siteById, SUPPLY_BUNDLES, SUPPLY_DELIVERY, SELLER_DROP, listingTotal } from './web.js';
@@ -42,7 +43,7 @@ function SupplySite() {
     <p className="web-note">Delivered to Walt's garage door, about the same time as a parts order. Delivery ${SUPPLY_DELIVERY}.</p>
     {SUPPLY_BUNDLES.map(b => <div key={b.id} className="web-row"><span><b>{b.name}</b><small>{b.note} · ${(b.price / b.n).toFixed(2)} a piece</small></span>
       <button disabled={game.dev || game.cash < b.price + SUPPLY_DELIVERY} onClick={() => buyBundle(b.id)}>${b.price}</button></div>)}
-    <p className="web-note">You have: wood {game.mats?.wood || 0} · scrap metal {game.mats?.scrap || 0}</p>
+    <p className="web-note">You have: {tallyText(game.mats)}</p>
   </div>;
 }
 

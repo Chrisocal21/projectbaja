@@ -1,5 +1,6 @@
 // Build menu (B) in the style of base-building games: category rail, icon grid, detail panel with the material
 // picker, and a hotbar (1-8). Plus the in-world placement HUD shown while you hold a piece.
+import { tallyText } from './materials.js';
 import React from 'react';
 import { game, useGame } from './store.js';
 import { BUILD_ITEMS, BUILD_CATS, buildById, hotbar, bindHotbar, storedProps, startPlaceStored, asBlueprint } from './home.js';
@@ -74,7 +75,7 @@ export function BuildMenu({ onPick, onClose }) {
         {blurb(shown) && <p>{blurb(shown)}</p>}
         {shown.struct && <><h5>MATERIAL <Key k="N" /></h5><div className="bm-mats">{MATERIALS.map(m => <button key={m.id} className={m.id === mat ? 'on' : ''} onClick={() => setMat(m.id)} title={m.name}>
           <Icon id={shown.id} mat={m.id} /><span>{m.name.replace(/ \(.*\)/, '')}</span><em>{money(piecePrice(shown.id, m.id))}</em></button>)}</div></>}
-        {isBlueprintable(shown.id) && <div className="bm-cost"><span>BUILD IT YOURSELF</span><b>{costText(shown.id)}</b><small>Put the blueprint down, bring the materials (E), then hold left click with the wrench. You have {game.mats?.wood || 0} wood · {game.mats?.scrap || 0} scrap metal.</small></div>}
+        {isBlueprintable(shown.id) && <div className="bm-cost"><span>BUILD IT YOURSELF</span><b>{costText(shown.id)}</b><small>Put the blueprint down, bring the materials (E), then hold left click with the wrench. You have: {tallyText(game.mats)}.</small></div>}
         {isBlueprintable(shown.id) && <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Place blueprint <Key k="Enter" /></button>}
         <div className="bm-cost"><span>{isBlueprintable(shown.id) ? 'OR BUY IT READY-MADE' : 'COST'}</span><b className={short ? 'bad' : ''}>{money(price)}</b>{creative() && <small>Creative mode: building is free</small>}{shown.struct && <small>{matName(mat)}</small>}{short && <small className="bad">You have ${game.cash.toLocaleString()}</small>}</div>
         {isBlueprintable(shown.id) ? <button className="bm-go bm-buy" onClick={() => onPick(shown.id, mat, true)}>Buy ready-made</button> : <button className="bm-go" onClick={() => onPick(shown.id, mat)}>Select <Key k="Enter" /></button>}

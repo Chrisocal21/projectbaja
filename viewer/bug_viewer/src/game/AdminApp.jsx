@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MAT_ORDER, matWord } from './materials.js';
 import { offroadPlan, SITES, toWorld } from '../worlds/county.js';
 import { OBSTACLES as SITE_OBSTACLES } from '../worlds/siteData.js';
 import { STALLS } from '../worlds/lot.js';
@@ -105,7 +106,7 @@ export default function AdminApp({ onBack }) {
     ...Object.entries(JUNK).map(([id, v]) => ({ kind: 'junk', id, label: v.name, info: 'junk · size ' + v.size })), ...Object.entries(MEMENTOS).map(([id, v]) => ({ kind: 'memento', id, label: v.name, info: 'memento' })),
     ...Object.entries(TOOLS).map(([id, v]) => ({ kind: 'tool', id, label: v.name, info: 'tool · size ' + v.size })), { kind: 'fab', id: 'shockHoops', label: 'Shock hoops (ready-made)', info: 'fabricated part' },
     ...GARAGE_SUPPLIES.map(([id, name, cost, kindOf, note]) => { const [kind, item] = itemOf(id); return { kind, id: item, label: name, info: 'supply · ' + (kindOf || '') + (cost ? ' · $' + cost : '') + (note ? ' · ' + note : '') }; }),
-    ...[10, 100].map(n => ({ act: 'mat', id: 'scrap', n, label: '+' + n + ' scrap metal', info: 'material' })),
+    ...MAT_ORDER.flatMap(id => [10, 100].map(n => ({ act: 'mat', id, n, label: '+' + n + ' ' + matWord(id), info: 'material' }))),
   ];
   const propRows = BUILD_ITEMS.map(b => ({ act: 'prop', id: b.id, label: b.name || b.id, info: 'prop' + (b.cat ? ' · ' + b.cat : '') + (b.price ? ' · $' + b.price : '') }));
   const vehicleRows = [

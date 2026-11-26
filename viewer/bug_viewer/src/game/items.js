@@ -5,6 +5,7 @@ import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
 import { SITES, toWorld, junctions, offroadPlan } from '../worlds/county.js';
 import { matFinds, matName } from './matFinds.js';
+import { matWord, matsText, addMats } from './materials.js';
 import { activeType, vehicleType, parked } from './fleet.js';
 import { dropSpot } from './dropSpot.js';
 import { SUPPLIES } from './jobs.js';
@@ -110,7 +111,7 @@ export function dropNearPlayer(kind, id, extra = {}) {
 /** a bundle of wood or scrap lying out: it goes straight onto your materials (game.mats), your hands stay free */
 function collectMat(it) {
   const n = it.n || 1; game.items = game.items.filter(i => i !== it);
-  game.mats = { ...game.mats, [it.id]: (game.mats?.[it.id] || 0) + n }; save(); say(`Picked up ${matName(it.id, n).toLowerCase()}: ${it.id === 'wood' ? 'wood' : 'scrap metal'} ${game.mats[it.id]}`);
+  game.mats = { ...game.mats, [it.id]: (game.mats?.[it.id] || 0) + n }; save(); say(`Picked up ${matName(it.id, n).toLowerCase()}: ${matWord(it.id)} ${game.mats[it.id]}`);
 }
 export function pickUp(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
@@ -168,7 +169,8 @@ export function takeFromCar(uidN) {
 export function searchBox(id) {
   const b = game.boxes[id] || (game.boxes[id] = { cash: 0, searched: false });
   if (!b.searched) { b.searched = true; if (b.cash) { addCash(b.cash, 'Found cash'); say(`Found $${b.cash} in the ${CONTAINER_RULES[containerById[id].type].label}.`); }
-    if (b.scrap) { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + b.scrap }; say(`${b.cash ? `Found $${b.cash} and` : 'Found'} ${b.scrap} pieces of scrap metal.`); } }
+    const type = containerById[id].type, bolts = type === 'toolbox' ? 2 + Math.floor(Math.random() * 3) : type === 'drawer' ? 1 + Math.floor(Math.random() * 3) : 0, found = { ...(b.scrap ? { scrap: b.scrap } : {}), ...(bolts ? { bolts } : {}) };   // toolboxes and drawers hold bolts and screws (PROPOSAL)
+    if (matsText(found)) { game.mats = addMats(game.mats, found); say(`${b.cash ? `Found $${b.cash} and` : 'Found'} ${matsText(found)}.`); } }
   save();
 }
 export function takeFromBox(uidN) {

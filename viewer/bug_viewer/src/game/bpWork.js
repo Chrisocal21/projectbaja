@@ -27,7 +27,7 @@ export function bpPrompt(uid) {
 export function feedBlueprint(uid) {
   const p = bpProp(uid); if (!p) return;
   const r = feed(p.bp, p.id, game.mats || {});
-  if (!r.n) return say(Object.keys(missing(p.bp, p.id)).length ? `You have none of what it still needs: ${needText(p.bp, p.id)}. Find wood and scrap out in the world, or order it on the phone.` : 'Everything is in. Hold left click with the wrench to build it.');
+  if (!r.n) return say(Object.keys(missing(p.bp, p.id)).length ? `You have none of what it still needs: ${needText(p.bp, p.id)}. Salvage junk, search toolboxes and the yard, or buy it at Dusty\'s or on the phone.` : 'Everything is in. Hold left click with the wrench to build it.');
   const mats = { ...game.mats }; for (const [m, n] of Object.entries(r.used)) mats[m] = (mats[m] || 0) - n;
   game.mats = mats; setProp(uid, { bp: r.bp }); save();
   const left = Object.keys(missing(r.bp, p.id)).length;

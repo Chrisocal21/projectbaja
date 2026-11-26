@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { WEAR_PARTS, FRESH, serviceJob, SERVICE_VERB, partCost } from '../wear.js';
+import { cutPrompt, salvageHint } from './matWork.js';
 import { bpPrompt } from './bpWork.js';
 import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
@@ -74,6 +75,8 @@ export const promptText = id => {
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
   if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
+  if (id === 'bench') { const c = cutPrompt(); if (c) return c; }
+  if (id.startsWith('item:')) { const j = game.items.find(i => i.uid === +id.slice(5)), hint = j && salvageHint(j); if (hint) return toolInHand()?.kind === 'tool' && hint.startsWith('Hold') ? `${nameOfItem(j)}: ${hint}` : `Press E — Pick up ${nameOfItem(j)}  ·  ${hint}`; }
   if (id.startsWith('bin:')) return binText(+id.slice(4));
   if (id.startsWith('bp:')) return bpPrompt(+id.slice(3));
   if (id.startsWith('furn:')) { const q = game.props.find(o => o.uid === +id.slice(5)); return q ? `Press V — Move the ${(buildById[q.id]?.name || 'furniture').replace(/ \(.*\)/, '').toLowerCase()}` : ''; }

@@ -2,15 +2,14 @@
 // You put a blueprint down (build mode), bring the materials to it (E puts in what you have), then hold left click with the right tool
 // to work through its stages. Work can only go as far as the materials put in. Taking it down gives every piece back (canon #024).
 // Amounts, times and stage names are PROPOSALs to tune by feel.
+import { MAT_ORDER, matWord, matsText } from './materials.js';
 
 export const BLUEPRINTS = {
-  shelfTires: { mats: { scrap: 4, wood: 3 }, tool: 'wrench', secs: 12, stages: ['Standing the uprights', 'Bolting on the angle iron', 'Laying the boards'] },
-  shelfSupplies: { mats: { scrap: 3, wood: 4 }, tool: 'wrench', secs: 12, stages: ['Standing the uprights', 'Bolting on the angle iron', 'Laying the shelves'] },
-  partsRack: { mats: { scrap: 3, wood: 3 }, tool: 'wrench', secs: 10, stages: ['Standing the frame', 'Bolting it square', 'Laying the boards'] },
+  shelfTires: { mats: { scrap: 4, wood: 3, bolts: 4 }, tool: 'wrench', secs: 12, stages: ['Standing the uprights', 'Bolting on the angle iron', 'Laying the boards'] },
+  shelfSupplies: { mats: { scrap: 3, wood: 4, bolts: 4 }, tool: 'wrench', secs: 12, stages: ['Standing the uprights', 'Bolting on the angle iron', 'Laying the shelves'] },
+  partsRack: { mats: { scrap: 3, wood: 3, bolts: 3 }, tool: 'wrench', secs: 10, stages: ['Standing the frame', 'Bolting it square', 'Laying the boards'] },
 };
-export const MAT_ORDER = ['wood', 'scrap'];
-const MAT_WORD = { wood: 'wood', scrap: 'scrap metal' };
-export const matWord = m => MAT_WORD[m] || m;
+export { MAT_ORDER, matWord, matsText };
 
 export const isBlueprintable = id => !!BLUEPRINTS[id];
 export const newBp = () => ({ got: {}, work: 0 });
@@ -51,4 +50,3 @@ export function work(bp, id, dt) {
 }
 /** what comes back when it is taken down: a blueprint gives back what was put in; a finished one (made = its materials) gives back all of it */
 export const refundMats = p => (p?.bp ? { ...(p.bp.got || {}) } : p?.made && typeof p.made === 'object' ? { ...p.made } : {});
-export const matsText = m => MAT_ORDER.filter(k => m?.[k] > 0).map(k => `${m[k]} ${matWord(k)}`).join(' + ');

@@ -8,6 +8,8 @@ Everything below is a **PROPOSAL** unless marked picked. Numbers are guesses to 
 
 **Phase 1 built (Nov 27):** blueprints for the tire shelving, supply shelving and parts rack (`game/blueprints.js`, `game/bpWork.js`). Materials are put in from the tally until Phase 4 makes them physical.
 
+**Phase 2 built (Nov 26):** steel and fasteners (`game/materials.js`), cutting 2 scrap into 1 steel with the angle grinder at Walt's workbench (it moves to the grinder station in Phase 3), and hold-click salvage for the loose crate and oil drum (`game/matWork.js`). Still to come for salvage: wrecks, sheet metal and wiring.
+
 ## The idea in one line
 You place a blueprint, bring the materials, and build it by hand. What you can make depends on which benches you have built.
 

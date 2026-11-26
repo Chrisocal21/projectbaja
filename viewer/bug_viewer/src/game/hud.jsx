@@ -1,5 +1,6 @@
 // The in-game HUD: status (top left), notifications (top right), interaction prompt (centre), carry/storage (bottom right),
 // key hints (bottom left) and the crosshair. Pure presentation over the game store.
+import { MAT_ORDER } from './materials.js';
 import React from 'react';
 import { game, useGame } from './store.js';
 import { yardProgress } from './home.js';
@@ -18,6 +19,7 @@ function ClockChip() {
 }
 
 /** "Press E — Get in  ·  X — Take a part off" → [['E', 'Get in'], ['X', 'Take a part off']] (text without a key stays plain) */
+const HUD_MAT = { wood: 'Wood', scrap: 'Scrap', steel: 'Steel', bolts: 'Bolts' };
 export const promptParts = s => s.split(/\s+·\s+/).map(p => { const m = /^(?:Press )?([A-Z][A-Za-z0-9]{0,4}|Esc|Tab|Shift) — (.+)$/.exec(p.trim()); return m ? [m[1], m[2]] : [null, p.trim()]; });
 
 /** a row of slots (one square per unit of space) when the space is small, a bar when it is big */
@@ -36,8 +38,7 @@ export function HudOverlay() {
         <ClockChip />
         <span className={`hs-chip ${open ? 'ok' : h.power ? 'off' : 'dead'}`}><i />{open ? 'Shop open' : h.power ? 'Shop closed' : 'No power'}</span>
         {game.settings?.creative && <span className="hs-chip creative"><i />Creative</span>}
-        {(game.mats?.scrap || 0) > 0 && <span className="hs-chip plain">Scrap {game.mats.scrap}</span>}
-        {(game.mats?.wood || 0) > 0 && <span className="hs-chip plain">Wood {game.mats.wood}</span>}
+        {MAT_ORDER.map(k => (game.mats?.[k] || 0) > 0 && <span key={k} className="hs-chip plain">{HUD_MAT[k]} {game.mats[k]}</span>)}
       </div>}
     </div>
     {game.prompt && <div className="hud-prompt2">{promptParts(game.prompt).map(([k, t], i) => <span key={i} className="hp-part">{k && <Key k={k} />}<span>{t}</span></span>)}</div>}

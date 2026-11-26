@@ -19,8 +19,9 @@ export const siteById = Object.fromEntries(WEB_SITES.map(s => [s.id, s]));
 export const SUPPLY_BUNDLES = [
   { id: 'lumber5', name: 'Lumber bundle (5 planks)', mat: 'wood', n: 5, price: 34, note: 'for shelving and racks' },
   { id: 'lumber12', name: 'Lumber pallet (12 planks)', mat: 'wood', n: 12, price: 76, note: 'a contractor pallet' },
-  { id: 'steel5', name: 'Steel bundle (5 pieces)', mat: 'scrap', n: 5, price: 55, note: 'angle iron and flat bar' },
-  { id: 'steel12', name: 'Steel rack (12 pieces)', mat: 'scrap', n: 12, price: 125, note: 'angle, tube and plate' },
+  { id: 'steel5', name: 'Steel bundle (5 pieces)', mat: 'steel', n: 5, price: 85, note: 'new angle iron, flat bar and tube' },
+  { id: 'steel12', name: 'Steel rack (12 pieces)', mat: 'steel', n: 12, price: 190, note: 'angle, tube and plate' },
+  { id: 'bolts10', name: 'Fastener box (10)', mat: 'bolts', n: 10, price: 18, note: 'bolts, nuts and wood screws' },
 ];
 /** delivery to Walt's garage door, on top of the price (PROPOSAL) */
 export const SUPPLY_DELIVERY = 10;

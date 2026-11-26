@@ -24,6 +24,7 @@ import { wornTires } from './tires.js';
 import { SIDE_BAY, BUG_BAY, OLD_BUG_SPOT, inSideBay, onBugSpot } from '../worlds/sideBay.js';
 import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
 import { dropRackTires } from '../placement/garageStore.js';
+import { addMats, shortOf } from './materials.js';
 import { isBlueprintable, newBp, refundMats, matsText, costText } from './blueprints.js';   // shop furniture you build by hand (Phase 1, docs/CRAFTING_PLAN.md)   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
@@ -34,7 +35,7 @@ export const JUNK = [
   { id: 'j-cans', lx: -4.6, lz: -2.4, kind: 'cans', cash: 6, inside: true, label: 'paint cans and old oil' },
   { id: 'j-papers', lx: -3.0, lz: 3.8, kind: 'papers', cash: 0, inside: true, label: 'decades of newspapers' },
   { id: 'j-scrap', lx: -11, lz: 9, kind: 'scrap', cash: 0, scrap: 5, inside: false, label: 'scrap metal' },
-  { id: 'j-fridge', lx: 9, lz: 15, kind: 'fridge', cash: 5, scrap: 2, inside: false, label: 'a dead fridge' },
+  { id: 'j-fridge', lx: 9, lz: 15, kind: 'fridge', cash: 5, scrap: 2, bolts: 4, inside: false, label: 'a dead fridge' },
   { id: 'j-brush', lx: -16, lz: 18, kind: 'brush', cash: 0, inside: false, label: 'tumbleweeds and brush' },
 ];
 export const junkWorld = JUNK.map(j => { const [x, z] = toWorld(G, j.lx, j.lz); return { ...j, x, z }; });
@@ -45,9 +46,11 @@ export function clearJunk(id) {
   game.home = { ...game.home, cleared: [...game.home.cleared, id] };
   if (j.cash) addCash(j.cash, 'Cleared junk');
   if (j.scrap) addScrap(j.scrap, true);
+  if (j.bolts) game.mats = addMats(game.mats, { bolts: j.bolts });
   const left = JUNK.filter(x => !isCleared(x.id)).length;
   const tail = !left ? ' The place is finally clean.' : j.inside && garageClean() ? ' Garage floor is clear — press B to start fixing the place up.' : ` ${left} piles left.`;
-  say(`Hauled out ${j.label}${j.cash ? ` (+$${j.cash})` : ''}${j.scrap ? ` — kept ${j.scrap} pieces of usable scrap metal` : ''}.${tail}`);
+  const kept = matsText({ scrap: j.scrap, bolts: j.bolts });
+  say(`Hauled out ${j.label}${j.cash ? ` (+$${j.cash})` : ''}${kept ? ` — kept ${kept}` : ''}.${tail}`);
   save();
 }
 /** one held haul: a load goes out, the pile shrinks, and the last load clears it for good (progress is saved) */
@@ -431,8 +434,8 @@ export function removeProp(uidN) {
   }
   dropRackTires(uidN, game.props, buildById, G, groundHeight); dropFixtureItems(p); spillBin(p);
   if (p.bp || (p.made && typeof p.made === 'object')) {   // built by hand: the materials come back, not cash (canon #024)
-    const mb = refundMats(p), mats = { ...game.mats }; for (const [m, n] of Object.entries(mb)) mats[m] = (mats[m] || 0) + n;
-    game.mats = mats; game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; save();
+    const mb = refundMats(p);
+    game.mats = addMats(game.mats, mb); game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; save();
     return say(`Took down the ${p.bp ? 'blueprint for the ' : ''}${buildById[p.id].name.replace(/ \(.*\)/, '').toLowerCase()}${matsText(mb) ? ` (${matsText(mb)} back)` : ''}`);
   }
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
@@ -523,27 +526,14 @@ export const hasInGarage = id => game.props.some(p => { const l = homeLocal(p.x,
 // prop: true = it makes a piece of shop furniture, which goes into Stored (build mode, B, places it). Amounts are PROPOSALs.
 // The racks and shelves moved off the bench (Phase 1): they are blueprints now, built by hand where they stand (game/blueprints.js).
 export const RECIPES = [
-  { id: 'shockHoops', name: 'Shock hoops (front + rear)', scrap: 10, wood: 0, tools: ['welder', 'bender'], note: 'Tube hoops that carry long-travel shocks and clear big tires. Weld them into the Bug with the welder.' },
+  { id: 'shockHoops', name: 'Shock hoops (front + rear)', mats: { steel: 5 }, tools: ['welder', 'bender'], note: 'Tube hoops that carry long-travel shocks and clear big tires. Weld them into the Bug with the welder.' },
 ];
-/** the old wooden crate (junk) broken up at the bench gives this much wood (PROPOSAL) */
-export const CRATE_WOOD = 3;
-export const crateInHand = () => game.items.find(i => i.loc === 'hand' && i.kind === 'junk' && i.id === 'crate');
-export function breakCrate() {
-  const c = crateInHand(); if (!c) return;
-  game.items = game.items.filter(i => i !== c); addWood(CRATE_WOOD, true); say(`Knocked the old crate apart: +${CRATE_WOOD} wood (${game.mats.wood} total).`);
-}
 export function fabricate(id, giveToPlayer, canCarry) {
   const r = RECIPES.find(x => x.id === id); if (!r) return;
   const miss = r.tools.filter(t => !hasInGarage(t)); if (miss.length) return say(`You need a ${miss.map(t => buildById[t].name.toLowerCase()).join(' and a ')} in the garage (build mode, B).`);
-  if ((game.mats?.scrap || 0) < r.scrap) return say(`Not enough scrap metal: ${game.mats?.scrap || 0}/${r.scrap}. Clear the yard, and check the barn, the shacks and the salvage warehouse.`);
-  if ((game.mats?.wood || 0) < (r.wood || 0)) return say(`Not enough wood: ${game.mats?.wood || 0}/${r.wood}. Break up old crates at the bench, or buy planks.`);
-  if (r.prop) {   // shop furniture: into Stored, placed from build mode
-    game.mats = { ...game.mats, scrap: game.mats.scrap - r.scrap, wood: (game.mats.wood || 0) - (r.wood || 0) };
-    game.home = { ...game.home, stored: [...storedProps(), { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id: r.id, x: 0, z: 0, ry: 0, paid: 0, made: true }] };
-    save(); return say(`Built: ${r.name.toLowerCase()}. It is in Stored: press B to place it.`);
-  }
+  const short = shortOf(game.mats, r.mats); if (matsText(short)) return say(`Still short ${matsText(short)}.${short.steel ? ' Cut scrap into steel with the angle grinder at the workbench, or order it on the phone.' : ''}`);
   if (!canCarry('fab', id)) return say('Hands full — put that down first.');
-  game.mats = { ...game.mats, scrap: game.mats.scrap - r.scrap };
+  game.mats = addMats(game.mats, r.mats, -1);
   giveToPlayer('fab', id); say(`Cut, bent and tacked together: ${r.name}. Now weld them into the Bug.`);
 }
 

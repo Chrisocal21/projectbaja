@@ -5,9 +5,10 @@ import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
 import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
 import { sellable } from './sell.js';
 import { BUYERS } from './market.js';
-import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, crateInHand, breakCrate, CRATE_WOOD, hasInGarage, TRAILER_UPGRADES, trailerHas, trailerWhy } from './home.js';
+import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas, trailerWhy } from './home.js';
 import { held, nameOfItem, sizeOf, SIZE_NAME, used, CAPACITY, packCap, hasRack, storageOf, packItems, carItems, boxItems, takeFromBox, holdItem, dropItem, stowInCar, takeFromCar, garageItems, storeInGarage, takeFromGarage, inGarageZone, vehiclesNear } from './items.js';
 import { containerById, CONTAINER_RULES } from './loot.js';
+import { matsText, shortOf, tallyText } from './materials.js';
 import { DEF, planFit, planDetach, toolsHere, openCovers } from './workshop.js';
 import { isFitted, missingToDrive } from '../rules/restore.js';
 import { SaveTools } from './update.jsx';
@@ -159,7 +160,7 @@ export function InventoryBody() {
         <div className="inv-sec">{t.name.toUpperCase()} <span>{Object.entries(storageOf(v)).map(([k, s]) => `${s.label} ${used(k, v)}/${s.cap}`).join(' · ')}{v === 'bug' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
         {list.length ? list.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
       </React.Fragment>; })}
-    <div className="inv-sec">MATERIALS <span>scrap metal {game.mats?.scrap || 0} · wood {game.mats?.wood || 0} · used at the workbench</span></div>
+    <div className="inv-sec">MATERIALS <span>{tallyText(game.mats)}</span></div>
     <div className="inv-sec">STORAGE ROOM · BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
     {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
   </>;
@@ -207,13 +208,12 @@ export function RoadShopPanel({ title, shelf, buyer, onBuy, onShip, onSell, onCl
 export function FabPanel({ onMake, onDev, onClose }) {
   useGame();
   return <div className="overlay"><div className="card inv"><h2>WORKBENCH</h2>
-    <p className="hint">Scrap metal: <b>{game.mats?.scrap || 0}</b> · wood: <b>{game.mats?.wood || 0}</b>. Shop tools: welder {hasInGarage('welder') ? '✓' : '✗'} · tube bender {hasInGarage('bender') ? '✓' : '✗'} (build them with B).</p>
-    <p className="hint">Racks and shelves are built where they stand now: B, pick one, put its blueprint down, bring the wood and scrap, then hold left click on it with the wrench.</p>
-    {crateInHand() && <div className="inv-row"><span>Break up the old crate<small>+{CRATE_WOOD} wood</small></span><span className="inv-btns"><button onClick={() => breakCrate()}>Break it up</button></span></div>}
-    {RECIPES.map(r => { const tools = r.tools.every(hasInGarage), sc = game.mats?.scrap || 0, wd = game.mats?.wood || 0, mats = sc >= r.scrap && wd >= (r.wood || 0), done = r.id === 'shockHoops' && game.build?.fab?.hoops;
-      const cost = [`${r.scrap} scrap`, r.wood ? `${r.wood} wood` : ''].filter(Boolean).join(' + '), short = sc < r.scrap ? `scrap ${sc}/${r.scrap}` : `wood ${wd}/${r.wood}`;
-      return <div key={r.id} className="inv-row"><span>{r.name}<small>{cost}{r.tools.length ? ` · needs ${r.tools.map(t => buildById[t].name.toLowerCase()).join(' + ')}` : ''} · {r.note}</small></span>
-      <span className="inv-btns"><button disabled={!tools || !mats || done} onClick={() => onMake(r.id)}>{done ? 'Done' : !tools ? 'Need tools' : !mats ? short : 'Make'}</button></span></div>; })}
+    <p className="hint">You have: <b>{tallyText(game.mats)}</b>. Shop tools: welder {hasInGarage('welder') ? '✓' : '✗'} · tube bender {hasInGarage('bender') ? '✓' : '✗'} (build them with B).</p>
+    <p className="hint">Racks and shelves are built where they stand now: B, pick one, put its blueprint down, bring the materials, then hold left click on it with the wrench.</p>
+    <p className="hint">With the angle grinder in your hands, close this and hold left click at the bench to cut scrap into steel. Take a crate apart with the wrench, or a drum with the grinder: aim at it and hold left click.</p>
+    {RECIPES.map(r => { const tools = r.tools.every(hasInGarage), short = matsText(shortOf(game.mats, r.mats)), done = r.id === 'shockHoops' && game.build?.fab?.hoops;
+      return <div key={r.id} className="inv-row"><span>{r.name}<small>{matsText(r.mats)}{r.tools.length ? ` · needs ${r.tools.map(t => buildById[t].name.toLowerCase()).join(' + ')}` : ''} · {r.note}</small></span>
+      <span className="inv-btns"><button disabled={!tools || !!short || done} onClick={() => onMake(r.id)}>{done ? 'Done' : !tools ? 'Need tools' : short ? `Need ${short}` : 'Make'}</button></span></div>; })}
     <WearService />
     <div className="menu">{game.dev && <button onClick={onDev}>Customizer (testing)</button>}<button className="big" onClick={onClose}>Close (Esc)</button></div></div></div>;
 }

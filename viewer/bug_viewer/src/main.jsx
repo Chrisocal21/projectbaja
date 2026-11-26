@@ -61,6 +61,8 @@ import MapPanel from './game/MapPanel.jsx';
 import Compass from './game/Compass.jsx';
 import Minimap from './game/Minimap.jsx';
 import { startFinish, stopFinish, finishToolInHand } from './game/finishWork.js';
+import { MAT_PACKS, addMats, matWord } from './game/materials.js';
+import { startCut, startSalvage, stopMatWork } from './game/matWork.js';
 import { startPressure, stopPressure, pressureToolInHand } from './game/pressureWork.js';
 import { startRecovery, stopRecovery, recoveryToolInHand } from './game/recoveryWork.js';
 import { startPour, stopPour, canInHand, fillCanAtPump } from './game/fuelCan.js';
@@ -82,7 +84,7 @@ const categories = [...new Set(slots.map(s => s.category))];
 /** Stage 4b: the held build item is furniture (not a building piece or a cut doorway): free placement + the new rotate / click controls */
 let holdT = 0;   // the click-and-hold timer (bolt on / take off)
 export const HOLD_MS = 800;   // PROPOSAL: how long the bar takes to fill
-const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); stopRecovery(); stopPour(); stopBpWork(); game.holdBar = null; };
+const cancelHold = () => { clearTimeout(holdT); stopFinish(); stopPressure(); stopRecovery(); stopPour(); stopBpWork(); stopMatWork(); game.holdBar = null; };
 const doService = part => { const w = game.home?.wear?.[game.active] || FRESH(), c = partCost(w, part); if (!c) return; if (game.cash < c) return say('Not enough cash for the parts: $' + c + '.'); addCash(-c, 'Service: ' + PART_NAME[part]); game.home = { ...game.home, wear: { ...(game.home.wear || {}), [game.active]: serviced(w, part) } }; save(); say(PART_NAME[part] + ' done.'); };
 const startHold = (label, fn, tap = false, ms = HOLD_MS) => { ms = Math.max(200, Math.round(ms * effects().holdScale)); game.holdBar = { t0: performance.now(), dur: ms, label, tap }; holdT = setTimeout(() => { game.holdBar = null; fn(); }, ms); };
 const furnishing = bm => { const it = bm && buildById[bm.item]; return !!it && !it.struct && !it.cut; };
@@ -205,7 +207,7 @@ function App() {
     if (game.cash < price) return say('Not enough cash.');
     if (what === 'wash') return interact('wash');
     const [k, id] = what.split(':');
-    if (k === 'mat') { const n = 2; addCash(-price, `Bought: ${id === 'wood' ? 'lumber' : 'steel offcuts'}`); game.mats = { ...game.mats, [id]: (game.mats?.[id] || 0) + n }; save(); return say(`Bought ${n} ${id === 'wood' ? 'planks' : 'pieces of steel'}: ${id === 'wood' ? 'wood' : 'scrap metal'} ${game.mats[id]}`); }   // materials go on your tally, not in your hands
+    if (k === 'mat') { const pk = MAT_PACKS[id]; if (!pk) return; addCash(-price, `Bought: ${pk.name}`); game.mats = addMats(game.mats, { [id]: pk.n }); save(); return say(`Bought ${pk.name}: ${matWord(id)} ${game.mats[id]}`); }   // materials go on your tally, not in your hands
     if (!canCarry(k, id)) return say('Your hands are full.');
     addCash(-price, `Bought: ${nameOfItem({ kind: k, id })}`); giveToPlayer(k, id); say(`Bought: ${nameOfItem({ kind: k, id })}`);
   };
@@ -329,6 +331,8 @@ function App() {
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
         else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));
+        else if (btn === 0 && game.target === 'bench' && startCut()) { /* the grinder at the bench: scrap into steel */ }
+        else if (btn === 0 && game.target?.startsWith('item:') && startSalvage(game.target)) { /* junk, with the right tool: taken apart */ }
         else if (btn === 0 && game.target?.startsWith('bp:')) startBpWork(+game.target.slice(3));   // a blueprint: hold to build it (the wrench in hand)
         else if (btn === 0 && game.target === 'tirem') { const pl = planAtMachine(); if (pl?.ok) startHold(`${pl.verb}…`, doMachine, false, pl.seconds * 1000); else if (pl) say(pl.why); }   // the tire machine: the bar takes as long as the job
         else if (btn === 0 && (game.nearCar || game.work) && game.aim && toolInHand() && game.target?.startsWith('car:')) { const id = game.aim; startHold('Taking off…', () => (id.startsWith('up:') ? doDetachUpgrade(id.slice(3)) : doDetach(id, game.carZone))); }   // hold left on a part: the bar fills, it comes off onto the ground. game.work = any restorable vehicle you stand at (donors, the El Cajon); game.nearCar is only the one you drive
