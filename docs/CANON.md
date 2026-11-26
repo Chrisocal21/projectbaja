@@ -26,6 +26,7 @@ Pillar 3 is a promise, not a feature. When a new system is proposed, ask which p
 ## The opening (CANON)
 
 - The player has just finished college. Grandfather **Walt** has died and left them **Walt's Garage**, a repair and welding shop established in 1968 in remote Baja County.
+- The shop has been unused for **more than a year**: nobody has worked in it since before Walt got sick. The player was finishing college and comes back afterwards to take it over, so the place should look left alone, not trashed. (Added by Chris, Nov 26 2026)
 - The player drives out, decides to stay, and starts with **$1,500 total**: savings and a small inheritance combined. There is no starting loan.
 - **Outside:** bald tires, scrap metal, a dead refrigerator, tumbleweeds, a 1966 trailer, a windmill and a water tank.
 - **Inside:** rotting boxes, old paint cans, old oil, decades of newspapers, old tools and neglected machines.

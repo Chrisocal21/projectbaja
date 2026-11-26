@@ -24,7 +24,7 @@ All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAI
 ## CURRENT FOCUS (Nov 26): the new-game opening and living service visits
 Chris refocused on everything from the start of a new game. The winch waits. His picks: **customers drive onto the lift while you wave them on; the Bug gets its own side bay (wider garage); the tire cleanup blocks opening, junk tires pay cash, some tires are still good.**
 Build order, one at a time:
-1. **Tire cleanup: built** (`game/yardTires.js`). 16 tires over the property (11 bald, 5 worth keeping, one of those holed). Bald ones go on the scrap pile beside the lot ($4, PROPOSAL); the others go on a tire rack. OPEN stays off until all are dealt with. The four old shelf tires are gone from a new game; the Bug's own wheels stay on its shelf. Older saves are unchanged. Needs Chris's feel notes.
+1. **Tire cleanup: built** (`game/yardTires.js`). 16 tires in small heaps against and near the building, as a shop left alone for a year (Chris: not strewn over the yard); 11 bald, 5 worth keeping, one of those holed. Bald ones go on the scrap pile beside the lot ($4, PROPOSAL); the others go on a tire rack. OPEN stays off until all are dealt with. The four old shelf tires are gone from a new game; the Bug's own wheels stay on its shelf. Older saves are unchanged. Needs Chris's feel notes.
 2. Minimal starting stock (list everything, Chris marks keep or cut).
 3. Garage layout: Bug to a side bay, lift free.
 4. The visit: the car drives in off the road, onto the lift, and drives away.

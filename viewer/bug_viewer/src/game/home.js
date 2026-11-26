@@ -21,7 +21,7 @@ import { spillBin } from './bins.js';
 import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
-import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
+import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
 const G = SITES.garage;
@@ -275,7 +275,7 @@ export function spawnYardTires() {
   game.home = { ...game.home, tiresV: 1, yard: { done: false } };
   for (const t of yardTires()) {
     const { lx, lz, ry, ...item } = t, [x, z] = toWorld(G, lx, lz);
-    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...item, loc: 'world', x, z, y: 0, ry: G.rot + ry });
+    game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...item, loc: 'world', x, z, ry: G.rot + ry });
   }
   game.items = [...game.items]; save();
 }
@@ -289,6 +289,7 @@ export function scrapTire() {
 }
 /** run now and then while playing: notices when the last yard tire is dealt with */
 export function tickYard() {
+  if (settleStacks(game.items)) { game.items = [...game.items]; save(); }
   const next = yardCheck(game.home, game.items); if (next === game.home) return;
   game.home = next; save(); say('That is the last of the old tires. Flip the OPEN switch when you are ready for customers.');
 }

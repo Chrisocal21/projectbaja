@@ -62,7 +62,7 @@ export function BuildHint() {
   useGame();
   if (!game.onFoot || game.buildMode || game.dev || !game.build) return null;
   const yard = yardProgress();   // the cleanup comes first; the assembly guide takes over once the yard is clear
-  if (yard) return <div className="hud-guide"><small>FIRST JOB</small><b>CLEAN UP THE PLACE · {yard.total - yard.left}/{yard.total} TIRES</b><p>Old tires are lying all over the property. Bald ones go on the scrap pile beside the lot (${yard.pay} each). Ones with rubber left go on a tire rack. You can open for business once they are all dealt with.</p><div className="bar"><i style={{ width: `${((yard.total - yard.left) / yard.total) * 100}%` }} /></div></div>;
+  if (yard) return <div className="hud-guide"><small>FIRST JOB</small><b>CLEAN UP THE PLACE · {yard.total - yard.left}/{yard.total} TIRES</b><p>Old tires are still heaped around the shop. Bald ones go on the scrap pile beside the lot (${yard.pay} each). Ones with rubber left go on a tire rack. You can open for business once they are all dealt with.</p><div className="bar"><i style={{ width: `${((yard.total - yard.left) / yard.total) * 100}%` }} /></div></div>;
   const n = nextStep(game.build, game.items.find(i => i.kind === 'stock' && i.id === 'engine' && i.loc !== 'car')); if (!n) return null;
   return <div className="hud-guide"><small>ASSEMBLY</small><b>{n.text.replace('Putting her back together: ', '')}</b><p>{n.tip}</p><div className="bar"><i style={{ width: `${(n.fitted / n.total) * 100}%` }} /></div></div>;
 }

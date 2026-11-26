@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { yardTires, isScrapTire, yardLeft, yardBlocks, yardCheck, YARD_SPOTS, TIRE_PILE } from './yardTires.js';
+import { yardTires, settleStacks, isScrapTire, yardLeft, yardBlocks, yardCheck, YARD_SPOTS, TIRE_PILE } from './yardTires.js';
 import { LANE } from '../worlds/lot.js';
 
 test('a new game scatters sixteen tires: eleven for the scrap pile, five worth keeping, one of those holed', () => {
@@ -18,6 +18,22 @@ test('no tire lies in the building, in the drive lane or on the scrap pile', () 
     assert.ok(!(Math.abs(x) < LANE.half && z > LANE.z0 && z < LANE.z1), `in the lane: ${x},${z}`);
     assert.ok(Math.hypot(x - TIRE_PILE.lx, z - TIRE_PILE.lz) > 2.5);
   }
+});
+
+test('the tires stay close to the shop, as if it was left alone, and every stacked one has a tire under it', () => {
+  for (const [x, z, level] of YARD_SPOTS) {
+    assert.ok(Math.hypot(Math.max(-13.6 - x, 0, x - 7.6), Math.max(-6.6 - z, 0, z - 6.6)) < 7, `too far out: ${x},${z}`);
+    if (level) assert.ok(YARD_SPOTS.some(([a, b, l]) => !l && a === x && b === z), `nothing under ${x},${z}`);
+  }
+});
+
+test('taking the bottom tire away drops the one on top', () => {
+  const low = { yard: true, loc: 'world', x: 1, z: 1, y: 0 }, top = { yard: true, loc: 'world', x: 1, z: 1, y: 0.26, stacked: true };
+  assert.equal(settleStacks([low, top]), false);
+  low.loc = 'hand';
+  assert.equal(settleStacks([low, top]), true);
+  assert.equal(top.y, 0);
+  assert.equal(top.stacked, undefined);
 });
 
 test('the yard blocks opening until every tire is racked or thrown, then stays clear', () => {
