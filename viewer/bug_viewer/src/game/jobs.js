@@ -27,6 +27,8 @@ export const STORE_ITEMS = [
   ['tool:spray-white', 'White spray paint', 12, 'small · paints a panel'],
   ['tool:spray-black', 'Black spray paint', 12, 'small · paints a panel'],
   ...Object.entries(SUPPLIES).map(([id, s]) => ['supply:' + id, s.name, s.price, 'small · for customer jobs']),
+  ['mat:wood', 'Lumber (2 planks)', 14, 'materials · for racks and shelving at the workbench'],
+  ['mat:scrap', 'Steel offcuts (2 pieces)', 22, 'materials · angle iron and flat bar for the workbench'],
   ['wash', 'Hand wash & wax', 120, 'cleans up the paint a bit'],
 ];
 /** what a job needs: an item you carry (used up) or just a tool */

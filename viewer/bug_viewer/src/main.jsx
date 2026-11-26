@@ -27,7 +27,7 @@ import {
 } from './build.js';
 import { startGamepad } from './game/gamepad.js';
 import { game, flushSaveNotices, useGame, owns, buy, say, newGame, buyCar, interact, addCash, priceOf, saveBuild, nameOf, transact, save } from './game/store.js';
-import { applyMachinePlan, held, toolInHand, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
+import { applyMachinePlan, held, toolInHand, pickUp, dropHeld, hangHeld,grabItem,loadHeld, takeFromCar, dropRemoved, dropNearPlayer, boxAtShop, seedWorld, ensureRoadsideLoot, ensureMatFinds, vehiclesNear, searchBox, canCarry, giveToPlayer, giveToGarage, inGarageZone, yardSpot, spawnItem, sizeOf, nameOfItem } from './game/items.js';
 import LoadingScreen from './game/Loading.jsx';
 import { toggleLights } from './game/lights.js';
 import { useStand } from './game/standActions.js';
@@ -148,7 +148,7 @@ function App() {
     // new game: grandma's Bug sits in grandpa's garage, half apart — the flat rear-right wheel off, the driver's seat out (battery's in; she just hasn't run since '09)
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize(apartBuild({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] }))); spawnApartParts(); }   // the Bug starts taken apart, every part on the garage floor (game/teardown.js) else if (game.build) setBuildRaw(normalize(game.build));
-    migrateGrid(); ensureBugBay(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot();   // Walt's wall shelving: movable props, seeded once per save
+    migrateGrid(); ensureBugBay(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot(); ensureMatFinds();   // Walt's wall shelving: movable props, seeded once per save
     if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
@@ -203,7 +203,9 @@ function App() {
   const storeBuy = (what, price) => {
     if (game.cash < price) return say('Not enough cash.');
     if (what === 'wash') return interact('wash');
-    const [k, id] = what.split(':'); if (!canCarry(k, id)) return say('Your hands are full.');
+    const [k, id] = what.split(':');
+    if (k === 'mat') { const n = 2; addCash(-price, `Bought: ${id === 'wood' ? 'lumber' : 'steel offcuts'}`); game.mats = { ...game.mats, [id]: (game.mats?.[id] || 0) + n }; save(); return say(`Bought ${n} ${id === 'wood' ? 'planks' : 'pieces of steel'}: ${id === 'wood' ? 'wood' : 'scrap metal'} ${game.mats[id]}`); }   // materials go on your tally, not in your hands
+    if (!canCarry(k, id)) return say('Your hands are full.');
     addCash(-price, `Bought: ${nameOfItem({ kind: k, id })}`); giveToPlayer(k, id); say(`Bought: ${nameOfItem({ kind: k, id })}`);
   };
   const buyBoxed = (kind, id) => { const c = priceOf(kind, id); if (game.cash < c) return; addCash(-c, `Bought: ${nameOf(kind, id, build.body)}`); boxAtShop(kind, id); say(`Bought: ${nameOf(kind, id, build.body)} — boxed at the pickup area outside the shop.`); };

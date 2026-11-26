@@ -3,7 +3,8 @@
 import { allocUid } from './saveFormat.js';
 import { game, save, say, addCash, catalogFor } from './store.js';
 import { partById, wheelById, rimById, labelFor } from '../build.js';
-import { SITES, toWorld } from '../worlds/county.js';
+import { SITES, toWorld, junctions, offroadPlan } from '../worlds/county.js';
+import { matFinds, matName } from './matFinds.js';
 import { activeType, vehicleType, parked } from './fleet.js';
 import { dropSpot } from './dropSpot.js';
 import { SUPPLIES } from './jobs.js';
@@ -33,12 +34,12 @@ const STOCK = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots.ma
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
 const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
-export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : kind === 'epart' ? 1 : 3);
+export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : kind === 'epart' ? 1 : kind === 'mat' ? 1 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
 const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '') || '';   // tire machine: wheels and tires can be punctured or flat
 export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${it.grimy ? 'dirty' : Math.round(it.cond ?? 70) + '%'})` : withTread(baseName(it), it) + wheelState(it) + canTag(it) + canFuelTag(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '');
-const baseName = it => it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
+const baseName = it => it.kind === 'mat' ? matName(it.id, it.n) : it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
@@ -106,8 +107,14 @@ export function dropNearPlayer(kind, id, extra = {}) {
   const p = dropPoint();
   game.items.push({ uid: uid(), kind, id, loc: 'world', x: p.x, z: p.z, y: 0, ry: Math.random() * 6, ...extra }); commit(); }
 
+/** a bundle of wood or scrap lying out: it goes straight onto your materials (game.mats), your hands stay free */
+function collectMat(it) {
+  const n = it.n || 1; game.items = game.items.filter(i => i !== it);
+  game.mats = { ...game.mats, [it.id]: (game.mats?.[it.id] || 0) + n }; save(); say(`Picked up ${matName(it.id, n).toLowerCase()}: ${it.id === 'wood' ? 'wood' : 'scrap metal'} ${game.mats[it.id]}`);
+}
 export function pickUp(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (it.kind === 'mat') return collectMat(it);
   if (!engineGate(it)) return;
   if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   const where = takeOnto(it); if (!where) return say(fullMsg(it));
@@ -116,6 +123,7 @@ export function pickUp(uidN) {
 /** left click: grab it into your hands (hands free), else it goes to the pack like E (Stage ctl-A, PROPOSAL) */
 export function grabItem(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'world') return;
+  if (it.kind === 'mat') return collectMat(it);
   if (!engineGate(it)) return;
   if (itemSize(it) > 4) return say('Far too big to carry. It needs a trailer to move.');
   if (held()) return pickUp(uidN);
@@ -216,6 +224,13 @@ export function ensureRoadsideLoot() {
   const cs = containers.filter(c => c.site.startsWith('rs') && !game.boxes[c.id]), ss = spots.filter(s => s.site.startsWith('rs'));
   if (cs.length || ss.length) stockPlaces(cs, ss, game.build?.body, o => game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...o }));
   save();
+}
+/** wood and scrap lying out by the roadside stops and along the forest trails (game/matFinds.js): put down once per save, new games included */
+export function ensureMatFinds() {
+  if ((game.home.matV || 0) >= 1) return;
+  game.home = { ...game.home, matV: 1 };
+  for (const f of matFinds(junctions()?.roadside?.sites || [], offroadPlan()?.items || [])) game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), kind: 'mat', id: f.id, n: f.n, find: f.key, loc: 'world', x: f.x, z: f.z, y: 0, ry: f.ry });
+  game.items = [...game.items]; save();
 }
 export function seedWorld(bodyId) {
   game.items = []; game.boxes = {};

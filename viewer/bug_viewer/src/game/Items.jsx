@@ -115,6 +115,9 @@ export function Crate({ item, scale = 1 }) {
   if (item.kind === 'junk') return <group scale={scale}>{item.id === 'engineblock' ? <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.55, 0.4, 0.42]} /><meshStandardMaterial color="#4d4a46" metalness={0.6} roughness={0.6} /></mesh> : item.id === 'crate' ? <mesh position={[0, 0.24, 0]} castShadow><boxGeometry args={[0.6, 0.48, 0.6]} /><meshStandardMaterial color="#8a6a44" roughness={0.9} /></mesh> : item.id === 'drum' ? <mesh position={[0, 0.44, 0]} castShadow><cylinderGeometry args={[0.29, 0.29, 0.88, 20]} /><meshStandardMaterial color={item.uid % 2 ? '#3d5a6e' : '#5a6b3a'} metalness={0.4} roughness={0.6} /></mesh> : <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.17, 0.4, 0.34]} /><meshStandardMaterial color="#a9281e" metalness={0.3} roughness={0.5} /></mesh>}</group>;
   if (item.kind === 'memento' && item.id === 'photo') return <group scale={scale}><PhotoSheet item={item} /></group>;   // a printed photo (PROPOSAL): the picture you posted, on paper
   if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
+  if (item.kind === 'mat') return <group scale={scale}>{item.id === 'wood'
+    ? [0, 1, 2].slice(0, Math.min(3, item.n || 1)).map(i => <mesh key={i} position={[(i - 1) * 0.06, 0.035 + i * 0.05, (i % 2) * 0.05]} rotation={[0, i * 0.18, 0]} castShadow><boxGeometry args={[0.14, 0.045, 1.3]} /><meshStandardMaterial color={['#9c7b52', '#86683f', '#a8885c'][i]} roughness={0.95} /></mesh>)
+    : [0, 1].map(i => <mesh key={i} position={[0, 0.03 + i * 0.03, i * 0.12]} rotation={[0, i * 0.7, 0]} castShadow><boxGeometry args={[0.6, 0.04, 0.05]} /><meshStandardMaterial color={i ? '#6f5a49' : '#5b5f61'} metalness={0.6} roughness={0.7} /></mesh>).concat(<mesh key="p" position={[0.1, 0.02, -0.1]} rotation={[0, 0.4, 0]} castShadow><boxGeometry args={[0.35, 0.02, 0.28]} /><meshStandardMaterial color="#7d4a32" metalness={0.5} roughness={0.8} /></mesh>)}</group>;   // planks, or a couple of bent bars and a rusty plate
   if (item.kind === 'epart') return <group scale={scale}><EnginePiece id={item.id} /></group>;
   const crate = <CrateBox item={item} />;
   let body = null;
@@ -149,7 +152,7 @@ function ToolSwitch({ idRef }) {
 export default function Items() {
   useGame();
   const heldRef = useRef(), markRef = useRef(), toolRef = useRef(), toolId = useRef('wrench'), { camera } = useThree();
-  const loose = game.items.filter(i => i.loc === 'world'), hand = held();
+  const loose = game.items.filter(i => i.loc === 'world' && i.kind !== 'mat'), hand = held();
   useFrame(() => {
     // the tool in your hand: the one you carry out, or the one this part needs while it snaps onto the car; it turns while the hold bar fills
     { const t = toolRef.current; if (t) {
@@ -184,6 +187,7 @@ export default function Items() {
     {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     <Containers />
+    <MatFinds />
     <group ref={heldRef} visible={false}>{hand && hand.kind !== 'tool' && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
     <group ref={markRef} visible={false}><mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#f2a33a" transparent opacity={0.28} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh><lineSegments rotation={[-Math.PI / 2, 0, 0]} renderOrder={6}><edgesGeometry args={[new THREE.PlaneGeometry(1, 1)]} /><lineBasicMaterial color="#ffd28e" /></lineSegments></group>
     <group ref={toolRef} visible={false}><ToolSwitch idRef={toolId} /></group>
@@ -246,4 +250,12 @@ function PhotoSheet({ item }) {
     <mesh castShadow><planeGeometry args={[0.34, 0.26]} /><meshStandardMaterial color="#f4f0e6" roughness={0.9} side={THREE.DoubleSide} /></mesh>
     <mesh position={[0, 0, 0.003]}><planeGeometry args={[0.3, 0.2]} />{tex ? <meshBasicMaterial map={tex} side={THREE.DoubleSide} /> : <meshStandardMaterial color="#777" />}</mesh>
   </group>;
+}
+
+/** bundles of wood and scrap lying out in the world (game/matFinds.js): only drawn near the camera */
+function MatFinds() {
+  useGame();
+  const list = game.items.filter(i => i.loc === 'world' && i.kind === 'mat'), refs = useRef([]), { camera } = useThree();
+  useFrame(() => { for (let i = 0; i < list.length; i++) { const g = refs.current[i]; if (g) g.visible = Math.hypot(list[i].x - camera.position.x, list[i].z - camera.position.z) < 200; } });
+  return list.map((it, i) => <group key={it.uid} ref={g => (refs.current[i] = g)} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry || 0, 0]}><Crate item={it} /></group>);
 }
