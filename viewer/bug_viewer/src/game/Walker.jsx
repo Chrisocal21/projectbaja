@@ -273,7 +273,7 @@ export default function Walker({ world, sun }) {
       if (d !== null && d < aimedD) { aimedD = d; aimedItem = 'item:' + it.uid; }
     }
     if (aimedItem && !(best && !best.startsWith('item:') && best !== 'bench' && bd < aimedD * 0.5)) { best = aimedItem; bd = Math.min(bd, aimedD * 0.5); }
-    if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1 }); }
+    if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1, own: true }); }   // own: a tool chest is solid itself, its own circle must not hide it
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
     if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
     if (foot && held() && isTire(held())) consider('tirepile', tirePileWorld.x, tirePileWorld.z, 3.4, false, 0.8, { r: 1.5, h: 1.4 });   // yard cleanup

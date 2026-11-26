@@ -111,7 +111,7 @@ export const TARGETS = [
   T('tarp', lot, LOT_SPOTS.tarp.x, LOT_SPOTS.tarp.z, 5.5),
   T('al', lot, LOT_SPOTS.al.x, LOT_SPOTS.al.z, 4),
   T('bench', G, -3, -4, 3.4),   // E spot of the workbench in its original place; Walker.jsx follows the workbench prop instead (game/fixtures.js benchSpot)
-  T('breaker', G, BREAKER.x, BREAKER.z, 2.2),
+  T('breaker', G, BREAKER.x - 0.3, BREAKER.z, 2.2),   // aimed at a point just in front of the panel: the panel itself sits inside the wall's collision circles, which hid it from the aim ray
   T('openSwitch', G, 5.4, 6.6, 2.0),
   T('pump', S, -3.6, 6.2, 5, { car: true, face: false }),
   T('pump', S, 3.6, 6.2, 5, { car: true, face: false }),
