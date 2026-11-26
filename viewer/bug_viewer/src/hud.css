@@ -609,3 +609,10 @@
 .web-post button{align-self:flex-start}
 .web-embed .phone-soon{padding:10px 8px}
 .web-close{background:none;border:0;color:#e8ecf1;opacity:.6;font-size:11px;cursor:pointer;padding:2px 0}
+/* the phone stays one size on every app (Chris, Nov 27): a fixed height, and whatever is open scrolls inside it */
+.phone{height:min(660px,calc(100vh - 40px));min-height:0}
+.phone>.phone-grid,.phone>.phone-soon,.phone>.web{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
+.phone>.phone-soon{justify-content:flex-start}
+.phone .inv-scroll{max-height:none}
+.web-page{max-height:none;flex:1 1 auto;min-height:0}
+.phone>.web{overflow:hidden}
