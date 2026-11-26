@@ -5,6 +5,14 @@ import { takePerfMetrics } from './perfMetrics.js';
 
 const detailed = typeof location !== 'undefined' && /[?&]perf(?:[=&]|$)/.test(location.search);
 
+/** tells the page how far down the counter reaches, so pop-up messages start below it (hud.css --perf-bottom) */
+let reserved = 0;
+function roomFor(el) {
+  const to = el ? Math.ceil(el.getBoundingClientRect().bottom) + 10 : 0;
+  if (to === reserved) return;
+  reserved = to; document.documentElement.style.setProperty('--perf-bottom', `${to}px`);
+}
+
 /**
  * In-game frame counter. Beyond FPS it shows what makes a game feel choppy at a high frame rate:
  *   avg / 1% low   the typical frame and the slowest 1% of frames
@@ -33,15 +41,15 @@ export default function PerfHud() {
   }, []);
   useEffect(() => {
     const el = document.createElement('div');
-    el.style.cssText = `position:fixed;right:18px;top:${detailed ? 12 : 80}px;z-index:9999;padding:${detailed ? '8px 10px' : '5px 8px'};background:#111d;color:#d8e7dc;font:700 12px/1.4 monospace;white-space:pre;pointer-events:none;border:1px solid #fff3`;
+    el.style.cssText = `position:fixed;right:18px;top:12px;z-index:9999;padding:${detailed ? '8px 10px' : '5px 8px'};background:#111d;color:#d8e7dc;font:700 12px/1.4 monospace;white-space:pre;pointer-events:none;border:1px solid #fff3`;
     document.body.appendChild(el); node.current = el;
-    return () => { el.remove(); node.current = null; };
+    return () => { el.remove(); node.current = null; roomFor(null); };
   }, []);
   useFrame((_, dt) => {
     if (!node.current) return;
     const visible = detailed || game.settings?.showFps !== false;
     node.current.style.display = visible ? '' : 'none';
-    if (!visible) { samples.current = []; elapsed.current = 0; return; }
+    if (!visible) { samples.current = []; elapsed.current = 0; roomFor(null); return; }
     const ss = window.__simStat || { n: 0, ms: 0 };
     samples.current.push({ ms: dt * 1000, sim: ss.ms, n: ss.n }); elapsed.current += dt;
     if (elapsed.current < 1) return;
@@ -64,6 +72,7 @@ export default function PerfHud() {
       for (const [name, m] of takePerfMetrics().slice(0, 5)) lines.push(`${name}: ${m.count}x max ${m.max.toFixed(1)} ms`);
     }
     node.current.textContent = lines.join('\n');
+    roomFor(node.current);
     samples.current = []; elapsed.current = 0;
   });
   return null;
