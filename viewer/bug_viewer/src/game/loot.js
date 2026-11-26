@@ -62,4 +62,4 @@ export const LOOT_COLLIDERS = (() => {
 })();
 
 /** the garage's starting stock is fixed; everything else is shuffled per new game */
-export const STARTER = { 'g-toolbox': { items: [['part', 'LIGHT_BumperPods']], cash: 40 }, garageBench: ['part', 'ACC_LightBar', -3.9, -5.2, BENCH_TOP], garageFloor: ['part', 'GUARD_MudFlaps', 4.2, 0.6, 0] };
+export const STARTER = { 'g-toolbox': { items: [], cash: 40 }, 'g-chest': { items: [], cash: 0 }, loose: [] };   // minimal stock (Chris, Nov 26): Walt's $40, nothing free to bolt on

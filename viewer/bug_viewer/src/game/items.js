@@ -221,7 +221,7 @@ export function seedWorld(bodyId) {
   game.items = []; game.boxes = {};
   let n = 0; const add = (o) => game.items.push({ uid: ++n, ...o });
   const g = SITES.garage;
-  for (const [k, id, lx, lz, ly] of [STARTER.garageBench, STARTER.garageFloor]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
+  for (const [k, id, lx, lz, ly] of STARTER.loose) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: ly, ry: g.rot + 0.1 }); }
   // grandpa had the Bug half apart: its rear-right wheel leans by the car, the driver's seat sits on the floor
   for (const [k, id, lx, lz, extra] of [['stock', 'wheel', 2.7, 2.4, { set: 'stock' }], ['stock', 'seatDriver', -2.7, 2.6, {}]]) { const [x, z] = toWorld(g, lx, lz); add({ kind: k, id, loc: 'world', x, z, y: 0, ry: g.rot + 0.4, ...extra }); }
   add({ kind: 'tool', id: 'wrench', loc: 'pack' });   // you start with a wrench in your pack

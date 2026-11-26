@@ -37,6 +37,7 @@ export function HudOverlay() {
         <span className={`hs-chip ${open ? 'ok' : h.power ? 'off' : 'dead'}`}><i />{open ? 'Shop open' : h.power ? 'Shop closed' : 'No power'}</span>
         {game.settings?.creative && <span className="hs-chip creative"><i />Creative</span>}
         {(game.mats?.scrap || 0) > 0 && <span className="hs-chip plain">Scrap {game.mats.scrap}</span>}
+        {(game.mats?.wood || 0) > 0 && <span className="hs-chip plain">Wood {game.mats.wood}</span>}
       </div>}
     </div>
     {game.prompt && <div className="hud-prompt2">{promptParts(game.prompt).map(([k, t], i) => <span key={i} className="hp-part">{k && <Key k={k} />}<span>{t}</span></span>)}</div>}

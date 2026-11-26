@@ -100,7 +100,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.projects = []; game.projectOpen = {}; game.home = { cleared: [], power: false, letter: false }; game.props = []; game.mats = { scrap: 0 }; game.job = null; game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.projects = []; game.projectOpen = {}; game.home = { cleared: [], power: false, letter: false, lean: 1 }; game.props = []; game.mats = { scrap: 0, wood: 0 }; game.job = null;   // lean: a new game starts with few racks (home.js STARTER_LEAN) game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }

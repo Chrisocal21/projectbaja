@@ -277,6 +277,10 @@ const STARTER_FIXTURES_V2 = [
   ['compressor', 0.3, -5.4, 0], ['engineOnStand', -4.3, 0.9, Math.PI / 2],
 ];
 export const STARTER_FIXTURES = [...STARTER_FIXTURES_V1, ...STARTER_FIXTURES_V2, ...STARTER_FIXTURES_V3];
+/** a NEW game (home.lean, Chris Nov 26-27: start minimal, craft more racks at the bench): one tire shelf (the Bug's wheels), one supply shelf (her loose parts),
+ *  and an empty engine stand where Walt's spare engine stood (her engine goes on it to get the plugs in) */
+const STARTER_LEAN_V1 = [['shelfTires', -6.5, 0, Math.PI / 2], ['shelfSupplies', 6.5, -3.0, -Math.PI / 2]];
+const STARTER_LEAN_V2 = [['compressor', 0.3, -5.4, 0], ['engineStand', -4.3, 0.9, Math.PI / 2]];
 /** the pile of bald tires and the decorative tire stack are gone: four real worn tires lie where they were (once per save; skipped if the old pile was already hauled off) */
 export function ensureShopTires() {
   if ((game.home.tiresV || 0) >= 1) return;
@@ -340,7 +344,7 @@ export function ensureJunkItems() {
   if ((game.home.junkV || 0) >= 2) return;
   const had = (game.home.junkV || 0) >= 1;
   game.home = { ...game.home, junkV: 2 };
-  for (const [id, lx, lz] of [['drum', -5.6, 3.5], ['drum', -5.0, 3.9], ['jerrycan', -5.5, 2.8], ['crate', -5.5, 1.6], ['engineblock', -5.3, 0.6]].slice(had ? 3 : 0)) {
+  for (const [id, lx, lz] of [['drum', -5.6, 3.5], ['drum', -5.0, 3.9], ['jerrycan', -5.5, 2.8], ['crate', -5.5, 1.6], ['engineblock', -5.3, 0.6]].slice(had ? 3 : 0).filter(([, lx]) => !(game.home.lean && lx === -5.0))) {   // a new game has one drum, not two (minimal stock)
     const [x, z] = toWorld(G, lx, lz);
     game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), kind: 'junk', id, loc: 'world', x, z, y: groundHeight(x, z) - height(x, z), ry: G.rot });
   }
@@ -356,7 +360,7 @@ export function migrateGrid() {
 /** seed Walt's movable fixtures once per save, in batches: old saves (fixtures: true, from before V2 existed) only get the new batch */
 export function ensureStarterFixtures() {
   const v = seededV(game.home); if (v >= 3) return;
-  const batch = [...(v < 1 ? STARTER_FIXTURES_V1 : []), ...(v < 2 ? STARTER_FIXTURES_V2 : []), ...STARTER_FIXTURES_V3];
+  const lean = !!game.home.lean, batch = [...(v < 1 ? (lean ? STARTER_LEAN_V1 : STARTER_FIXTURES_V1) : []), ...(v < 2 ? (lean ? STARTER_LEAN_V2 : STARTER_FIXTURES_V2) : []), ...STARTER_FIXTURES_V3];
   const add = batch.map(([id, lx, lz, ry]) => { const [x, z] = toWorld(G, lx, lz); return { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id, x, z, ry: G.rot + ry, starter: true }; });
   game.props = [...game.props, ...add]; game.propsV = (game.propsV || 0) + 1;
   game.home = { ...game.home, fixtures: true, fixturesV: 3 }; save();
@@ -454,6 +458,7 @@ export function propObstacles() {
 }
 
 // ---------------- scrap metal (a stack, not sized items) ----------------
+export function addWood(n, quiet = false) { game.mats = { ...game.mats, wood: (game.mats?.wood || 0) + n }; save(); if (!quiet) say(`+${n} wood (${game.mats.wood} total)`); }
 export function addScrap(n, quiet = false) { game.mats = { ...game.mats, scrap: (game.mats?.scrap || 0) + n }; save(); if (!quiet) say(`+${n} scrap metal (${game.mats.scrap} total)`); }
 /** scrap heaps lying around the county: each gives its metal once. [id, site, lx, lz, amount] */
 export const SCRAP_HEAPS = [['h-barn', 'barn', 9.5, 4, 3], ['h-ware', 'warehouse', -9, 6, 4], ['h-ware2', 'warehouse', 9, -5.5, 3], ['h-shack2', 'shack2', 4.5, 2, 2], ['h-pg', 'proving', 9, -2, 4], ['h-shack3', 'shack3', -4, 2.5, 2]]
@@ -502,13 +507,30 @@ export function crankBug() {
 // ---------------- fabrication at the workbench ----------------
 /** is this build item placed inside the garage? */
 export const hasInGarage = id => game.props.some(p => { const l = homeLocal(p.x, p.z); return p.id === id && insideGarage(l.lx, l.lz); });
+// prop: true = it makes a piece of shop furniture, which goes into Stored (build mode, B, places it). Amounts are PROPOSALs.
 export const RECIPES = [
-  { id: 'shockHoops', name: 'Shock hoops (front + rear)', scrap: 10, tools: ['welder', 'bender'], note: 'Tube hoops that carry long-travel shocks and clear big tires. Weld them into the Bug with the welder.' },
+  { id: 'shelfTires', prop: true, name: 'Tire & rim shelving', scrap: 4, wood: 3, tools: [], note: 'Angle iron bolted up, planks for the boards. It goes into Stored: place it with build mode (B).' },
+  { id: 'shelfSupplies', prop: true, name: 'Supply shelving', scrap: 3, wood: 4, tools: [], note: 'For oil, cans and boxed parts. It goes into Stored: place it with build mode (B).' },
+  { id: 'partsRack', prop: true, name: 'Parts rack', scrap: 3, wood: 3, tools: [], note: 'Three open boards for parts. It goes into Stored: place it with build mode (B).' },
+  { id: 'shockHoops', name: 'Shock hoops (front + rear)', scrap: 10, wood: 0, tools: ['welder', 'bender'], note: 'Tube hoops that carry long-travel shocks and clear big tires. Weld them into the Bug with the welder.' },
 ];
+/** the old wooden crate (junk) broken up at the bench gives this much wood (PROPOSAL) */
+export const CRATE_WOOD = 3;
+export const crateInHand = () => game.items.find(i => i.loc === 'hand' && i.kind === 'junk' && i.id === 'crate');
+export function breakCrate() {
+  const c = crateInHand(); if (!c) return;
+  game.items = game.items.filter(i => i !== c); addWood(CRATE_WOOD, true); say(`Knocked the old crate apart: +${CRATE_WOOD} wood (${game.mats.wood} total).`);
+}
 export function fabricate(id, giveToPlayer, canCarry) {
   const r = RECIPES.find(x => x.id === id); if (!r) return;
   const miss = r.tools.filter(t => !hasInGarage(t)); if (miss.length) return say(`You need a ${miss.map(t => buildById[t].name.toLowerCase()).join(' and a ')} in the garage (build mode, B).`);
   if ((game.mats?.scrap || 0) < r.scrap) return say(`Not enough scrap metal: ${game.mats?.scrap || 0}/${r.scrap}. Clear the yard, and check the barn, the shacks and the salvage warehouse.`);
+  if ((game.mats?.wood || 0) < (r.wood || 0)) return say(`Not enough wood: ${game.mats?.wood || 0}/${r.wood}. Break up old crates at the bench, or buy planks.`);
+  if (r.prop) {   // shop furniture: into Stored, placed from build mode
+    game.mats = { ...game.mats, scrap: game.mats.scrap - r.scrap, wood: (game.mats.wood || 0) - (r.wood || 0) };
+    game.home = { ...game.home, stored: [...storedProps(), { uid: allocUid(game.nextUid, 'props', game.props, storedProps()), id: r.id, x: 0, z: 0, ry: 0, paid: 0, made: true }] };
+    save(); return say(`Built: ${r.name.toLowerCase()}. It is in Stored: press B to place it.`);
+  }
   if (!canCarry('fab', id)) return say('Hands full — put that down first.');
   game.mats = { ...game.mats, scrap: game.mats.scrap - r.scrap };
   giveToPlayer('fab', id); say(`Cut, bent and tacked together: ${r.name}. Now weld them into the Bug.`);
