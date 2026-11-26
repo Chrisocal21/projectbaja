@@ -180,6 +180,35 @@ function Gable({ z, pts, map }) {
 }
 /** Walt's side bay: a lean-to on the shop's east wall where grandma's Bug stands (worlds/sideBay.js). Basic boxes, same skins as the shop. */
 function SideBay({ wall, roof, floor, ply, timber, power }) {
+  const keepsakes = useMemo(() => canvasTex(416, 336, (g) => {   // a cork board with one photo of grandma's Bug (no invented notes: canon)
+    const random = rnd(47);
+    g.fillStyle = '#624433'; g.fillRect(0, 0, 416, 336);
+    g.fillStyle = '#a88055'; g.fillRect(10, 10, 396, 316);
+    for (let i = 0; i < 4500; i++) {
+      g.fillStyle = random() < 0.5 ? '#97734e' : '#b89164';
+      g.fillRect(random() * 396 + 10, random() * 316 + 10, 2, 1);
+    }
+    function paper(x, y, angle, width, height, color, draw) {
+      g.save(); g.translate(x, y); g.rotate(angle);
+      g.fillStyle = '#735839'; g.fillRect(3, 5, width, height);
+      g.fillStyle = color; g.fillRect(0, 0, width, height);
+      draw();
+      g.fillStyle = '#944739'; g.beginPath(); g.arc(width / 2, 8, 4, 0, Math.PI * 2); g.fill(); g.restore();
+    }
+    paper(44, 52, -0.045, 325, 246, '#f2e6bf', () => {
+      g.fillStyle = '#b98e56'; g.fillRect(15, 17, 295, 171);
+      g.fillStyle = '#856849'; g.beginPath(); g.moveTo(15, 133); g.lineTo(76, 84); g.lineTo(129, 119); g.lineTo(223, 65); g.lineTo(310, 129); g.lineTo(310, 188); g.lineTo(15, 188); g.fill();
+      g.fillStyle = '#638787'; g.beginPath(); g.moveTo(48, 154); g.quadraticCurveTo(49, 128, 88, 125); g.bezierCurveTo(125, 55, 195, 57, 222, 123); g.quadraticCurveTo(270, 125, 274, 158); g.closePath(); g.fill();
+      g.fillStyle = '#354743'; g.beginPath(); g.moveTo(111, 120); g.quadraticCurveTo(128, 85, 152, 85); g.lineTo(152, 120); g.fill(); g.beginPath(); g.moveTo(159, 85); g.quadraticCurveTo(187, 84, 207, 118); g.lineTo(159, 120); g.fill();
+      for (const x of [92, 231]) {
+        for (const [radius, color] of [[23, '#383632'], [10, '#b7ad95']]) {
+          g.fillStyle = color; g.beginPath(); g.arc(x, 155, radius, 0, Math.PI * 2); g.fill();
+        }
+      }
+      g.fillStyle = '#574637'; g.font = 'italic 23px Georgia'; g.fillText("Grandma's Bug", 30, 224);
+    });
+  }), []);
+  useEffect(() => () => keepsakes.dispose(), [keepsakes]);
   const B = SIDE_BAY, D = B.door, t = 0.2, w = B.x1 - B.x0, cx = (B.x0 + B.x1) / 2, fall = B.hHigh - B.hLow, slope = Math.atan(fall / w);
   return <group>
     {/* floor slab (the shop's own slab runs to x = 7.6) and the apron out of the door, easing down to the yard */}
@@ -193,6 +222,10 @@ function SideBay({ wall, roof, floor, ply, timber, power }) {
     <Box p={[(D.x1 + B.x1) / 2, B.hLow / 2, B.z1]} s={[B.x1 - D.x1, B.hLow, t]} color="#fff" map={wall} />
     <Box p={[(D.x0 + D.x1) / 2, (D.h + B.hLow) / 2, B.z1]} s={[D.x1 - D.x0, B.hLow - D.h, t]} color="#fff" map={wall} />
     {[B.z0, B.z1].map(z => <Gable key={z} z={z} pts={[[B.x0, B.hLow], [B.x1, B.hLow], [B.x0, B.hHigh]]} map={wall} />)}
+    <mesh position={[cx + 0.8, 1.76, B.z0 + 0.115]}>
+      <planeGeometry args={[0.85, 0.69]} />
+      <meshStandardMaterial map={keepsakes} roughness={0.97} />
+    </mesh>
     {/* plywood lining inside the outer wall, like the shop */}
     <Box p={[B.x1 - 0.12, 0.77, 0]} s={[0.03, 1.3, B.z1 - B.z0 - 0.3]} color="#fff" map={ply} cast={false} />
     {/* the lean-to roof, a rafter at each end and the raised roll-up door over the opening */}

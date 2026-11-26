@@ -19,7 +19,7 @@ import { wallSnap } from './wallhang.js';
 import { passTime } from './orders.js';
 import { spillBin } from './bins.js';
 import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
-import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
+import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, onBench, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
 import { SIDE_BAY, BUG_BAY, OLD_BUG_SPOT, inSideBay, onBugSpot } from '../worlds/sideBay.js';
 import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
@@ -186,6 +186,24 @@ export const garageLevel = () => garageLevelOf(ownedStages(game.home));
 /** a wall item (the pegboard) whose wall is gone (the back wall opens at garage level 1) moves to the bench wall on the extension's west side */
 export function ensureWallItemsOnWalls() {
   const level = garageLevel(); let moved = 0;
+  if (level && !game.home.rearBenchLayout) {
+    const [oldX, oldZ] = toWorld(G, -3, -5.2);
+    const bench = game.props.find(p => p.starter && p.id === 'workbench' && Math.hypot(p.x - oldX, p.z - oldZ) < 0.05 && Math.cos(p.ry - G.rot) > 0.999);
+    if (bench) {
+      const [x, z] = toWorld(G, -12.35, -10);
+      // Rotate the benchtop contents with the bench, including the inherited letter.
+      game.items = game.items.map(item => {
+        if (!onBench(item, bench)) return item;
+        const nx = x + item.z - bench.z, nz = z - (item.x - bench.x);
+        const dy = groundHeight(nx, nz) - height(nx, nz) - groundHeight(item.x, item.z) + height(item.x, item.z);
+        return { ...item, x: nx, z: nz, y: item.y + dy, ry: (item.ry || 0) + Math.PI / 2 };
+      });
+      game.props = game.props.map(p => p === bench ? { ...p, x, z, ry: bench.ry + Math.PI / 2 } : p);
+      game.propsV = (game.propsV || 0) + 1;
+    }
+    game.home = { ...game.home, rearBenchLayout: true };
+    save();
+  }
   game.props = game.props.map(p => {
     const item = buildById[p.id]; if (!item?.wallMount) return p;
     const opt = { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, level }, here = wallSnap(G, p.x, p.z, { ...opt, reach: WALL_MOUNT.offset + 0.1 });

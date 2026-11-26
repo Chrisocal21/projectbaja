@@ -61,12 +61,18 @@ export const levelOpenings = level => (level >= 1 ? ['B0', 'B1', 'B2', 'B3', 'B4
 /** door gaps [a, b] along a wall ('back': x, 'east': z) */
 export const doorGaps = (level, wall) => levelData(level).doors.filter(d => d.wall === wall).map(d => [d.at - d.w / 2, d.at + d.w / 2]);
 const inGap = (v, gaps) => gaps.some(([a, b]) => v > a && v < b);
+// A shallow setup counter against the office return, facing the west work area.
+// Its front aisle ends before R1 at x=-9.2. The west wall stays free for Walt's bench.
+export const SETUP_COUNTER = { x: -10.25, z: -6.54, width: 2.35, depth: 0.70 };
 /** collision circles [lx, lz, r] for the extension's outside walls (west, east, back), with the roll-up doors left open */
 export function extensionWallCircles(level) {
   const e = extension(level); if (!e) return [];
   const r = 0.15, step = 0.5, out = [], east = doorGaps(level, 'east'), west = doorGaps(level, 'west'), back = doorGaps(level, 'back');
   for (let z = e.z0; z <= e.z1 + 1e-9; z += step) { if (!inGap(z, west)) out.push([e.x0, z, r]); if (!inGap(z, east)) out.push([e.x1, z, r]); }
   for (let x = e.x0; x <= e.x1 + 1e-9; x += step) if (!inGap(x, back)) out.push([x, e.z0, r]);
+  const counter = SETUP_COUNTER, radius = counter.depth / 2;
+  const span = counter.width - 2 * radius;
+  for (let i = 0; i <= 5; i++) out.push([counter.x - span / 2 + span * i / 5, counter.z, radius]);
   return out;
 }
 

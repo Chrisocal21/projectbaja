@@ -7,7 +7,7 @@ import ShopBoxGeometry from './ShopBoxGeometry.jsx';
 // Basic boxes on purpose (ChatGPT polishes the look later). Garage-local metres; drawn inside Sites.jsx Garage().
 import React from 'react';
 import * as THREE from 'three';
-import { extension, baysAt, levelData, wallFaces, BAY, DOOR_H } from './garageLevels.js';
+import { extension, baysAt, levelData, wallFaces, SETUP_COUNTER, BAY, DOOR_H } from './garageLevels.js';
 import { canvasTex, rnd } from '../lot/CarLot.jsx';
 
 const Box = ({ p, s, color = '#fff', map, metal = 0, rough = 0.9, emissive, ei = 2.2, cast = true }) => <mesh position={p} castShadow={cast} receiveShadow>
@@ -72,6 +72,37 @@ function RollUp({ face, a, b, H, T }) {
   </group>;
 }
 
+function stationGraphic(title, lines) {
+  return once('station:' + title, () => canvasTex(512, 224, (g) => {
+    g.fillStyle = '#e6e2d5'; g.fillRect(0, 0, 512, 224);
+    g.fillStyle = '#224448'; g.fillRect(0, 0, 512, 65);
+    g.fillStyle = '#f3d18c'; g.font = 'bold 34px sans-serif'; g.fillText(title, 16, 45);
+    lines.forEach((line, i) => {
+      const y = 98 + i * 49;
+      g.fillStyle = '#324341'; g.font = 'bold 22px sans-serif'; g.fillText(line, 18, y);
+      g.fillStyle = '#a9b0a9'; g.fillRect(16, y + 10, 480, 2);
+    });
+  }));
+}
+
+function SetupStation({ level }) {
+  const { x, z, width, depth } = SETUP_COUNTER;
+  const [title, lines] = [
+    ['SERVICE BENCH', ['01   Inspect', '02   Repair', '03   Road check']],
+    ['CHASSIS SETUP', ['CAMBER     L ______   R ______', 'TOE            L ______   R ______', 'RIDE HT      F ______   R ______']],
+    ['RACE CONTROL', ['PREP       Tire pressures / torque', 'GRID       Fuel / belts / radio', 'RETURN   Log temps / inspect']],
+  ][level - 1];
+  return <group position={[x, 0.12, z]} rotation={[0, Math.PI, 0]}>
+    <Box p={[0, 0.48, 0]} s={[width - 0.08, 0.84, depth - 0.06]} color="#344e50" />
+    <Box p={[0, 0.935, 0]} s={[width, 0.07, depth]} color="#aaa69a" metal={0.6} />
+    {[-0.56, 0.56].flatMap(u => [0.31, 0.56, 0.79].map(y =>
+      <Box key={u + ':' + y} p={[u, y, depth / 2 - 0.018]} s={[0.86, 0.034, 0.032]} color="#abaea3" cast={false} />))}
+    <mesh position={[0, 1.68, -0.36]}>
+      <planeGeometry args={[1.97, 0.862]} /><meshStandardMaterial map={stationGraphic(title, lines)} />
+    </mesh>
+  </group>;
+}
+
 export default function GarageExtension({ level, power }) {
   const e = extension(level); if (!e) return null;
   const d = levelData(level), H = d.h, W = e.x1 - e.x0, D = e.z1 - e.z0, cx = (e.x0 + e.x1) / 2, cz = (e.z0 + e.z1) / 2, epoxy = d.floor === 'epoxy';
@@ -88,6 +119,7 @@ export default function GarageExtension({ level, power }) {
     <Box p={[-3, 0.06, (e.z0 - 0.6 - 6.6) / 2]} s={[21.2, 0.12, e.z1 - e.z0]} color="#fff" map={fl} rough={epoxy ? 0.28 : 0.9} metal={epoxy ? 0.05 : 0} cast={false} />
     <Box p={[-10.6, 0.06, -6.45]} s={[6, 0.12, 0.3]} color="#fff" map={fl} rough={epoxy ? 0.28 : 0.9} metal={epoxy ? 0.05 : 0} cast={false} />
     <Box p={[0, 0.125, e.z1]} s={[14, 0.01, 0.3]} color="#7d8285" metal={0.6} rough={0.4} cast={false} />
+    <SetupStation level={level} />
     {/* walls */}
     {back.pieces.map(([a, b]) => <WallRun key={`b${a}`} face={back} a={a} b={b} H={H} T={T} />)}
     {back.gaps.map(([a, b]) => <RollUp key={`bd${a}`} face={back} a={a} b={b} H={H} T={T} />)}
@@ -134,6 +166,10 @@ export default function GarageExtension({ level, power }) {
         <Box p={[kx, y, kz]} s={[kw - 0.1, 0.08, kd - 0.3]} color="#59636a" metal={0.6} rough={0.5} />
         <Box p={[kx, y + 0.08, k.z1 - 0.1]} s={[kw - 0.1, 0.16, 0.08]} color="#e0661f" metal={0.4} rough={0.5} />
       </group>)}
+      <mesh position={[(k.x0 + kx) / 2, 4.37, k.z1 - 0.045]}>   {/* between the left and middle posts, not across the middle one */}
+        <planeGeometry args={[2.1, 0.92]} />
+        <meshStandardMaterial map={stationGraphic('STORAGE  ' + k.id.slice(1), ['UPPER     Reserve', 'MIDDLE   Staging', 'LOWER    Dispatch'])} />
+      </mesh>
       <Box p={[kx, 5.5, k.z1 - 0.1]} s={[kw - 0.1, 0.14, 0.12]} color="#e0661f" metal={0.4} rough={0.5} />
     </group>; })}
     {/* outside: the door ramps, slab edge and gravel drive are in GarageGrounds.jsx */}
