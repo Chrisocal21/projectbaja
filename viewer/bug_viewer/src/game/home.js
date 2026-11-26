@@ -21,6 +21,7 @@ import { spillBin } from './bins.js';
 import { haul as haulLoad, loadsOf, leftOf } from './junkRules.js';
 import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, benchDrops, pegDrops } from './fixtures.js';   // Stage 4d: workbench, car lift and pegboard are props
 import { wornTires } from './tires.js';
+import { SIDE_BAY, BUG_BAY, OLD_BUG_SPOT, inSideBay, onBugSpot } from '../worlds/sideBay.js';
 import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
 import { dropRackTires } from '../placement/garageStore.js';   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
 
@@ -144,7 +145,7 @@ export function bindHotbar(i, id, mat) {
 /** garage-local coordinates of a world point */
 export function homeLocal(x, z) { const dx = x - G.x, dz = z - G.z, c = Math.cos(G.rot), s = Math.sin(G.rot); return { lx: dx * c - dz * s, lz: dx * s + dz * c }; }
 /** inside the garage building or its attached office (m > 0 shrinks the box, m < 0 grows it) */
-const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m) || inExtension(garageLevelOf(ownedStages(game.home)), lx, lz, m);
+const insideGarage = (lx, lz, m = 0) => (Math.abs(lx) < 7 - m && Math.abs(lz) < 6 - m) || inOffice(lx, lz, m) || inSideBay(lx, lz, m) || inExtension(garageLevelOf(ownedStages(game.home)), lx, lz, m);
 export const onProperty = (x, z) => { const { lx, lz } = homeLocal(x, z); return Math.abs(lx) < PROPERTY.w / 2 && Math.abs(lz - 8) < PROPERTY.d / 2 + 6; };
 /** can this item go here? → '' or why not */
 /** why a building piece can't go here ('' = it can). x, z, ry are world values (the snapped ones); the rules run in garage-local metres. */
@@ -169,7 +170,7 @@ export function snapWorld(item, x, z) {
 }
 /** garage-local points of the placed foundation slabs */
 const foundationsLocal = () => game.props.filter(q => q.id === 'foundation').map(q => { const m = homeLocal(q.x, q.z); return { x: m.lx, z: m.lz }; });
-export const openingKeys = () => { const own = game.home?.openings || [], lv = levelOpenings(garageLevelOf(ownedStages(game.home))); return lv.length ? [...new Set([...own, ...lv])] : own; };
+export const openingKeys = () => { const own = game.home?.openings || [], lv = [SIDE_BAY.cut, ...levelOpenings(garageLevelOf(ownedStages(game.home)))]; return [...new Set([...own, ...lv])]; };   // the side bay's walk-through is always open
 /** the original-wall opening nearest a world point → { key, x, z, ry } in world terms, or null */
 export function snapCutWorld(x, z) {
   const l = homeLocal(x, z), s = snapCut(l.lx, l.lz); if (!s) return null;
@@ -215,7 +216,8 @@ export function placeWhy(item, x, z, moving = false, ry = 0, mat) {
   if (item.zone === 'garage' && !inG) return 'That goes inside the garage.';
   if (item.wallMount && !wallSnap(G, x, z, { ...WALL_MOUNT, along: (item.wallLen || 0) / 2, reach: WALL_MOUNT.offset + 0.1, level: garageLevel() })) return 'That mounts on a garage wall: aim at one.';
   if (item.zone === 'yard' && insideGarage(lx, lz, -0.6)) return 'That goes outside, in the yard.';
-  if (inG && item.zone !== 'yard' && !item.carBay && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the car's spot clear.";
+  if (inG && item.zone !== 'yard' && !item.carBay && Math.abs(lx) < 1.6 && lz > -3 && lz < 2) return "Keep the lift bay clear for customers' cars.";
+  if (inG && item.zone !== 'yard' && onBugSpot(lx, lz)) return "Keep the Bug's spot clear.";
   if (Math.abs(lx) < LANE.half && lz > LANE.z0 && lz < LANE.z1 && item.r > 0) return 'Keep the driveway clear.';
   if (!moving && !creative() && game.cash < item.price) return `Not enough cash ($${item.price}).`;
   return '';
@@ -237,7 +239,7 @@ export function placeProp(id, x, z, ry, mat) {
 /** nearest cut doorway to a world point: { key, d } or null */
 export function nearestOpening(x, z) {
   const l = homeLocal(x, z); let best = null;
-  for (const k of openingKeys()) { const s = segByKey(k), d = Math.hypot(s.x - l.lx, s.z - l.lz); if (!best || d < best.d) best = { key: k, d }; }
+  for (const k of openingKeys()) { if (k === SIDE_BAY.cut) continue; const s = segByKey(k), d = Math.hypot(s.x - l.lx, s.z - l.lz); if (!best || d < best.d) best = { key: k, d }; }
   return best;
 }
 /** wall a cut doorway back up (50% back) */
@@ -265,6 +267,16 @@ export function ensureShopTires() {
     const { lx, lz, ry, ...item } = t, [x, z] = toWorld(G, lx, lz);
     game.items.push({ uid: allocUid(game.nextUid, 'items', game.items), ...item, loc: 'world', x, z, y: 0, ry: G.rot + ry });
   }
+  save();
+}
+/** once per save: a Bug still standing where it used to be (on the lift) moves to its side bay, so the lift is free for customers */
+export function ensureBugBay() {
+  if (game.home.bugBayV) return;
+  game.home = { ...game.home, bugBayV: 1 };
+  const [ox, oz] = toWorld(G, OLD_BUG_SPOT.x, OLD_BUG_SPOT.z), [nx, nz] = toWorld(G, BUG_BAY.x, BUG_BAY.z), there = p => !!p && Math.hypot(p.x - ox, p.z - oz) < 1.5;
+  const bp = game.fleet?.bug?.pose;
+  if (there(bp)) game.fleet = { ...game.fleet, bug: { ...game.fleet.bug, pose: { ...bp, x: nx, z: nz, h: G.rot } } };
+  if (game.active === 'bug' && there(game.pose)) game.pose = { ...game.pose, x: nx, z: nz, h: G.rot };
   save();
 }
 // ---------------- the yard cleanup (rules: yardTires.js) ----------------

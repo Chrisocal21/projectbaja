@@ -34,7 +34,7 @@ export const SHELF = { x: 6.5, z: -3.0, len: 2.2, boards: [0.58, 1.48, 2.38], ry
 export const TIRE_SHELF = { lz: 0, level: 0, at: { wheelFL: -0.8, wheelFR: -0.27, wheelRL: 0.27, wheelRR: 0.8 } };
 /** on the floor along the right wall in front of the red shelves (the middle lane stays clear for driving onto the lift):
  *  the three seats in a row against the wall facing in, the engine out in front of them where the hoist can reach it */
-export const FLOOR_SPOTS = { engine: [4.3, 2.6, 0], seatDriver: [6.0, 1.3, Math.PI / 2], seatPassenger: [6.0, 2.1, Math.PI / 2], seatBack: [6.0, 3.1, Math.PI / 2] };
+export const FLOOR_SPOTS = { engine: [10, -4.3, 0], seatDriver: [11.75, 2.9, Math.PI / 2], seatPassenger: [11.75, 3.75, Math.PI / 2], seatBack: [11.75, 4.75, Math.PI / 2] };   // in the side bay (worlds/sideBay.js): engine behind her, seats along the outer wall clear of the way out
 /** the shop's worn tires (home.js ensureShopTires) stand on the bottom board of the front blue tire shelf (z 2.4) */
 export const SHOP_TIRE_SHELF = { lz: 2.4, level: 0, at: [-0.8, -0.27, 0.27, 0.8] };
 const WIDTH = { 1: 0.34, 2: 0.5, 3: 0.72, 4: 0.9 };

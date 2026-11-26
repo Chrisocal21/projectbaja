@@ -8,8 +8,8 @@ export const JUNK_TIRE_PAY = 4;
 export const YARD_SPOTS = [
   [4.9, 7.35], [4.9, 7.35, 1], [5.65, 7.3], [6.45, 7.4],            // by the roller door, right
   [-4.9, 7.35], [-4.9, 7.35, 1], [-5.7, 7.45], [-6.7, 7.6],         // by the roller door, left
-  [8.3, 6.9], [9.0, 7.7], [9.75, 7.0], [9.2, 8.6],                  // slumped heap off the front right corner
-  [13.0, 1.4], [13.0, 1.4, 1], [13.75, 1.7], [13.2, 2.7],           // round the side (left clear of the side bay to come)
+  [13.75, 2.2], [13.75, 2.2, 1], [14.5, 2.6], [13.9, 3.4],          // against the side bay's outer wall
+  [-1.5, -7.9], [-0.75, -8.1], [-0.75, -8.1, 1], [0.1, -7.85],     // round the back of the shop
 ];
 export const STACK_UP = 0.26;
 /** the scrap tire pile: beside the lot, clear of the parking stalls */

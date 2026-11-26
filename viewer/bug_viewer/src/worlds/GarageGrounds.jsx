@@ -13,7 +13,7 @@ export const slabRect = level => { const e = extension(level); return { x0: -13.
 const FRONT_APRON = { x0: -4.5, x1: 4.5, z1: 11.1 };
 
 /** a sloped strip leaving an edge: along x (edge at constant z) or along z (edge at constant x); `s` is the outward direction, it drops `top` over `wd` */
-function Ramp({ axis, at, a, b, s, wd, top = SLAB_TOP, color = '#fff', lift = 0 }) {
+export function Ramp({ axis, at, a, b, s, wd, top = SLAB_TOP, color = '#fff', lift = 0 }) {
   const q = v => Math.max(0.5, Math.round(v / 3 * 2) / 2);   // texture repeats per ~3 m, rounded so ramps share textures
   const map = axis === 'z' ? propertyTexture(7, q(b - a), q(wd)) : propertyTexture(7, q(wd), q(b - a));
   const th = Math.atan(top / wd), len = b - a, mid = (a + b) / 2, slant = Math.hypot(wd, top);
@@ -66,7 +66,7 @@ function GravelDrive({ level }) {
 /** the drive: rects [x0, x1, z0, z1] in garage-local metres */
 export function driveRects(level) {
   const e = extension(level); if (!e) return [];
-  const out = [], zb = e.z0 - 0.6, east = [9, 13];
+  const out = [], zb = e.z0 - 0.6, east = [13.8, 17.4];   // east of the side bay (sideBay.js), west of the water tank
   const back = doorGaps(level, 'back');
   if (back.length) { const z0 = zb - 5; out.push([Math.min(...back.map(g => g[0])) - 1, east[1], z0, zb - 0.6], [east[0], east[1], z0, 12]); }
   for (const [a, b] of doorGaps(level, 'east')) out.push([7.6, east[1], a - 0.4, b + 0.4], [east[0], east[1], a - 0.4, 12]);

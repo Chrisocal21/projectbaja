@@ -10,6 +10,8 @@ export const WALL_H = 3;
 export const OX = 1, OZ = 0;   // where the grid lines are: x = OX + 2k, z = OZ + 2k
 /** the original garage plus its office wing, garage-local */
 export const BUILDING = { x0: -13.2, x1: 7, z0: -6, z1: 6 };
+/** Walt's buildings that pieces may not go on: the shop with its wing, and the side bay (sideBay.js SIDE_BAY; kept here as plain numbers so this file imports nothing) */
+export const BUILDINGS = [BUILDING, { x0: 7, x1: 13, z0: -6, z1: 6 }];
 
 /** kind: cell (centred on a 2 m grid cell) | edge (centred on a cell edge, len along it) | vertex (on a grid corner). layer: what it conflicts with. */
 export const PIECES = {
@@ -102,10 +104,10 @@ export function floorRect(piece, x, z) {
 }
 /** is a piece on top of the original garage / wing? Cells may overlap its outer walls by up to `tol` m; edges may not sit on or inside it; a pillar may stand on its outer wall line. */
 export function inBuilding(piece, x, z, tol = 0.25) {
-  const p = typeof piece === 'string' ? PIECES[piece] : piece, B = BUILDING;
-  if (p.kind === 'cell') return Math.min(x + 1, B.x1) - Math.max(x - 1, B.x0) > tol && Math.min(z + 1, B.z1) - Math.max(z - 1, B.z0) > tol;
+  const p = typeof piece === 'string' ? PIECES[piece] : piece;
+  if (p.kind === 'cell') return BUILDINGS.some(B => Math.min(x + 1, B.x1) - Math.max(x - 1, B.x0) > tol && Math.min(z + 1, B.z1) - Math.max(z - 1, B.z0) > tol);
   const e = p.kind === 'vertex' ? -0.01 : 0.01;   // a corner post may stand on the garage's outer wall line (a T-junction); a wall may not
-  return x > B.x0 - e && x < B.x1 + e && z > B.z0 - e && z < B.z1 + e;
+  return BUILDINGS.some(B => x > B.x0 - e && x < B.x1 + e && z > B.z0 - e && z < B.z1 + e);
 }
 
 // ---- materials: what a piece is made of. PROPOSAL: ids, names and price multipliers are placeholders. The look of each lives in StructureModels.jsx. ----

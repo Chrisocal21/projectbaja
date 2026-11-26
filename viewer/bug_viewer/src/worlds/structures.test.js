@@ -15,7 +15,8 @@ test('the grid lines up with the original buildings: the garage walls (x = +-7, 
   assert.equal(snap('wall', 8.1, 1.9).z, 2);
 });
 test('slabs can sit flush against the garage and the wing, but not on top of them', () => {
-  assert.ok(!inBuilding('foundation', 8, 1), 'a cell beside the garage wall');
+  assert.ok(!inBuilding('foundation', 14, 1), 'a cell beside the side bay wall');
+  assert.ok(inBuilding('foundation', 8, 1), 'a cell in the side bay');
   assert.ok(!inBuilding('foundation', 8, 7), 'a cell in front of the garage');
   assert.ok(inBuilding('foundation', 6, 1), 'a cell over the garage floor');
   assert.ok(inBuilding('foundation', -12, 1), 'a cell over the wing');
@@ -23,9 +24,9 @@ test('slabs can sit flush against the garage and the wing, but not on top of the
   assert.ok(inBuilding('wall', 7, 2, Math.PI / 2), 'a wall on the garage wall itself');
   assert.ok(!inBuilding('pillar', 7, 2), 'a corner post can stand on the garage wall line, where a lean-to meets it');
   assert.ok(inBuilding('pillar', 3, 2), 'but not inside the garage');
-  assert.ok(!inBuilding('wall', 8, 2, 0), 'a wall running out from the garage wall meets it at a T');
+  assert.ok(!inBuilding('wall', 14, 2, 0), 'a wall running out from the side bay wall meets it at a T');
   assert.ok(inBuilding('wall', 4, 6, 0), 'a wall on the garage front line would double its front wall');
-  assert.ok(!inBuilding('wall', 8, 6, 0), 'but the same line carries on past the garage corner, flush');
+  assert.ok(!inBuilding('wall', 14, 6, 0), 'but the same line carries on past the side bay corner, flush');
 });
 test('cells snap to cell centres, vertices to corners', () => {
   assert.deepEqual(snap('foundation', 3.7, -0.4), { x: 4, z: -1, ry: 0 });

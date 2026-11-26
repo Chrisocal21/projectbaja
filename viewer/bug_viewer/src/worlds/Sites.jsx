@@ -8,7 +8,8 @@ import { OFFICE, BREAKER } from './office.js';
 import OriginalWall from './OriginalWall.jsx';
 import GarageWing from './GarageWing.jsx';
 import GarageExtension from './GarageExtension.jsx';
-import GarageGrounds from './GarageGrounds.jsx';
+import GarageGrounds, { Ramp } from './GarageGrounds.jsx';
+import { SIDE_BAY } from './sideBay.js';
 import { garageLevelOf, levelOpenings } from './garageLevels.js';
 import { ownedStages } from './upgrades.js';
 import RoadSigns from './RoadSigns.jsx';
@@ -169,9 +170,46 @@ export function ShelfStuff({ kind, p }) {
 }
 
 /** The player's garage: concrete slab, roller door, two-post lift, workbench + pegboard, shelves, an engine on a stand. Local +z = the door. */
+/** a triangle in a vertical plane at z: the gable of the lean-to roof (pts: [x, y] pairs) */
+function Gable({ z, pts, map }) {
+  const pos = useMemo(() => new Float32Array(pts.flatMap(([x, y]) => [x, y, 0])), [pts.join()]);
+  return <mesh position={[0, 0, z]} castShadow receiveShadow>
+    <bufferGeometry><bufferAttribute attach="attributes-position" args={[pos, 3]} /><bufferAttribute attach="attributes-normal" args={[new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]), 3]} /><bufferAttribute attach="attributes-uv" args={[new Float32Array([0, 0, 1, 0, 0, 1]), 2]} /></bufferGeometry>
+    <meshStandardMaterial map={map} color="#b5a28a" roughness={0.9} side={THREE.DoubleSide} />
+  </mesh>;
+}
+/** Walt's side bay: a lean-to on the shop's east wall where grandma's Bug stands (worlds/sideBay.js). Basic boxes, same skins as the shop. */
+function SideBay({ wall, roof, floor, ply, timber, power }) {
+  const B = SIDE_BAY, D = B.door, t = 0.2, w = B.x1 - B.x0, cx = (B.x0 + B.x1) / 2, fall = B.hHigh - B.hLow, slope = Math.atan(fall / w);
+  return <group>
+    {/* floor slab (the shop's own slab runs to x = 7.6) and the apron out of the door, easing down to the yard */}
+    <Box p={[(7.6 + B.x1 + 0.6) / 2, 0.06, 0]} s={[B.x1 + 0.6 - 7.6, 0.12, 13.2]} color="#fff" map={floor} rough={0.95} cast={false} />
+    <Box p={[(B.apron.x0 + B.apron.x1) / 2, 0.07, (B.z1 + 0.6 + B.apron.z1) / 2]} s={[B.apron.x1 - B.apron.x0, 0.1, B.apron.z1 - B.z1 - 0.6]} color="#fff" map={floor} rough={0.95} cast={false} />
+    <Ramp axis="z" at={B.apron.z1} a={B.apron.x0} b={B.apron.x1} s={1} wd={0.9} color="#e8e4dc" />
+    {/* outer wall, back wall and the front either side of the roll-up opening (low height; the gables fill up to the roof) */}
+    <Box p={[B.x1, B.hLow / 2, 0]} s={[t, B.hLow, B.z1 - B.z0]} color="#fff" map={wall} />
+    <Box p={[cx, B.hLow / 2, B.z0]} s={[w, B.hLow, t]} color="#fff" map={wall} />
+    <Box p={[(B.x0 + D.x0) / 2, B.hLow / 2, B.z1]} s={[D.x0 - B.x0, B.hLow, t]} color="#fff" map={wall} />
+    <Box p={[(D.x1 + B.x1) / 2, B.hLow / 2, B.z1]} s={[B.x1 - D.x1, B.hLow, t]} color="#fff" map={wall} />
+    <Box p={[(D.x0 + D.x1) / 2, (D.h + B.hLow) / 2, B.z1]} s={[D.x1 - D.x0, B.hLow - D.h, t]} color="#fff" map={wall} />
+    {[B.z0, B.z1].map(z => <Gable key={z} z={z} pts={[[B.x0, B.hLow], [B.x1, B.hLow], [B.x0, B.hHigh]]} map={wall} />)}
+    {/* plywood lining inside the outer wall, like the shop */}
+    <Box p={[B.x1 - 0.12, 0.77, 0]} s={[0.03, 1.3, B.z1 - B.z0 - 0.3]} color="#fff" map={ply} cast={false} />
+    {/* the lean-to roof, a rafter at each end and the raised roll-up door over the opening */}
+    <Box p={[cx, (B.hHigh + B.hLow) / 2 + 0.1, 0]} s={[Math.hypot(w + 0.5, fall), 0.14, B.z1 - B.z0 + 0.6]} color="#b4a08a" map={roof} rot={[0, 0, -slope]} />
+    {[B.z0 + 0.3, B.z1 - 0.3].map(z => <Box key={z} p={[cx, (B.hHigh + B.hLow) / 2 - 0.08, z]} s={[Math.hypot(w, fall), 0.16, 0.12]} color="#79523a" metal={0.4} rot={[0, 0, -slope]} />)}
+    {[B.x1 - 0.12].map(x => <Box key={x} p={[x, B.hLow / 2, B.z1 - 0.12]} s={[0.16, B.hLow, 0.18]} map={timber} color="#a18b68" />)}
+    {Array.from({ length: 4 }, (_, i) => <Box key={i} p={[(D.x0 + D.x1) / 2, D.h + 0.06 + i * 0.11, B.z1 + 0.13]} s={[D.x1 - D.x0 - 0.1, 0.1, 0.045]} color={i % 2 ? '#8d9188' : '#777971'} map={roof} metal={0.32} rough={0.78} />)}
+    {[D.x0 - 0.1, D.x1 + 0.1].map(x => <Box key={x} p={[x, D.h / 2, B.z1 + 0.13]} s={[0.12, D.h, 0.15]} color="#59605c" map={roof} metal={0.45} />)}
+    {/* one fluorescent tube, on with the shop's power */}
+    <mesh position={[cx, B.hLow - 0.2, 0]}><boxGeometry args={[0.18, 0.08, 5]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>
+    <pointLight position={[cx, B.hLow - 0.6, 0]} intensity={power ? 16 : 3} distance={12} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />
+  </group>;
+}
+
 function Garage() {
   useGame();
-  const gLevel = garageLevelOf(ownedStages(game.home)), cuts = [...new Set([...(game.home?.openings || []), ...levelOpenings(gLevel)])];
+  const gLevel = garageLevelOf(ownedStages(game.home)), cuts = [...new Set([...(game.home?.openings || []), SIDE_BAY.cut, ...levelOpenings(gLevel)])];
   const { w, d, door } = GARAGE, t = 0.2, H = 4.6, power = game.home?.power, open = !!(game.home?.open && power);
   const wallBack = useMemo(() => { const m = corrugatedTex('#8a9893'); m.repeat.set(5, 1); return m; }, []);
   const wallSide = useMemo(() => { const m = corrugatedTex('#8a9893', 33); m.repeat.set(4, 1); return m; }, []);
@@ -229,6 +267,7 @@ function Garage() {
       <pointLight position={[0, -0.25, 0.2]} color="#ffc577" intensity={(x === 0 ? open : power) ? 14 : 0} distance={9} />
     </group>)}
     <GarageWing wall={wallSide} timber={bench} roof={roof} floor={floor} power={power} />
+    <SideBay wall={wallSide} roof={roof} floor={floor} ply={ply} timber={bench} power={power} />
     {[-4.5, -1.5, 1.5, 4.5].map(z => <Box key={z} p={[0, H - 0.1, z]} s={[w * 2, 0.22, 0.1]} color="#3c4346" metal={0.6} rough={0.5} />)}
     {[-4.5, 0, 4.5].map(x => <Box key={x} p={[x, H - 0.02, 0]} s={[0.08, 0.08, d * 2]} color="#4a5255" metal={0.6} rough={0.5} cast={false} />)}
     <Box p={[0, H + 0.75, d + 0.19]} s={[6.18, 1.33, 0.14]} color="#403930" map={roof} rough={0.9} />

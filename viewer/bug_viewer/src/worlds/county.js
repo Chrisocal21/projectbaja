@@ -392,7 +392,8 @@ export const isRoad = REAL ? (x, z) => (x >= -HALF && x < HALF && z >= -HALF && 
 // ---------------- floors: slabs and paving that stand above the levelled pad (what wheels and feet actually stand on) ----------------
 // [site, x0, x1, z0, z1, top above the pad] in site-local metres, or [site, 'disc', cx, cz, r, top]
 const FLOORS = [
-  ['garage', -7.6, 7.6, -6.6, 6.6, 0.12], ['garage', -4.5, 4.5, 6.0, 11.1, 0.12], ['garage', -13.6, -6.8, -6.3, 6.3, 0.12],   // left service wing
+  ['garage', -7.6, 7.6, -6.6, 6.6, 0.12], ['garage', 7.6, 13.6, -6.6, 6.6, 0.12], ['garage', 7.6, 13, 6.0, 9.6, 0.12],   // side bay + its apron (sideBay.js)
+  ['garage', -4.5, 4.5, 6.0, 11.1, 0.12], ['garage', -13.6, -6.8, -6.3, 6.3, 0.12],   // left service wing
   ['warehouse', -12, 12, -8, 8, 0.12],
   ['shack1', -2.6, 2.6, -2.2, 2.2, 0.1], ['shack2', -2.6, 2.6, -2.2, 2.2, 0.1], ['shack3', -2.6, 2.6, -2.2, 2.2, 0.1],
   ['lot', -30, 30, -20, 22, 0.05], ['gas', 'disc', 0, 3, 19.5, 0.045],

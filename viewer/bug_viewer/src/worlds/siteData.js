@@ -4,6 +4,7 @@ import { LOT_CIRCLES, LOT_SPOTS } from '../lot/CarLot.jsx';
 import { LOOT_COLLIDERS } from '../game/loot.js';
 import { TREE_COLLIDERS } from './flora.js';
 import { OFFICE, BREAKER } from './office.js';
+import { SIDE_BAY, BUG_BAY } from './sideBay.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const TALL = 99;
@@ -31,6 +32,10 @@ const solid = [];
 solid.push(...wall(G, [-GAR_W, -GAR_D], [-GAR_W, OFFICE.inner.z0 - 0.6]), ...wall(G, [-GAR_W, OFFICE.inner.z1 + 0.6], [-GAR_W, GAR_D]),
   ...wall(G, [-GAR_W, GAR_D], [-GAR_DOOR, GAR_D]), ...wall(G, [GAR_DOOR, GAR_D], [GAR_W, GAR_D]),
   );   // (the workbench wall and the lift posts are now movable props with dynamic collision, game/home.js propObstacles; engine stand, compressor and the tire stack are now movable props, with dynamic collision)
+// the side bay on the east wall (worlds/sideBay.js): outer, back and front walls with the roll-up opening; the shared wall is the shop's dynamic one
+{ const B = SIDE_BAY, r = 0.3, st = 0.5;
+  solid.push(...wall(G, [B.x1, B.z0], [B.x1, B.z1], r, st), ...wall(G, [B.x0, B.z0], [B.x1, B.z0], r, st),
+    ...wall(G, [B.x0, B.z1], [B.door.x0, B.z1], r, st), ...wall(G, [B.door.x1, B.z1], [B.x1, B.z1], r, st)); }
 // the office: back and front walls (the shared wall is the garage's, above); street door in the front face.
 // (the far/west wall is dynamic: the "Office expansion" upgrade cuts a doorway through it, see openings.js WALLS.OW and propObstacles in game/home.js)
 solid.push(...wall(G, [OFFICE.x0, OFFICE.z0], [OFFICE.x1, OFFICE.z0], 0.2, 0.3),
@@ -60,7 +65,7 @@ solid.push(...LOOT_COLLIDERS);
 const PG = SITES.proving; solid.push(...wall(PG, [-6, -14], [6, -14]), ...wall(PG, [-6, -6], [-2.2, -6]), ...wall(PG, [2.2, -6], [6, -6]), ...wall(PG, [-6, -14], [-6, -6]), ...wall(PG, [6, -14], [6, -6]));
 const SH = SITES.shop; solid.push(...wall(SH, [-4.5, -3], [4.5, -3]), ...wall(SH, [-4.5, 3], [4.5, 3]), ...wall(SH, [-4.5, -3], [-4.5, 3]), ...wall(SH, [4.5, -3], [4.5, 3]));
 // grandpa's trailer + water tank
-solid.push(...wall(G, [21, -4], [21, 6], 0.7), ...wall(G, [24, -4], [24, 6], 0.7), ...wall(G, [21, -4.5], [24, -4.5], 0.7), ...wall(G, [21, 6.5], [24, 6.5], 0.7), blob(G, 16, -6, 1.6));
+solid.push(...wall(G, [21, -4], [21, 6], 0.7), ...wall(G, [24, -4], [24, 6], 0.7), ...wall(G, [21, -4.5], [24, -4.5], 0.7), ...wall(G, [21, 6.5], [24, 6.5], 0.7), blob(G, 19.6, -8.6, 1.6));   // the water tank stands east of the side bay, clear of the drive round to the back
 // the car lot's fence, office and props, moved into the world
 const lot = SITES.lot;
 for (const [x, z, r] of LOT_CIRCLES) { const [wx, wz] = toWorld(lot, x, z); solid.push([wx, wz, r, TALL]); }
@@ -115,4 +120,5 @@ export const TARGETS = [
 export const BUG_SPOT = (() => { const [x, z] = toWorld(lot, LOT_SPOTS.bug.x, LOT_SPOTS.bug.z); return { x, z, h: LOT_SPOTS.bug.r }; })();
 /** a new game starts on foot in grandpa's yard, looking at the garage door */
 export const WALK_START = (() => { const [x, z] = toWorld(G, 1.5, 21); return { x, z, yaw: G.rot }; })();
-export const GARAGE_DRIVE = (() => { const [x, z] = toWorld(G, 0, -0.5); return { x, z, h: G.rot }; })();
+// grandma's Bug stands in the side bay (sideBay.js)
+export const GARAGE_DRIVE = (() => { const [x, z] = toWorld(G, BUG_BAY.x, BUG_BAY.z); return { x, z, h: G.rot }; })();

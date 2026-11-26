@@ -14,7 +14,7 @@ test('a new game scatters sixteen tires: eleven for the scrap pile, five worth k
 
 test('no tire lies in the building, in the drive lane or on the scrap pile', () => {
   for (const [x, z] of YARD_SPOTS) {
-    assert.ok(!(x > -13.6 && x < 7.6 && Math.abs(z) < 6.6), `in the building: ${x},${z}`);
+    assert.ok(!(x > -13.6 && x < 13.6 && Math.abs(z) < 6.6), `in the building: ${x},${z}`);
     assert.ok(!(Math.abs(x) < LANE.half && z > LANE.z0 && z < LANE.z1), `in the lane: ${x},${z}`);
     assert.ok(Math.hypot(x - TIRE_PILE.lx, z - TIRE_PILE.lz) > 2.5);
   }

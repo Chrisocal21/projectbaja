@@ -146,7 +146,7 @@ function Windmill() {
   </group>;
 }
 function Tank({ T }) {
-  return <group position={[16, 0, -6]}>
+  return <group position={[19.6, 0, -8.6]}>   {/* east of the side bay, clear of the drive round the back */}
     {/* Timber tower: four posts, crossed bays, and a service platform beneath the tank. */}
     {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, z]) => <group key={`${x}:${z}`}>
       <B p={[x * 1.12, 2.05, z * 1.12]} s={[0.18, 4.1, 0.18]} c="#69513b" map={T.oldWood} />
