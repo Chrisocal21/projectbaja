@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held, toolInHand, dropPoint } from './items.js';
 import ToolModel from './ToolModel.jsx';
+import { JunkModel } from './JunkModels.jsx';
 import { UPGRADE_FIT } from '../rules/vehicles.js';
 import { containers } from './loot.js';
 import { height, groundHeight } from '../worlds/county.js';
@@ -112,7 +113,7 @@ function EnginePiece({ id }) {
 
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
-  if (item.kind === 'junk') return <group scale={scale}>{item.id === 'engineblock' ? <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.55, 0.4, 0.42]} /><meshStandardMaterial color="#4d4a46" metalness={0.6} roughness={0.6} /></mesh> : item.id === 'crate' ? <mesh position={[0, 0.24, 0]} castShadow><boxGeometry args={[0.6, 0.48, 0.6]} /><meshStandardMaterial color="#8a6a44" roughness={0.9} /></mesh> : item.id === 'drum' ? <mesh position={[0, 0.44, 0]} castShadow><cylinderGeometry args={[0.29, 0.29, 0.88, 20]} /><meshStandardMaterial color={item.uid % 2 ? '#3d5a6e' : '#5a6b3a'} metalness={0.4} roughness={0.6} /></mesh> : <mesh position={[0, 0.2, 0]} castShadow><boxGeometry args={[0.17, 0.4, 0.34]} /><meshStandardMaterial color="#a9281e" metalness={0.3} roughness={0.5} /></mesh>}</group>;
+  if (item.kind === 'junk') return <group scale={scale}><JunkModel item={item} /></group>;   // stand-in models (JunkModels.jsx)
   if (item.kind === 'memento' && item.id === 'photo') return <group scale={scale}><PhotoSheet item={item} /></group>;   // a printed photo (PROPOSAL): the picture you posted, on paper
   if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
   if (item.kind === 'mat' && item.id === 'steel') return <group scale={scale}>{[0, 1, 2, 3].slice(0, Math.min(4, item.n || 1)).map(i => <mesh key={i} position={[(i % 2) * 0.07 - 0.04, 0.03 + Math.floor(i / 2) * 0.055, 0]} castShadow><boxGeometry args={[0.05, 0.05, 1.1]} /><meshStandardMaterial color="#8b939b" metalness={0.75} roughness={0.4} /></mesh>)}</group>;   // new square tube
