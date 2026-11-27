@@ -13,6 +13,18 @@ Last updated: Nov 26, 2026, evening (new section right below: Chris's Meshy drop
    - **BlueRustPickup pilot:** `assets/pipeline/pilot_pickup_wheels.py` exports a staging GLB. All four tires are fused into the main body surface. The pilot partitions every original face exactly once, but the detached render exposes missing upper tire surfaces and rough inner edges. The runtime pickup remains the original. Next, rebuild the hidden tire surfaces and clean the cut boundaries before wiring it in or repeating on the other pickups. Provisional hub positions (X left, Y up, Z forward, metres): FL (0.887, 0.374, 1.881), FR (-0.887, 0.374, 1.881), RL (0.887, 0.375, -1.367), RR (-0.887, 0.375, -1.367). Nominal radius about 0.39 m on each. Local review: `viewer/bug_viewer/dist/wheel-pilot.png` and `wheel-detached.png`.
    - **Rebuilt pilot:** The same script now makes complete 0.392 m radius tires with recessed, unbranded steel rims in place of the incomplete original wheel surfaces. All four named pivots were verified in the exported GLB. Edge views show the wheels rotated in place and pulled away from the body. The body still has exposed cut edges at the inner wheel wells, and the replacement tires use smooth tread. Staging model and review PNGs: `viewer/bug_viewer/dist/BlueWheelPilot.glb`, `wheel-rebuild-mounted.png`, and `wheel-rebuild-detached.png`. Keep testing in staging until wheel well cleanup and steering clearance checks are done.
 3. **Bug kit parts:** `model_part11` (front tube bumper + skid), `model_part10` (rear cage + plate), `model_part15` (race seat). GLB only, about 15-25k tris, bottom-centre origin, front +z. List sizes here; Claude adds the catalog entries.
+
+**Job 2 pickup exports:** Four new `VEH_M_*_Drive.glb` files in public/models. The original customer GLBs remain in service. The new meshes have separate `Wheel_FL/FR/RL/RR` nodes, neutral steel rims and stationary dark arch liners. Each hub is the node origin. Spin about local X and steer about the vehicle Y axis. Hubs in metres, +X left, +Y up, +Z forward:
+
+| Drive GLB | FL | FR | RL | RR | Radius |
+|---|---|---|---|---|---:|
+| VEH_M_BlueRustPickup_Drive.glb | (.887,.392,1.881) | (-.887,.392,1.881) | (.887,.392,-1.367) | (-.887,.392,-1.367) | .392 |
+| VEH_M_BlueTwoTone_Drive.glb | (.913,.430,1.866) | (-.928,.430,1.866) | (.913,.430,-1.329) | (-.928,.430,-1.329) | .430 |
+| VEH_M_BrownRustPickup_Drive.glb | (.918,.402,1.643) | (-.915,.402,1.643) | (.918,.402,-1.506) | (-.915,.402,-1.506) | .402 |
+| VEH_M_DarkRustPickup_Drive.glb | (1.116,.400,1.758) | (-.746,.400,1.758) | (1.116,.400,-1.391) | (-.746,.400,-1.391) | .400 |
+
+Blender mesh intersection check passed at each integer angle from -30° through +30° for both front wheels against the body and their respective arch liners. Rear wheels passed at zero steer. Browser comparison at +30° is in local `dist/drive-pickups-*.png`. This is at authored ride height. Check suspension travel and combined bump/steer during gameplay integration. DarkRust has an offset track center from the original scan. Do not assume symmetric X coordinates when wiring it.
+
 4. **Classic body:** hide the white inner wheel-well panel that shows behind the front tire with the carbon wide fenders.
 
 **On hold:** walk / work rigs, until Chris makes the new A-pose Coveralls model in Meshy. Pilot that one only.

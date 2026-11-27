@@ -6,16 +6,18 @@ from pathlib import Path
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 
 # World coordinates in the game: +X left, +Y up, +Z forward.
-HUBS = {
-    'Wheel_FL': ( .887, .374,  1.881),
-    'Wheel_FR': (-.887, .374,  1.881),
-    'Wheel_RL': ( .887, .375, -1.367),
-    'Wheel_RR': (-.887, .375, -1.367),
+SPECS = {
+    # left X, right X, front Z, rear Z, tire radius, cut half-width
+    'BlueRustPickup': (.887, -.887, 1.881, -1.367, .392, .155),
+    'BlueTwoTone': (.913, -.928, 1.866, -1.329, .430, .204),
+    'BrownRustPickup': (.918, -.915, 1.643, -1.506, .402, .183),
+    'DarkRustPickup': (1.116, -.746, 1.758, -1.391, .400, .178),
 }
-WIDTH_LIMIT = .155
+STEER = 30
 
 
 def blender_point(game):
@@ -23,7 +25,7 @@ def blender_point(game):
     return Vector((x, -z, y))
 
 
-def wheel_mesh(name):
+def wheel_mesh(name, radius):
     """Turn a closed tire and recessed, unbranded steel wheel around local X."""
     # Axial position, radius, and material for the strip to the next ring.
     profile = [
@@ -35,7 +37,7 @@ def wheel_mesh(name):
         (.137, .001, 2),
     ]
     sides = 64
-    verts = [(x, r * math.cos(math.tau*i/sides), r * math.sin(math.tau*i/sides))
+    verts = [(x*radius/.392, r*radius/.392 * math.cos(math.tau*i/sides), r*radius/.392 * math.sin(math.tau*i/sides))
              for x, r, _ in profile for i in range(sides)]
     faces = []
     for row in range(len(profile)-1):
@@ -72,6 +74,34 @@ def wheel_mesh(name):
     return data
 
 
+def hierarchy(mesh, transform=Matrix.Identity(4), offset=Vector((0, 0, 0))):
+    return BVHTree.FromPolygons([transform @ v.co + offset for v in mesh.vertices],
+                                [tuple(f.vertices) for f in mesh.polygons])
+
+
+def liner(name, hub, radius):
+    """Dark inner arch and curved ceiling, set outside the steering envelope."""
+    sign = 1 if hub.x > 0 else -1
+    outer = radius + .085
+    inner_x = hub.x - sign * .36
+    lip_x = hub.x + sign * .02
+    vertices = []
+    for x in (inner_x, lip_x):
+        vertices += [(x, hub.y + outer*math.cos(math.pi*i/32),
+                      hub.z + outer*math.sin(math.pi*i/32)) for i in range(33)]
+    vertices.append((inner_x, hub.y, hub.z))
+    faces = [(i, i+1, i+34, i+33) for i in range(32)]
+    faces += [(66, i+1, i) for i in range(32)]
+    data = bpy.data.meshes.new(name)
+    data.from_pydata(vertices, [], faces)
+    data.materials.append(bpy.data.materials['Pickup rubber'])
+    for face in data.polygons:
+        face.use_smooth = face.index < 32
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.collection.objects.link(obj)
+    return data
+
+
 def main(source, output):
     public = Path(__file__).resolve().parents[2] / 'viewer/bug_viewer/public'
     if source.resolve() == output.resolve() or output.resolve().is_relative_to(public):
@@ -84,18 +114,31 @@ def main(source, output):
     body.data.transform(world)
     body.matrix_world = Matrix.Identity(4)
 
-    hubs = {name: blender_point(hub) for name, hub in HUBS.items()}
+    left, right, front, rear, radius, half_width = SPECS[source.stem.removeprefix('VEH_M_')]
+    positions = {'Wheel_'+axle+side: (x, radius, z)
+                 for axle,z in [('F',front),('R',rear)]
+                 for side,x in [('L',left),('R',right)]}
+    hubs = {name: blender_point(hub) for name, hub in positions.items()}
+    wheels = {name: wheel_mesh(name, radius) for name in hubs}
     original = body.data
+    original_tree = hierarchy(original)
     owner = {}
     for face in original.polygons:
         center = face.center
         for name, hub in hubs.items():
             offset = center - hub
-            if abs(offset.x) <= WIDTH_LIMIT and offset.y**2 + offset.z**2 <= .395**2:
+            if abs(offset.x) <= half_width and offset.y**2 + offset.z**2 <= (radius+.026)**2:
                 owner[face.index] = name
                 break
     if set(owner.values()) != set(hubs):
         raise ValueError('One or more wheel regions were empty')
+    for name, hub in hubs.items():
+        angles = range(-STEER, STEER+1) if name.startswith('Wheel_F') else [0]
+        for angle in angles:
+            turn = Matrix.Rotation(math.radians(angle), 4, 'Z')
+            tire = hierarchy(wheels[name], turn, hub)
+            for face, _ in original_tree.overlap(tire):
+                owner.setdefault(face, name)
 
     def partition(name, pivot):
         data = original.copy()
@@ -111,11 +154,18 @@ def main(source, output):
     body.data = partition(None, Vector())
     if len(body.data.polygons) + len(owner) != len(original.polygons):
         raise ValueError('Unexpected face count after removing the fused wheels')
+    body_tree = hierarchy(body.data)
     for name, pivot in hubs.items():
-        wheel = bpy.data.objects.new(name, wheel_mesh(name))
+        wheel = bpy.data.objects.new(name, wheels[name])
         wheel.location = pivot
         bpy.context.collection.objects.link(wheel)
-        print(name, HUBS[name], len(wheel.data.polygons))
+        arch_tree = hierarchy(liner('Liner_'+name, pivot, radius))
+        angles = range(-STEER, STEER+1) if name.startswith('Wheel_F') else [0]
+        for angle in angles:
+            tire = hierarchy(wheels[name], Matrix.Rotation(math.radians(angle), 4, 'Z'), pivot)
+            if body_tree.overlap(tire) or arch_tree.overlap(tire):
+                raise ValueError(f'{name}: collision at {angle} degrees')
+        print(name, positions[name], 'radius', radius, 'clear at', len(angles), 'angles')
     bpy.ops.export_scene.gltf(filepath=str(output.resolve()), export_format='GLB',
                               export_image_format='WEBP', export_image_quality=90)
 
