@@ -3,6 +3,16 @@
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
 Last updated: Nov 26, 2026, evening (new section right below: Chris's Meshy drop is in the game).
 
+## DO THIS NOW (Nov 26, late; PROPOSAL order). This replaces the older art lists below.
+1. **Paint out real logos** in the committed game models (the repo is public and the game uses no real brands). Known: the jacket patch on `PERSON_M_Shopkeeper` (Dusty), the white bug's sponsor decals, the green jeep's government-style badge. Also check every other `VEH_M_*` and `PERSON_M_*`. Edit the GLB textures; keep file names, clips and skeletons.
+2. **Separate wheels on the `VEH_M_*` pickups first:** `Wheel_FL/FR/RL/RR` meshes, origin at the hub. List hub positions and radius here.
+3. **Bug kit parts:** `model_part11` (front tube bumper + skid), `model_part10` (rear cage + plate), `model_part15` (race seat). GLB only, about 15-25k tris, bottom-centre origin, front +z. List sizes here; Claude adds the catalog entries.
+4. **Classic body:** hide the white inner wheel-well panel that shows behind the front tire with the carbon wide fenders.
+
+**On hold:** walk / work rigs, until Chris makes the new A-pose Coveralls model in Meshy. Pilot that one only.
+
+**While Claude builds the lift kit and bigger tires:** do not edit `catalog/*.json`, `BuildModel.jsx` or the other Claude-owned files listed below. Put new export steps in your own script. Raw sources are in `assets/meshy/` on Chris's PC; git now ignores that folder. Run `git status` first and commit only your own files.
+
 ## NEW, Nov 26 evening: Chris's Meshy models are in the game (Claude). Read this first.
 All on `main`, pushed. Tests: 673 passing; production build clean. Raw Meshy downloads stay in `assets/meshy/` and are NOT committed (only the small game GLBs are).
 
