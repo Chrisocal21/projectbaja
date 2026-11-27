@@ -1,5 +1,6 @@
 import LiftHardware from './LiftHardware.jsx';
 import SideBayDetails from './SideBayDetails.jsx';
+import DustyStore from './DustyStore.jsx';
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SITES, height } from './county.js';
@@ -391,9 +392,8 @@ function GasStation() {
   </group>;
   return <group>
     <mesh position={[0, 0.045, 3]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><circleGeometry args={[19.5, 40]} /><meshStandardMaterial map={asphalt} roughness={0.95} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} /></mesh>
-    {/* store */}
-    <Box p={[0, 2, -12]} s={[16, 4, 7]} color="#d8cfb4" rough={0.95} /><Box p={[0, 4.15, -12]} s={[16.6, 0.3, 7.6]} color="#7a2f26" />
-    <Box p={[0, 1.7, -8.46]} s={[9, 2.2, 0.08]} color="#17262b" emissive="#8fd2e0" ei={0.45} rough={0.2} cast={false} /><Box p={[-5.6, 1.1, -8.46]} s={[1.2, 2.2, 0.1]} color="#4a2f1b" />
+    {/* store: walk in through the door (DustyStore.jsx) */}
+    <DustyStore />
     <Box p={[0, 3.35, -8.35]} s={[7, 1, 0.1]} color="#fff" cast={false} />
     <mesh position={[0, 3.35, -8.29]}><planeGeometry args={[6.8, 0.9]} /><meshStandardMaterial map={sign} roughness={0.7} emissive="#ffffff" emissiveIntensity={0.25} /></mesh>
     {/* canopy */}

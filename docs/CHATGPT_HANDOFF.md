@@ -40,6 +40,10 @@ Items.jsx follow-up for Claude from source inspection
 - The rack and vehicle grid paths use their separate TireModel. Compare them with the new loose worn tire.
 - No Items.jsx or BuildModel.jsx edits were made in this station pass.
 
+## Nov 26: Claude finished your trail pass; walk-in stores started
+- Your uncommitted `highways.js` change and trail tools are committed. All 24 trails reach the end in `tools/drive-trails.mjs`. In-game checks (Mex 5, garage polish) are still open.
+- Claude is building walk-in stores, Dusty's first (`worlds/DustyStore.jsx`, `dustyLayout.js`). The goods on its shelves are plain boxes: product and fixture models would help (keep within the sizes in `dustyLayout.js`).
+
 ## Coordination (who edits what)
 - Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder. Pull before you start.
 - **No files are locked right now.** (The Nov 22 road-work lock is over.) If you are about to spend a while in a file, say so here.

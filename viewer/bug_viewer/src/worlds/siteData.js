@@ -5,6 +5,7 @@ import { LOOT_COLLIDERS } from '../game/loot.js';
 import { TREE_COLLIDERS } from './flora.js';
 import { OFFICE, BREAKER } from './office.js';
 import { SIDE_BAY, BUG_BAY } from './sideBay.js';
+import { STORE, DOOR, COUNTER, SHELVES, COOLER } from './dustyLayout.js';
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const TALL = 99;
@@ -53,8 +54,12 @@ solid.push(...wall(B, [-BARN_W, -BARN_D], [BARN_W, -BARN_D]), ...wall(B, [-BARN_
   ...wall(B, [-BARN_W, BARN_D], [-BARN_DOOR, BARN_D]), ...wall(B, [BARN_DOOR, BARN_D], [BARN_W, BARN_D]),
   ...wall(B, [-6.6, -9], [-6.6, -2], 0.9), ...wall(B, [6.6, -9.5], [6.6, -3], 0.9), blob(B, 5.9, 4.5, 1.1), blob(B, -6, 6.5, 0.8));
 // gas station
-solid.push(...wall(S, [-8, -15.5], [8, -15.5]), ...wall(S, [-8, -15.5], [-8, -8.5]), ...wall(S, [8, -15.5], [8, -8.5]), ...wall(S, [-8, -8.5], [8, -8.5]),
-  blob(S, -7, 0.5, 0.45), blob(S, 7, 0.5, 0.45), blob(S, -7, 8.5, 0.45), blob(S, 7, 8.5, 0.45),
+// Dusty's store is walk-in: thin walls with a doorway, and the counter, shelves and cooler are solid
+{ const T = STORE, m = STORE.t / 2, run = (a, b, r = 0.2) => wall(S, a, b, r, 0.35), unit = u => run([u.x - u.w / 2 + u.d / 2, u.z], [u.x + u.w / 2 - u.d / 2, u.z], u.d / 2);
+  solid.push(...run([T.x0, T.z0 + m], [T.x1, T.z0 + m]), ...run([T.x0 + m, T.z0], [T.x0 + m, T.z1]), ...run([T.x1 - m, T.z0], [T.x1 - m, T.z1]),
+    ...run([T.x0, T.z1 - m], [DOOR.x0 - 0.12, T.z1 - m]), ...run([DOOR.x1 + 0.12, T.z1 - m], [T.x1, T.z1 - m]),
+    ...unit(COUNTER), ...SHELVES.flatMap(unit), ...run([COOLER.x, COOLER.z - COOLER.d / 2 + 0.35], [COOLER.x, COOLER.z + COOLER.d / 2 - 0.35], COOLER.w / 2)); }
+solid.push(blob(S, -7, 0.5, 0.45), blob(S, 7, 0.5, 0.45), blob(S, -7, 8.5, 0.45), blob(S, 7, 8.5, 0.45),
   blob(S, -3.6, 4.5, 0.85), blob(S, 3.6, 4.5, 0.85), blob(S, 12, -4, 1), blob(S, 13, -2.6, 0.7), blob(S, -13, -10, 1.2));
 // old warehouse (24 x 16, roll door in +z) and two shacks (5.2 x 4.4, doorway in +z)
 const WH = SITES.warehouse;
@@ -115,7 +120,7 @@ export const TARGETS = [
   T('openSwitch', G, 5.4, 6.6, 2.0),
   T('pump', S, -3.6, 6.2, 5, { car: true, face: false }),
   T('pump', S, 3.6, 6.2, 5, { car: true, face: false }),
-  T('store', S, 0, -6.6, 4.2),
+  T('store', S, COUNTER.x + 0.4, COUNTER.z + COUNTER.d / 2 + 0.25, 2.4),   // at the counter, inside; aimed just in front of it so its own collision does not hide it
 ];
 export const BUG_SPOT = (() => { const [x, z] = toWorld(lot, LOT_SPOTS.bug.x, LOT_SPOTS.bug.z); return { x, z, h: LOT_SPOTS.bug.r }; })();
 /** a new game starts on foot in grandpa's yard, looking at the garage door */
