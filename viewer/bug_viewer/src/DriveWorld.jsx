@@ -33,7 +33,7 @@ import { clockHour, SUN_FOLLOW } from './game/clock.js';
 import { propObstacles } from './game/home.js';
 import { TRUNKS } from './worlds/biomes/trunks.js';
 import { vehicleType, standingVehicles } from './game/fleet.js';
-import TruckModel from './Truck.jsx';
+import TruckModel, { MeshyTruck } from './Truck.jsx';
 import BuildModel from './BuildModel.jsx';
 import CajonModel, { CajonCar } from './cajon/CajonModel.jsx';
 import { defOf } from './game/projects.js';
@@ -538,7 +538,7 @@ function Near({ x, z, r = 140, children, ...props }) {
 function Fleet() {
   useGame();
   return <>{standingVehicles().map(v => <group key={v.id} position={[v.pose.x, CO.groundHeight(v.pose.x, v.pose.z), v.pose.z]} rotation={[0, v.pose.h, 0]}>
-    <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : v.id === 'cajon' ? <CajonCar /> : <TruckModel />}</Suspense>
+    <Suspense fallback={null}>{v.id === 'bug' ? (game.build && <BuildModel build={game.build} drive />) : v.id === 'cajon' ? <CajonCar /> : vehicleType(v.id).file ? <MeshyTruck type={vehicleType(v.id)} /> : <TruckModel />}</Suspense>
     <Cargo veh={v.id} />
     {!v.forSale && <VehicleCargo veh={v.id} />}
   </group>)}

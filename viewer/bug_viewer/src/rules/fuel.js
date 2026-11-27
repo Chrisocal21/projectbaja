@@ -1,6 +1,6 @@
 // Fuel and the first start (pure: no game state). All numbers are PROPOSAL, to tune by feel.
 // Each vehicle has a tank in litres (home.fuel[id]). Driving burns it, a pump fills it, an empty tank never strands you (limp mode).
-export const TANK_L = { bug: 38, cajon: 60, pickup84: 70, pickup78: 70 };
+export const TANK_L = { bug: 38, cajon: 60, pickup84: 70, pickup78: 70, cfBlueHalfton: 70, cfTwoTone: 70, cfBrownCrew: 80, cfDarkExt: 70 };   // cf*: the Classifieds trucks (game/classifiedCars.js), PROPOSAL
 export const tankOf = id => TANK_L[id] || 45;
 /** what a vehicle holds the first time anyone looks: grandma's Bug has a little stale fuel (Walt's letter: she sat since '09); the rest are half full */
 export const startFuel = id => (id === 'bug' ? 6 : tankOf(id) / 2);

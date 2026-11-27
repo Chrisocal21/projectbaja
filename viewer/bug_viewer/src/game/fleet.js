@@ -4,6 +4,7 @@ import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { LOT_SPOTS } from '../lot/CarLot.jsx';
 import { OFFROAD_TRUCK } from '../handlingProfiles.js';
+import { CLASSIFIED_CARS } from './classifiedCars.js';
 
 export const TRUCK_DIMS = {
   wheelbase: 3.22, track: 1.92, cabEye: [-0.4, 1.68, 0.12], lift: 0, bellyHeight: 0.36, offroad: true, handling: OFFROAD_TRUCK,
@@ -28,6 +29,7 @@ export const VEHICLE_TYPES = {
     pitch: "Runs, drives, hauls an engine in the bed. Bald tires, no radio.", condition: { Paint: 44, Interior: 52, Engine: 81, Frame: 77 } },
   pickup78: { id: 'pickup78', name: "'78 Half-ton", length: 5.1, width: 1.95, price: 2300, kind: 'project', dims: null,
     pitch: 'Good bones, no motor. A project for later.', condition: { Paint: 22, Interior: 30, Engine: 0, Frame: 64 } },
+  ...CLASSIFIED_CARS,   // trucks private sellers post in the phone's Classifieds: delivered to Walt's yard
 };
 export const vehicleType = id => VEHICLE_TYPES[id] || VEHICLE_TYPES.bug;
 export const activeType = () => vehicleType(game.active);

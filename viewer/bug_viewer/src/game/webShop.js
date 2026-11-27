@@ -3,7 +3,8 @@
 import { game, save, say, addCash, catalogFor, priceOf, nameOf } from './store.js';
 import { newOrder } from './orderlogic.js';
 import { effects } from './upgrades.js';
-import { SUPPLY_BUNDLES, SUPPLY_DELIVERY, classifieds, boardDay, openListings, listingTotal } from './web.js';
+import { SUPPLY_BUNDLES, SUPPLY_DELIVERY, classifieds, boardDay, openListings, listingTotal, CAR_DELIVERY_HOURS } from './web.js';
+import { CLASSIFIED_CARS } from './classifiedCars.js';
 import { matName } from './matFinds.js';
 
 const queue = o => { game.home = { ...game.home, orders: [...(game.home?.orders || []), o] }; };
@@ -17,7 +18,9 @@ export function webSeed() {
 /** the classifieds board today, without what you already bought */
 export function todaysBoard() {
   const body = game.build?.body || 'classic', parts = catalogFor(body).part.map(p => ({ kind: 'part', id: p.id, name: nameOf('part', p.id, body), price: priceOf('part', p.id) }));
-  return openListings(classifieds(boardDay(game.home?.hoursTotal), parts, webSeed()), game.home?.webSold || {});
+  const onOrder = new Set((game.home?.orders || []).filter(o => o.kind === 'car').map(o => o.id));
+  const cars = Object.values(CLASSIFIED_CARS).filter(c => !game.fleet?.[c.id] && !onOrder.has(c.id)).map(c => ({ id: c.id, name: c.name, price: c.price, pitch: c.pitch }));   // a truck you own (or bought today) is not posted again
+  return openListings(classifieds(boardDay(game.home?.hoursTotal), parts, webSeed(), cars), game.home?.webSold || {});
 }
 /** hours until the board changes */
 export const boardHoursLeft = () => { const h = game.home?.hoursTotal || 0; return 24 - (h - boardDay(h) * 24); };
@@ -39,6 +42,7 @@ export function buyListing(listingId) {
   const day = boardDay(game.home?.hoursTotal), sold = Object.fromEntries(Object.entries(game.home?.webSold || {}).filter(([k]) => k.startsWith(`d${day}-`)));   // only today's sales are kept
   game.home = { ...game.home, webSold: { ...sold, [l.id]: true } };
   if (l.type === 'junk') { queue({ ...newOrder('web', l.lot, effects().orderHours), mat: l.mat, n: l.n, label: `${l.title}, from ${l.town}` }); save(); return say(`Bought: ${l.title}. The seller in ${l.town} drops it at Walt's garage door in ${hoursText()}.`); }
+  if (l.type === 'car') { queue(newOrder('car', l.carId, CAR_DELIVERY_HOURS)); save(); return say(`Bought: ${l.title}. The seller in ${l.town} drives it to Walt's yard in about ${CAR_DELIVERY_HOURS} hours.`); }
   queue({ ...newOrder(l.kind, l.partId, effects().orderHours), label: `${l.title}, from ${l.town}` });   // a labelled order is boxed at the pickup area (orders.js)
   save(); say(`Bought: ${l.title}. It will be boxed at the pickup area in ${hoursText()}.`);
 }

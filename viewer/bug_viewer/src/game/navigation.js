@@ -16,7 +16,7 @@ export function clearWaypoint(quiet) { if (!waypoint()) return; game.home = { ..
 export function routeNow(px, pz, now) {
   const wp = waypoint(); if (!wp) return null;
   if (Math.hypot(wp.x - px, wp.z - pz) < 35) { clearWaypoint(true); say(`You have arrived: ${wp.label}.`); return null; }
-  const vehicle = game.active === 'pickup84' || game.active === 'cajon' ? 'offroad' : 'road';
+  const vehicle = game.active === 'pickup84' || game.active === 'cajon' || /^cf/.test(game.active || '') ? 'offroad' : 'road';   // cf*: Classifieds trucks
   const key = wp.x + ',' + wp.z + ',' + vehicle, stale = !nav.route || nav.key !== key || (now - nav.t > 2000 && !nav.straight && offRoute(nav.route, px, pz) > 120) || (now - nav.t > 6000 && nav.straight);
   if (stale) {
     nav.key = key; nav.t = now;

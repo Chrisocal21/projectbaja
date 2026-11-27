@@ -22,3 +22,18 @@ export default function TruckModel() {
   return <primitive object={obj} />;
 }
 useGLTF.preload(FILE);
+
+/**
+ * A Classifieds truck (game/classifiedCars.js): a Meshy model whose wheels are their own Wheel_FL/FR/RL/RR nodes, already nose +z.
+ * The model is shifted sideways by `type.shiftX` so the hubs straddle x = 0, as the drive sim wants. Each instance is its own clone.
+ */
+export function MeshyTruck({ type }) {
+  const file = `/models/${type.file}.glb`, { scene } = useGLTF(file);
+  const obj = useMemo(() => {
+    const c = scene.clone(true), shift = new THREE.Group(); shift.name = 'TruckShift'; shift.position.x = type.shiftX || 0;
+    [...c.children].forEach(k => shift.add(k)); c.add(shift);
+    c.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return c;
+  }, [scene, type.shiftX]);
+  return <primitive object={obj} />;
+}

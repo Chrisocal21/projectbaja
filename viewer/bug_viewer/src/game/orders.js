@@ -6,6 +6,8 @@ import { SITES, toWorld } from '../worlds/county.js';
 import { newOrder, advanceOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
 import { VEHICLE_TYPES, FOR_SALE, lotPose, owned } from './fleet.js';
+import { obstacleCircles } from './unstuck.js';
+import { clearSpot } from './clearSpot.js';
 import { giftArrives } from './cajonGift.js';
 import { itemOf } from './garageSupplies.js';
 import { standFor, addStock } from './stock.js';
@@ -62,7 +64,17 @@ export function orderCar(id) {
   game.home = { ...game.home, orders: [...ordersOnTheWay(), newOrder('car', id, effects().orderHours)] };
   save(); say(`Ordered: ${t.name} (it will be left at Al's lot in a few hours)`);
 }
+/** where a seller leaves a Classifieds truck: Walt's yard, past the shells, nose to the road (PROPOSAL), or the nearest clear ground */
+const CF_YARD = { lx: 6, lz: 21, ry: 0 };
 function carArrives(id) {
+  const t = VEHICLE_TYPES[id];
+  if (t?.classified) {
+    if (owned(id)) return;
+    const s = SITES.garage, [x, z] = toWorld(s, CF_YARD.lx, CF_YARD.lz), want = { x, z, h: s.rot + CF_YARD.ry };
+    const circles = [...obstacleCircles(), ...(game.pose ? [[game.pose.x, game.pose.z, 2.4]] : [])], pose = clearSpot(want, t.length, t.width, circles) || want;
+    game.fleet = { ...game.fleet, [id]: { pose } };
+    return say(`The seller dropped off your ${t.name} in Walt's yard. Keys are in it.`);
+  }
   const spot = FOR_SALE.find(f => f.id === id)?.spot;
   if (!owned(id)) game.fleet = { ...game.fleet, [id]: { pose: spot ? lotPose(spot) : null } };
   say(`Your ${VEHICLE_TYPES[id]?.name || 'car'} was left at Al's lot. Keys are in it.`);

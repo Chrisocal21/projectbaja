@@ -50,11 +50,19 @@ const roundTo = (v, step) => Math.max(step, Math.round(v / step) * step);
 /** the game day for the board: it changes every 24 game hours */
 export const boardDay = hoursTotal => Math.floor(Math.max(0, hoursTotal || 0) / 24);
 
+/** what a truck's seller asks: the listed price give or take this share (PROPOSAL) */
+export const CAR_HAGGLE = 0.12;
+/** hours a seller takes to drive a truck you bought over to Walt's yard (PROPOSAL) */
+export const CAR_DELIVERY_HOURS = 6;
+/** how many trucks are posted on a day: none, one or two (PROPOSAL: about one day in three has none) */
+const carsOn = (day, seed, n) => (n ? Math.min(n, hash(day, seed, 20) < 0.33 ? 0 : hash(day, seed, 21) < 0.7 ? 1 : 2) : 0);
+
 /**
  * The classifieds board for one game day. parts: [{ kind, id, name, price }] (new parts you could be offered used). seed: a number for the save (so two
- * saves see different boards). Returns [{ id, type: 'junk' | 'part', title, town, price, ... }]: 3-4 junk lots and 3-4 used parts, the same all day.
+ * saves see different boards). cars: [{ id, name, price, pitch }] trucks you could be offered (the ones you do not own yet).
+ * Returns [{ id, type: 'junk' | 'part' | 'car', title, town, price, ... }]: 3-4 junk lots, 3-4 used parts and 0-2 trucks, the same all day.
  */
-export function classifieds(day, parts = [], seed = 0) {
+export function classifieds(day, parts = [], seed = 0, cars = []) {
   const out = [], nJunk = 3 + (hash(day, seed, 1) < 0.5 ? 1 : 0), nPart = parts.length ? 3 + (hash(day, seed, 2) < 0.5 ? 1 : 0) : 0;
   const usedLots = new Set(), usedParts = new Set();
   for (let i = 0; i < nJunk; i++) {
@@ -66,6 +74,12 @@ export function classifieds(day, parts = [], seed = 0) {
     let pi = Math.floor(hash(day, seed + i, 8) * parts.length), guard = 0; while (usedParts.has(pi) && guard++ < parts.length) pi = (pi + 1) % parts.length; usedParts.add(pi);
     const p = parts[pi], share = USED_SHARE[0] + hash(day, seed + i, 9) * (USED_SHARE[1] - USED_SHARE[0]);
     out.push({ id: `d${day}-p${i}`, type: 'part', kind: p.kind, partId: p.id, title: `Used: ${p.name}`, price: roundTo(p.price * share, 5), newPrice: p.price, town: TOWNS[Math.floor(hash(day, seed + i, 10) * TOWNS.length)], say: hash(day, seed + i, 11) < 0.5 ? 'Came off a running car. Works fine.' : 'Had it in the garage for years. Make an offer (I will not take it).', hoursAgo: 1 + Math.floor(hash(day, seed + i, 12) * 20) });
+  }
+  const nCar = carsOn(day, seed, cars.length), usedCars = new Set();
+  for (let i = 0; i < nCar; i++) {
+    let ci = Math.floor(hash(day, seed + i, 22) * cars.length); while (usedCars.has(ci)) ci = (ci + 1) % cars.length; usedCars.add(ci);
+    const c = cars[ci], f = 1 + (hash(day, seed + i, 23) * 2 - 1) * CAR_HAGGLE;
+    out.push({ id: `d${day}-c${c.id}`, type: 'car', carId: c.id, title: c.name, price: roundTo(c.price * f, 50), town: TOWNS[Math.floor(hash(day, seed + i, 24) * TOWNS.length)], say: c.pitch, hoursAgo: 1 + Math.floor(hash(day, seed + i, 25) * 20) });
   }
   return out.sort((a, b) => a.hoursAgo - b.hoursAgo);
 }

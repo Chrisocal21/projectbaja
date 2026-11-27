@@ -50,7 +50,7 @@ function SupplySite() {
 function ClassifiedSite() {
   const board = todaysBoard(), left = Math.ceil(boardHoursLeft());
   return <div className="web-body">
-    <p className="web-note">New posts in about {left} game hour{left === 1 ? '' : 's'}. Junk lots are dropped at Walt's door (+${SELLER_DROP} gas money); parts are boxed at the pickup area.</p>
+    <p className="web-note">New posts in about {left} game hour{left === 1 ? '' : 's'}. Junk lots are dropped at Walt's door (+${SELLER_DROP} gas money); parts are boxed at the pickup area; trucks are driven to Walt's yard.</p>
     {board.length ? board.map(l => <div key={l.id} className="web-post">
       <div className="web-post-top"><b>{l.title}</b><span className="web-price">${l.price}</span></div>
       <small>{l.town} · {l.hoursAgo} h ago{l.type === 'part' ? ` · new $${l.newPrice}` : ''}</small>
