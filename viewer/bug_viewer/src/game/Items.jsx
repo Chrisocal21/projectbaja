@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held, toolInHand, dropPoint } from './items.js';
 import ToolModel from './ToolModel.jsx';
-import { JunkModel } from './JunkModels.jsx';
+import SmallModel from './SmallModel.jsx';
+import { smallItemFile } from './smallItemFiles.js';
 import { UPGRADE_FIT } from '../rules/vehicles.js';
 import { containers } from './loot.js';
 import { height, groundHeight } from '../worlds/county.js';
@@ -17,11 +18,10 @@ import { BUG, CAJON } from '../rules/vehicles.js';
 import CajonItem from '../cajon/CajonItem.jsx';
 import ProcEngine from '../Engine.jsx';
 import { useGLTF } from '@react-three/drei';
-import { partById, wheelById, rimById } from '../build.js';
+import { partById, partFile, wheelById, rimById } from '../build.js';
 import { rimGeometry, rimLook, RUBBER } from '../Rims.jsx';
 import { carFitReady, carFitPlan } from './carSnap.js';
 import { FEEL, restOf, carryScale, HOLD } from './restPose.js';   // fit feel pass (?feel=0 turns it off)
-import { slotOf } from './engineRules.js';
 
 const DIM = { 1: [0.34, 0.3, 0.4], 2: [0.5, 0.4, 0.62], 3: [0.72, 0.5, 0.86], 4: [0.9, 0.62, 1.05] };
 const labels = new Map();
@@ -65,10 +65,6 @@ function TireItem({ file, rim }) {
   const obj = useMemo(() => clone(scene, o => { o.material.metalness = 0; if (!o.material.map) { o.material.color.set(RUBBER); o.material.roughness = 0.95; } }), [scene]);
   return <group position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}><primitive object={obj} />{rim && <mesh geometry={rimGeometry(rim.style)}><meshStandardMaterial color={rim.defaultColor} {...rimLook(rim)} side={THREE.DoubleSide} /></mesh>}</group>;
 }
-/** a bare stock tire (no model of its own: the Bug's tire is part of its body model): a dark ring lying flat, about the Bug's size */
-function PlainTire() {
-  return <mesh position={[0, 0.13, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 12, 24]} /><meshStandardMaterial color={RUBBER} roughness={0.95} /></mesh>;
-}
 function RimItem({ rim }) {
   return <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} geometry={rimGeometry(rim.style)} castShadow><meshStandardMaterial color={rim.defaultColor} {...rimLook(rim)} side={THREE.DoubleSide} /></mesh>;
 }
@@ -85,50 +81,30 @@ function StockPiece({ match, rest = [0, 0] }) {
   }, [scene, file, match.join('|'), rest.join(',')]);
   return <group position={off}><primitive object={obj} /></group>;
 }
-function Battery() {
-  return <group>
-    <mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.3, 0.22, 0.18]} /><meshStandardMaterial color="#1e1f22" roughness={0.6} /></mesh>
-    <mesh position={[0, 0.225, 0]}><boxGeometry args={[0.3, 0.01, 0.18]} /><meshStandardMaterial color="#c9a227" roughness={0.5} /></mesh>
-    {[[-0.1, '#c8372b'], [0.1, '#222']].map(([x, c]) => <mesh key={x} position={[x, 0.245, 0]}><cylinderGeometry args={[0.018, 0.018, 0.03, 10]} /><meshStandardMaterial color={c} metalness={0.5} /></mesh>)}
-  </group>;
-}
 function StockItem({ id }) {
   if (id === 'engine') return <group position={[0, -0.2, 1.57]}><ProcEngine stockExhaust={false} /></group>;
-  if (id === 'battery') return <Battery />;
   const slot = BUG.slots.find(s => s.id === id), body = bodyById[game.build?.body] || bodyById.classic;
   const match = id === 'wheel' ? [WHEEL_MESH.FL] : slot?.wheel ? [WHEEL_MESH[slot.wheel]] : (body.pieces || []).find(p => p.id === slot?.piece)?.match;
   if (!match) return null;
   return id === 'wheel' || slot?.wheel ? <group rotation={[0, 0, Math.PI / 2]} position={[0.31, 0.11, 0]}><StockPiece match={match} /></group> : <StockPiece match={match} rest={FEEL ? restOf(slot?.piece) : undefined} />;
 }
 
-/** a loose engine piece: a plain shape in its own colour (stand-in until real models exist) */
-function EnginePiece({ id }) {
-  const s = slotOf(id), c = s?.color || '#888', round = ['coil', 'distributor', 'alternator', 'starter', 'plugs', 'oilFilter'].includes(id);
-  return round
-    ? <mesh position={[0, 0.07, 0]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.16, 12]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.6} /></mesh>
-    : id === 'valveCoverL' || id === 'valveCoverR' ? <mesh position={[0, 0.04, 0]} castShadow><boxGeometry args={[0.38, 0.08, 0.14]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.7} /></mesh>
-    : id === 'exhaust' ? <mesh position={[0, 0.07, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.05, 0.05, 0.5, 10]} /><meshStandardMaterial color={c} metalness={0.5} roughness={0.7} /></mesh>
-    : id === 'fanBelt' ? <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.1, 0.012, 6, 16]} /><meshStandardMaterial color={c} roughness={0.9} /></mesh>
-    : <mesh position={[0, 0.07, 0]} castShadow><boxGeometry args={[0.2, 0.14, 0.2]} /><meshStandardMaterial color={c} metalness={0.4} roughness={0.7} /></mesh>;
-}
-
 /** the real item: parts, tires and rims show their own models; everything else is a labelled crate. Bottom sits at y = 0. */
 export function Crate({ item, scale = 1 }) {
-  if (item.kind === 'junk') return <group scale={scale}><JunkModel item={item} /></group>;   // stand-in models (JunkModels.jsx)
+  const file = smallItemFile(item);
+  if (file) return <group scale={scale}><SmallModel file={file} id={item.id} count={item.n} /></group>;
   if (item.kind === 'memento' && item.id === 'photo') return <group scale={scale}><PhotoSheet item={item} /></group>;   // a printed photo (PROPOSAL): the picture you posted, on paper
   if (item.kind === 'memento') return <group scale={scale}><mesh position={[0, item.wall ? 0 : 0.012, 0]} rotation={item.wall ? [0, 0, 0.04] : [-Math.PI / 2, 0, 0.2]} castShadow><planeGeometry args={[0.24, 0.32]} /><meshStandardMaterial color="#efe6cf" roughness={0.9} side={THREE.DoubleSide} /></mesh></group>;   // a sheet of paper, not a crate
-  if (item.kind === 'mat' && item.id === 'steel') return <group scale={scale}>{[0, 1, 2, 3].slice(0, Math.min(4, item.n || 1)).map(i => <mesh key={i} position={[(i % 2) * 0.07 - 0.04, 0.03 + Math.floor(i / 2) * 0.055, 0]} castShadow><boxGeometry args={[0.05, 0.05, 1.1]} /><meshStandardMaterial color="#8b939b" metalness={0.75} roughness={0.4} /></mesh>)}</group>;   // new square tube
-  if (item.kind === 'mat' && item.id === 'bolts') return <group scale={scale}><mesh position={[0, 0.06, 0]} castShadow><boxGeometry args={[0.24, 0.12, 0.16]} /><meshStandardMaterial color="#a5793f" roughness={0.9} /></mesh><mesh position={[0, 0.125, 0]}><boxGeometry args={[0.18, 0.012, 0.1]} /><meshStandardMaterial color="#6d737a" metalness={0.7} roughness={0.45} /></mesh></group>;   // a cardboard box of hardware
-  if (item.kind === 'mat') return <group scale={scale}>{item.id === 'wood'
-    ? [0, 1, 2].slice(0, Math.min(3, item.n || 1)).map(i => <mesh key={i} position={[(i - 1) * 0.06, 0.035 + i * 0.05, (i % 2) * 0.05]} rotation={[0, i * 0.18, 0]} castShadow><boxGeometry args={[0.14, 0.045, 1.3]} /><meshStandardMaterial color={['#9c7b52', '#86683f', '#a8885c'][i]} roughness={0.95} /></mesh>)
-    : [0, 1].map(i => <mesh key={i} position={[0, 0.03 + i * 0.03, i * 0.12]} rotation={[0, i * 0.7, 0]} castShadow><boxGeometry args={[0.6, 0.04, 0.05]} /><meshStandardMaterial color={i ? '#6f5a49' : '#5b5f61'} metalness={0.6} roughness={0.7} /></mesh>).concat(<mesh key="p" position={[0.1, 0.02, -0.1]} rotation={[0, 0.4, 0]} castShadow><boxGeometry args={[0.35, 0.02, 0.28]} /><meshStandardMaterial color="#7d4a32" metalness={0.5} roughness={0.8} /></mesh>)}</group>;   // planks, or a couple of bent bars and a rusty plate
-  if (item.kind === 'epart') return <group scale={scale}><EnginePiece id={item.id} /></group>;
   const crate = <CrateBox item={item} />;
   let body = null;
-  if (item.kind === 'part' && partById[item.id]?.file) body = <PartModel file={partById[item.id].file} size={sizeOf(item.kind, item.id)} />;
+  if (item.kind === 'part' && partById[item.id]) {
+    const part = partById[item.id];
+    const asset = partFile(part, game.build?.body) || Object.values(part.bodies || {})[0];
+    if (asset) body = <PartModel file={asset === 'proc' ? 'KIT_' + part.id : asset} size={sizeOf(item.kind, item.id)} />;
+  }
   else if (item.kind === 'wheel' && wheelById[item.id]?.file) body = <TireItem file={wheelById[item.id].file} />;
   else if (item.kind === 'rim' && rimById[item.id]) body = <RimItem rim={rimById[item.id]} />;
-  else if (item.kind === 'tire') body = wheelById[item.id]?.file ? <TireItem file={wheelById[item.id].file} /> : <PlainTire />;
+  else if (item.kind === 'tire') body = wheelById[item.id]?.file ? <TireItem file={wheelById[item.id].file} /> : <SmallModel file="PROP_WornTire" />;
   else if (item.kind === 'stock' && (item.from === 'cajon' ? item.id === 'wheel' : CAJON.slots.some(s => s.id === item.id && !s.wheel))) body = <CajonItem id={item.id} />;   // an El Cajon part (or a wheel taken off one) shows its own model
   else if (item.kind === 'stock' && (item.id === 'engine' || item.id === 'battery' || item.id === 'wheel' || BUG.slots.some(s => s.id === item.id && (s.piece || s.wheel)))) body = <StockItem id={item.id} />;
   return <group scale={scale}>{body ? <React.Suspense fallback={crate}>{body}</React.Suspense> : crate}</group>;
@@ -221,29 +197,11 @@ export function Cargo({ veh }) {
   </>;
 }
 
-const M = ({ c, r = 0.6, m = 0 }) => <meshStandardMaterial color={c} roughness={r} metalness={m} />;
-/** toolbox / tool chest / cardboard box / wooden crate; `open` once it has been searched */
+const containerModels = { toolbox: 'PROP_Toolbox', drawer: 'PROP_Drawers', box: 'PROP_Carton', crate: 'JUNK_Crate' };
 function Container({ type, open }) {
-  if (type === 'car') return null;   // grandpa's race car draws itself (worlds/Home.jsx)
-  if (type === 'toolbox') return <group>
-    <mesh position={[0, 0.11, 0]} castShadow><boxGeometry args={[0.56, 0.22, 0.26]} /><M c="#b3261e" r={0.45} m={0.5} /></mesh>
-    <group position={[0, 0.22, -0.13]} rotation={[open ? -1.9 : 0, 0, 0]}><mesh position={[0, 0.03, 0.13]} castShadow><boxGeometry args={[0.57, 0.06, 0.27]} /><M c="#c22d24" r={0.45} m={0.5} /></mesh></group>
-    {!open && <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.24, 0.03, 0.03]} /><M c="#222" m={0.6} /></mesh>}
-  </group>;
-  if (type === 'drawer') return <group>
-    <mesh position={[0, 0.5, 0]} castShadow receiveShadow><boxGeometry args={[0.72, 1, 0.5]} /><M c="#a32a22" r={0.5} m={0.45} /></mesh>
-    {[0.2, 0.42, 0.64, 0.86].map((y, i) => <mesh key={y} position={[0, y, 0.255 + (open && i === 3 ? 0.3 : 0)]}><boxGeometry args={[0.66, 0.18, open && i === 3 ? 0.5 : 0.02]} /><M c="#8c221b" r={0.5} m={0.45} /></mesh>)}
-    {[0.2, 0.42, 0.64, 0.86].map((y, i) => <mesh key={'h' + y} position={[0, y, 0.275 + (open && i === 3 ? 0.55 : 0)]}><boxGeometry args={[0.3, 0.025, 0.025]} /><M c="#ccc" m={0.8} r={0.3} /></mesh>)}
-  </group>;
-  if (type === 'box') return <group>
-    <mesh position={[0, 0.2, 0]} castShadow receiveShadow><boxGeometry args={[0.55, 0.4, 0.5]} /><M c="#b08a58" r={0.95} /></mesh>
-    {[-1, 1].map(sd => <mesh key={sd} position={[sd * 0.14, 0.4, 0]} rotation={[0, 0, open ? sd * 2.2 : 0]}><boxGeometry args={[0.27, 0.01, 0.5]} /><M c="#a47f50" r={0.95} /></mesh>)}
-  </group>;
-  return <group>
-    <mesh position={[0, 0.43, 0]} castShadow receiveShadow><boxGeometry args={[0.92, 0.86, 0.92]} /><M c="#8a6a42" r={0.95} /></mesh>
-    {[0.1, 0.43, 0.76].map(y => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[0.95, 0.09, 0.95]} /><M c="#6e5233" r={0.95} /></mesh>)}
-    <mesh position={open ? [0.62, 0.45, 0] : [0, 0.89, 0]} rotation={open ? [0, 0, 1.35] : [0, 0, 0]} castShadow><boxGeometry args={[0.96, 0.06, 0.96]} /><M c="#7a5c38" r={0.95} /></mesh>
-  </group>;
+  const file = containerModels[type];
+  if (!file) return null;
+  return <group scale={type === 'crate' ? [1.55, 1.78, 1.55] : 1}><SmallModel file={file} open={open} /></group>;
 }
 
 function PhotoSheet({ item }) {

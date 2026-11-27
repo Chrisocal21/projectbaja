@@ -98,6 +98,7 @@ Codex stopped at "next is the office and stairs, including the duplicate desks a
 - More cars for the classifieds need more car models first (only the '84 pickup is buyable today).
 
 ## Done (recent, for context)
+- **Small GLBs and asset inventory.** See [GLB inventory](./GLB_INVENTORY.md) for all 99 game files, source and handoff copies, dimensions, named meshes and current wiring. The [contact sheet](./SMALL_MODEL_PREVIEW.png) shows all 64 new assets. Loose salvage, bundles, tools, supplies, removable engine pieces, upgrade kits, searchable containers and the yard cleanup piles now use the models through their existing game render paths. The scrap-tire pile has a readable sign and a counted stack. The rack tire renderer and fitted car assemblies have separate art paths.
 - **Phase 3 furniture art, first batch.** Five static GLBs are ready in `viewer/bug_viewer/public/models`. Claude can wire the sawhorse pair and new workbench into their blueprints and the three racks into storage. Each file uses a bottom-centred origin, metres and +z front. These are proposed furniture sizes. Allow access from the front of the cantilever racks. The two sawhorses together form one station. Browser checked as standalone assets. Placement and gameplay integration remain open.
 
   | File | Width × height × depth (m) | Bytes | Separate meshes (all fixed) |

@@ -2,6 +2,7 @@ import { signTex } from '../lot/CarLot.jsx';
 import LiftHardware from './LiftHardware.jsx';
 import { brushedFinish, matteFinish } from './shopFinishes.js';
 import ShopBoxGeometry from './ShopBoxGeometry.jsx';
+import SmallModel from '../game/SmallModel.jsx';
 import { Wrench, Jack } from '../game/ToolModel.jsx';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import MergedStatic from './MergedStatic.jsx';
@@ -410,12 +411,10 @@ function ShrinkingPile({ j, children }) {   // the pile gets smaller with every 
   return <group ref={ref}>{children}</group>;
 }
 function Junk({ kind }) {
-  if (kind === 'scrap') return <><B p={[0, 0.3, 0]} s={[2.4, 0.6, 1.4]} c="#6b4a32" m={0.4} r={0.9} rot={[0, 0.3, 0.08]} /><B p={[0.6, 0.75, 0.2]} s={[1.6, 0.08, 1]} c="#7a7d80" m={0.6} rot={[0.4, 0.5, 0.2]} /><Cyl p={[-0.8, 0.8, -0.2]} a={[0.06, 0.06, 2, 6]} c="#4a3a2e" m={0.4} rot={[0, 0, 1.2]} /><B p={[0.2, 0.9, -0.4]} s={[0.9, 0.5, 0.06]} c="#8e5a3a" m={0.4} rot={[0.2, -0.6, 0.5]} /></>;
-  if (kind === 'fridge') return <><B p={[0, 0.85, 0]} s={[0.8, 1.7, 0.75]} c="#d9d2bc" m={0.2} r={0.6} rot={[0, 0.4, 0.05]} /><B p={[0.55, 0.75, 0.25]} s={[0.05, 1.4, 0.7]} c="#cfc8b1" rot={[0, 1.2, 0]} /></>;
-  if (kind === 'brush') return <>{[[0, 0, 0.8], [1, 0.4, 0.6], [-0.7, 0.6, 0.7], [0.3, -0.8, 0.5]].map(([x, z, s], i) => <mesh key={i} position={[x, s * 0.7, z]} castShadow><icosahedronGeometry args={[s, 1]} /><M c="#9a8456" r={1} t o={0.92} /></mesh>)}</>;
-  if (kind === 'cans') return <>{Array.from({ length: 9 }, (_, i) => <Cyl key={i} p={[(i % 3) * 0.32 - 0.3, 0.17 + (i > 6 ? 0.34 : 0), Math.floor(i / 3) * 0.32 - 0.3]} a={[0.13, 0.13, 0.34, 10]} c={['#7a2f26', '#2f4a63', '#cfc8b8', '#3f6b3a'][i % 4]} m={0.5} r={0.5} />)}<mesh position={[0.4, 0.012, 0.6]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.7, 16]} /><meshBasicMaterial color="#120d08" transparent opacity={0.5} depthWrite={false} /></mesh></>;
-  if (kind === 'papers') return <>{Array.from({ length: 6 }, (_, i) => <B key={i} p={[(i % 2) * 0.5 - 0.25, 0.2 + Math.floor(i / 2) * 0.32, (i % 3) * 0.1]} s={[0.45, 0.3, 0.6]} c={['#cfc4a4', '#bdb08c', '#d8ceb0'][i % 3]} r={1} rot={[0, i * 0.3, 0]} />)}</>;
-  return <>{[[0, 0, 0], [0.62, 0, 0.1], [0.3, 0.5, 0.05], [-0.4, 0, 0.6], [-0.2, 0.45, 0.5]].map(([x, y, z], i) => <B key={i} p={[x, 0.25 + y, z]} s={[0.6, 0.5, 0.55]} c={['#a07c4a', '#8f6c3e', '#b08a58'][i % 3]} r={1} rot={[0, i * 0.4, (i % 2) * 0.1]} />)}</>;
+  if (kind === 'scrap') return <group scale={[3.5, 4, 3]}><SmallModel file="MAT_Scrap" /><group position={[.02,.095,.03]} rotation={[0,.9,.14]}><SmallModel file="MAT_Scrap" /></group></group>;
+  const file = { fridge: 'YARD_Fridge', brush: 'YARD_Brush', cans: 'YARD_Cans', papers: 'YARD_Papers' }[kind];
+  if (file) return <SmallModel file={file} />;
+  return <>{[[0, 0, 0], [0.62, 0, 0.1], [0.3, 0.5, 0.05], [-0.4, 0, 0.6], [-0.2, 0.45, 0.5]].map(([x, y, z], i) => <group key={i} position={[x,y,z]} rotation={[0,i*.4,0]} scale={[1.08,1.22,1.1]}><SmallModel file="PROP_Carton" /></group>)}</>;
 }
 
 /** things the player has built on the property (build mode). The same models become the placement hologram. */
@@ -740,8 +739,14 @@ function TirePile() {
   return <group position={[x, groundHeight(x, z), z]} rotation={[0, G.rot, 0]}>
     <mesh position={[0, 0.03, 0]} receiveShadow><boxGeometry args={[2.8, 0.06, 2.8]} /><meshStandardMaterial color="#6b5a3a" roughness={1} /></mesh>
     {[[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]].map(([a, b]) => <mesh key={a + ',' + b} position={[a, 0.45, b]} castShadow><boxGeometry args={[0.12, 0.9, 0.12]} /><meshStandardMaterial color="#c9a227" roughness={0.8} /></mesh>)}
-    <mesh position={[-1.3, 1.15, -1.3]} rotation={[0, Math.PI / 4, 0]} castShadow><boxGeometry args={[1.1, 0.5, 0.06]} /><meshStandardMaterial color="#c9a227" roughness={0.7} /></mesh>
-    {Array.from({ length: n }, (_, i) => { const col = i % 4, row = Math.floor(i / 4); return <mesh key={i} position={[(col % 2 ? 0.55 : -0.55) + Math.sin(i * 7) * 0.08, 0.17 + row * 0.22, (col < 2 ? -0.55 : 0.55) + Math.cos(i * 5) * 0.08]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.24, 0.11, 8, 20]} /><meshStandardMaterial color="#1f1f20" roughness={0.95} /></mesh>; })}
+    <group position={[-1.3, 1.15, -1.3]} rotation={[0, Math.PI / 4, 0]}>
+      <B p={[0,0,0]} s={[1.1,.5,.06]} c="#c9a227" />
+      <RackLabel text="SCRAP TIRES" color="#493c29" width={1.04} height={.34} p={[0,0,.032]} />
+    </group>
+    {Array.from({ length: n }, (_, i) => {
+      const col = i % 4, row = Math.floor(i / 4);
+      return <group key={i} position={[(col % 2 ? .55 : -.55) + Math.sin(i*7)*.08, .06 + row*.211, (col < 2 ? -.55 : .55) + Math.cos(i*5)*.08]} rotation={[0,i*1.7,0]}><SmallModel file="PROP_WornTire" /></group>;
+    })}
   </group>;
 }
 
