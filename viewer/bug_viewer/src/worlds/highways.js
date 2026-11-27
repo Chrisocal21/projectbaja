@@ -251,7 +251,8 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         if (d < limit && (!exit || score < exit.score)) exit = { x, z, h: a.hs + (b.hs - a.hs) * t, d, score };
       }
     }
-    if (exit && exit.d > 0.5) {
+    // An end can already align horizontally yet still miss the paved grade.
+    if (exit) {
       const dx = exit.x - farTip.x, dz = exit.z - farTip.z, dh = exit.h - farTip.hs;
       const reach = Math.max(90, exit.d * 2.5, Math.abs(dh) / 0.07);
       for (let i = 0; i < road.pts.length && i * STEP < reach; i++) {
@@ -300,7 +301,8 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
       const a = pts[Math.max(0, i - 5)], b = pts[Math.min(pts.length - 1, i + 5)];
       const turn = Math.abs(Math.atan2(a.tx * b.tz - a.tz * b.tx, a.tx * b.tx + a.tz * b.tz));
       const wet = [0, -road.style.half, road.style.half].some(d => water(q.x + q.tz * d, q.z - q.tx * d) != null);
-      return turn > 0.12 || wet ? 0 : 20;
+      const grade = Math.abs(b.hs - a.hs) / (Math.hypot(b.x - a.x, b.z - a.z) || 1);
+      return turn > 0.12 || wet ? 0 : 20 * (1 - smooth(0.04, 0.08, grade));
     });
     for (let i = 1; i < pts.length; i++) distance[i] = Math.min(distance[i], distance[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
     for (let i = pts.length - 2; i >= 0; i--) distance[i] = Math.min(distance[i], distance[i + 1] + Math.hypot(pts[i].x - pts[i + 1].x, pts[i].z - pts[i + 1].z));
@@ -430,11 +432,9 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         const endFade = smooth(0, 22, Math.min(fromStart, fromEnd));
         const a = pts[i], b = pts[i + 1];
         const straight = a.cutWeight + (b.cutWeight - a.cutWeight) * t;
-        const slope = Math.abs(b.hs - a.hs) / (Math.hypot(b.x - a.x, b.z - a.z) || 1);
-        const flat = 1 - smooth(0.04, 0.08, slope);
         const feature = Math.min(featureCutWeight(x, z), 1 - smooth(0.015, 0.18, Math.abs(featureHeight(x, z))));
         const lane = 1 - smooth(st.lanes, st.half + st.shoulder, nD[j]);
-        grade -= 0.2 * lane * endFade * straight * flat * feature * dirtWeight;
+        grade -= 0.2 * lane * endFade * straight * feature * dirtWeight;
         if (road.course) {
           // Race turns have a raised outside lip. The bank is part of the same
           // height field as the tires and ribbon, with a level centre line and
