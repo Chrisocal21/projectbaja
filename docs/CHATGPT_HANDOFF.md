@@ -1,17 +1,43 @@
 # CHATGPT HANDOFF (living page: Claude adds to it every time something is for ChatGPT)
 
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
-Last updated: Nov 22, 2026 (simulation-forward rule and paint sim added).
+Last updated: Nov 26, 2026 (catch-up since your last commit, new focus list).
+
+## READ FIRST: catch-up since your last commit (f8979cb, Nov 23)
+
+**Where the game is heading** (Chris): the opening and the garage business come first. He wants it to be more than mechanic + racing: a **light** bench-crafting system (buy, find or scrap materials, then build shop furniture and race parts by hand). Everything the player does is hands-on, never click-and-choose. Plan and Chris's picks: [CRAFTING_PLAN](./CRAFTING_PLAN.md). Current state: [RESUME_HERE](./RESUME_HERE.md).
+
+**Done since then (all on `main`, pushed)**
+- **New-game opening:** 16 old tires to clear off the property before you can open; lean starting stock; the Bug has her own side bay (lean-to with roll-up door), so the lift is free for customers.
+- **Office:** it grows as one office (one counter, one stair). Your back-shop tier work is committed, with two invented-lore props removed.
+- **Phone:** one fixed size; the Internet app is a browser with four sites (parts, building and steel supply, classifieds, Honest Al's).
+- **Vehicles:** more cargo room.
+- **Crafting Phase 1:** racks and shelves are blueprints. Place an amber hologram, put materials in, hold left click with the wrench; the real rack rises out of the floor.
+- **Crafting Phase 2:** four materials (wood, scrap, steel, fasteners). The angle grinder at Walt's workbench cuts scrap into steel; a crate or oil drum is taken apart by hand. Shock hoops take steel.
+- **Fixes from Chris's play-testing:** better stand-in junk models (drum, jerry can, crate, engine block); the Bug's wheels now sit on the tire shelf, not in the wall; Walt's tool chest moved from the office into the garage; the main breaker can be aimed at again; the red tail lamps only show once the Taillights are fitted (they are built into the rear fender meshes, now claimed by material: `meshMatch.js`, token `mat:B-taillight1` in `catalog/bodies.json`).
+- Tests: 641 passing; production build clean.
+
+## YOUR FOCUS, in this order (PROPOSAL: Chris can reorder)
+You: art, models, sound and world. Claude: gameplay rules and wiring them in.
+1. **Bench and station models for crafting Phase 3** (Claude builds these next, one at a time, starting with sawhorses): sawhorses, workbench (new one, beside Walt's worn one), grinder station, welding table + welder cart, table saw station, tube bender station. Walt's old welder, grinder and compressor will start the game **broken** (welder under a tarp), so show worn and tarped looks. Then the storage racks: lumber rack, steel rack, battery rack.
+2. **People for customer visits:** a few low-poly rigged characters (idle, walk, talk, sit). The game has no character models yet. Keep them unnamed (never invent lore).
+3. **Shop sounds:** wrench clicks (building a blueprint), angle grinder (cutting and salvage), welder, table saw, tube bender, plus grinder sparks and a small puff when a build stage finishes. Hook off `game.holdBar` without editing the gameplay files; keep K mute and the 50% default.
+4. **Replace stand-ins with real models:** drum, jerry can, wooden crate, engine block (`game/JunkModels.jsx`), the steel, fastener, plank and scrap bundles, the scrap tire pile with a readable "SCRAP TIRES" sign, shovel and traction boards.
+5. **Garage art polish:** the side bay (eave, matching roll-up door, work light, stains), and the tire look on the racks (item 12 below; spacing and position are fixed, the look is not).
+6. **World work that is already yours:** drive the 24 baked trails (item 8), the dirt-road drop (item 0), a visual check of the Mex 5 crossing fix.
+
+**Model rules:** metres; origin at the bottom centre (bottom at y = 0); front faces +z; match the footprint of what it replaces; GLB in `viewer/bug_viewer/public/models`. For each model, tell Chris the file name, its size and the names of any moving or separate meshes. Put paint, lamps and trim that bolt on separately in **their own named meshes**, never inside another part's mesh (that caused the tail lamp bug).
 
 ## Coordination (who edits what)
-- Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder.
-- **ChatGPT is editing now (Nov 22, until about 2:05 pm): road crossings, river crossings and driveways into places.** These files are in play: `src/worlds/county.js`, `County.jsx`, `highways.js`, `regionalRoads.js` (+ test), `offroadFeatures.js` (+ test), `RealScenery.jsx`, `WildScenery.jsx`, `testcenter.js`, `badlands.js`, `sceneryGeometry.js`, `src/game/WestCoastMap.jsx`, `src/rigid.test.js`. **Claude stays out of them until ChatGPT commits.**
-- **Dirt-road drop is ChatGPT's job (decided Nov 22):** you are already in `highways.js`, so you do it; Claude will not touch that file. Spec is item 0 under "Open for ChatGPT".
-- Claude works on: vehicle and part art (`public/models`, `catalog/parts.json`, `BuildModel.jsx`, `suspension.js`), physics and handling (`rigid.js`, `drivetrain.js`, `handlingProfiles.js`, `wear.js`), the phone / Admin UI, HUD, docs.
-- Commit small. Run `npm test` and `npx vite build --outDir <tmp> --emptyOutDir` before pushing. Never commit in `salvageroad`.
+- Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder. Pull before you start.
+- **No files are locked right now.** (The Nov 22 road-work lock is over.) If you are about to spend a while in a file, say so here.
+- **Yours:** the world and road files (`worlds/county.js`, `County.jsx`, `highways.js`, `trailRoutes.js`, `offroadFeatures.js`, scenery), new GLB models, new model components, `audio.js`.
+- **Claude's, ask here first:** `main.jsx`, `game/Walker.jsx`, `game/home.js`, `game/items.js`, `Items.jsx`, `BuildModel.jsx`, `catalog/`, `meshMatch.js`, every `*Rules.js`, `game/blueprints.js`, `bpWork.js`, `materials.js`, `matWork.js`, the phone, HUD and docs. To get a model into one of these, add it to this page and Claude wires it in.
+- **Shared, small separate commits:** `worlds/Home.jsx`, `worlds/Sites.jsx`.
+- Commit small. Run `npm test` and `npx vite build --outDir <tmp> --emptyOutDir` before pushing. Check visual work in a real browser. Never commit `node_modules`. Never commit in `salvageroad`.
 
 ## Project in one paragraph
-A browser off-road driving and vehicle-building game set in Baja California. JavaScript, React 18, @react-three/fiber 8, three 0.170, Vite 5. Game folder `viewer/bug_viewer`; tests `npm test` (node --test, about 440 passing). Chris wants a realistic racing-game feel and builds cars piece by piece. Reference photos: Ocotillo Wells and Baja desert race trucks. **Never invent lore** ([CANON](./CANON.md)); do not add gameplay loops or economy without asking. All numbers are estimates to tune by feel. Dev server: `npx vite --port 3001`; real map: `?realmap`.
+A browser off-road driving and vehicle-building game set in Baja California. JavaScript, React 18, @react-three/fiber 8, three 0.170, Vite 5. Game folder `viewer/bug_viewer`; tests `npm test` (node --test, 641 passing). Chris wants a realistic racing-game feel and builds cars piece by piece. Reference photos: Ocotillo Wells and Baja desert race trucks. **Never invent lore** ([CANON](./CANON.md)); do not add gameplay loops or economy without asking. All numbers are estimates to tune by feel. Dev server: `npx vite --port 3001`; real map: `?realmap`.
 
 ## How the ground works (read before touching terrain)
 - One height function, `height(x, z)` in `worlds/county.js` = base terrain (`groundOnly`) + the feature field. The car (`rigid.js`) samples it directly, so physics sees the exact smooth surface.
@@ -49,7 +75,7 @@ Water (`DriveWorld.jsx`): wading slows and cuts grip, spray, current pushes the 
 9. **Dirt trail variety.** Only two kinds exist: a trail between two highways. Wanted: dead-end mountain trails climbing a ridge, long wash runs, short stretches that hop onto a paved road and off again, more trails in the peninsula south of the garage region (the highway data is thin there, so few trails were found).
 10. **Retired procedural dirt.** `regionalDirtRoads` (`regionalRoads.js`), `makeBadlands` relief (now fed no trails) and the roadside dirt loops from `planFeatures` / `planHighwayFeatures` are switched off in `county.js`. The jumps and whoops beside highways remain but their access trails are gone. Check no feature now sits unreachable, or retire the leftovers.
 11. **Map look (Chris said the old one looked horrible).** `game/WestCoastMap.jsx` is now full screen with a legend, race routes (SCORE orange, MDR purple, Baja 1000 thick, S/F flags), the US-Mexico border and region names. It was never visually checked. Art help welcome: nicer terrain shading, label placement at each zoom, road styling, and a cleaner legend. Keep click-to-set-waypoint working.
-12. **Tires on the racks** (see the section below) is still open.
+12. **Tires on the racks** (see the section below): the look is still open.
 
 ### New-game opening and customer visits (Nov 26, from Chris)
 - **Tire cleanup is built** (Claude: `game/yardTires.js`, `home.js`, `Home.jsx` `TirePile`, `Walker.jsx`, `hud.jsx`). The scrap tire pile is plain boxes and rings: it could use a proper model and a readable "SCRAP TIRES" sign.
@@ -66,8 +92,8 @@ Codex stopped at "next is the office and stairs, including the duplicate desks a
 
 ### Phone browser, materials and crafting (Claude, Nov 27) - for polish, not rework
 - Internet on the phone is now a browser (`game/BrowserApp.jsx`, styles `.web-*` at the end of `hud.css`): four sites with a colour band each (Parts Online, Building & Steel Supply, Classifieds, Honest Al's). Polish welcome: a small logo per site, a nicer home page, photos on classified posts. Names and addresses are PROPOSALs until Chris names them; never invent people (sellers are "a seller in <real town>").
-- Materials: `game.mats.wood` beside scrap. Bundles lie at roadside stops and along forest trails (`game/matFinds.js`); the look is in `Items.jsx` (kind 'mat': a few planks, or bent bars and a plate). A better plank-bundle and scrap-pile model would help.
-- Racks are blueprints now (Phase 1, `game/blueprints.js` + `game/bpWork.js`): a prop with `bp: { got, work }` is not finished. It draws as an amber hologram with the real model clipped at the work height (`BlueprintProp` in `worlds/Home.jsx`), is skipped as a tire surface, a bin and in `hasInGarage`, and cannot be stored. A finished one carries `made: { wood, scrap }`, and taking it down refunds those materials, not cash. If you add code that treats racks as working storage, skip props with `p.bp`. A new game starts with one tire shelf and one supply shelf (`STARTER_LEAN_*`). Polish welcome: a work sound (wrench clicks) and a small puff when a stage completes.
+- Materials: bundles lie at roadside stops and along forest trails (`game/matFinds.js`); the look is in `Items.jsx` (kind 'mat': a few planks, or bent bars and a plate). A better plank-bundle and scrap-pile model would help.
+- Racks are blueprints now (Phase 1, `game/blueprints.js` + `game/bpWork.js`): a prop with `bp: { got, work }` is not finished. It draws as an amber hologram with the real model clipped at the work height (`BlueprintProp` in `worlds/Home.jsx`), is skipped as a tire surface, a bin and in `hasInGarage`, and cannot be stored. A finished one carries `made` (the materials it took), and taking it down refunds those materials, not cash. If you add code that treats racks as working storage, skip props with `p.bp`. A new game starts with one tire shelf and one supply shelf (`STARTER_LEAN_*`). Polish welcome: a work sound (wrench clicks) and a small puff when a stage completes.
 - Materials (Phase 2): the four ids are `wood`, `scrap`, `steel`, `bolts` (`game/materials.js`; use `addMats` / `shortOf` / `matsText`, don't hand-edit `game.mats`). `game/matWork.js` runs the held jobs (cutting steel at the bench, salvage). Polish welcome: grinder sparks and sound while `game.holdBar` is cutting or salvaging with the grinder, and real models for the steel and fastener bundles (`Items.jsx`, simple boxes now). The loose junk (oil drum, jerry can, wooden crate, engine block) has stand-in models built from shapes in `game/JunkModels.jsx`; real GLBs can replace them one at a time (same size, bottom at y = 0).
 - More cars for the classifieds need more car models first (only the '84 pickup is buyable today).
 
