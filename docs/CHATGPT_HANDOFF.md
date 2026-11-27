@@ -22,6 +22,10 @@ All on `main`, pushed. Tests: 673 passing; production build clean. Raw Meshy dow
 
 **Claude's files from this stretch (ask here first):** `game/people.js`, `worlds/Person.jsx`, `game/custRides.js`, `worlds/CustomerRides.jsx`, `finishJobs.js`, `game/finishWork.js`, `catalog/*.json`, `assets/pipeline/export_meshy.py`, `export_people.py`, `export_bugkit.py`.
 
+**Rigging first pass:** The eight existing `PERSON_M_*` GLBs now carry one 13-joint `CharacterRig` each. All include in-place `idle`, `walk` and `talk` clips. Coveralls and Overalls also have a crouch and wrenching gesture loop named `work`. Approximate weights from the existing posed meshes need a visual deformation pass, especially at elbows and knees. The work clip animates the person only. Blender generator is `assets/pipeline/rig_meshy_people.py`; run it against the original static GLBs and export to a separate staging folder. Export sizes in bytes: Coveralls 1297796, GreyTee 826796, HiVis 1096364, Overalls 1197000, Shopkeeper 1059488, Trekker 1077552, Woman 1132908, YoungMan 1076812.
+
+**Wiring for Claude:** In `worlds/Person.jsx`, clone each instance with Three's SkeletonUtils before animation and give it its own mixer. Default to `idle`, crossfade by clip name, and move the world group along the path during `walk`. Worker logic can position a separate wrench to match the right forearm and choose `work` only for the two reserved models. File names and casting keys are unchanged.
+
 
 ## READ FIRST: catch-up since your last commit (f8979cb, Nov 23)
 
