@@ -258,5 +258,26 @@
    },
    "note": "Road tire for the 16 inch rims: fine on hard ground, poor in sand and mud. PROPOSAL (reuses the Rugged Tread model until a 16 inch tire is modelled)"
   }
+ },
+ {
+  "type": "wheels",
+  "id": "tire-desert",
+  "label": "Desert racer",
+  "kind": "tire",
+  "file": "TIRE_DesertRacer",
+  "baseRadius": 0.475,
+  "halfWidth": 0.162,
+  "source": "Chris's Meshy white baja bug kit (assets/pipeline/export_bugkit.py)",
+  "grip": {
+   "mu": 1,
+   "rr": 0.95,
+   "surf": {
+    "dirt": 1.1,
+    "sand": 1.05,
+    "rock": 0.9,
+    "mud": 0.7
+   },
+   "note": "Desert race tread: quick on dirt and sand, weak in mud. PROPOSAL numbers"
+  }
  }
 ]

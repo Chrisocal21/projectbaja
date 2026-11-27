@@ -167,6 +167,7 @@ All dimensions below are width × height × depth in metres at the exported rest
 | [TIRE_RuggedLite.glb](<../viewer/bug_viewer/public/models/TIRE_RuggedLite.glb>) | Existing · [wheels.json](<../viewer/bug_viewer/src/catalog/wheels.json>) |
 | [TIRE_RuggedTextured.glb](<../viewer/bug_viewer/public/models/TIRE_RuggedTextured.glb>) | Existing · [wheels.json](<../viewer/bug_viewer/src/catalog/wheels.json>), [Home.jsx](<../viewer/bug_viewer/src/worlds/Home.jsx>) |
 | [TIRE_RuggedTread.glb](<../viewer/bug_viewer/public/models/TIRE_RuggedTread.glb>) | Existing · [wheels.json](<../viewer/bug_viewer/src/catalog/wheels.json>) |
+| [TIRE_DesertRacer.glb](<../viewer/bug_viewer/public/models/TIRE_DesertRacer.glb>) | Meshy white baja bug kit, rim cut off ([export_bugkit.py](<../assets/pipeline/export_bugkit.py>)) · [wheels.json](<../viewer/bug_viewer/src/catalog/wheels.json>) |
 | [VEH_001_Beetle_Imported.glb](<../viewer/bug_viewer/public/models/VEH_001_Beetle_Imported.glb>) | Existing · [bodies.json](<../viewer/bug_viewer/src/catalog/bodies.json>) |
 | [VEH_007_Grandpa7.glb](<../viewer/bug_viewer/public/models/VEH_007_Grandpa7.glb>) | Existing · [Home.jsx](<../viewer/bug_viewer/src/worlds/Home.jsx>), [OfficePhoto.jsx](<../viewer/bug_viewer/src/worlds/OfficePhoto.jsx>) |
 | [VEH_010_Pickup.glb](<../viewer/bug_viewer/public/models/VEH_010_Pickup.glb>) | Existing · [Truck.jsx](<../viewer/bug_viewer/src/Truck.jsx>) |
