@@ -5,12 +5,22 @@ export const RIDES = {
   oldpickup: { name: 'old pickup', len: 5.1, w: 2.0 },
   sedan: { name: 'sedan', len: 4.7, w: 1.8 },
   van: { name: 'van', len: 4.9, w: 1.95 },
+  // Real models (Chris's Meshy drop, Nov 26): `file` = /models/<file>.glb, drawn in their own textures. Names are ours (no real makes).
+  bluerust: { name: 'faded blue pickup', len: 5.3, w: 2.4, file: 'VEH_M_BlueRustPickup' },
+  twotone: { name: 'two-tone pickup', len: 5.2, w: 2.2, file: 'VEH_M_BlueTwoTone' },
+  brownrust: { name: 'rusty crew cab', len: 5.3, w: 2.25, file: 'VEH_M_BrownRustPickup' },
+  darkrust: { name: 'beat-up dark pickup', len: 5.2, w: 2.4, file: 'VEH_M_DarkRustPickup' },
+  trailrig: { name: 'yellow trail rig', len: 4.7, w: 2.1, file: 'VEH_M_YellowTrailRig' },
+  expedition: { name: 'expedition rig', len: 4.9, w: 2.05, file: 'VEH_M_ExpeditionRig' },
+  towrig: { name: 'gold tow rig', len: 5.6, w: 2.1, file: 'VEH_M_GoldTowRig' },
+  wrecker: { name: 'old wrecker', len: 5.6, w: 2.55, file: 'VEH_M_Wrecker' },
   dirtbike: { name: 'dirt bike', len: 2.1, w: 0.8, bike: true },
   moto: { name: 'motorcycle', len: 2.2, w: 0.85, bike: true },
 };
 /** jobs a motorcycle can need too: no wipers, no fan belt, no car wheel */
 export const BIKE_JOBS = new Set(['battery', 'bulb', 'tire', 'oil', 'tune']);
-const CARS = ['pickup', 'oldpickup', 'sedan', 'sedan', 'van'], BIKES = ['dirtbike', 'moto'];
+// working trucks mostly (PROPOSAL mix); the two tow trucks once each. 'pickup' is only the fallback for old saves now.
+const CARS = ['oldpickup', 'bluerust', 'twotone', 'brownrust', 'darkrust', 'trailrig', 'expedition', 'towrig', 'wrecker', 'sedan', 'sedan', 'van'], BIKES = ['dirtbike', 'moto'];
 
 /** roll the vehicle for one visit: about one in four bike-able jobs comes on a bike */
 export function rollRide(jobId, rand = Math.random) {

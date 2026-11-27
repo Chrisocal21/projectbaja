@@ -1,5 +1,7 @@
 # RESUME HERE (rewritten Nov 22, 2026; start-here note Nov 23)
 
+- **Meshy drop (Nov 26):** raw downloads in `assets/meshy/` (not committed); `assets/pipeline/export_meshy.py` makes `VEH_M_*.glb` (7-90k tris, wheels fused, our own names). Done: 8 trucks are customer rides (`game/custRides.js` `file`). Next: vehicles on the phone Classifieds (parked only until wheels are separate). Saved for racing: dune buggy, two race trucks. Not used yet: green jeep (government-style badge to paint out), workbenches, tool chests, toolboxes, crates, lift stacker, well, cash bag.
+
 Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
 
 ## How we work now

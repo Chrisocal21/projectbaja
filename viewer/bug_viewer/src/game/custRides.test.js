@@ -25,3 +25,10 @@ test('a saved ride is checked; old saves get the pickup', () => {
   assert.equal(rideLen({ id: 'tune', ride: 'dirtbike' }), 2.1);
   assert.equal(rideOf({ id: 'belt', ride: 'oldpickup' }), 'oldpickup');
 });
+
+test('every ride with a real model has its file in public/models, and trucks turn up', async () => {
+  const { existsSync } = await import('node:fs');
+  for (const r of Object.values(RIDES)) if (r.file) assert.ok(existsSync(new URL(`../../public/models/${r.file}.glb`, import.meta.url)), r.file);
+  const seen = new Set(Array.from({ length: 600 }, () => rollRide('wipers')));
+  assert.ok(seen.has('twotone') && seen.has('wrecker') && !seen.has('pickup'));
+});

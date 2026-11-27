@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RoundedBox } from '@react-three/drei';
 import Pickup from '../Pickup.jsx';
+import { RIDES } from '../game/custRides.js';
 
 // Scratch customer vehicles (stand-ins until real models): sedan, van, dirt bike, street motorcycle.
 // Same rules as Pickup.jsx: +z forward, ground at y = 0, sizes from game/custRides.js. Shapes and sizes are PROPOSALs.
@@ -155,6 +156,8 @@ useGLTF.preload(BIKE_FILE); useGLTF.preload(OLD_PICKUP_FILE);
 
 /** draws the customer's vehicle by type (game/custRides.js) in their two job colours */
 export default function CustomerRide({ ride = 'pickup', body, trim }) {
+  const file = ride === 'pickup' ? RIDES.twotone.file : RIDES[ride]?.file;   // old saves' plain 'pickup' gets a real truck too
+  if (file) return <Suspense fallback={<Pickup body={body} roof={trim} primer={body} />}><GlbRide file={`/models/${file}.glb`} /></Suspense>;
   if (ride === 'sedan') return <Sedan body={body} trim={trim} />;
   if (ride === 'van') return <Van body={body} trim={trim} />;
   if (ride === 'dirtbike') return <Suspense fallback={<DirtBike body={body} trim={trim} />}><group rotation={[0, 0, 0.1]}><GlbRide file={BIKE_FILE} body={body} /></group></Suspense>;
