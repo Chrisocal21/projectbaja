@@ -1,6 +1,7 @@
 # Garage business plan: customer cars, crew, new service (Nov 26 2026)
 
-Planning only. Nothing here is built. **CHRIS** = what Chris asked for. **PROPOSAL** = a design guess, not decided.
+Planning only. Nothing here is built.
+**APPROVED by Chris, Nov 26** ("yes all of that is awesome"): sections A, B, C and the build order. For C this is read as desert prep first, trail recovery added later, along the ladder. Numbers and names are still PROPOSALs. Next: build order step 1. **CHRIS** = what Chris asked for. **PROPOSAL** = a design guess, not decided.
 Builds on `EXPANSION_PLAN.md` section 5 (CHRIS, Nov 22: skills that grow, paid from earnings, a shop that misses payroll loses people, generic names).
 CANON lists employees under Phase 3. Chris is asking for them now; CANON.md is not edited until Chris says to.
 
