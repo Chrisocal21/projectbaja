@@ -24,3 +24,15 @@ assets/truck/src/
 assets/plants/
 
 .vercel
+
+# raw art sources (2 GB+, some over GitHub's 100 MB limit, repo is public) - keep local and backed up; commit only the game GLBs in public/models
+assets/meshy/
+assets/dirtbike/
+assets/grass/
+assets/trash/
+assets/trophytruck/
+assets/Tires/TIRE+1.1.*
+assets/Tires/textures.rar
+assets/truck/car.blend
+assets/truck/car.glb
+assets/modular-kit-city-builder-starter-kit.zip
