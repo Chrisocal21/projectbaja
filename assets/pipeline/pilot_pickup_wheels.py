@@ -16,6 +16,15 @@ SPECS = {
     'BlueTwoTone': (.913, -.928, 1.866, -1.329, .430, .204),
     'BrownRustPickup': (.918, -.915, 1.643, -1.506, .402, .183),
     'DarkRustPickup': (1.116, -.746, 1.758, -1.391, .400, .178),
+    'GoldTowRig': (.877, -.877, 1.884, -1.424, .365, .160),
+    'Wrecker': (.981, -.982, 1.857, -1.433, .435, .158),
+    'YellowTrailRig': (.851, -.851, 1.412, -1.336, .455, .219),
+    'ExpeditionRig': (.833, -.833, 1.657, -1.255, .445, .194),
+    'BlackRaceTruck': (.907, -.907, 1.628, -1.298, .465, .221),
+    'RedRaceTruck': (.842, -.842, 1.681, -1.368, .405, .186),
+    'DuneBuggy': (.948, -.952, 1.614, -1.322, .405, .186),
+    'WhiteBug': (.682, -.686, 1.322, -1.162, .335, .106),
+    'CarnivalBug': (.722, -.722, 1.353, -1.166, .350, .122),
 }
 STEER = 30
 
@@ -25,7 +34,7 @@ def blender_point(game):
     return Vector((x, -z, y))
 
 
-def wheel_mesh(name, radius):
+def wheel_mesh(name, radius, half_width):
     """Turn a closed tire and recessed, unbranded steel wheel around local X."""
     # Axial position, radius, and material for the strip to the next ring.
     profile = [
@@ -37,7 +46,7 @@ def wheel_mesh(name, radius):
         (.137, .001, 2),
     ]
     sides = 64
-    verts = [(x*radius/.392, r*radius/.392 * math.cos(math.tau*i/sides), r*radius/.392 * math.sin(math.tau*i/sides))
+    verts = [(x*half_width/.155, r*radius/.392 * math.cos(math.tau*i/sides), r*radius/.392 * math.sin(math.tau*i/sides))
              for x, r, _ in profile for i in range(sides)]
     faces = []
     for row in range(len(profile)-1):
@@ -114,12 +123,22 @@ def main(source, output):
     body.data.transform(world)
     body.matrix_world = Matrix.Identity(4)
 
-    left, right, front, rear, radius, half_width = SPECS[source.stem.removeprefix('VEH_M_')]
-    positions = {'Wheel_'+axle+side: (x, radius, z)
-                 for axle,z in [('F',front),('R',rear)]
-                 for side,x in [('L',left),('R',right)]}
+    model = source.stem.removeprefix('VEH_M_')
+    left, right, front, rear, radius, half_width = SPECS[model]
+    fit = {}
+    for axle, z in [('F',front),('R',rear)]:
+        axle_fit = (left,right,radius,half_width)
+        if model == 'DuneBuggy':
+            axle_fit = (.948,-.952,.320,.165) if axle == 'F' else (1.155,-1.155,.403,.184)
+        if model == 'RedRaceTruck' and axle == 'R':
+            axle_fit = (.858,-.858,.440,.325)
+        for side, x in zip('LR', axle_fit[:2]):
+            fit['Wheel_'+axle+side] = ((x, .414 if model=='DuneBuggy' and axle=='F' else axle_fit[2],z), *axle_fit[2:])
+    positions = {name: entry[0] for name, entry in fit.items()}
     hubs = {name: blender_point(hub) for name, hub in positions.items()}
-    wheels = {name: wheel_mesh(name, radius) for name in hubs}
+    pickups = {'BlueRustPickup', 'BlueTwoTone', 'BrownRustPickup', 'DarkRustPickup'}
+    wheels = {name: wheel_mesh(name, r, .155*r/.392 if model in pickups else min(w,.22))
+              for name, (_,r,w) in fit.items()}
     original = body.data
     original_tree = hierarchy(original)
     owner = {}
@@ -127,7 +146,13 @@ def main(source, output):
         center = face.center
         for name, hub in hubs.items():
             offset = center - hub
-            if abs(offset.x) <= half_width and offset.y**2 + offset.z**2 <= (radius+.026)**2:
+            _, r, w = fit[name]
+            extra_width = {'BlackRaceTruck': .038, 'DuneBuggy': .065,
+                           'WhiteBug': .035}.get(model, 0)
+            if model == 'GoldTowRig' and name.startswith('Wheel_R'):
+                extra_width = .15
+            radial = r + (.060 if model == 'DuneBuggy' else .030)
+            if abs(offset.x) <= w+extra_width and offset.y**2 + offset.z**2 <= radial**2:
                 owner[face.index] = name
                 break
     if set(owner.values()) != set(hubs):
@@ -159,13 +184,14 @@ def main(source, output):
         wheel = bpy.data.objects.new(name, wheels[name])
         wheel.location = pivot
         bpy.context.collection.objects.link(wheel)
-        arch_tree = hierarchy(liner('Liner_'+name, pivot, radius))
+        _, wheel_radius, _ = fit[name]
+        arch_tree = None if model == 'DuneBuggy' else hierarchy(liner('Liner_'+name, pivot, wheel_radius))
         angles = range(-STEER, STEER+1) if name.startswith('Wheel_F') else [0]
         for angle in angles:
             tire = hierarchy(wheels[name], Matrix.Rotation(math.radians(angle), 4, 'Z'), pivot)
-            if body_tree.overlap(tire) or arch_tree.overlap(tire):
+            if body_tree.overlap(tire) or (arch_tree and arch_tree.overlap(tire)):
                 raise ValueError(f'{name}: collision at {angle} degrees')
-        print(name, positions[name], 'radius', radius, 'clear at', len(angles), 'angles')
+        print(name, positions[name], 'radius', wheel_radius, 'clear at', len(angles), 'angles')
     bpy.ops.export_scene.gltf(filepath=str(output.resolve()), export_format='GLB',
                               export_image_format='WEBP', export_image_quality=90)
 

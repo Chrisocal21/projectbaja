@@ -10,6 +10,22 @@ Last updated: Nov 27, 2026 (start at "UP NEXT" right below).
 2. **Classic white wheel-well panel** (old job 4 below).
    - **Delivered:** The pale upper arch in the stock-fender-hidden render matched the background. Added matte `B_InnerArch_FL` and `B_InnerArch_FR` liner meshes inside the Classic body. Existing materials and geometry are retained. Verified in a standalone fenders-hidden preview; check fitted carbon fenders in game when convenient.
 3. **Separate wheels on the other `VEH_M_*` vehicles**, same method and naming as the pickups, as new `*_Drive.glb` files (keep the originals): GoldTowRig, Wrecker, YellowTrailRig, ExpeditionRig, then the race vehicles (BlackRaceTruck, RedRaceTruck, DuneBuggy) and the two bugs (WhiteBug, CarnivalBug). Hub table here as before.
+   - **Delivered:** All nine as `VEH_M_<name>_Drive.glb`. Each uses `Wheel_FL`, `Wheel_FR`, `Wheel_RL`, `Wheel_RR`. Local X is the spin axis. Front clearance checked at 1° intervals from −30° to +30° at the authored ride height, and rear clearance at neutral. Originals preserved. See the local `dist/drive-fleet-final.png` render. Full suspension travel and gameplay integration remain to be checked.
+
+| Model | FL | FR | RL | RR | Front/rear radius |
+|---|---|---|---|---|---|
+| GoldTowRig | (.877,.365,1.884) | (-.877,.365,1.884) | (.877,.365,-1.424) | (-.877,.365,-1.424) | .365/.365 |
+| Wrecker | (.981,.435,1.857) | (-.982,.435,1.857) | (.981,.435,-1.433) | (-.982,.435,-1.433) | .435/.435 |
+| YellowTrailRig | (.851,.455,1.412) | (-.851,.455,1.412) | (.851,.455,-1.336) | (-.851,.455,-1.336) | .455/.455 |
+| ExpeditionRig | (.833,.445,1.657) | (-.833,.445,1.657) | (.833,.445,-1.255) | (-.833,.445,-1.255) | .445/.445 |
+| BlackRaceTruck | (.907,.465,1.628) | (-.907,.465,1.628) | (.907,.465,-1.298) | (-.907,.465,-1.298) | .465/.465 |
+| RedRaceTruck | (.842,.405,1.681) | (-.842,.405,1.681) | (.858,.440,-1.368) | (-.858,.440,-1.368) | .405/.440 |
+| DuneBuggy | (.948,.414,1.614) | (-.952,.414,1.614) | (1.155,.403,-1.322) | (-1.155,.403,-1.322) | .320/.403 |
+| WhiteBug | (.682,.335,1.322) | (-.686,.335,1.322) | (.682,.335,-1.162) | (-.686,.335,-1.162) | .335/.335 |
+| CarnivalBug | (.722,.350,1.353) | (-.722,.350,1.353) | (.722,.350,-1.166) | (-.722,.350,-1.166) | .350/.350 |
+
+Hub coordinates are in metres, X left, Y up, Z forward. The DuneBuggy donor has its front tread about 94 mm above the rear contact plane. Allow front suspension droop or adjust front ride setup as part of fitting.
+
 4. **Shop sounds** (older focus list item 4): wrench clicks, angle grinder, welder, table saw, tube bender. Hook off `game.holdBar`; keep K mute and the 50% default.
 Run `git status` first; commit only your own files; show Chris renders for anything visual.
 
