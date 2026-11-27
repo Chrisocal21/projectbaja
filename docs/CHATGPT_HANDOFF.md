@@ -19,12 +19,14 @@ Last updated: Nov 26, 2026 (catch-up since your last commit, new focus list).
 
 ## YOUR FOCUS, in this order (PROPOSAL: Chris can reorder)
 You: art, models, sound and world. Claude: gameplay rules and wiring them in.
-1. **Bench and station models for crafting Phase 3** (Claude builds these next, one at a time, starting with sawhorses): sawhorses, workbench (new one, beside Walt's worn one), grinder station, welding table + welder cart, table saw station, tube bender station. Walt's old welder, grinder and compressor will start the game **broken** (welder under a tarp), so show worn and tarped looks. Then the storage racks: lumber rack, steel rack, battery rack.
-2. **People for customer visits:** a few low-poly rigged characters (idle, walk, talk, sit). The game has no character models yet. Keep them unnamed (never invent lore).
-3. **Shop sounds:** wrench clicks (building a blueprint), angle grinder (cutting and salvage), welder, table saw, tube bender, plus grinder sparks and a small puff when a build stage finishes. Hook off `game.holdBar` without editing the gameplay files; keep K mute and the 50% default.
-4. **Replace stand-ins with real models:** drum, jerry can, wooden crate, engine block (`game/JunkModels.jsx`), the steel, fastener, plank and scrap bundles, the scrap tire pile with a readable "SCRAP TIRES" sign, shovel and traction boards.
-5. **Garage art polish:** the side bay (eave, matching roll-up door, work light, stains), and the tire look on the racks (item 12 below; spacing and position are fixed, the look is not).
-6. **World work that is already yours:** drive the 24 baked trails (item 8), the dirt-road drop (item 0), a visual check of the Mex 5 crossing fix.
+**Done (Nov 26):** sawhorses, workbench, lumber / steel / battery rack models (964922a); 64 small GLBs for junk, materials, tools, engine parts, kits, containers and yard piles (9e51248, see [GLB_INVENTORY](./GLB_INVENTORY.md)). Claude still has to wire in the furniture.
+
+1. **Remaining station models:** grinder station, welding table + welder cart, table saw station, tube bender station, plus broken looks for Walt's old welder (under a tarp), grinder and compressor. Moving parts as separate named meshes.
+2. **In-game walk-through of your 64 models** (still pending): in your hands, on shelves, on the floor, in containers; check size, floating or sinking, facing, grip, and frame rate.
+3. **People for customer visits:** a few low-poly rigged characters (idle, walk, talk, sit). Keep them unnamed (never invent lore).
+4. **Shop sounds:** wrench clicks, angle grinder, welder, table saw, tube bender, plus grinder sparks and a small puff when a build stage finishes. Hook off `game.holdBar`; keep K mute and the 50% default.
+5. **Garage art polish:** the scrap tire pile's readable "SCRAP TIRES" sign (if not already done), the side bay (eave, matching roll-up door, work light, stains), and the tire look on the racks (item 12).
+6. **World work:** drive the 24 baked trails (item 8), the dirt-road drop (item 0), a visual check of the Mex 5 crossing fix.
 
 **Model rules:** metres; origin at the bottom centre (bottom at y = 0); front faces +z; match the footprint of what it replaces; GLB in `viewer/bug_viewer/public/models`. For each model, tell Chris the file name, its size and the names of any moving or separate meshes. Put paint, lamps and trim that bolt on separately in **their own named meshes**, never inside another part's mesh (that caused the tail lamp bug).
 
