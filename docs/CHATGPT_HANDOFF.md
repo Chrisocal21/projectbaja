@@ -1,7 +1,27 @@
 # CHATGPT HANDOFF (living page: Claude adds to it every time something is for ChatGPT)
 
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
-Last updated: Nov 26, 2026 (catch-up since your last commit, new focus list).
+Last updated: Nov 26, 2026, evening (new section right below: Chris's Meshy drop is in the game).
+
+## NEW, Nov 26 evening: Chris's Meshy models are in the game (Claude). Read this first.
+All on `main`, pushed. Tests: 673 passing; production build clean. Raw Meshy downloads stay in `assets/meshy/` and are NOT committed (only the small game GLBs are).
+
+**What Claude did**
+- **Customer trucks** (b2e3584): `assets/pipeline/export_meshy.py` turns the Meshy vehicles into `VEH_M_*.glb` (one fused mesh each, wheels fused, no rig). Eight trucks are customer rides now (`game/custRides.js`, field `file`; `worlds/CustomerRides.jsx`). Also committed but not placed yet: two race trucks, the dune buggy, a white bug and a carnival bug (9a31097), saved for racing and the Classifieds.
+- **People** (0bc1786): `assets/pipeline/export_people.py` -> `PERSON_M_*.glb` (static, no skeleton). Casting table `game/people.js` (PROPOSAL): Dusty behind his store counter, Al on the lot office porch, Rosa as the battery customer; two models reserved for the **two hireable workers** (not hireable yet, no names: Chris names them); misc strangers for the tire and flat-wheel jobs. Pastor Dale, Deputy Ruiz and the Hollises keep the old stand-in until Chris adds models.
+- **Desert racer tires** (8376cd8): from Chris's exploded "white baja bug" kit; `assets/pipeline/export_bugkit.py` -> `TIRE_DesertRacer.glb` (rim cut off so every game rim fits). New wheel set `tire-desert`.
+- **Stage 2 upgrades on the Classic** (c99a6b0): the Stage 2 body is the Classic raised exactly 0.14 m, so the 12 Stage 2-only parts now also fit the Classic (same GLB, `offset.classic = [0,-0.14,0]` in `catalog/parts.json`). The game's bug can buy and fit all 39 upgrades.
+- **Spray cans** (39f53da): 12 cans (the customizer palette, `finishJobs.js` CANS). A can also sprays the **rims** (aftermarket only) and the **seats**: hold to blend over one coat, saved in `home.tint[vehId]`, drawn in `BuildModel.jsx`.
+
+**For you (art / models, in this order, PROPOSAL)**
+1. **Rig and animate the people**: the `PERSON_M_*` models stand still. Idle, walk, talk; for the two workers also a working loop (crouch at a wheel, use a wrench). Keep the file names; Claude swaps in the rigged versions. Chris has a T-pose man in `assets/meshy/` that is a good rig candidate.
+2. **Paint out real logos**: the brown jacket on `PERSON_M_Shopkeeper` (Dusty) looks like a real workwear logo; the assembled `assets/meshy/white_baja_bug_class_.glb` has sponsor decals; the green jeep has a government-style badge. No real brands in game.
+3. **Separate wheels on the `VEH_M_*` vehicles** (start with the pickups): split each wheel into its own mesh named `Wheel_FL/FR/RL/RR`, origin at the hub, so Classifieds cars can be driven later. Tell Claude the hub positions and radius.
+4. **Three more parts from the bug kit** (`assets/meshy/white_baja_bug_split_parts.glb`): `model_part11` front tube bumper with skid plate, `model_part10` rear tube cage with plate, `model_part15` bucket race seat. Clean, decimate (about 15-25k tris), bottom-centre origin, front +z, then add them here and Claude fits them as catalog parts (or tell Claude to do it).
+5. Small: the Classic body's white inner wheel-well panel shows behind the front tire with the carbon wide fenders.
+
+**Claude's files from this stretch (ask here first):** `game/people.js`, `worlds/Person.jsx`, `game/custRides.js`, `worlds/CustomerRides.jsx`, `finishJobs.js`, `game/finishWork.js`, `catalog/*.json`, `assets/pipeline/export_meshy.py`, `export_people.py`, `export_bugkit.py`.
+
 
 ## READ FIRST: catch-up since your last commit (f8979cb, Nov 23)
 
@@ -23,7 +43,7 @@ You: art, models, sound and world. Claude: gameplay rules and wiring them in.
 
 1. **Station models delivered below, wiring pending:** grinder station, welding table + welder cart, table saw station, tube bender station, plus broken looks for Walt's old welder (under a tarp), grinder and compressor. Moving parts as separate named meshes.
 2. **In-game walk-through of your 64 models** (still pending): in your hands, on shelves, on the floor, in containers; check size, floating or sinking, facing, grip, and frame rate.
-3. **People for customer visits:** a few low-poly rigged characters (idle, walk, talk, sit). Keep them unnamed (never invent lore).
+3. **People for customer visits:** superseded by Chris's Meshy people (see NEW section above): rigging them is the job now.
 4. **Shop sounds:** wrench clicks, angle grinder, welder, table saw, tube bender, plus grinder sparks and a small puff when a build stage finishes. Hook off `game.holdBar`; keep K mute and the 50% default.
 5. **Garage art polish:** the scrap tire pile's readable "SCRAP TIRES" sign (if not already done), the side bay (eave, matching roll-up door, work light, stains), and the tire look on the racks (item 12).
 6. **World work:** drive the 24 baked trails (item 8), the dirt-road drop (item 0), a visual check of the Mex 5 crossing fix.
@@ -53,7 +73,7 @@ Items.jsx follow-up for Claude from source inspection
 - Commit small. Run `npm test` and `npx vite build --outDir <tmp> --emptyOutDir` before pushing. Check visual work in a real browser. Never commit `node_modules`. Never commit in `salvageroad`.
 
 ## Project in one paragraph
-A browser off-road driving and vehicle-building game set in Baja California. JavaScript, React 18, @react-three/fiber 8, three 0.170, Vite 5. Game folder `viewer/bug_viewer`; tests `npm test` (node --test, 641 passing). Chris wants a realistic racing-game feel and builds cars piece by piece. Reference photos: Ocotillo Wells and Baja desert race trucks. **Never invent lore** ([CANON](./CANON.md)); do not add gameplay loops or economy without asking. All numbers are estimates to tune by feel. Dev server: `npx vite --port 3001`; real map: `?realmap`.
+A browser off-road driving and vehicle-building game set in Baja California. JavaScript, React 18, @react-three/fiber 8, three 0.170, Vite 5. Game folder `viewer/bug_viewer`; tests `npm test` (node --test, 673 passing). Chris wants a realistic racing-game feel and builds cars piece by piece. Reference photos: Ocotillo Wells and Baja desert race trucks. **Never invent lore** ([CANON](./CANON.md)); do not add gameplay loops or economy without asking. All numbers are estimates to tune by feel. Dev server: `npx vite --port 3001`; real map: `?realmap`.
 
 ## How the ground works (read before touching terrain)
 - One height function, `height(x, z)` in `worlds/county.js` = base terrain (`groundOnly`) + the feature field. The car (`rigid.js`) samples it directly, so physics sees the exact smooth surface.
