@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FINISH_TOOLS, CANS, stepJob, getFinish, setFinish, finishMaterial, isFinishTool } from './finishJobs.js';
+import { CAN_IDS, tintChannel, tintStep, getTint, setTint } from './finishJobs.js';
 import { newPanel, stateName } from './rules/finish.js';
 
 const hold = (tool, panel, seconds, base) => { let p = panel; for (let t = 0; t < seconds; t += 0.1) { const r = stepJob(tool, p, 0.1, base); if (!r.ok) return { ...r, panel: p }; p = r.panel; } return { ok: true, panel: p }; };
@@ -66,4 +67,22 @@ test('a hit chips the paint on the nose or tail, harder when faster, and not at 
   assert.equal(chipVehicle(home, 'bug', ['hoodPanel'], 0, elig), home);
   const h = chipVehicle(home, 'bug', hitPanels(true, false), 0.5, elig);
   assert.ok(h.finish.bug.hoodPanel.coverage < 1 && h.finish.bug.fenderFL.coverage < 1 && !h.finish.bug.engineLid);
+});
+
+test('every palette colour has a can, and a can sprays rims and seats', () => {
+  assert.equal(CAN_IDS.length, 12);
+  for (const id of CAN_IDS) assert.match(CANS[id][1], /^#[0-9a-f]{6}$/);
+  assert.equal(tintChannel('wheelFL'), 'rim'); assert.equal(tintChannel('wheelRR'), 'rim');
+  assert.equal(tintChannel('seatDriver'), 'seats'); assert.equal(tintChannel('seatBack'), 'seats');
+  assert.equal(tintChannel('doorL'), null); assert.equal(tintChannel(null), null);
+});
+
+test('a rim or seat tint blends to the can colour over one coat and is saved per vehicle', () => {
+  assert.equal(tintStep('#000000', 'spray-white', 0), '#000000');
+  assert.equal(tintStep('#000000', 'spray-teal', 1), CANS['spray-teal'][1]);
+  assert.equal(tintStep('#000000', 'spray-teal', 5), CANS['spray-teal'][1]);
+  const half = tintStep('#000000', 'spray-white', 0.5); assert.ok(half > '#700000' && half < '#7a7a7a', half);
+  const h = setTint({ finish: { bug: {} } }, 'bug', 'rim', '#123456');
+  assert.equal(getTint(h, 'bug', 'rim'), '#123456'); assert.equal(getTint(h, 'bug', 'seats'), null); assert.equal(getTint(h, 'p1', 'rim'), null);
+  assert.deepEqual(h.finish, { bug: {} });   // tints never land among the weathering panels
 });

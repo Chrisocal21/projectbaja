@@ -394,9 +394,15 @@ export function ShellProp({ bodyId }) {
 export default function BuildModel({ build, wireframe, onSelect, drive = false, vehId = 'bug' }) {
   const r = useMemo(() => resolve(build), [build]);
   if (vehId === 'bug') LIVERY.value = build?.livery ? 1 : 0;
-  const common = { wireframe, onSelect, channels: r.channels };
   useGame();
   const [, setFinishRev] = React.useState(0);   // panel finish changes while you hold the tool: redraw (polled, no store event per tick)
+  const tint = game.home?.tint?.[vehId], seatTint = tint?.seats || null, rimColor = tint?.rim || r.rimColor;   // rims and seats sprayed with a can (finishJobs.js tint)
+  const channels = useMemo(() => {
+    if (!seatTint) return r.channels;
+    const seat = (r.body.colorChannels || []).find(c => c.id === 'seats');
+    return [{ id: 'seats', re: new RegExp(seat?.match || 'seat', 'i'), color: seatTint }, ...r.channels.filter(c => c.id !== 'seats')];
+  }, [r, seatTint]);
+  const common = { wireframe, onSelect, channels };
   useEffect(() => { let seen = game.finishRev || 0; const id = setInterval(() => { if ((game.finishRev || 0) !== seen) { seen = game.finishRev || 0; setFinishRev(seen); } }, 120); return () => clearInterval(id); }, []);
   const shellOff = (build.stripped || []).includes('shell');
   const bare = ['FL', 'FR', 'RL', 'RR'].filter(w => (build.stripped || []).includes('wheel' + w));
@@ -411,7 +417,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false, 
       {!(build.stripped || []).includes('battery') && !shellOff && <group userData={{ slot: 'battery' }} position={[-0.3, 0.62, -1.33]}>{/* PROPOSAL: sits up in the engine bay by the firewall so it can be aimed at; move by eye */}<mesh castShadow><boxGeometry args={[0.24, 0.2, 0.16]} /><meshStandardMaterial color="#1e1f22" roughness={0.6} /></mesh><mesh position={[-0.06, 0.11, 0]}><cylinderGeometry args={[0.018, 0.018, 0.03, 10]} /><meshStandardMaterial color="#c8372b" metalness={0.5} /></mesh><mesh position={[0.06, 0.11, 0]}><cylinderGeometry args={[0.018, 0.018, 0.03, 10]} /><meshStandardMaterial color="#222" metalness={0.5} /></mesh></group>}
       {r.active.filter(p => !p.attach && !p.engineMod && p.slot !== 'suspension').map(p => {
         const f = partFile(p, r.body.id), fit = p.fit?.[r.body.id] || p.fit?.['*'];
-        const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : r.channels;
+        const pcol = p.paintAs && (build.colors[p.paintAs] || r.body.defaultPaint), pch = pcol ? [{ re: /./, color: pcol }] : channels;
         const m = <Model file={f} {...common} channels={pch} material={partMaterial(p, build, getFinish(game.home, vehId, 'up:' + p.slot))} hide={p.hidesWithExhaust && r.active.some(x => x.slot === 'exhaust') ? p.hidesWithExhaust : []} />;
         return <group key={p.id} userData={{ upgrade: p.slot }} position={p.offset?.[r.body.id] || [0, 0, 0]}>{p.proc ? <ProcPart id={p.proc} r={r} /> : p.spare ? (() => { const sp = p.spare.cage && r.active.some(x => x.id === p.spare.cage.requires) ? { ...p.spare, ...p.spare.cage } : p.spare; return <><SpareTire spare={sp} r={r} /><SpareBracket spare={sp} /></>; })() : fit ? <Fitted file={f} fit={fit}>{m}</Fitted> : m}{p.hardware && <ProcPart id={p.hardware} r={r} />}</group>;
       })}
@@ -421,7 +427,7 @@ export default function BuildModel({ build, wireframe, onSelect, drive = false, 
     {drive && <React.Suspense fallback={null}><DetachGlow build={build} r={r} carRef={carRef} vehId={vehId} /></React.Suspense>}
     {r.wheelSet.kind === 'prebuilt' && <Model file={r.wheelSet.bodies[r.body.id]} wireframe={wireframe} onSelect={onSelect} />}
     {bare.map(w => { const m = r.mounts.find(x => x.name === w); return m && <group key={'stand' + w} position={[m.center[0], 0, m.center[2]]}><mesh position={[0, m.center[1] * 0.45, 0]} castShadow><boxGeometry args={[0.22, m.center[1] * 0.9, 0.22]} /><meshStandardMaterial color="#b8361f" metalness={0.4} roughness={0.5} /></mesh><mesh position={[0, 0.02, 0]}><boxGeometry args={[0.4, 0.04, 0.4]} /><meshStandardMaterial color="#8a2a18" metalness={0.4} roughness={0.5} /></mesh></group>; })}
-    {r.tire && r.mounts.filter(m => !bare.includes(m.name)).map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={r.rimColor} />)}
+    {r.tire && r.mounts.filter(m => !bare.includes(m.name)).map(m => <TireWheel key={`${r.wheelSet.id}-${m.name}`} set={r.wheelSet} mount={m} rim={r.rim} rimColor={rimColor} />)}
     {(drive || r.active.some(p => p.slot === 'suspension' || p.slot === 'shocks')) &&
       <Suspension mounts={r.mounts} lift={r.lift} wireframe={wireframe} onSelect={onSelect}
         coilovers={drive || r.active.some(p => p.slot === 'shocks')} />}

@@ -5,6 +5,7 @@
 //   junkyard:       used parts at about half price, old wheels and rims, junk, now and then an El Cajon part
 //   barn:           supplies and tools cheap, a "barn find" or two, an old battery, a drum or a crate
 //   mart:           a handful of what Dusty sells, at gas-station prices
+import { CAN_IDS } from '../finishJobs.js';
 import { shopKey } from '../worlds/shopSites.js';
 
 const hash = (a, b, k = 0) => { const s = Math.sin(a * 12.9898 + b * 78.233 + k * 37.719) * 43758.5453; return s - Math.floor(s); };
@@ -24,7 +25,7 @@ export const SPECIALTY = {
 const JUNK_PRICE = { drum: 18, jerrycan: 10, crate: 8, engineblock: 60 };
 const SUPPLY_IDS = ['oil', 'bulb', 'plug', 'wipers', 'belt'];
 /** the finishing tools (finishJobs.js): the off-road stores carry them new, junkyards and barns now and then used */
-const FINISH_IDS = ['grinder', 'buffer', 'hose', 'spray-white', 'spray-red', 'spray-blue', 'spray-black', 'spray-yellow'];
+const FINISH_IDS = ['grinder', 'buffer', 'hose', ...CAN_IDS];
 
 /**
  * site: { type, x, z }; ctx: { cat: { part: [{id, slot}], wheel: [{id}], rim: [{id}], stock?: [{id}] }, price(kind, id), supplyPrice(id), martItems?: [{id, kind, itemId, price, note}] }

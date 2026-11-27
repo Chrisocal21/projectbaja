@@ -8,8 +8,14 @@ export const FINISH_TOOLS = {
   buffer: { name: 'Buffer', size: 1, verb: 'Buffing', secs: 4, rule: buff },
   hose: { name: 'Hose / power sprayer', size: 1, verb: 'Washing', secs: 3, rule: hose },
 };
-/** Spray cans: one tool per colour (the can you hold is how you choose; there is no picker). */
-export const CANS = { 'spray-white': ['White spray paint', '#f2f2ee'], 'spray-red': ['Red spray paint', '#b3261e'], 'spray-blue': ['Blue spray paint', '#2a5d9f'], 'spray-black': ['Black spray paint', '#1b1c1e'], 'spray-yellow': ['Yellow spray paint', '#e0b21c'] };
+/** Spray cans: one tool per colour (the can you hold is how you choose; there is no picker).
+ * The same 12 colours as the customizer palette (build.js PALETTE; copied, not imported, so this file stays loadable in node tests). */
+export const CANS = Object.fromEntries([
+  ['white', 'White', '#f2f2ee'], ['black', 'Black', '#1c1c1e'], ['red', 'Red', '#b3202a'], ['orange', 'Orange', '#e0701c'],
+  ['yellow', 'Yellow', '#e8c21a'], ['green', 'Green', '#2f6b3a'], ['teal', 'Teal', '#1f7f86'], ['blue', 'Blue', '#1f4fa8'],
+  ['purple', 'Purple', '#6b3aa0'], ['sand', 'Sand', '#c2a878'], ['olive', 'Olive', '#6b6f3a'], ['gunmetal', 'Gunmetal', '#56606b'],
+].map(([id, n, c]) => ['spray-' + id, [n + ' spray paint', c]]));
+export const CAN_IDS = Object.keys(CANS);
 for (const [id, [name, color]] of Object.entries(CANS)) FINISH_TOOLS[id] = { name, size: 1, verb: 'Spraying', secs: 3, color, rule: (p, w) => paint(p, w, color) };
 
 export const isFinishTool = id => !!FINISH_TOOLS[id];
@@ -29,6 +35,14 @@ export function stepJob(toolId, panel, dt, base = 'glass') {
   const r = t.rule(p, dt / t.secs);
   return { ...r, verb: t.verb };
 }
+
+/** Rims and seats take a straight colour from a can (no grind/primer steps: PROPOSAL). The crosshair's slot id -> the colour channel. */
+export const tintChannel = aimId => (/^wheel(FL|FR|RL|RR)$/.test(aimId || '') ? 'rim' : /^seat/.test(aimId || '') ? 'seats' : null);
+/** Saved at home.tint[vehicleId][channel] = '#rrggbb' (kept apart from home.finish, whose entries are panels that weather). */
+export const getTint = (home, vehId, ch) => home?.tint?.[vehId]?.[ch] || null;
+export const setTint = (home, vehId, ch, color) => ({ ...home, tint: { ...(home?.tint || {}), [vehId]: { ...(home?.tint?.[vehId] || {}), [ch]: color } } });
+/** Spraying a rim or seat: `from` blends to the can's colour over one full coat (frac 0..1 of the can's secs). */
+export const tintStep = (from, canId, frac) => mix(from, CANS[canId][1], Math.max(0, Math.min(1, frac)));
 
 /** Saved state lives at home.finish[vehicleId][panelKey]. These never mutate what they are given. */
 export const getFinish = (home, vehId, key) => home?.finish?.[vehId]?.[key] || null;

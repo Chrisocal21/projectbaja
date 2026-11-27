@@ -1,3 +1,4 @@
+import { CAN_IDS } from '../finishJobs.js';
 import React, { useState } from 'react';
 import { MAT_ORDER, matWord } from './materials.js';
 import { offroadPlan, SITES, toWorld } from '../worlds/county.js';
@@ -166,7 +167,7 @@ export default function AdminApp({ onBack }) {
   const body = () => {
     if (view === 'bug' || view === 'baja' || view === 'truck' || view === 'cajon') return vehicleView();
     if (view === 'items') return <>
-      <Section title="Quick sets"><Kit label="Finish tools: grinder, buffer, hose, 5 spray cans" list={() => [['tool', 'grinder'], ['tool', 'buffer'], ['tool', 'hose'], ['tool', 'spray-white'], ['tool', 'spray-red'], ['tool', 'spray-blue'], ['tool', 'spray-black'], ['tool', 'spray-yellow']]} /><Kit label="Tire pressure: gauge, air chuck" list={() => [['tool', 'gauge'], ['tool', 'airchuck']]} /><Kit label="Hand tools: wrench, floor jack" list={() => [['tool', 'wrench'], ['tool', 'jack']]} /><Kit label="Shock hoops, ready-made (skips fabricating)" list={() => [['fab', 'shockHoops']]} />
+      <Section title="Quick sets"><Kit label="Finish tools: grinder, buffer, hose, every spray can" list={() => [['tool', 'grinder'], ['tool', 'buffer'], ['tool', 'hose'], ...CAN_IDS.map(id => ['tool', id])]} /><Kit label="Tire pressure: gauge, air chuck" list={() => [['tool', 'gauge'], ['tool', 'airchuck']]} /><Kit label="Hand tools: wrench, floor jack" list={() => [['tool', 'wrench'], ['tool', 'jack']]} /><Kit label="Shock hoops, ready-made (skips fabricating)" list={() => [['fab', 'shockHoops']]} />
         <button className="ph-entry adm-row" onClick={() => { if (!need()) return; const a = adminAddProp('welder', 2), b = adminAddProp('bender', 3.2); setLast(a && b ? 'Placed a MIG welder and a tube bender in the garage.' : 'Stand INSIDE the garage so they count as garage tools.'); }}><b>MIG welder + tube bender</b><small>stand in the garage</small></button></Section>
       <Section title="All items"><Search placeholder="Search items…" /><List rows={filtered(itemRows)} /></Section></>;
     if (view === 'props') return <Section title="Props"><Search placeholder="Search props…" /><List rows={filtered(propRows)} /></Section>;
