@@ -1,3 +1,4 @@
+import { meshIs, meshOnly } from './meshMatch.js';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { holoMaterials, ghostify, HOLO } from './hologram.js';
@@ -59,7 +60,7 @@ function Model({ file, mask = [], hide = [], wireframe, onSelect, isBase = false
   useEffect(() => {
     clone.traverse(o => {
       if (!o.isMesh) return;
-      o.visible = !((isBase && mask.some(prefix => sourceNameFor(o).startsWith(prefix))) || hide.some(prefix => sourceNameFor(o).startsWith(prefix))) && (!only || only.some(prefix => sourceNameFor(o).startsWith(prefix)));
+      o.visible = !((isBase && meshIs(o, sourceNameFor(o), mask)) || meshIs(o, sourceNameFor(o), hide)) && (!only || meshOnly(o, sourceNameFor(o), only));
       const wheel = isWheelNode(o) || (o.parent && isWheelNode(o.parent));
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
         if (!m) return;
@@ -224,7 +225,7 @@ function GhostModel({ file, only, mats }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
   const obj = useMemo(() => {
     const c = scene.clone(true);
-    c.traverse(o => { if (o.isMesh) o.visible = !only || only.some(p => sourceNameFor(o).startsWith(p)); });
+    c.traverse(o => { if (o.isMesh) o.visible = !only || meshOnly(o, sourceNameFor(o), only); });
     return ghostify(c, mats);
   }, [scene, (only || []).join('|'), mats]);
   return <primitive object={obj} />;
@@ -237,7 +238,7 @@ export function selfOf(vehId) {
 /** the real (solid) meshes of part of a GLB: what the held part looks like once it has clipped into its spot */
 function SolidModel({ file, only }) {
   const { scene } = useGLTF(`/models/${file}.glb`);
-  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.visible = !only || only.some(p => sourceNameFor(o).startsWith(p)); o.castShadow = false; } }); return c; }, [scene, (only || []).join('|')]);
+  const obj = useMemo(() => { const c = scene.clone(true); c.traverse(o => { if (o.isMesh) { o.visible = !only || meshOnly(o, sourceNameFor(o), only); o.castShadow = false; } }); return c; }, [scene, (only || []).join('|')]);
   return <primitive object={obj} />;
 }
 /** box (world) of only the meshes that are switched on: setFromObject would count the hidden rest of the car's GLB too */
@@ -310,7 +311,7 @@ function slotForMesh(o, r) {
   for (let n = o; n; n = n.parent) { if (n.userData?.slot) return n.userData.slot; if (n.userData?.upgrade) return 'up:' + n.userData.upgrade; }   // engine, battery and bolt-ons are tagged groups
   for (let n = o; n; n = n.parent) { const m = /^CWheel_(FL|FR|RL|RR)/.exec(n.name || ''); if (m) return 'wheel' + m[1]; }
   const src = sourceNameFor(o), w = Object.entries(WHEEL_MESH).find(([, mesh]) => src.startsWith(mesh)); if (w) return 'wheel' + w[0];
-  const piece = (r.body.pieces || []).find(p => p.match.some(m => src.startsWith(m)));
+  const piece = (r.body.pieces || []).find(p => meshIs(o, src, p.match));
   return piece ? BUG.slots.find(s => s.piece === piece.id)?.id || null : null;
 }
 const visibleChain = o => { for (let n = o; n; n = n.parent) if (!n.visible) return false; return true; };

@@ -103,7 +103,8 @@
     "label": "Taillights",
     "category": "Lights",
     "match": [
-     "B_Tailights"
+     "B_Tailights",
+     "mat:B-taillight1"
     ]
    },
    {
@@ -454,7 +455,8 @@
     "label": "Taillights",
     "category": "Lights",
     "match": [
-     "B_Tailights"
+     "B_Tailights",
+     "mat:B-taillight1"
     ]
    },
    {

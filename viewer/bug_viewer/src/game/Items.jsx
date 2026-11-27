@@ -12,6 +12,7 @@ import { height, groundHeight } from '../worlds/county.js';
 const itemY = it => ((it.y || 0) > 0.3 ? height(it.x, it.z) + it.y : groundHeight(it.x, it.z) + (it.y || 0));
 import { ShellProp, sourceNameFor, WHEEL_MESH } from '../BuildModel.jsx';
 import { bodyById } from '../build.js';
+import { meshOnly } from '../meshMatch.js';
 import { BUG, CAJON } from '../rules/vehicles.js';
 import CajonItem from '../cajon/CajonItem.jsx';
 import ProcEngine from '../Engine.jsx';
@@ -76,7 +77,7 @@ function StockPiece({ match, rest = [0, 0] }) {
   const file = (bodyById[game.build?.body] || bodyById.classic).file, { scene } = useGLTF(`/models/${file}.glb`);
   const { obj, off } = useMemo(() => {
     const c = clone(scene), drop = [];
-    c.traverse(o => { if (o.isMesh && !match.some(m => sourceNameFor(o).startsWith(m))) drop.push(o); });
+    c.traverse(o => { if (o.isMesh && !meshOnly(o, sourceNameFor(o), match)) drop.push(o); });
     drop.forEach(o => o.parent.remove(o));
     const tilt = new THREE.Group(); tilt.rotation.set(rest[0], 0, rest[1]); tilt.add(c); tilt.updateMatrixWorld(true);   // lie the way it would be left on the floor
     const box = new THREE.Box3().setFromObject(tilt), ctr = box.getCenter(new THREE.Vector3());
