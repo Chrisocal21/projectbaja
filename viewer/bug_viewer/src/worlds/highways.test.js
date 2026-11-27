@@ -1,6 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHighways, HW_STYLE } from './highways.js';
+import { buildField } from './offroadFeatures.js';
+
+test('dirt cut skips whole whoop sections including zero-height troughs with a 20 m feather', () => {
+  const H = makeHighways([{ name: 'trail', kind: 'dirt', pts: [[0, -150], [0, 300]] }], () => 5);
+  const F = buildField([{ kind: 'whoops', x: 0, z: 0, h: 0, L: 100, W: 12, lam: 10, A: 0.5 }]);
+  H.setFeatureHeight(F.heightAt); H.setFeatureCutWeight(F.roadCutWeight);
+  assert.equal(F.heightAt(0, 0), 0);
+  for (let z = 0; z <= 100; z++) assert.ok(Math.abs(H.blend(0, z, 5) - 5) < 1e-9);
+  assert.equal(H.blend(0, -20, 5), 4.8);
+  assert.equal(H.blend(0, -10, 5), 4.9);
+  for (let z = -25; z < 0; z += 0.1) assert.ok(Math.abs(H.blend(0, z + 0.1, 5) - H.blend(0, z, 5)) < 0.002);
+});
+
+test('sharp bends, steep grades and mapped water suppress the shallow dirt cut', () => {
+  const bend = makeHighways([{ name: 'turn', kind: 'dirt', pts: [[0,-300],[0,0],[300,0]] }], () => 5);
+  const turn = bend.roads[0].pts.reduce((a,b) => Math.hypot(a.x,a.z)<Math.hypot(b.x,b.z)?a:b);
+  assert.equal(turn.cutWeight, 0);
+  assert.ok(Math.abs(bend.blend(turn.x,turn.z,5)-5)<1e-9);
+  const slope = makeHighways([{ name: 'hill', kind: 'dirt', pts: [[0,0],[0,1000]] }], (x,z)=>z*.12);
+  assert.ok(Math.abs(slope.blend(0,500,60)-slope.near(0,500).h)<1e-8);
+  const wet = makeHighways([{ name: 'ford', kind: 'dirt', pts: [[0,-200],[0,200]] }], ()=>5, {water:(x,z)=>Math.abs(z)<10?5:null});
+  assert.equal(wet.blend(0,0,5),5);
+  assert.equal(wet.blend(0,60,5),4.8);
+});
 
 test('straight dirt wears below its grade and eases out near features and road ends', () => {
   const H = makeHighways([{ name: 'trail', kind: 'dirt', pts: [[0, 0], [400, 0]] }], () => 5);

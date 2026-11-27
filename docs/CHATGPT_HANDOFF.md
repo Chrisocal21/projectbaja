@@ -225,6 +225,14 @@ Two new ground types in `src/worlds/kit.js` SURFACES: `silt` (pale powder, `#cbb
 
 ## Garage polish pass (Nov 26)
 
+## Road-cut protection (Nov 26)
+
+`offroadFeatures.js` now indexes complete feature footprints plus a 20 m feather for the shallow dirt cut. Whoop troughs and flat bridge decks stay protected even where their added height is zero. Creek banks, fords, hills, jumps and berms also exclude the cut. `highways.js` compares tangents across a bend and feathers sharp turns / mapped water along the route; it also fades out the cut on grades from 4% to 8%. `county.js` supplies the field mask. The 0.2 m flat-straight cut and paved priority remain. Three additional tests cover whole feature regions, continuous 20 m transitions, bridge decks, turns, grades and mapped water. Full suite: 647 passing; production build passes (existing chunk warnings).
+
+The garage and road-cut changes have browser art review / pure height checks; full-game driving remains a separate validation below.
+
+## Garage polish details
+
 The scrap pile already has a canvas-textured readable SCRAP TIRES sign and the worn-tire GLB; preserved. `worlds/Sites.jsx` now mounts new `SideBayDetails.jsx`: head flashing under the main eave, exposed roof-edge fascias, matching roller-door seams and recessed guide tracks, a powered work-light fixture, and subtle engine drips / wheel scuffs. Existing floor, opening and collision sizes are unchanged. [Standalone browser preview](./GARAGE_POLISH_PREVIEW.png) shows the detail component on a simplified bay shell, not an in-game screenshot.
 
 New `worlds/RackTire.jsx` and `rackTireGeometry.js` provide rounded rubber shoulders, three rows of tread blocks and ventilated steel dishes in three draws per wheel. Same bottom-centred `dia`, `width`, `upright`, `cast`, `ud`, `color` interface as `placement/Preview.jsx` TireModel. Geometry remains inside the original footprint. Claude wiring: delegate TireModel to RackTire in Preview.jsx; cargo and placed upright tires then share the art. Items.jsx has its separate tire path; compare that during Claude's walkthrough before deciding whether to share the component. No spacing, item IDs or placement rules changed. Rack integration and evening / power-off readability need an in-game check.

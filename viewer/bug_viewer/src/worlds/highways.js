@@ -293,6 +293,20 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
     road.total = length;
   }
 
+  // Protect sharp turns and mapped water, with 20 m transitions along the final
+  // road geometry. Comparing before/after tangents catches symmetric bends too.
+  for (const road of list) if (road.kind === 'dirt') {
+    const pts = road.pts, distance = pts.map((q, i) => {
+      const a = pts[Math.max(0, i - 5)], b = pts[Math.min(pts.length - 1, i + 5)];
+      const turn = Math.abs(Math.atan2(a.tx * b.tz - a.tz * b.tx, a.tx * b.tx + a.tz * b.tz));
+      const wet = [0, -road.style.half, road.style.half].some(d => water(q.x + q.tz * d, q.z - q.tx * d) != null);
+      return turn > 0.12 || wet ? 0 : 20;
+    });
+    for (let i = 1; i < pts.length; i++) distance[i] = Math.min(distance[i], distance[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+    for (let i = pts.length - 2; i >= 0; i--) distance[i] = Math.min(distance[i], distance[i + 1] + Math.hypot(pts[i].x - pts[i + 1].x, pts[i].z - pts[i + 1].z));
+    pts.forEach((q, i) => { q.cutWeight = smooth(0, 20, distance[i]); });
+  }
+
   // grid of segments (CSR): every segment is listed in each cell its reach touches
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
   for (const r of list) for (const q of r.pts) { x0 = Math.min(x0, q.x); z0 = Math.min(z0, q.z); x1 = Math.max(x1, q.x); z1 = Math.max(z1, q.z); }
@@ -373,6 +387,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   // every highway within REACH, each at its own closest point (roads that run side by side must blend, not jump where "closest" switches)
   const MAXN = 8, nR = new Int32Array(MAXN), nD = new Float64Array(MAXN), nH = new Float64Array(MAXN), nI = new Int32Array(MAXN), nT = new Float64Array(MAXN);
   let featureHeight = () => 0;
+  let featureCutWeight = () => 1;
   function nearAll(x, z) {
     const c = Math.floor((x - x0) / CELL), rr = Math.floor((z - z0) / CELL);
     if (c < 0 || rr < 0 || c >= NX || rr >= NZ) return 0;
@@ -391,6 +406,7 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   // Finish the road field first, then supply the feature height. Both the terrain mesh and
   // physics call blend, so the shallow tire-worn grade remains a single height surface.
   function setFeatureHeight(fn) { featureHeight = fn; }
+  function setFeatureCutWeight(fn) { featureCutWeight = fn; }
   /** the ground height h at (x, z) eased onto the highways' grade */
   function blend(x, z, h) {
     const n = nearAll(x, z); if (!n) return h;
@@ -412,16 +428,13 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
         const pts = road.pts, i = nI[j], t = nT[j];
         const fromStart = (i + t) * STEP, fromEnd = (pts.length - 1 - i - t) * STEP;
         const endFade = smooth(0, 22, Math.min(fromStart, fromEnd));
-        const bend = pts[Math.min(i + 3, pts.length - 1)];
-        const prev = pts[Math.max(0, i - 2)];
         const a = pts[i], b = pts[i + 1];
-        const heading = Math.atan2(b.x - a.x, b.z - a.z);
-        const nearbyHeading = Math.atan2(bend.x - prev.x, bend.z - prev.z);
-        const turn = Math.abs(Math.atan2(Math.sin(heading - nearbyHeading), Math.cos(heading - nearbyHeading)));
-        const straight = 1 - smooth(0.12, 0.32, turn);
-        const feature = 1 - smooth(0.015, 0.18, Math.abs(featureHeight(x, z)));
+        const straight = a.cutWeight + (b.cutWeight - a.cutWeight) * t;
+        const slope = Math.abs(b.hs - a.hs) / (Math.hypot(b.x - a.x, b.z - a.z) || 1);
+        const flat = 1 - smooth(0.04, 0.08, slope);
+        const feature = Math.min(featureCutWeight(x, z), 1 - smooth(0.015, 0.18, Math.abs(featureHeight(x, z))));
         const lane = 1 - smooth(st.lanes, st.half + st.shoulder, nD[j]);
-        grade -= 0.2 * lane * endFade * straight * feature * dirtWeight;
+        grade -= 0.2 * lane * endFade * straight * flat * feature * dirtWeight;
         if (road.course) {
           // Race turns have a raised outside lip. The bank is part of the same
           // height field as the tires and ribbon, with a level centre line and
@@ -447,5 +460,5 @@ export function makeHighways(roads, ground, { avoid = [], water = () => null } =
   }
   /** on (or within pad m of) a highway's paved width */
   const isNear = (x, z, pad = 0) => { const q = near(x, z); return !!q && q.d <= q.road.style.half + pad; };
-  return { roads: list, kept, near, pavedAt, higherRoadAt, crossingDistance, blend, setFeatureHeight, surfaceKey, isNear };
+  return { roads: list, kept, near, pavedAt, higherRoadAt, crossingDistance, blend, setFeatureHeight, setFeatureCutWeight, surfaceKey, isNear };
 }

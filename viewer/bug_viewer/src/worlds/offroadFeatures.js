@@ -192,7 +192,7 @@ const HWY_SPACING = 420;
  * baseH(x, z) = the ground height without any feature (creek water levels are set from it); only needed for creeks.
  */
 export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok) {
-  const C = FEATURE.cell, cells = new Map(), trees = [], creeks = [], decks = [], accepted = [];
+  const C = FEATURE.cell, cells = new Map(), cutCells = new Map(), trees = [], creeks = [], decks = [], accepted = [];
   // Reserve crossings before placing race features. A deck forces the ground
   // back to bank height, which would cut a step through an overlapping jump.
   const wild = items.filter(it => WILD_KINDS.includes(it.kind));
@@ -208,6 +208,16 @@ export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok)
     accepted.push(it);
     if (isWild) { trees.push(...wildTrees(it, okWild)); creeks.push(...creekMeshes(it, baseH)); }
     for (const p of primitivesOf(it, baseH)) {
+      // Index the whole footprint plus a 20 m feather, including zero-height
+      // troughs and bridge decks. Height alone cannot identify those regions.
+      const cutReach = p.rad + 20;
+      for (let r = Math.floor((p.z - cutReach) / C); r <= Math.floor((p.z + cutReach) / C); r++) {
+        for (let c = Math.floor((p.x - cutReach) / C); c <= Math.floor((p.x + cutReach) / C); c++) {
+          const key = r * 100003 + c;
+          if (!cutCells.has(key)) cutCells.set(key, []);
+          cutCells.get(key).push(p);
+        }
+      }
       if (p.type === 'deck') decks.push(p);
       const reach = p.rad + (p.type === 'seg' || p.type === 'deck' ? 6 : 0);
       const c0 = Math.floor((p.x - reach) / C), c1 = Math.floor((p.x + reach) / C), r0 = Math.floor((p.z - reach) / C), r1 = Math.floor((p.z + reach) / C);
@@ -219,6 +229,30 @@ export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok)
     let up = 0, down = 0;
     for (let i = 0; i < l.length; i++) { const p = l[i]; if (Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; if (p.type === 'deck') { if (inDeck(p, x, z)) return 0; continue; } const v = evalPrim(p, x, z); if (v > up) up = v; else if (v < down) down = v; }   // a bridge deck is flush with the banks: the creek bed under it does not count
     return up + down;
+  };
+  /** 0 throughout a feature / crossing, easing to 1 over 20 m outside it. */
+  const roadCutWeight = (x, z) => {
+    const nearby = cutCells.get(Math.floor(z / C) * 100003 + Math.floor(x / C));
+    let distance = 20;
+    for (const p of nearby || []) {
+      const dx = x - p.x, dz = z - p.z;
+      let d;
+      if (p.type === 'seg') {
+        const vx = p.bx - p.ax, vz = p.bz - p.az;
+        const t = Math.max(0, Math.min(1, ((x - p.ax) * vx + (z - p.az) * vz) / (vx * vx + vz * vz || 1)));
+        d = Math.hypot(x - p.ax - vx * t, z - p.az - vz * t) - p.hw * 2.8;
+      } else if (p.type === 'hill' || p.type === 'berm') {
+        d = Math.hypot(dx, dz) - (p.R + (p.type === 'berm' ? 9 : 2));
+      } else {
+        const sn = Math.sin(p.h), cs = Math.cos(p.h), s = dx * sn + dz * cs, t = dx * cs - dz * sn;
+        const length = p.type === 'whoops' ? p.L : p.type === 'jump' ? tableLengths(p.H).total : p.L;
+        const start = p.type === 'deck' ? -length / 2 : 0;
+        d = Math.hypot(Math.max(start - s, 0, s - start - length), Math.max(0, Math.abs(t) - p.W / 2));
+      }
+      distance = Math.min(distance, d);
+      if (distance <= 0) return 0;
+    }
+    return smooth(0, 20, distance);
   };
   /** metres of water over the ground at (x, z) (0 = dry); base = the ground height there without features */
   const waterDepthAt = (x, z, base) => {
@@ -236,7 +270,7 @@ export function buildField(items, ok = () => true, baseH = () => 0, okWild = ok)
     let best = null; for (let i = 0; i < l.length; i++) { const p = l[i]; if (p.type !== 'seg' || Math.abs(x - p.x) > p.rad || Math.abs(z - p.z) > p.rad) continue; const f = flowOf(p, x, z); if (f && (!best || f.k > best.k)) best = f; }
     return best;
   };
-  return { heightAt, waterDepthAt, flowAt, trunksNear, trees, creeks, decks, accepted, count: accepted.length };
+  return { heightAt, roadCutWeight, waterDepthAt, flowAt, trunksNear, trees, creeks, decks, accepted, count: accepted.length };
 }
 
 // ---- on the dirt roads themselves ----

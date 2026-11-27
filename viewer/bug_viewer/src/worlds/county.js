@@ -306,6 +306,7 @@ if (REAL) {   // PROPOSAL: real highways bend round the built places (a bypass),
   FIELD = buildField(FEAT.items, gradedOk, realBase, wildRoadOk);   // realBase: the ground without features (creek water levels come from it)
   FEAT.items = FIELD.accepted;
   HW.setFeatureHeight(FIELD.heightAt);
+  HW.setFeatureCutWeight(FIELD.roadCutWeight);
   JN.furniture = JN.furniture.filter(f => !f.needs || f.needs.every(id => HW.kept.has(id)));   // no sign for a ramp that was dropped
   JN.ramps = ramps.filter(r => HW.kept.has(r.id));
   // rest areas and gas stations (worlds/roadside.js), placed on the GRADED roads so they sit beside what is really there

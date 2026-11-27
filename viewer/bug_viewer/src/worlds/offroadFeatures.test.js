@@ -2,6 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planFeatures, buildField, primitivesOf, footprint } from './offroadFeatures.js';
 
+test('road-cut mask protects flat bridge decks, ford banks and feature boundaries', () => {
+  const field = buildField([{ kind: 'ford', x: 0, z: 0, h: 0, path: [[0,-50],[0,50]], creeks: [{pts:[[-40,0],[0,0],[40,0]], hw:4, D:1, deck:{x:0,z:0,h:0}}] }]);
+  assert.equal(field.heightAt(0,0),0);
+  assert.equal(field.roadCutWeight(0,0),0);
+  assert.equal(field.roadCutWeight(20,0),0);
+  assert.equal(field.roadCutWeight(0,10),0);
+  assert.ok(field.roadCutWeight(0,25)>0 && field.roadCutWeight(0,25)<1);
+  assert.equal(field.roadCutWeight(0,60),1);
+  assert.equal(field.roadCutWeight(9999,9999),1);
+});
+
 const road = { kind: 'secondary', pts: Array.from({ length: 60 }, (_, i) => [i * 100, Math.sin(i / 7) * 80]) };
 const plan = () => planFeatures([road, { kind: 'major', pts: [[0, 3000], [6000, 3000]] }]);
 
