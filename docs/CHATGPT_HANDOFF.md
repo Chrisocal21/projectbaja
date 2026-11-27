@@ -11,6 +11,8 @@ Last updated: Nov 26, 2026, evening (new section right below: Chris's Meshy drop
 
 **On hold:** walk / work rigs, until Chris makes the new A-pose Coveralls model in Meshy. Pilot that one only.
 
+**Logo review:** Removed the jacket logo from two UV islands in `PERSON_M_Shopkeeper.glb` and verified both close-up angles in Edge. The GLB base-color replacement script is `assets/pipeline/replace_glb_base_color.py`. All other GLB buffer views are byte-identical, including geometry, skin weights and animation. Two-angle contact sheet reviewed all eight `PERSON_M_*` and thirteen `VEH_M_*` files. No additional legible real brand was confirmed at contact-sheet scale; small markings remain difficult to identify at that scale. The committed `VEH_M_WhiteBug` is a different asset from the sponsor-covered `white_baja_bug_class_.glb`. The sponsor-covered Bug and green ranger jeep are both ignored raw assets and still need decal cleanup if selected for release. Before/after and raw source review screenshots are local in `viewer/bug_viewer/dist` to keep the original marks out of the public commit.
+
 **While Claude builds the lift kit and bigger tires:** do not edit `catalog/*.json`, `BuildModel.jsx` or the other Claude-owned files listed below. Put new export steps in your own script. Raw sources are in `assets/meshy/` on Chris's PC; git now ignores that folder. Run `git status` first and commit only your own files.
 
 ## NEW, Nov 26 evening: Chris's Meshy models are in the game (Claude). Read this first.
