@@ -35,7 +35,7 @@ import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
 import CustomerPerson from './CustomerPerson.jsx';
 import CustomerRide from './CustomerRides.jsx';
-import { rideOf, rideLen } from '../game/custRides.js';
+import { rideOf, rideLen, paintOf } from '../game/custRides.js';
 import { CAMPER } from './office.js';
 import { STALL, rowsAtLevel } from './lot.js';
 import { propertyTexture } from './propertyTextures.js';
@@ -767,7 +767,7 @@ function Customer() {
   useFrame((_, dt) => { if ((yardT.current += dt) > 0.5) { yardT.current = 0; tickYard(); } tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); tickBenches(Math.min(dt, 0.1)); });
   return <>{game.jobs.map(w => { const j = jobById[w.id]; if (!j) return null;
     return <group key={w.uid} position={[w.x, groundHeight(w.x, w.z), w.z]} rotation={[0, w.h, 0]}>
-      <CustomerRide ride={rideOf(w)} body={j.car[0]} trim={j.car[1]} />
+      <CustomerRide ride={rideOf(w)} body={paintOf(w)[0]} trim={paintOf(w)[1]} />
       {/* the owner stands just behind the vehicle, toward the lane, waiting (PROPOSAL spot) */}
       <Suspense fallback={null}><CustomerPerson variant={w.look} position={[-0.9, 0, -(rideLen(w) / 2 + 0.75)]} rotation={[0, Math.PI, 0]} /></Suspense>
     </group>; })}</>;

@@ -1,4 +1,5 @@
 import React, { Suspense, useMemo } from 'react';
+import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RoundedBox } from '@react-three/drei';
 import Pickup from '../Pickup.jsx';
@@ -117,13 +118,37 @@ function tinted(material, colour) {   // the bike's plastics take the job's body
   if (!tints.has(key)) { const m = material.clone(); m.color.set(colour); tints.set(key, m); }
   return tints.get(key);
 }
-function GlbRide({ file, body }) {
+// The old pickup's blue is painted into its texture (rust, chrome and tyres share it), so a plain tint would stain
+// everything. Instead the shader swaps only the bluish texels for the new paint, keeping their light and dark.
+// 0.096 = average brightness (linear) of the texture's blue paint, measured from TX_Car_C.
+function repainted(material, colour) {
+  const key = 'paint' + material.uuid + colour;
+  if (!tints.has(key)) {
+    const m = material.clone(), paint = { value: new THREE.Color(colour) };
+    m.onBeforeCompile = sh => {
+      sh.uniforms.uPaint = paint;
+      sh.fragmentShader = 'uniform vec3 uPaint;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        { vec3 c = diffuseColor.rgb;
+          float blue = smoothstep(0.22, 0.42, (c.b - c.r) / max(c.b, 1e-4)) * step(c.g, c.b * 1.02);
+          float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          diffuseColor.rgb = mix(c, min(uPaint * (lum / 0.096), vec3(1.0)), blue); }`);
+    };
+    m.customProgramCacheKey = () => 'repaint-v1';
+    tints.set(key, m);
+  }
+  return tints.get(key);
+}
+function GlbRide({ file, body, repaint = false }) {
   const { scene } = useGLTF(file);
   const obj = useMemo(() => {
     const m = scene.clone(true);
-    m.traverse(o => { if (!o.isMesh) return; o.castShadow = o.receiveShadow = true; if (body && o.material?.name === 'Body') o.material = tinted(o.material, body); });
+    m.traverse(o => {
+      if (!o.isMesh) return; o.castShadow = o.receiveShadow = true;
+      if (body && repaint) o.material = repainted(o.material, body);
+      else if (body && o.material?.name === 'Body') o.material = tinted(o.material, body);
+    });
     return m;
-  }, [scene, body]);
+  }, [scene, body, repaint]);
   return <primitive object={obj} dispose={null} />;
 }
 useGLTF.preload(BIKE_FILE); useGLTF.preload(OLD_PICKUP_FILE);
@@ -133,7 +158,7 @@ export default function CustomerRide({ ride = 'pickup', body, trim }) {
   if (ride === 'sedan') return <Sedan body={body} trim={trim} />;
   if (ride === 'van') return <Van body={body} trim={trim} />;
   if (ride === 'dirtbike') return <Suspense fallback={<DirtBike body={body} trim={trim} />}><group rotation={[0, 0, 0.1]}><GlbRide file={BIKE_FILE} body={body} /></group></Suspense>;
-  if (ride === 'oldpickup') return <Suspense fallback={<Pickup body={body} roof={trim} primer={body} />}><GlbRide file={OLD_PICKUP_FILE} /></Suspense>;
+  if (ride === 'oldpickup') return <Suspense fallback={<Pickup body={body} roof={trim} primer={body} />}><GlbRide file={OLD_PICKUP_FILE} body={body} repaint /></Suspense>;
   if (ride === 'moto') return <Moto body={body} trim={trim} />;
   return <Pickup body={body} roof={trim} primer={body} />;
 }

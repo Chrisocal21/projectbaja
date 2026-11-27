@@ -20,3 +20,20 @@ export function rollRide(jobId, rand = Math.random) {
 /** a saved ride, checked: old saves (or a bike on a job a bike can't need) fall back to the pickup */
 export const rideOf = w => (RIDES[w?.ride] && (!RIDES[w.ride].bike || BIKE_JOBS.has(w.id)) ? w.ride : 'pickup');
 export const rideLen = w => RIDES[rideOf(w)].len;
+
+// Paint per visit, so two oil changes don't turn up in the same colour. PROPOSAL palettes: [body, trim].
+// Cars: everyday, sun-faded work colours. Bikes: bright plastics (no brand colours copied on purpose).
+export const CAR_PAINTS = [
+  ['#e8e4da', '#6d6a63'], ['#9b2b22', '#d8d2c4'], ['#c9b48a', '#5a4a36'], ['#4d6b4a', '#d6d0bf'], ['#2b2d30', '#9a9488'],
+  ['#55708c', '#e2ddd0'], ['#c99a2e', '#3a352e'], ['#9fa4a6', '#3b3e40'], ['#6e4a32', '#cfc5ae'], ['#b65a2a', '#ece6d6'], ['#3e4f6b', '#b8b2a4'],
+];
+export const BIKE_PAINTS = [
+  ['#d9461e', '#1d1f22'], ['#c81f2a', '#f0f0ec'], ['#1f56b8', '#f0f0ec'], ['#e8c21c', '#1d1f22'], ['#3b9a3a', '#1d1f22'], ['#f2f2ee', '#c81f2a'], ['#1d1f22', '#e06a1a'],
+];
+/** [body, trim] for this visit: picked from the customer's uid (saved), so it stays put across reloads.
+ * Steps of 3 through the list keep customers who arrive one after another in different colours. */
+export function paintOf(w) {
+  const list = RIDES[rideOf(w)].bike ? BIKE_PAINTS : CAR_PAINTS;
+  const n = Number.isFinite(w?.uid) ? Math.abs(Math.floor(w.uid)) : 0;
+  return list[(n * 3) % list.length];
+}
