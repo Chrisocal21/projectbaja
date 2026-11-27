@@ -21,10 +21,10 @@ export const CAJON_DIMS = {
 /** every vehicle in the game. `storage`: what fits where (sizes add up; `max` = biggest single item) */
 export const VEHICLE_TYPES = {
   cajon: { id: 'cajon', name: 'El Cajon', length: 5.5, width: 2.0, kind: 'truck', dims: CAJON_DIMS, model: 'cajon',   // not for sale: Dusty's gift, rebuilt in Walt's yard (game/cajonGift.js)
-    storage: { cab: { cap: 4, max: 2, label: 'cab' }, bed: { cap: 16, max: 4, label: 'bed' } }, pitch: "Dusty's old coupe-utility, rebuilt." },   // Nov 27: more room (cab 3 -> 4, bed 12 -> 16), PROPOSAL
+    storage: { cab: { cap: 16, max: 3, label: 'cab' }, bed: { cap: 60, max: 4, label: 'bed' } }, pitch: "Dusty's old coupe-utility, rebuilt." },   // Nov 26: generous room, PROPOSAL
   bug: { id: 'bug', name: "'71 Bug", length: 4.1, width: 1.6, kind: 'build' },
   pickup84: { id: 'pickup84', name: "'84 4x4 Pickup", length: 5.4, width: 2.0, price: 4800, kind: 'truck', dims: TRUCK_DIMS,
-    storage: { cab: { cap: 4, max: 2, label: 'cab' }, bed: { cap: 20, max: 4, label: 'bed' } },   // Nov 27: more room (cab 3 -> 4, bed 16 -> 20), PROPOSAL
+    storage: { cab: { cap: 16, max: 3, label: 'cab' }, bed: { cap: 80, max: 4, label: 'bed' } },   // Nov 26: generous room, PROPOSAL
     pitch: "Runs, drives, hauls an engine in the bed. Bald tires, no radio.", condition: { Paint: 44, Interior: 52, Engine: 81, Frame: 77 } },
   pickup78: { id: 'pickup78', name: "'78 Half-ton", length: 5.1, width: 1.95, price: 2300, kind: 'project', dims: null,
     pitch: 'Good bones, no motor. A project for later.', condition: { Paint: 22, Interior: 30, Engine: 0, Frame: 64 } },

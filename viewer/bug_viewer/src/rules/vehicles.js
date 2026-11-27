@@ -59,7 +59,7 @@ export const BUG = {
     S('wheelRL', 'Rear-left wheel', { wheel: 'RL', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
     S('wheelRR', 'Rear-right wheel', { wheel: 'RR', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
   ],
-  storage: { cab: 6, roof: 8 },
+  storage: { cab: 30, roof: 30 },
   // the body shell: everything with a body piece mounts on it, so it only lifts off a stripped car (garage hoist)
   shell: { id: 'shell', name: 'Body shell', size: 9, tool: 'hoist' },   // roof deck only with a roof rack fitted
   camera: { height: 1.3, dist: 9 },
@@ -119,7 +119,7 @@ export const CAJON = {
     S('ecWheelRL', 'Rear-left wheel', { wheel: 'RL', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
     S('ecWheelRR', 'Rear-right wheel', { wheel: 'RR', tool: 'jack', size: 3, fn: 'grip', zone: 'rear' }),
   ],
-  storage: { cab: 4, bed: 20 },
+  storage: { cab: 16, bed: 80 },
 };
 
 export const VEHICLES = { bug: BUG, cajon: CAJON };

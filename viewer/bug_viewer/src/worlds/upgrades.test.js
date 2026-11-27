@@ -53,5 +53,5 @@ test('effects: order time, hold speed and pack size step up with the stages', ()
   assert.equal(effectsOf(new Set(['phoneLine', 'annex', 'supplierAccount'])).orderHours, 1);
   assert.equal(effectsOf(new Set(['airTools'])).holdScale, 0.7);
   assert.equal(effectsOf(new Set(['airTools', 'lift2', 'proTools'])).holdScale, 0.5);
-  assert.equal(effectsOf(new Set(['camper-locker'])).packBonus, 2);
+  assert.equal(effectsOf(new Set(['camper-locker'])).packBonus, 10);
 });

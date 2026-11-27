@@ -44,8 +44,9 @@ const baseName = it => it.kind === 'mat' ? matName(it.id, it.n) : it.kind === 's
 export const itemSize = it => sizeOf(it.kind, it.id);
 
 // ---- storage ----
-/** pack: small parts only. car: the cab, plus a roof deck when a roof rack is fitted (anything up to "large") */
-export const CAPACITY = { pack: 4, cab: 6, roof: 8 };   // Nov 27 (Chris: more room in the vehicle): the Bug's back seat counts too, cab 4 -> 6, roof rack 6 -> 8. PROPOSAL
+/** pack: small and medium things. car: the cab, plus a roof deck when a roof rack is fitted (anything up to "large") */
+export const CAPACITY = { pack: 30, cab: 30, roof: 30 };   // Nov 26 (Chris: generous room in everything). In size units: small 1, medium 2, large 3, huge 4. PROPOSAL numbers
+export const PACK_MAX = 2;   // the biggest thing the pack takes (medium)
 /** the pack's size: 4, plus what the camper's gear locker adds (game/upgrades.js effects) */
 export const packCap = () => CAPACITY.pack + effects().packBonus;
 export const hasRack = () => !!game.build?.parts?.roofRack;
@@ -79,22 +80,24 @@ export function spotFor(it, veh = game.active) {
   for (const [k, v] of Object.entries(storageOf(veh))) if (s <= v.max && used(k, veh) + s <= v.cap) return k;
   return null;
 }
-const fitsPack = it => itemSize(it) === 1 && used('pack') + 1 <= packCap();
+const roomInPack = size => size <= PACK_MAX && used('pack') + size <= packCap();
+const fitsPack = it => roomInPack(itemSize(it));
 const commit = () => { game.items = [...game.items]; save(); };
 const uid = () => allocUid(game.nextUid, 'items', game.items);
 const at = it => { delete it.x; delete it.z; delete it.y; delete it.ry; delete it.wall; delete it.spot; delete it.box; delete it.veh; return it; };
 
 /** put an item on you: small parts go in the pack, anything else needs free hands */
 /** can the player take this right now (pack or free hands)? */
-export const canCarry = (kind, id) => sizeOf(kind, id) <= 4 && ((sizeOf(kind, id) === 1 && used('pack') + 1 <= packCap()) || !held());
+export const canCarry = (kind, id) => sizeOf(kind, id) <= 4 && (roomInPack(sizeOf(kind, id)) || !held());
 /** hand a brand-new item to the player (detached part, store purchase). Check canCarry first. */
 export function giveToPlayer(kind, id, extra = {}) { const it = { uid: uid(), kind, id, loc: 'world', ...extra }; game.items.push(it); const w = takeOnto(it); commit(); return w; }
 function takeOnto(it) {
+  if (itemSize(it) > 1 && !held()) { at(it).loc = 'hand'; return 'hand'; }   // bigger than small goes to free hands first, so you can fit it straight away
   if (fitsPack(it)) { at(it).loc = 'pack'; return 'pack'; }
   if (!held()) { at(it).loc = 'hand'; return 'hand'; }
   return null;
 }
-const fullMsg = it => (itemSize(it) === 1 ? 'Pack is full and your hands are busy.' : 'Your hands are full — right-click to put that down.');
+const fullMsg = it => (itemSize(it) <= PACK_MAX ? 'Pack is full and your hands are busy.' : 'Your hands are full — right-click to put that down.');
 
 export function spawnItem(kind, id, x, z, y = 0, ry = Math.random() * 6) { game.items.push({ uid: uid(), kind, id, loc: 'world', x, z, y, ry, ...(kind === 'epart' ? { cond: 100 } : {}) }); commit(); }   // a bought engine piece is new
 const near = (d = 1.4, jitter = 0.5) => ({ x: game.pos.x + game.face.x * d + (Math.random() - 0.5) * jitter, z: game.pos.z + game.face.z * d + (Math.random() - 0.5) * jitter });
@@ -149,7 +152,7 @@ export function hangHeld() {
 export function holdItem(uidN) {
   const it = game.items.find(i => i.uid === uidN); if (!it || it.loc !== 'pack') return;
   const h = held();
-  if (h) { if (itemSize(h) === 1) h.loc = 'pack'; else return say('Your hands are full.'); }
+  if (h) { if (itemSize(h) <= PACK_MAX && used('pack') - itemSize(it) + itemSize(h) <= packCap()) h.loc = 'pack'; else return say('Your hands are full.'); }
   it.loc = 'hand'; commit();
 }
 export function stowInCar(uidN, veh = game.active) {

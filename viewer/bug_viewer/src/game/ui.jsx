@@ -153,7 +153,7 @@ export function InventoryBody() {
   const putIn = it => vehs.map(v => <button key={v} onClick={() => stowInCar(it.uid, v)}>{vehs.length > 1 ? `Put in ${vehicleType(v).name}` : 'Put in car'}</button>);
   return <>
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
-    <div className="inv-sec">PACK <span>{used('pack')}/{packCap()} · small parts only</span></div>
+    <div className="inv-sec">PACK <span>{used('pack')}/{packCap()} · small and medium things</span></div>
     {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
     {shown.map(v => { const t = vehicleType(v), near = vehs.includes(v), list = carItems(v);
       return <React.Fragment key={v}>

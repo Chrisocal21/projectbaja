@@ -39,7 +39,7 @@ export const STAGES = [
   L('camper', 'camper-paint', 'Fresh paint', 180, 'Cream and turquoise, like it was in 1966.', { needs: ['camper-roof'], store: { key: 'trailer', name: 'paint' } }),
   L('camper', 'camper-ac', 'Window A/C unit', 380, 'It is the desert.', { needs: ['camper-roof'], store: { key: 'trailer', name: 'ac' } }),
   L('camper', 'camper-lights', 'String lights', 60, 'For the porch. Purely morale.', { needs: ['camper-porch'], store: { key: 'trailer', name: 'lights' } }),
-  L('camper', 'camper-locker', 'Gear locker', 300, 'A steel locker by the door: two more slots in your pack.', { needs: ['camper-roof'], effect: 'packBonus', store: { key: 'trailer', name: 'locker' } }),
+  L('camper', 'camper-locker', 'Gear locker', 300, 'A steel locker by the door: ten more units of room in your pack.', { needs: ['camper-roof'], effect: 'packBonus', store: { key: 'trailer', name: 'locker' } }),
   // Property
   L('property', 'parking1', 'Customer lot, first expansion', 650, `+2 bays (${rowsAtLevel(1) * 2} total)`, { store: { key: 'upgrades', name: 'parking', level: 1 } }),
   L('property', 'parking2', 'Customer lot, second expansion', 950, `+2 bays (${rowsAtLevel(2) * 2} total)`, { needs: ['parking1'], store: { key: 'upgrades', name: 'parking', level: 2 } }),
@@ -76,6 +76,6 @@ export function effectsOf(owned) {
   return {
     orderHours: owned.has('supplierAccount') ? 1 : owned.has('phoneLine') ? 2 : ORDER_HOURS_BASE,
     holdScale: owned.has('proTools') ? 0.5 : owned.has('airTools') ? 0.7 : 1,   // multiplies how long the hold bar takes
-    packBonus: owned.has('camper-locker') ? 2 : 0,
+    packBonus: owned.has('camper-locker') ? 10 : 0,
   };
 }

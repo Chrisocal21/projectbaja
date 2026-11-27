@@ -619,3 +619,7 @@
 
 /* blueprints (Phase 1): the second button in the build menu buys the piece ready-made */
 .bm-go.bm-buy { background: #3a4350; color: #e8ecf1 !important; }
+/* inventory on the phone: the name on its own line, its buttons in a row below (they ran off the side) */
+.phone .inv-app .inv-row { flex-direction: column; align-items: stretch; gap: 5px; }
+.phone .inv-app .inv-btns { flex-wrap: wrap; }
+.phone .inv-app .inv-btns button:not(.ph-entry) { min-height: 28px; padding: 5px 10px; font-size: 12.5px; }

@@ -544,7 +544,7 @@ export const TRAILER_UPGRADES = [
   { id: 'paint', name: 'Fresh paint', price: 180, note: 'Cream and turquoise, like it was in 1966.' },
   { id: 'ac', name: 'Window A/C unit', price: 380, note: 'It is the desert.' },
   { id: 'lights', name: 'String lights', price: 60, note: 'For the porch. Purely morale.' },
-  { id: 'locker', name: 'Gear locker', price: 300, note: 'A steel locker by the door: two more slots in your pack.' },
+  { id: 'locker', name: 'Gear locker', price: 300, note: 'A steel locker by the door: ten more units of room in your pack.' },
 ];
 export const trailerHas = id => !!game.home.trailer?.includes(id);
 /** why a camper stage cannot be bought now ('' = it can): the same rules as the Upgrades screen (worlds/upgrades.js) */
