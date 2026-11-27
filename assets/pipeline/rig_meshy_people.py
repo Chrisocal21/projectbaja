@@ -1,10 +1,11 @@
-"""Blender background script. Pass source and staging model directories after --."""
+"""Experimental connected-weight pass. Pass source and staging directories after --."""
 import math
 import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
+import numpy as np
+from mathutils import Matrix, Vector
 
 
 def rig(source, destination):
@@ -14,7 +15,12 @@ def rig(source, destination):
     matrix = mesh.matrix_world.copy()
     mesh.parent = None
     mesh.data.transform(matrix)
-    mesh.matrix_world.identity()
+    mesh.matrix_world = Matrix.Identity(4)
+    bpy.context.view_layer.objects.active = mesh
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles(threshold=.0001)
+    bpy.ops.object.mode_set(mode='OBJECT')
     height = max(v.co.z for v in mesh.data.vertices)
     armature = bpy.data.armatures.new('Skeleton')
     skeleton = bpy.data.objects.new('CharacterRig', armature)
@@ -46,39 +52,63 @@ def rig(source, destination):
     mesh.parent = skeleton
     modifier = mesh.modifiers.new('Skin', 'ARMATURE')
     modifier.object = skeleton
-    groups = {name: mesh.vertex_groups.new(name=name) for name in segments}
+    groups = [mesh.vertex_groups.new(name=name) for name in segments]
+    weights = np.zeros((len(mesh.data.vertices), len(segments)))
     for vertex in mesh.data.vertices:
         x, _, z = vertex.co / height
-        side = 'L' if x >= 0 else 'R'
-        if z < .45:
-            names = ['Thigh'+side, 'Shin'+side, 'Foot'+side, 'Hips']
-        elif z > .845:
-            names = ['Head', 'Spine']
-        else:
-            names = ['Hips', 'Spine', 'Head']
-            if abs(x) > .105:
-                names += ['UpperArm'+side, 'Forearm'+side]
-        weights = []
-        for name in names:
-            a, delta = segments[name]
+        for column, (name, (a, delta)) in enumerate(segments.items()):
             offset = vertex.co-a
             t = max(0, min(1, offset.dot(delta)/delta.length_squared))
             distance = (offset-t*delta).length/height
-            weights.append(((distance**2+.0009)**-2.5, name))
-        strongest = sorted(weights, reverse=True)[:4]
-        total = sum(weight for weight, _ in strongest)
-        for weight, name in strongest:
-            groups[name].add([vertex.index], weight/total, 'REPLACE')
+            influence = 1
+            if name.startswith(('UpperArm', 'Forearm')):
+                influence = min(1, max(0, (abs(x)-.11)/.07)) * min(1, max(0, (z-.46)/.08))
+            weights[vertex.index, column] = influence * (distance**2+.0025)**-2
+    weights /= weights.sum(axis=1, keepdims=True)
+    edges = np.array([tuple(edge.vertices) for edge in mesh.data.edges])
+    a, b = edges.T
+    origin, neighbor = np.concatenate((a,b)), np.concatenate((b,a))
+    degree = np.maximum(1,np.bincount(origin,minlength=len(weights)))[:,None]
+    for _ in range(12):
+        adjacent = np.zeros_like(weights)
+        np.add.at(adjacent, origin, weights[neighbor])
+        weights = (weights + adjacent / degree) * .5
+    for i, row in enumerate(weights):
+        strongest = np.argsort(row)[-4:]
+        total = row[strongest].sum()
+        for column in strongest:
+            groups[column].add([i], row[column]/total, 'REPLACE')
 
     scene = bpy.context.scene
     scene.render.fps = 24
     skeleton.animation_data_create()
+    # Limit motion against the actual connected surface. These are posed,
+    # single-piece meshes, and some have fused clothing or crossed limbs.
+    rest = np.array([tuple(vertex.co) for vertex in mesh.data.vertices])
+    a, b = edges.T
+    rest_lengths = np.linalg.norm(rest[a] - rest[b], axis=1)
+    measurable = rest_lengths > height * .0015
+
+    def apply_pose(poses, hip_z, strength):
+        for joint in skeleton.pose.bones:
+            joint.rotation_mode = 'XYZ'
+            joint.rotation_euler = tuple(angle * strength for angle in poses.get(joint.name, (0,0,0)))
+        skeleton.pose.bones['Hips'].location = (0, hip_z * strength, 0)
+
+    def stretch():
+        bpy.context.view_layer.update()
+        evaluated = mesh.evaluated_get(bpy.context.evaluated_depsgraph_get())
+        coords = np.empty(len(rest) * 3, dtype=np.float32)
+        evaluated.data.vertices.foreach_get('co', coords)
+        points = coords.reshape(-1, 3)
+        lengths = np.linalg.norm(points[a] - points[b], axis=1)
+        return np.quantile(lengths[measurable] / rest_lengths[measurable], .995)
+
     clips = {'idle': 48, 'walk': 24, 'talk': 48}
     if source.stem.endswith(('_Overalls', '_Coveralls')):
         clips['work'] = 48
     for clip, duration in clips.items():
-        action = bpy.data.actions.new(clip)
-        skeleton.animation_data.action = action
+        frames = []
         for frame in range(0, duration+1, 3):
             phase = math.tau * frame/duration
             s = math.sin(phase)
@@ -103,12 +133,27 @@ def rig(source, destination):
                          'ShinL': (-1.12,0,0), 'ShinR': (-1.12,0,0),
                          'UpperArmR': (.42,0,0), 'ForearmR': (.56+.24*s,0,0),
                          'UpperArmL': (.42,0,0), 'ForearmL': (.46,0,0)}
+            frames.append((frame, poses, hip_z))
+        strength = 1
+        if clip in ('walk', 'work'):
+            for candidate in (1, .8, .65, .5, .4, .3, .2, .1):
+                for _, poses, hip_z in frames:
+                    apply_pose(poses, hip_z, candidate)
+                    if stretch() > 1.35:
+                        break
+                else:
+                    strength = candidate
+                    break
+            else:
+                strength = .075
+            print(f'{source.stem} {clip}: motion scale {strength:.3f}', flush=True)
+        action = bpy.data.actions.new(clip)
+        skeleton.animation_data.action = action
+        for frame, poses, hip_z in frames:
+            apply_pose(poses, hip_z, strength)
             for pose in skeleton.pose.bones:
-                pose.rotation_mode = 'XYZ'
-                pose.rotation_euler = poses.get(pose.name, (0,0,0))
                 pose.keyframe_insert(data_path='rotation_euler', frame=frame)
             hips = skeleton.pose.bones['Hips']
-            hips.location = (0,hip_z,0)
             hips.keyframe_insert(data_path='location', frame=frame)
         skeleton.animation_data.action = None
         track = skeleton.animation_data.nla_tracks.new()
@@ -124,6 +169,9 @@ def rig(source, destination):
 
 
 src, out = map(Path, sys.argv[sys.argv.index('--')+1:])
+runtime = Path(__file__).resolve().parents[2] / 'viewer/bug_viewer/public'
+if out.resolve().is_relative_to(runtime):
+    raise SystemExit('Use a staging directory for these experimental rigs.')
 out.mkdir(parents=True, exist_ok=True)
 for source in sorted(src.glob('PERSON_M_*.glb')):
     rig(source, out/source.name)

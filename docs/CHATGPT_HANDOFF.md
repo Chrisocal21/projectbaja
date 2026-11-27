@@ -30,6 +30,8 @@ All on `main`, pushed. Tests: 673 passing; production build clean. Raw Meshy dow
 - **Work:** both workers drag jacket / pocket geometry out behind the back with the arms (hands resting on or in the clothes get arm weights).
 - Check each fix by rendering side view at walk frames 25% and 75%. When fixed, keep the clip names and tell Claude, who adds them to `clipFor`.
 
+**Follow-up experiment:** Welded duplicate vertices, removed the hard left/right weight split, smoothed weights over connected edges, and measured deformation. With the 99.5th percentile edge stretch capped at 1.35× at sampled keyframes, GreyTee, HiVis, Trekker and YoungMan walk only at 10% of the original motion. Coveralls work also reached only 10%. Overalls reached 20% walk and 30% work. This measures deformation, not visual quality, and does not prove which meshes have fused limbs. The experimental generator stages exports outside public; existing runtime GLBs and idle/talk wiring are unchanged. Use Coveralls for the single Meshy A-pose pilot so it exercises both walk and work. Request clearly separated arms, hands outside pockets, and uncrossed feet. Compare quarter and three-quarter side views before regenerating any other characters.
+
 **Wiring (done by Claude):** In `worlds/Person.jsx`, clone each instance with Three's SkeletonUtils before animation and give it its own mixer. Default to `idle`, crossfade by clip name, and move the world group along the path during `walk`. Worker logic can position a separate wrench to match the right forearm and choose `work` only for the two reserved models. File names and casting keys are unchanged.
 
 
