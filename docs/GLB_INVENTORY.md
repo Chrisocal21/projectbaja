@@ -1,6 +1,6 @@
 # GLB inventory
 
-The game ships **99 GLBs** in `viewer/bug_viewer/public/models`. The small-prop pass added **64**. The five Phase 3 furniture models came from the preceding pass. An additional **85 files** live under the source and handoff directories, including copies.
+The game ships **107 GLBs** in `viewer/bug_viewer/public/models`. The small-prop pass added **64**. The five Phase 3 furniture models came from the preceding pass. An additional **85 files** live under the source and handoff directories, including copies.
 
 [Small-prop contact sheet](./SMALL_MODEL_PREVIEW.png)
 
@@ -294,3 +294,7 @@ Folder names preserve the distinction between original source art, archived vari
 - [PART_015_FrontCageReinforcement.glb](<../handoff/project_baja_handoff/bug_asset/PART_015_FrontCageReinforcement.glb>)
 - [PART_016_RearCageBracing.glb](<../handoff/project_baja_handoff/bug_asset/PART_016_RearCageBracing.glb>)
 - [VEH_001_Bug_Base_v01.glb](<../handoff/project_baja_handoff/bug_asset/VEH_001_Bug_Base_v01.glb>)
+
+## Remaining station models
+
+Eight additional station and broken-equipment GLBs are ready for wiring. Their measured dimensions and separate mesh names are in [the handoff](./CHATGPT_HANDOFF.md#remaining-stations-delivered). All use the small-prop material palette.

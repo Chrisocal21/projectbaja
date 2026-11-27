@@ -21,7 +21,7 @@ Last updated: Nov 26, 2026 (catch-up since your last commit, new focus list).
 You: art, models, sound and world. Claude: gameplay rules and wiring them in.
 **Done (Nov 26):** sawhorses, workbench, lumber / steel / battery rack models (964922a); 64 small GLBs for junk, materials, tools, engine parts, kits, containers and yard piles (9e51248, see [GLB_INVENTORY](./GLB_INVENTORY.md)). Claude still has to wire in the furniture.
 
-1. **Remaining station models:** grinder station, welding table + welder cart, table saw station, tube bender station, plus broken looks for Walt's old welder (under a tarp), grinder and compressor. Moving parts as separate named meshes.
+1. **Station models delivered below, wiring pending:** grinder station, welding table + welder cart, table saw station, tube bender station, plus broken looks for Walt's old welder (under a tarp), grinder and compressor. Moving parts as separate named meshes.
 2. **In-game walk-through of your 64 models** (still pending): in your hands, on shelves, on the floor, in containers; check size, floating or sinking, facing, grip, and frame rate.
 3. **People for customer visits:** a few low-poly rigged characters (idle, walk, talk, sit). Keep them unnamed (never invent lore).
 4. **Shop sounds:** wrench clicks, angle grinder, welder, table saw, tube bender, plus grinder sparks and a small puff when a build stage finishes. Hook off `game.holdBar`; keep K mute and the 50% default.
@@ -29,6 +29,16 @@ You: art, models, sound and world. Claude: gameplay rules and wiring them in.
 6. **World work:** drive the 24 baked trails (item 8), the dirt-road drop (item 0), a visual check of the Mex 5 crossing fix.
 
 **Model rules:** metres; origin at the bottom centre (bottom at y = 0); front faces +z; match the footprint of what it replaces; GLB in `viewer/bug_viewer/public/models`. For each model, tell Chris the file name, its size and the names of any moving or separate meshes. Put paint, lamps and trim that bolt on separately in **their own named meshes**, never inside another part's mesh (that caused the tail lamp bug).
+
+### Walk-through status and requests for Claude
+The local game title screen loaded in an isolated browser. After Start, the headless game session stopped responding to browser evaluation. The full in-game review of all 64 models, screenshots and frame-rate measurement remains pending. The earlier contact sheet and nine state checks cover isolated assets only.
+
+Items.jsx follow-up for Claude from source inspection
+- PartModel clamps every loose kit to its carry tier. Verify long kits and the stock engine at shelf scale during the walkthrough.
+- StockItem's wheel resting transform wraps a bottom-centred StockPiece in another rotated group. Check floor contact for stock wheels.
+- TireItem uses a fixed 0.18 m lift. Measure the GLB bounds after its resting rotation so every tire touches the surface.
+- The rack and vehicle grid paths use their separate TireModel. Compare them with the new loose worn tire.
+- No Items.jsx or BuildModel.jsx edits were made in this station pass.
 
 ## Coordination (who edits what)
 - Both builders work on `main`. Run `git status` first: modified files you did not touch belong to the other builder. Pull before you start.
@@ -100,6 +110,21 @@ Codex stopped at "next is the office and stairs, including the duplicate desks a
 - More cars for the classifieds need more car models first (only the '84 pickup is buyable today).
 
 ## Done (recent, for context)
+### Remaining stations delivered
+Eight GLBs are ready in `viewer/bug_viewer/public/models`. Dimensions are provisional, in metres, width ? height ? depth. Origins are bottom-centred with +z front. Blade, die, lever, controls, wheels and tarp are separate meshes. Their mesh geometry uses asset-local coordinates, so animation needs a pivot at the spindle or hinge. Claude can wire them into stations and broken equipment.
+
+| File | Dimensions | Meshes |
+|---|---|---|
+| SHOP_GrinderStation.glb | 0.910 ? 1.050 ? 0.576 | Frame, Feet, Stretchers, TopPlanks, ClampingPlate, Motor, CuttingDisc, ToolGrip |
+| SHOP_OldCompressor.glb | 0.800 ? 0.721 ? 0.479 | Tank, Feet, MotorPlate, DeadMotor, PumpFins, Flywheel, DisconnectedHose, DeadGauge |
+| SHOP_OldGrinder.glb | 0.457 ? 0.274 ? 0.286 | Base, Motor, Spindle, WornWheel, BrokenGuard, LooseToolRest |
+| SHOP_OldWelderTarped.glb | 0.656 ? 0.679 ? 0.633 | TransformerCase, Wheels, DeadPanel, MissingDial, FrayedLead, Tarp |
+| SHOP_TableSawStation.glb | 1.100 ? 1.097 ? 0.830 | Frame, Feet, Stretchers, SawBody, Table, Blade, Teeth, RivingKnife, Fence, FenceRails, HeightWheel, Switch |
+| SHOP_TubeBenderStation.glb | 0.955 ? 0.982 ? 0.630 | Base, Pedestal, DiePlate, BendingDie, DieGroove, Follower, Lever, HandleGrip |
+| SHOP_WelderCart.glb | 0.510 ? 0.985 ? 0.666 | Frame, Feet, Stretchers, LowerTray, MachineTray, Wheels, WelderCase, VentSlots, ControlKnobs, PushHandle, TorchLead, Torch |
+| SHOP_WeldingTable.glb | 1.280 ? 0.920 ? 0.840 | Frame, Feet, Stretchers, TableSlats, LowerShelf, GroundLead |
+
+
 - **Small GLBs and asset inventory.** See [GLB inventory](./GLB_INVENTORY.md) for all 99 game files, source and handoff copies, dimensions, named meshes and current wiring. The [contact sheet](./SMALL_MODEL_PREVIEW.png) shows all 64 new assets. Loose salvage, bundles, tools, supplies, removable engine pieces, upgrade kits, searchable containers and the yard cleanup piles now use the models through their existing game render paths. The scrap-tire pile has a readable sign and a counted stack. The rack tire renderer and fitted car assemblies have separate art paths.
 - **Phase 3 furniture art, first batch.** Five static GLBs are ready in `viewer/bug_viewer/public/models`. Claude can wire the sawhorse pair and new workbench into their blueprints and the three racks into storage. Each file uses a bottom-centred origin, metres and +z front. These are proposed furniture sizes. Allow access from the front of the cantilever racks. The two sawhorses together form one station. Browser checked as standalone assets. Placement and gameplay integration remain open.
 
