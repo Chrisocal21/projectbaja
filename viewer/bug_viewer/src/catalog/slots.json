@@ -57,6 +57,13 @@
  },
  {
   "type": "slot",
+  "id": "lift",
+  "label": "Lift kit",
+  "category": "Mechanical",
+  "order": 10.5
+ },
+ {
+  "type": "slot",
   "id": "shocks",
   "label": "Shocks",
   "category": "Mechanical",

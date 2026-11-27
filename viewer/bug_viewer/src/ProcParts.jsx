@@ -49,6 +49,15 @@ const PROC = {
   // ---------- underbody ----------
   GUARD_SkidPlate: () => [box([0, 0.27, 0.3], [1.0, 0.02, 1.5], 'alu'), box([-0.5, 0.29, 0.3], [0.02, 0.05, 1.5], 'alu'), box([0.5, 0.29, 0.3], [0.02, 0.05, 1.5], 'alu'), ...[-0.35, 0.35].flatMap(x => [-0.3, 0.3, 0.9].map(z => ({ mat: 'dark', g: place(new THREE.CylinderGeometry(0.018, 0.018, 0.012, 8), V(x, 0.258, z)) })))],
   GUARD_MudFlaps: r => { const rad = 0.38 * (r?.scale || 1) + 0.1; return [1, -1].flatMap(side => [1.19 - rad, -1.19 - rad].flatMap(z => [box([0.78 * side, 0.43, z], [0.014, 0.22, 0.24], 'rubber'), box([0.78 * side, 0.55, z], [0.02, 0.025, 0.25], 'dark')])); },
+  // ---------- lift kit: a beam adjuster at the middle of the front beam, and a spacer block between the body and each hub (stretches with the lift so it always meets the axle) ----------
+  LIFT_Kit: r => {
+    const k = r?.kitLift || 0.05, lift = r?.lift || 0, ms = (r?.mounts || []).filter(m => /^[FR][LR]$/.test(m.name)), out = [];
+    for (const m of ms) {   // body space: the hub sits `lift` below where it was drawn, so each block reaches from the hub up into the body
+      const sx = m.center[0] < 0 ? -1 : 1, x = m.center[0] - sx * (m.halfWidth + 0.08), hub = m.center[1] - lift, top = hub + 0.14 + k;
+      out.push(box([x, (hub + top) / 2, m.center[2]], [0.06, top - hub, 0.09], 'lift'), zDisc([x - sx * 0.035, hub + 0.04, m.center[2]], 0.02, 0.012, 'chrome'), box([x, top, m.center[2]], [0.1, 0.015, 0.13], 'dark'));
+    }
+    return out;
+  },
   // ---------- exhaust ----------
   EXH_SidePipes: () => mirrorX([s => [
     tube(V(0.46 * s, 0.64, -1.55), V(0.64 * s, 0.5, -1.35), 0.034, 'chrome'), tube(V(0.64 * s, 0.5, -1.35), V(0.7 * s, 0.46, -1.0), 0.034, 'chrome'),
@@ -76,6 +85,7 @@ const MATS = {
   canRed: new THREE.MeshStandardMaterial({ color: '#b3392a', roughness: 0.6, metalness: 0.2 }),
   canOlive: new THREE.MeshStandardMaterial({ color: '#59602f', roughness: 0.6, metalness: 0.2 }),
   flag: new THREE.MeshStandardMaterial({ color: '#ff7a1a', roughness: 0.8, side: THREE.DoubleSide }),
+  lift: new THREE.MeshStandardMaterial({ color: '#c8481e', metalness: 0.4, roughness: 0.5 }),   // powder-coated orange so you can see the kit under the car (PROPOSAL)
 };
 
 const cache = {};
@@ -86,7 +96,7 @@ function buildProc(id, r) {
 }
 /** Procedural accessory or mount, optionally sized from the resolved build (`r.scale` = tire scale for mud flaps). */
 export function ProcPart({ id, r }) {
-  const key = id === 'GUARD_MudFlaps' ? `${id}-${(r?.scale || 1).toFixed(2)}` : id;
+  const key = id === 'GUARD_MudFlaps' ? `${id}-${(r?.scale || 1).toFixed(2)}` : id === 'LIFT_Kit' ? `${id}-${(r?.kitLift || 0).toFixed(3)}-${(r?.lift || 0).toFixed(3)}-${(r?.scale || 1).toFixed(2)}` : id;
   const groups = useMemo(() => cache[key] || (cache[key] = buildProc(id, r)), [key]);
   return <group name={`Proc_${id}`}>{Object.entries(groups).map(([m, g]) => <mesh key={m} geometry={g} material={MATS[m]} castShadow receiveShadow />)}</group>;
 }

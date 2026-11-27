@@ -3,7 +3,7 @@ import { game, save, say } from './store.js';
 import { held, packItems, itemSize, nameOfItem, inGarageZone } from './items.js';
 import { BUG, VEHICLES, defOfBuild, UPGRADE_FIT, WHEEL_FIT, slotById } from '../rules/vehicles.js';
 import { isFitted, checkFit, checkDetach, withSlot, zoneAt, isDriveable, missingToDrive, listNames, TOOL_WHY } from '../rules/restore.js';
-import { partById, setPart, setWheels, setRim, partState, bodyById, wheelSetFits, wheelById } from '../build.js';
+import { partById, setPart, setWheels, setRim, partState, bodyById, wheelSetFits, wheelById, tireMax, kitLift, tireScaleOf, tireInches, liftNeeded } from '../build.js';
 import { activeType } from './fleet.js';
 import { hasInGarage } from './home.js';
 import { projectOpen } from './projects.js';
@@ -14,6 +14,13 @@ import { engineStartCheck } from './engineRules.js';
 import { batteryCheck } from './benchRules.js';
 
 export const DEF = BUG;
+
+/** Do the tires clear the fenders with this lift kit? -> '' or why not. Pass the raw build (not normalize()d: that would quietly shrink the tires to fit). Taller tires need a lift kit (PROPOSAL: tireMax in build.js). */
+export function clearanceWhy(b) {
+  const scale = tireScaleOf(b); if (scale <= tireMax(kitLift(b) + (b.lift || 0)) + 1e-9) return '';
+  const need = liftNeeded(scale), inch = tireInches(scale);
+  return need ? `${inch}-inch tires rub the fenders. They need a ${Math.round(need / 0.0254)}-inch lift kit.` : `${inch}-inch tires are too big for this car.`;
+}
 export const STOCK_NAMES = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots).map(s => [s.id, s.name]));
 export { defOfBuild };
 
@@ -83,6 +90,7 @@ export function planFit(it, b, zone) {
       return { ...r, slotName: p.label, apply: bb => { const drops = []; if (!stripped) drops.push(bb.parts.engine ? ['part', bb.parts.engine] : ['stock', 'engine']); return { build: setPart(withSlot(DEF, bb, 'engine', true), 'engine', p.id), drops }; } };
     }
     if (fit.needsEngine && !isFitted(DEF, b, 'engine')) return { ok: false, why: 'There is no engine to bolt that onto.' };
+    if (p.slot === 'lift') { const why = clearanceWhy({ ...b, parts: { ...b.parts, lift: p.id } }); if (why) return { ok: false, why: `Not with these tires on. ${why}` }; }   // swapping to a smaller kit under big tires
     if (zone && fit.zone !== 'any' && fit.zone !== zone) return { ok: false, why: `Go to the ${fit.zone} of the car for the ${p.label.toLowerCase()}.` };
     if (fit.cover && isFitted(DEF, b, fit.cover) && !ctx.open.has(fit.cover)) return { ok: false, code: 'cover_shut', why: `Open the ${DEF.covers[fit.cover].name} first.`, openCover: fit.cover, blockers: [fit.cover] };
     if (!ctx.tools.has(tool)) return { ok: false, why: TOOL_WHY[tool]('fit', p.label.toLowerCase()) };
@@ -90,6 +98,7 @@ export function planFit(it, b, zone) {
   }
   if (it.kind === 'wheel' || it.kind === 'rim') {
     if (it.kind === 'wheel' && !wheelSetFits(wheelById[it.id], b.body)) return { ok: false, why: "Those don't fit this car." };
+    if (it.kind === 'wheel') { const why = clearanceWhy({ ...b, wheels: it.id }); if (why) return { ok: false, why }; }
     if (!ctx.tools.has(WHEEL_FIT.tool)) return { ok: false, why: TOOL_WHY.jack('fit', it.kind === 'wheel' ? 'tires' : 'rims') };
     return { ok: true, slotName: nameOfItem(it), apply: bb => it.kind === 'wheel' ? { build: setWheels(bb, it.id), drops: bb.wheels !== 'stock' ? [['wheel', bb.wheels]] : [] } : { build: setRim(bb, it.id), drops: bb.rim !== 'steel' ? [['rim', bb.rim]] : [] } };
   }
@@ -112,6 +121,7 @@ export function planDetachUpgrade(catSlot, b) {
   if (defOfBuild(b) !== BUG) return { ok: false, why: 'Nothing like that on this truck.', item: ['part', catSlot] };
   const p = partById[b.parts[catSlot]], fit = UPGRADE_FIT[catSlot] || {}, tool = fit.tool || 'wrench', tools = toolsHere();
   if (!tools.has(tool)) return { ok: false, why: TOOL_WHY[tool]('detach', p.label.toLowerCase()), item: ['part', p.id] };
+  if (catSlot === 'lift' && clearanceWhy({ ...b, parts: Object.fromEntries(Object.entries(b.parts).filter(([s]) => s !== 'lift')) })) return { ok: false, why: `Take the ${tireInches(tireScaleOf(b))}-inch tires off first: they'd rub without the lift.`, item: ['part', p.id] };
   return { ok: true, item: ['part', p.id], apply: bb => setPart(bb, catSlot, null) };
 }
 

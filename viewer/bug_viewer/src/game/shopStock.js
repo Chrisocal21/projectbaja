@@ -16,7 +16,7 @@ const take = (list, n, rnd) => shuffle(list, rnd).slice(0, n);
 
 /** the groups an off-road store can lean toward (part slots, see catalog/parts.json) */
 export const SPECIALTY = {
-  suspension: { name: 'suspension', slots: ['suspension', 'shocks'] },
+  suspension: { name: 'suspension', slots: ['suspension', 'shocks', 'lift'] },
   engine: { name: 'engine', slots: ['engineCarb', 'engineBore', 'engineIgnition', 'engineCooling', 'exhaust'] },
   body: { name: 'body & armor', slots: ['fenders', 'hood', 'rearDeck', 'frontBumper', 'rearBumper', 'rockers', 'skid', 'mudFlaps', 'fenderTubes', 'rollCage'] },
   lights: { name: 'lights', slots: ['frontLights', 'rearLights', 'lightBar', 'roofLights'] },

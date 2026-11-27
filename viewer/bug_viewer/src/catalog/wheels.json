@@ -279,5 +279,74 @@
    },
    "note": "Desert race tread: quick on dirt and sand, weak in mud. PROPOSAL numbers"
   }
+ },
+ {
+  "type": "wheels",
+  "id": "tire-desert-31",
+  "label": "Desert racer - 31 inch",
+  "kind": "tire",
+  "file": "TIRE_DesertRacer",
+  "baseRadius": 0.475,
+  "halfWidth": 0.162,
+  "grip": {
+   "mu": 1,
+   "rr": 0.95,
+   "surf": {
+    "dirt": 1.1,
+    "sand": 1.05,
+    "rock": 0.9,
+    "mud": 0.7
+   },
+   "note": "Desert race tread: quick on dirt and sand, weak in mud. PROPOSAL numbers"
+  },
+  "scale": 1.15,
+  "price": 420,
+  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
+ },
+ {
+  "type": "wheels",
+  "id": "tire-desert-33",
+  "label": "Desert racer - 33 inch",
+  "kind": "tire",
+  "file": "TIRE_DesertRacer",
+  "baseRadius": 0.475,
+  "halfWidth": 0.162,
+  "grip": {
+   "mu": 1,
+   "rr": 0.95,
+   "surf": {
+    "dirt": 1.1,
+    "sand": 1.05,
+    "rock": 0.9,
+    "mud": 0.7
+   },
+   "note": "Desert race tread: quick on dirt and sand, weak in mud. PROPOSAL numbers"
+  },
+  "scale": 1.22,
+  "price": 520,
+  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
+ },
+ {
+  "type": "wheels",
+  "id": "tire-deep-33",
+  "label": "Rugged deep tread - 33 inch",
+  "kind": "tire",
+  "file": "TIRE_RuggedDeep",
+  "baseRadius": 0.475,
+  "halfWidth": 0.204,
+  "grip": {
+   "mu": 1.0,
+   "rr": 1.25,
+   "surf": {
+    "dirt": 0.95,
+    "sand": 0.85,
+    "rock": 0.95,
+    "mud": 1.4
+   },
+   "note": "Mud-terrain: bites in mud, draggy on hard ground"
+  },
+  "scale": 1.22,
+  "price": 520,
+  "note": "Bigger rugged - deep tread tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
  }
 ]

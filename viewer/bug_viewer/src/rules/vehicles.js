@@ -74,7 +74,7 @@ export const UPGRADE_FIT = {
   engineCooling: { zone: 'rear', cover: 'engineLid', needsEngine: true }, engineBore: { zone: 'rear', cover: 'engineLid', tool: 'hoist', needsEngine: true },
   exhaust: { zone: 'rear' }, rearBumper: { zone: 'rear' }, rearCarrier: { zone: 'rear' }, rearLights: { zone: 'rear' }, rearDeck: { zone: 'rear' },
   frontBumper: { zone: 'front' }, hood: { zone: 'front' }, frontLights: { zone: 'front' }, fenders: { zone: 'any' },
-  suspension: { tool: 'jack', zone: 'any' }, shocks: { tool: 'jack', zone: 'any' },
+  suspension: { tool: 'jack', zone: 'any' }, shocks: { tool: 'jack', zone: 'any' }, lift: { tool: 'jack', zone: 'any' },
 };
 export const WHEEL_FIT = { tool: 'jack', zone: 'any' };
 

@@ -67,6 +67,8 @@ All dimensions below are width × height × depth in metres at the exported rest
 | [KIT_FENDER_ArchTubes.glb](<../viewer/bug_viewer/public/models/KIT_FENDER_ArchTubes.glb>) | 0.218 × 0.328 × 0.711 | 36,664 | Arches |
 | [KIT_GUARD_MudFlaps.glb](<../viewer/bug_viewer/public/models/KIT_GUARD_MudFlaps.glb>) | 0.220 × 0.040 × 0.314 | 3,152 | Flaps, Straps |
 | [KIT_GUARD_SkidPlate.glb](<../viewer/bug_viewer/public/models/KIT_GUARD_SkidPlate.glb>) | 0.630 × 0.096 × 0.880 | 3,872 | Skid, Bolts |
+| [KIT_LIFT_2in.glb](<../viewer/bug_viewer/public/models/KIT_LIFT_2in.glb>) | 0.41 × 0.13 × 0.35 | 13,984 | Blocks, Adjusters, Bolts |
+| [KIT_LIFT_4in.glb](<../viewer/bug_viewer/public/models/KIT_LIFT_4in.glb>) | 0.41 × 0.18 × 0.35 | 13,984 | Blocks, Adjusters, Bolts |
 | [KIT_LIGHT_BumperPods.glb](<../viewer/bug_viewer/public/models/KIT_LIGHT_BumperPods.glb>) | 0.294 × 0.159 × 0.065 | 7,908 | Housings, Lenses, Mounts |
 | [KIT_LIGHT_CubePods.glb](<../viewer/bug_viewer/public/models/KIT_LIGHT_CubePods.glb>) | 0.250 × 0.117 × 0.089 | 3,376 | Housings, Lenses, Mounts |
 | [KIT_LIGHT_RearBar.glb](<../viewer/bug_viewer/public/models/KIT_LIGHT_RearBar.glb>) | 0.680 × 0.082 × 0.063 | 3,544 | Housing, Lens, Feet |

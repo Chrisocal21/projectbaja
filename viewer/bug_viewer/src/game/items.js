@@ -34,7 +34,7 @@ export const MEMENTOS = { letter: { name: "Walt's letter", size: 1 }, photo: { n
 const STOCK = Object.fromEntries(Object.values(VEHICLES).flatMap(d => d.slots.map(s => [s.id, { ...s, veh: d.id, vehName: d.name }])));   // every vehicle's own parts (slot ids never collide: rules/vehicles.js)
 
 /** how bulky a part is (1 = fits in your pack ... 4 = fills the whole cabin) */
-const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
+const SLOT_SIZE = { engineCarb: 2, engineBore: 3, engineIgnition: 1, engineCooling: 2, engine: 4, rearBumper: 4, suspension: 3, shocks: 2, lift: 2, fenders: 3, hood: 2, rearDeck: 2, frontBumper: 3, rockers: 2, roofRack: 3, lightBar: 2, rearCarrier: 2, exhaust: 2, frontLights: 1, rearLights: 1, roofGear: 2, skid: 2, mudFlaps: 1, antenna: 1 };
 export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.slot] || 2 : kind === 'wheel' ? 4 : kind === 'stock' ? (id === 'wheel' ? 3 : STOCK[id]?.size || 2) : kind === 'tool' ? TOOLS[id]?.size || 1 : kind === 'shell' ? 9 : kind === 'tire' ? 3 : kind === 'supply' ? 1 : kind === 'memento' ? MEMENTOS[id]?.size || 1 : kind === 'junk' ? JUNK[id]?.size || 2 : kind === 'fab' ? 3 : kind === 'epart' ? 1 : kind === 'mat' ? 1 : 3);
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };

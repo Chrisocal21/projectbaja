@@ -12,7 +12,7 @@ export const SECTIONS = [
   { id: 'lights', label: 'Lights', slots: ['lightBar', 'roofLights', 'frontLights', 'rearLights'] },
   { id: 'bumpers', label: 'Bumpers & cage', slots: ['frontBumper', 'rearBumper', 'rollCage', 'fenderTubes', 'rockers', 'rearCarrier'] },
   { id: 'guards', label: 'Underbody & guards', slots: ['skid', 'mudFlaps'] },
-  { id: 'suspension', label: 'Suspension', slots: ['suspension', 'shocks'] },
+  { id: 'suspension', label: 'Suspension', slots: ['suspension', 'shocks', 'lift'] },
 ];
 export const sectionOfSlot = slot => SECTIONS.find(s => s.slots.includes(slot))?.id || 'body';
 export const rimById = Object.fromEntries(rims.map(r => [r.id, r]));
@@ -25,10 +25,16 @@ export const PALETTE = [
   ['#e8c21a', 'Yellow'], ['#2f6b3a', 'Green'], ['#1f7f86', 'Teal'], ['#1f4fa8', 'Blue'], ['#6b3aa0', 'Purple'],
   ['#c2a878', 'Sand'], ['#6b6f3a', 'Olive'], ['#56606b', 'Gunmetal'],
 ];
-export const SIZE = { min: 0.8, max: 1.35, step: 0.05 };
-export const LIFT = { min: 0, max: 0.3, step: 0.025 };
-/** Biggest tire that clears the wheel arches: more lift makes room for more tire. */
-export const tireMax = (lift = 0) => Math.min(SIZE.max, 1.12 + lift * 1.3);
+import { SIZE, LIFT, tireMax, tireInches, liftNeeded as liftFor } from './rules/clearance.js';
+export { SIZE, LIFT, tireMax, tireInches };
+/** metres the fitted lift kit raises the body (catalog `lift`) */
+export const kitLift = build => Object.values(build.parts || {}).reduce((s, id) => s + (partById[id]?.lift || 0), 0);
+/** total suspension lift: the customizer's slider plus the lift kit, capped at LIFT.max */
+export const liftOf = build => Math.min(LIFT.max, (build.lift || 0) + kitLift(build));
+/** how big the tires are against stock: a tire set's own size (catalog `scale`, e.g. a 33-inch set) times the customizer's size slider */
+export const tireScaleOf = build => { const ws = wheelById[build.wheels]; return ws?.kind === 'tire' ? (ws.scale || 1) * (build.wheelScale || 1) : 1; };
+/** the smallest catalog lift kit (metres) that clears tires of this scale: 0 = none needed, null = none is enough */
+export const liftNeeded = scale => liftFor(scale, parts.filter(x => x.lift).map(x => x.lift));
 
 export const defaultBuild = () => ({ body: bodies[0].id, wheels: 'stock', wheelScale: 1, lift: 0, rim: 'steel', colors: {}, hidden: [], parts: {} });
 
@@ -53,7 +59,7 @@ export function normalize(input) {
   if (!bodyById[b.body]) b.body = bodies[0].id;
   if (!wheelById[b.wheels] || !wheelSetFits(wheelById[b.wheels], b.body)) b.wheels = 'stock';
   b.lift = clamp(b.lift, LIFT.min, LIFT.max);
-  b.wheelScale = clamp(b.wheelScale, SIZE.min, tireMax(b.lift));
+  b.wheelScale = clamp(b.wheelScale, SIZE.min, tireMax(b.lift + kitLift(b)) / (wheelById[b.wheels].kind === 'tire' ? wheelById[b.wheels].scale || 1 : 1));   // a big tire set has less room left on the slider
   if (!rimById[b.rim]) b.rim = 'steel';
   const chans = new Set([...(bodyById[b.body].colorChannels || []).map(c => c.id), 'rim']);
   for (const [k, v] of Object.entries(b.colors)) if (!chans.has(k) || !/^#[0-9a-f]{6}$/i.test(v || '')) delete b.colors[k];
@@ -81,13 +87,13 @@ export function setPart(build, slot, id) {
 export const applyPreset = p => normalize({ ...defaultBuild(), ...p.build });
 
 /** mass / CG for the Baja Bug from its fitted parts (other vehicles keep the sim defaults) */
-const massDims = (build, wheelbase) => { const m = build.body && /classic/.test(build.body) ? massModel(build, wheelbase) : null; return m ? { mass: m.mass, cgY: m.cgY, cgFromRear: m.cgFromRear } : {}; };
+const massDims = (build, wheelbase, lift = 0) => { const m = build.body && /classic/.test(build.body) ? massModel(build, wheelbase) : null; return m ? { mass: m.mass, cgY: m.cgY + lift, cgFromRear: m.cgFromRear } : {}; };   // a lift (or taller tires) raises the whole car's weight: it tips sooner
 
 // ---- derived values used by the renderer + the drive world ----
 export function resolve(build) {
   const body = bodyById[build.body], ws = wheelById[build.wheels];
   const tire = ws.kind === 'tire', custom = ws.kind !== 'stock';
-  const scale = tire ? build.wheelScale : 1;
+  const scale = tireScaleOf(build);
   const active = Object.values(build.parts).map(id => partById[id]).filter(Boolean);
   const pieces = body.pieces || [];
   const masks = [
@@ -104,17 +110,17 @@ export function resolve(build) {
   }));
   const baseR = body.wheels.FL.radius;
   const liftable = body.stockWheelsLiftable || custom;
-  const lift = liftable ? build.lift + (tire ? (scale - 1) * baseR : 0) : 0;
+  const lift = (liftable ? build.lift : 0) + kitLift(build) + (tire ? (scale - 1) * baseR : 0);   // a lift kit works on any wheels (its blocks move the stock wheels down too)
   const fl = mounts.find(m => m.name === 'FL'), rl = mounts.find(m => m.name === 'RL');
   const eye = body.cabEye;
   // performance: stock buggy tops out ~90 mph; engine/exhaust mods add to it (cap 160 mph for buggies, 200 mph for big trucks via body.maxMph)
   const perf = { topMph: Math.min(body.maxMph || 160, (body.baseMph || 90) + active.reduce((s, p) => s + (p.perf?.topMph || 0), 0)), power: active.reduce((m, p) => m * (p.perf?.power || 1), 1) };
   const rim = tire ? rimById[build.rim] : null, rimColor = rim ? (build.colors.rim || rim.defaultColor) : null;
   return {
-    rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable,
+    rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable, kitLift: kitLift(build),
     perf,
     dims: { topSpeed: perf.topMph * 0.44704, accelMul: perf.power, tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
-      ...(massDims(build, fl.center[2] - rl.center[2])),
+      ...(massDims(build, fl.center[2] - rl.center[2], lift)),
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
       offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks'),
       longTravel: active.some(p => p.slot === 'suspension' || p.slot === 'shocks'), handling: BUGGY },
