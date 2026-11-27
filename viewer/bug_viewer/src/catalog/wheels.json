@@ -301,7 +301,8 @@
   },
   "scale": 1.15,
   "price": 420,
-  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
+  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. Wide-offset wheels set them further out, for a wider stance. PROPOSAL",
+  "widen": 0.03
  },
  {
   "type": "wheels",
@@ -324,7 +325,8 @@
   },
   "scale": 1.22,
   "price": 520,
-  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
+  "note": "Bigger desert racer tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. Wide-offset wheels set them further out, for a wider stance. PROPOSAL",
+  "widen": 0.08
  },
  {
   "type": "wheels",
@@ -347,6 +349,7 @@
   },
   "scale": 1.22,
   "price": 520,
-  "note": "Bigger rugged - deep tread tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. PROPOSAL"
+  "note": "Bigger rugged - deep tread tires: more clearance, a taller gear and a higher centre of gravity. Needs a lift kit. Wide-offset wheels set them further out, for a wider stance. PROPOSAL",
+  "widen": 0.08
  }
 ]

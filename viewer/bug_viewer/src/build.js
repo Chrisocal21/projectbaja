@@ -105,8 +105,9 @@ export function resolve(build) {
   const channels = (body.colorChannels || []).filter(c => build.colors[c.id]).map(c => ({ id: c.id, re: new RegExp(c.match, 'i'), color: build.colors[c.id] }));
   for (const a of body.alwaysPaint || []) channels.push({ id: 'always-' + a.match, re: new RegExp(a.match, 'i'), color: a.color || build.colors[a.channel] || body.defaultPaint });   // e.g. painted body interior panels
   const wheelMounts = ws.mounts?.[body.id] || ws.mounts?.['*'] || body.wheels;
+  const widen = tire ? ws.widen || 0 : 0;   // big tire sets come on wide-offset wheels: a wider stance so the lifted car doesn't tip so easily (catalog `widen`, metres per side)
   const mounts = Object.entries(wheelMounts).map(([name, w]) => ({
-    name, radius: w.radius * scale, center: [w.center[0], w.center[1] * scale, w.center[2]],
+    name, radius: w.radius * scale, center: [w.center[0] + Math.sign(w.center[0]) * widen, w.center[1] * scale, w.center[2]],
     halfWidth: tire ? ws.halfWidth * w.radius * scale / ws.baseRadius : w.halfWidth,
   }));
   const baseR = body.wheels.FL.radius;

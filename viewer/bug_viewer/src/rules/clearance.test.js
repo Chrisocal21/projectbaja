@@ -24,6 +24,10 @@ test('every tire set fits on the biggest lift kit', () => {
   for (const w of tires) assert.ok((w.scale || 1) <= tireMax(Math.max(...lifts)) + 1e-9, w.id);
 });
 
+test('big tire sets sit wider (wide-offset wheels) so the lifted Bug needs real speed to roll', () => {
+  assert.deepEqual(['tire-desert', 'tire-desert-31', 'tire-desert-33', 'tire-deep-33'].map(id => tires.find(w => w.id === id).widen || 0), [0, 0.03, 0.08, 0.08]);
+});
+
 test('more lift never makes room for less tire', () => {
   for (let l = 0; l < 0.3; l += 0.025) assert.ok(tireMax(l + 0.025) >= tireMax(l));
 });
