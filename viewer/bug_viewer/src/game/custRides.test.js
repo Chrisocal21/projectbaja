@@ -14,4 +14,5 @@ test('a saved ride is checked; old saves get the pickup', () => {
   assert.equal(rideOf({ id: 'belt', ride: 'moto' }), 'pickup');
   assert.equal(rideOf({ id: 'oil', ride: 'hovercraft' }), 'pickup');
   assert.equal(rideLen({ id: 'tune', ride: 'dirtbike' }), 2.1);
+  assert.equal(rideOf({ id: 'belt', ride: 'oldpickup' }), 'oldpickup');
 });

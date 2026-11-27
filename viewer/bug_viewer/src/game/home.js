@@ -23,6 +23,7 @@ import { STARTER_FIXTURES_V3, LIFT_POSTS, localCircles, onBench, benchDrops, peg
 import { wornTires } from './tires.js';
 import { SIDE_BAY, BUG_BAY, OLD_BUG_SPOT, inSideBay, onBugSpot } from '../worlds/sideBay.js';
 import { yardTires, yardBlocks, yardCheck, yardLeft, isScrapTire, settleStacks, YARD_TOTAL, JUNK_TIRE_PAY, TIRE_PILE } from './yardTires.js';
+import { dressingCircles } from './yardDressing.js';
 import { dropRackTires } from '../placement/garageStore.js';
 import { addMats, shortOf } from './materials.js';
 import { isBlueprintable, newBp, refundMats, matsText, costText } from './blueprints.js';   // shop furniture you build by hand (Phase 1, docs/CRAFTING_PLAN.md)   // Stage 4c: tires on a rack fall to the floor when it is stored / sold
@@ -441,6 +442,7 @@ export function removeProp(uidN) {
   const back = refundOf(p, isPiece(p.id) ? piecePrice(p.id, matOf(p)) : buildById[p.id].price);   // 100% back (canon #024)   // built in creative mode: nothing back
   game.props = game.props.filter(q => q.uid !== uidN); game.propsV = (game.propsV || 0) + 1; addCash(back, 'Took down a prop (refund)'); save(); say(`Took down the ${buildById[p.id].name.toLowerCase()} (+$${back})`);
 }
+const DRESS_C = dressingCircles().map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; });   // dumpster + truck tires
 let cache = { v: -1, list: [] };
 /** colliders for props you have built: [x, z, r, top]. Long things (shelving) get a row of circles along their length. */
 export function propObstacles() {
@@ -451,7 +453,7 @@ export function propObstacles() {
   const ol = officeLevelOf(ownedStages(game.home)), wing = ol >= 1;
   // tops and bottoms in office.js are above the garage slab; the walker compares them with its own height in the world, so they are lifted by G.y here
   const annexC = office ? (wing ? wingWallCircles(ol) : annexWallCircles()).map(([cx, cz, r, top = 99, bottom]) => { const [wx, wz] = toWorld(G, cx, cz), t = top === 99 ? 99 : G.y + top; return bottom == null ? [wx, wz, r, t] : [wx, wz, r, t, G.y + bottom]; }) : [];
-  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== ol) cache = { v, mv, office, wing: ol, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
+  if (cache.v !== v || cache.nOpen !== openingKeys().length || cache.nExt !== extC.length || cache.n !== game.props.length || cache.mv !== mv || cache.office !== office || cache.wing !== ol) cache = { v, mv, office, wing: ol, nExt: extC.length, nOpen: openingKeys().length, n: game.props.length, list: [...wc, ...extC, ...annexC, ...DRESS_C, ...game.props.filter(p => p.uid !== mv && (isPiece(p.id) || buildById[p.id]?.r > 0)).flatMap(p => {
     if (isPiece(p.id)) { const m = homeLocal(p.x, p.z); return pieceCircles(p.id, m.lx, m.lz, (p.ry || 0) - G.rot).map(([cx, cz, r]) => { const [wx, wz] = toWorld(G, cx, cz); return [wx, wz, r, 99]; }); }
     const it = buildById[p.id], ry = p.ry || 0;
     if (it.posts) return localCircles(p, it.posts);   // car lift: just the two posts, the car drives between

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { Suspense, useMemo } from 'react';
+import { useGLTF } from '@react-three/drei';
 import { RoundedBox } from '@react-three/drei';
 import Pickup from '../Pickup.jsx';
 
@@ -107,11 +108,32 @@ function Moto({ body, trim }) {
   </group>;
 }
 
+// Real models from Chris's Nov 26 asset drop (assets/dirtbike/DirtBike.blend, assets/truck/car.glb; converted in Blender: metres, +z forward, ground y 0).
+// The scratch shapes above stay as the fallback while a model loads.
+const BIKE_FILE = '/models/VEH_DirtBike.glb', OLD_PICKUP_FILE = '/models/VEH_OldPickup.glb';
+const tints = new Map();
+function tinted(material, colour) {   // the bike's plastics take the job's body colour
+  const key = material.uuid + colour;
+  if (!tints.has(key)) { const m = material.clone(); m.color.set(colour); tints.set(key, m); }
+  return tints.get(key);
+}
+function GlbRide({ file, body }) {
+  const { scene } = useGLTF(file);
+  const obj = useMemo(() => {
+    const m = scene.clone(true);
+    m.traverse(o => { if (!o.isMesh) return; o.castShadow = o.receiveShadow = true; if (body && o.material?.name === 'Body') o.material = tinted(o.material, body); });
+    return m;
+  }, [scene, body]);
+  return <primitive object={obj} dispose={null} />;
+}
+useGLTF.preload(BIKE_FILE); useGLTF.preload(OLD_PICKUP_FILE);
+
 /** draws the customer's vehicle by type (game/custRides.js) in their two job colours */
 export default function CustomerRide({ ride = 'pickup', body, trim }) {
   if (ride === 'sedan') return <Sedan body={body} trim={trim} />;
   if (ride === 'van') return <Van body={body} trim={trim} />;
-  if (ride === 'dirtbike') return <DirtBike body={body} trim={trim} />;
+  if (ride === 'dirtbike') return <Suspense fallback={<DirtBike body={body} trim={trim} />}><group rotation={[0, 0, 0.1]}><GlbRide file={BIKE_FILE} body={body} /></group></Suspense>;
+  if (ride === 'oldpickup') return <Suspense fallback={<Pickup body={body} roof={trim} primer={body} />}><GlbRide file={OLD_PICKUP_FILE} /></Suspense>;
   if (ride === 'moto') return <Moto body={body} trim={trim} />;
   return <Pickup body={body} roof={trim} primer={body} />;
 }

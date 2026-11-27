@@ -8,7 +8,8 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import MergedStatic from './MergedStatic.jsx';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { SITES, groundHeight, height } from './county.js';
+import { SITES, groundHeight, height, toWorld } from './county.js';
+import { DRESSING } from '../game/yardDressing.js';
 import { StructureModel } from './StructureModels.jsx';
 import IconBaker from './IconBaker.jsx';
 import { isPiece } from './structures.js';
@@ -753,6 +754,12 @@ function TirePile() {
   </group>;
 }
 
+/** fixed yard junk (game/yardDressing.js): the dumpster by the scrap pile, old truck tires by the side bay */
+function YardDressing() {
+  return <>{DRESSING.map((d, i) => { const [x, z] = toWorld(G, d.lx, d.lz);
+    return <group key={i} position={[x, groundHeight(x, z), z]} rotation={[0, G.rot + d.ry, 0]}><SmallModel file={d.file} /></group>; })}</>;
+}
+
 /** the customers' cars in the lot (odd jobs), each with its owner waiting behind it, + the clock that sends the next one */
 function Customer() {
   useGame();
@@ -777,6 +784,7 @@ export default function Home() {
     {PLACEMENT && <GarageCargo />}
     <Customer />
     <TirePile />
+    <YardDressing />
     <Ghost T={T} />
     <IconBaker Model={PropModel} T={T} />
   </>;
