@@ -11,6 +11,7 @@ import { custWheel, isCustWheel, custWheelReady } from './custJobs.js';
 import { standingVehicles } from './fleet.js';
 import { upgradeLevel, owned } from './upgrades.js';
 import { maxCustomers, jobPool } from './custQueue.js';
+import { rollRide } from './custRides.js';
 import { baysAt, garageLevelOf } from '../worlds/garageLevels.js';
 import { payFor, gapScale, afterJob } from './repRules.js';
 
@@ -68,7 +69,7 @@ export function tickJobs(dt) {
   const j = pool[Math.floor(Math.random() * pool.length)];
   const pose = stallPose(stall), uid = (h.custN || 0) + 1;
   h.custN = uid;
-  game.jobs = [...game.jobs, { uid, id: j.id, stall: stall.id, ...pose, look: 1 + Math.floor(Math.random() * 3) }];
+  game.jobs = [...game.jobs, { uid, id: j.id, stall: stall.id, ...pose, look: 1 + Math.floor(Math.random() * 3), ride: rollRide(j.id) }];
   if (j.need.kind === 'custWheel') {   // the customer leaves their wheel on the ground beside the car
     spawnItem('stock', 'wheel', pose.x + Math.cos(pose.h) * 2.2, pose.z - Math.sin(pose.h) * 2.2);
     Object.assign(game.items[game.items.length - 1], custWheel());

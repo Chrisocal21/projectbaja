@@ -1,4 +1,5 @@
 import React, { Suspense, createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import { rideLen } from './game/custRides.js';
 import { activeBuild } from './game/lights.js';
 import { wearMods, FRESH, onLanding, onBottomOut, onHit, drive, effects, clues } from './wear.js';
 import { bugAsleep } from './game/home.js';
@@ -515,7 +516,7 @@ const COUNTY_WORLD = {
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
     const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.jobs.map(w => w.uid).join(',')}`;
-    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.projects || []).flatMap(p => vehicleCircles(p.pose, defOf(p).length)), ...game.jobs.flatMap(w => vehicleCircles(w, 5.1))] };
+    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.projects || []).flatMap(p => vehicleCircles(p.pose, defOf(p).length)), ...game.jobs.flatMap(w => vehicleCircles(w, rideLen(w)))] };
     return obsCache.list;
   },
 };

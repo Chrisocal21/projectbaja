@@ -15,6 +15,7 @@ import { etaText, groupOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
 import { LETTER } from './home.js';
 import { jobById, jobCheck, SUPPLIES, customerRoom } from './jobs.js';
+import { RIDES, rideOf } from './custRides.js';
 import { TOOLS, canCarry, giveToPlayer, dropNearPlayer } from './items.js';
 import { SaveTools } from './update.jsx';
 import ExplorerApp from './ExplorerApp.jsx';
@@ -94,10 +95,10 @@ function StoryLog({ view, setView }) {
 function JobsApp({ onBack }) {
   const done = game.home?.jobsDone || 0, room = customerRoom();
   const needName = j => j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : j.need.kind === 'custWheel' ? 'Their wheel, patched and aired up' : 'A car battery';
-  const waiting = game.jobs.map(w => jobById[w.id]).filter(Boolean);
+  const waiting = game.jobs.map(w => jobById[w.id] && { ...jobById[w.id], ride: RIDES[rideOf(w)].name }).filter(Boolean);
   return <div className="phone-soon"><h3>Jobs</h3>
     {waiting.length ? <div style={{ width: '100%', maxHeight: 300, overflow: 'auto', textAlign: 'left' }}>{waiting.map(j => { const c = jobCheck(j); return <div key={j.id} style={{ padding: '6px 0', borderBottom: '1px solid #ffffff18' }}>
-      <p style={{ margin: 0 }}><b>{j.who}</b>: {j.title}</p><p style={{ margin: 0, fontStyle: 'italic', fontSize: 13 }}>"{j.ask}"</p>
+      <p style={{ margin: 0 }}><b>{j.who}</b>: {j.title} <small>· {j.ride}</small></p><p style={{ margin: 0, fontStyle: 'italic', fontSize: 13 }}>"{j.ask}"</p>
       <p style={{ margin: 0, fontSize: 13 }}>Needs: <b>{needName(j)}</b> · Pays <b>${j.pay}</b></p>
       <p style={{ margin: 0, fontSize: 13 }} className={c.ok ? 'ws-good' : 'ws-bad'}>{c.ok ? 'You have it: go to their car in the lot and press E.' : c.why}</p></div>; })}</div>
       : <p>No customer right now. When a car pulls into the lot, the job shows up here.</p>}

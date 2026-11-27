@@ -288,3 +288,7 @@ Validation completed with GLB rig/clip inspection, standalone character renderin
 
 ## Nov 26: garage business (planned, nothing built)
 See `docs/GARAGE_BUSINESS_PLAN.md`. No art is needed yet. Later pieces will likely need: worker outfits and animations (walk, work at a car, crouch, eat lunch) alongside `PERSON_Customer1-3.glb`, and a few more customer vehicles. Wait for sizes and file names before making them.
+
+## Nov 26: customer vehicles (scratch stand-ins built, real models wanted later)
+- Customers now arrive in a pickup, sedan, van, dirt bike or street motorcycle. All five are simple shape stand-ins (`viewer/bug_viewer/src/worlds/CustomerRides.jsx`).
+- Later wanted: real GLB models of a 4-door sedan (~4.7 m), a work van (~4.9 m), a dirt bike (~2.1 m) and a street motorcycle (~2.2 m), +z forward, ground at y=0, plain paint the game can recolour. Wait for filenames and sizes from Claude before making them.
