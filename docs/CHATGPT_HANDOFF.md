@@ -222,3 +222,39 @@ The hands-on finish tools (grinder, spray cans, buffer, hose; `src/finishJobs.js
 
 ## Silt and soft sand (Claude, Nov 22)
 Two new ground types in `src/worlds/kit.js` SURFACES: `silt` (pale powder, `#cbbb9f`) and `softSand` (`#e2cb93`). A car that crawls or spins its wheels on them bogs down (`src/bogDown.js`); the player digs out with a shovel or traction boards. Claude places them off the roads with `src/worlds/softGround.js` (silt patches on open flats and round dry lakebeds, soft sand in deep washes and dune hearts; never within 300 m of Walt's). Things you could do on your side if you want: (1) a few **silt sections on trails** (`trails.json` / `trailRoutes.js` are yours): paint the trail cells with the `silt` surface id for a stretch of 40 to 120 m; real Baja race courses have them. (2) A powdery ground texture for silt in the terrain material (`src/worlds/terrainMaterial.js` maps `silt` and `softSand` to the sand layer for now). (3) Small models for a **shovel** and **traction boards** (orange plastic, about 1.1 x 0.3 m, a pair) if you make tool art; they show as plain items for now.
+
+## Customer people and workshop effects delivered
+
+Chris assigned the 64-model in-game walkthrough to Claude. Customer and effects work adds new files only, apart from this handoff entry.
+
+### Customer models
+
+Three unnamed variants share a 13-bone rig and four looping one-second clips. Units are metres, feet at y=0, front +z, standing height approximately 1.73 m. Each mesh has skin weights. Each character has shirt, trousers, shoes, arms, hands, face, hair, nose and eyes. The skeleton uses Hips, Spine, Head, ThighL/R, ShinL/R, FootL/R, UpperArmL/R and ForearmL/R. Motion is in place. The sit clip puts the pelvis at y=0.495, for a roughly 0.45 m chair seat. Chair placement needs checking in game.
+
+| GLB in public/models | Bytes | Clips |
+|---|---:|---|
+| PERSON_Customer1.glb | 104620 | idle, walk, talk, sit |
+| PERSON_Customer2.glb | 104620 | idle, walk, talk, sit |
+| PERSON_Customer3.glb | 104616 | idle, walk, talk, sit |
+
+[Character preview](./CUSTOMER_MODEL_PREVIEW.png). All twelve variant/clip combinations rendered in a standalone browser preview. These are basic low-poly characters with small skin and clothing palette differences. Their animations use rigid weights at the limb segments.
+
+Claude wiring
+- Mount `worlds/CustomerPerson.jsx` inside Suspense. Props are `variant={1..3}`, `action="idle|walk|talk|sit"`, plus ordinary group position/rotation. Each instance clones the skeleton and owns its mixer. The component blends clips.
+- Customer arrival/waiting logic supplies positions and action changes. Move the group along the customer path during walk. No customer behavior or collision rules were added.
+- Generator is `tools/build_customers.mjs`, run from the game directory with Node or from repo root using the full path.
+
+### Shop sounds, sparks and build puff
+
+New `game/shopAudio.js` supplies wrench clicks, grinder whine, welder crackle, saw motor and tube-bender creak using Web Audio synthesis. It starts after a pointer or keyboard gesture. It reads `audio.js isMuted()`, so K and programmatic mute share the existing state. Default volume is 0.5. Voices fade when work stops, gameplay pauses or the component unmounts. No additional K handler is registered. These are procedural sounds and still need listening and level tuning in game.
+
+New `game/ShopWorkEffects.jsx` mounts once inside Canvas. It reads `game.holdBar`. Existing blueprint stage labels and steel/drum cutting labels map to sound profiles. An optional `holdBar.shopSound` string or component `kind` prop explicitly chooses wrench, grinder, welder, saw or bender for future stations. Grinder and welder work emit sparks. A bounded 48-point buffer is reused.
+
+Claude wiring
+- Mount `<ShopWorkEffects workPosition={[worldX, worldY, worldZ]} completion={stageCounter} />` once in the game scene. Pass the actual tool contact point in world space. An omitted workPosition suppresses particles.
+- Increment completion only after a build stage succeeds. Disappearing hold bars and mouse releases deliberately produce no completion event. The component cannot distinguish cancellation from success through the current holdBar alone.
+- Keep workPosition at the completed stage for the 0.65-second puff. Clear or update it when moving to another job. Supply `volume` if a shared sound-volume control is introduced.
+- Do not set kind permanently across unrelated jobs. Use holdBar.shopSound for an explicit per-job tag.
+- No Items.jsx, BuildModel.jsx, main.jsx, audio.js or gameplay rules were changed.
+
+Validation completed with GLB rig/clip inspection, standalone character rendering and independent bundling of both new React components. In-game customer placement, audio audition and effects placement remain Claude wiring checks.
