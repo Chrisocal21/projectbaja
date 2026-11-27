@@ -98,6 +98,16 @@ Codex stopped at "next is the office and stairs, including the duplicate desks a
 - More cars for the classifieds need more car models first (only the '84 pickup is buyable today).
 
 ## Done (recent, for context)
+- **Phase 3 furniture art, first batch.** Five static GLBs are ready in `viewer/bug_viewer/public/models`. Claude can wire the sawhorse pair and new workbench into their blueprints and the three racks into storage. Each file uses a bottom-centred origin, metres and +z front. These are proposed furniture sizes. Allow access from the front of the cantilever racks. The two sawhorses together form one station. Browser checked as standalone assets. Placement and gameplay integration remain open.
+
+  | File | Width × height × depth (m) | Bytes | Separate meshes (all fixed) |
+  |---|---|---:|---|
+  | SHOP_Sawhorses.glb | 1.180 × 0.810 × 1.439 | 12,364 | Both `Front` and `Rear` prefixes on `Beam`, `Legs`, `Ties`, `Braces`, `Hardware` |
+  | SHOP_Workbench.glb | 1.650 × 0.913 × 0.708 | 13,616 | Top1–Top5, Legs, ShelfCleats, Apron, Hardware, Shelf1–Shelf4 |
+  | SHOP_LumberRack.glb | 1.750 × 1.700 × 0.600 | 7,972 | Posts, Feet, Arms, Knees, Rails |
+  | SHOP_SteelRack.glb | 1.700 × 1.400 × 0.600 | 6,884 | Uprights, Feet, Arms, EndStops, Rails, BackBrace |
+  | SHOP_BatteryRack.glb | 1.122 × 1.030 × 0.468 | 8,120 | Frame, Trays, Lips, LabelPlates |
+
 - **Paved crossing gap fix (Nov 23, ChatGPT):** Chris's Mex 5 screenshot showed asphalt branches cut back from their through roads. `County.jsx` had junction fill meshes disabled, but the highway ribbon and shoulder builders still removed lower-priority paved triangles at every crossing. Those cuts are now removed; continuous paved ribbons overlap at joins, while dirt still yields to pavement. The road tests and production build pass. The browser capture returned the editor rather than the game, so this specific junction still needs an in-game visual check.
 - **Map route discovery (Nov 23, ChatGPT):** The full-screen map has a visible Routes & Races panel. Separate Desert trails and Race courses toggles show the 24 baked trails and seven race courses; numbered trail badges match the list. Choosing a trail sets a waypoint to its nearer entrance and centers the map there; choosing a race sets a waypoint to its start. The selection remains highlighted on the map. The source for the displayed trail list is the final joined road geometry from `trailRoutes()` in `county.js`. This is map/navigation discovery, not a race-entry or pit system.
 - **Western Imperial trail-network pass (Nov 23, ChatGPT):** Read the two-page BLM routes PDF as a terrain/network reference and Chris's fourteen race-map images as course-structure references; notes are in `docs/ROUTE_AND_RACE_REFERENCE.md`. `trailRoutes.js` adds short terrain-routed connectors around the western Imperial play area, and `trails.json` was rebaked to 24 dirt runs (~100 km). `tools/build_trails.mjs` now rejects any baked centerline that crosses mapped water or leaves an end more than 90 m from a paved segment. The connectors use the baked-road name expected by `highways.js` so both ends snap to the final paved mesh. **Open:** drive all 24 routes in game and inspect joins, grade, road mesh and useful alternate paths before calling item 8 complete.
