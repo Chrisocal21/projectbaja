@@ -285,3 +285,6 @@ Validation completed with GLB rig/clip inspection, standalone character renderin
 - Files: `game/dustyRules.js` (pure, tested), `game/dustyShop.js`, `worlds/dustyGoods.js` (shelf spot per product), `worlds/DustyGoods.jsx` (models and price cards).
 - The island shelf is now 1.18 m high (was 1.5) so you look down on the goods.
 - Art wanted: pump, hose, bulb, plug kit and fan belt read poorly on a shelf; retail-pack versions would help. The coloured boxes and cans on the other boards are filler.
+
+## Nov 26: garage business (planned, nothing built)
+See `docs/GARAGE_BUSINESS_PLAN.md`. No art is needed yet. Later pieces will likely need: worker outfits and animations (walk, work at a car, crouch, eat lunch) alongside `PERSON_Customer1-3.glb`, and a few more customer vehicles. Wait for sizes and file names before making them.
