@@ -4,6 +4,7 @@
 import { SITES, toWorld, onCore, baseHeight, biomeMasks, washAt, HALF, ROAD_BY, TOWN_D, surface } from './county.js';
 import { REAL } from './world.js';
 import { HM_SIZE } from './world.js';   // scatter stays in the original 6 km square (new regions scatter via biomes/)
+import { valleyAt } from './cover.js';   // the valley's crop fields stay clear of desert scrub and dead trees
 
 const rnd = seed => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
 const clearOf = (x, z, pad) => !(REAL && surface(x, z).key === 'water') && !onCore(x, z) && !onCore(x + 2, z) && !onCore(x - 2, z) && !onCore(x, z + 2) && !onCore(x, z - 2) && !Object.values(SITES).some(s => Math.hypot(x - s.x, z - s.z) < s.r + pad);
@@ -33,7 +34,7 @@ for (let i = TREES.length - 1; i >= 0; i--) if (!clearOf(TREES[i][0], TREES[i][1
 export const DEAD_TREES = [];
 for (let t = 0; DEAD_TREES.length < 520 && t < 90000; t++) {
   const x = (r() - 0.5) * (HM_SIZE - 400), z = (r() - 0.5) * (HM_SIZE - 400), m = biomeMasks(x, z), keep = 0.12 + washAt(x, z) * 0.6 + m.canyon * 0.3;
-  if (r() > keep || m.bio > 0.05 || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || !clearOf(x, z, 10)) continue;
+  if (r() > keep || m.bio > 0.05 || m.lake > 0.15 || m.pg > 0.4 || m.town > 0.4 || m.dunes > 0.35 || m.farm > 0.5 || baseHeight(x, z) > 70 || valleyAt(x, z) > 0.3 || !clearOf(x, z, 10)) continue;
   DEAD_TREES.push([x, z, 1 + Math.floor(r() * 7), 0.7 + r() * 0.5, r() * 6.28]);
 }
 for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld(SITES.garage, lx, lz); DEAD_TREES.push([x, z, k, 1, r() * 6.28]); }   // two dead ones in grandpa's yard
@@ -41,7 +42,7 @@ for (const [lx, lz, k] of [[-30, 22, 4], [27, -26, 6]]) { const [x, z] = toWorld
 export const SHRUBS = [];
 for (let t = 0; SHRUBS.length < 2600 && t < 60000; t++) {
   const x = (r() - 0.5) * (HM_SIZE - 300), z = (r() - 0.5) * (HM_SIZE - 300), m = biomeMasks(x, z);
-  if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || !clearOf(x, z, 4)) continue;
+  if (m.bio > 0.05 || m.lake > 0.2 || m.pg > 0.6 || m.town > 0.5 || m.farm > 0.4 || (m.dunes > 0.4 && r() < 0.8) || baseHeight(x, z) > 60 || valleyAt(x, z) > 0.3 || !clearOf(x, z, 4)) continue;
   SHRUBS.push([x, z, 0.5 + r() * 0.8, r() * 6.28]);
 }
 /** trunk colliders [x, z, r, top] */
@@ -66,7 +67,7 @@ const hash = (ix, iz, k) => { let h = (ix * 374761393 + iz * 668265263 + k * 214
 export const GRASS_CELL = 3.5;
 export function grassAt(ix, iz, surfaceAt) {
   const x0 = (ix + hash(ix, iz, 1)) * GRASS_CELL, z0 = (iz + hash(ix, iz, 2)) * GRASS_CELL;
-  if (onCore(x0, z0)) return null;
+  if (onCore(x0, z0) || valleyAt(x0, z0) > 0.3) return null;   // the valley's fields grow their own (worlds/groundCover.js)
   const sf = surfaceAt(x0, z0).key, m = biomeMasks(x0, z0);
   const chance = { scrub: 0.5, dirt: 0.28, redDirt: 0.3, grass: 0.65, sand: m.dunes > 0.4 ? 0.04 : 0.16, looseDirt: 0.12, rock: 0.06, meadow: 0.5, dryGrass: 0.45, forestFloor: 0.15 }[sf] || 0;
   if (hash(ix, iz, 3) > chance || baseHeight(x0, z0) > (m.bio > 0.3 ? 400 : 38)) return null;

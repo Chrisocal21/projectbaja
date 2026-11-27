@@ -4,8 +4,10 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { height, surface } from './county.js';
 import { TREES, PLANTS, BLOCK, NB, DRY_TINT, grassAt, GRASS_CELL } from './flora.js';
+import { coverAt, valleyTrees } from './cover.js';
+import { clumpAt, CLUMP_CELL } from './groundCover.js';
 
-const TREE_FILE = '/models/ENV_Trees.glb', PLANT_FILE = '/models/ENV_Plants.glb';
+const TREE_FILE = '/models/ENV_Trees.glb', PLANT_FILE = '/models/ENV_Plants.glb', GRASS_FILE = '/models/ENV_Grass.glb';
 const SHADE_NEAR = 330, GRASS_R = 75, GRASS_MOVE = 6;
 const GRASS_MODELS = ['GRASS_DEAD_1', 'GRASS_DEAD_2', 'BUSH_GRASS_1', 'BUSH_GRASS_2', 'BUSH_GRASS_3'];
 
@@ -68,6 +70,39 @@ function GrassField({ scene }) {
   return <group ref={group} />;
 }
 
+/** Chris's grass clumps (ENV_Grass.glb) in a ~48 m field round you: crops in rows, weeds on the ditch banks, bunchgrass on the desert,
+ *  green where water gathers (worlds/groundCover.js decides). Clumps near the edge of the field shrink in, so nothing pops. */
+const COVER_R = 48, COVER_MOVE = 4;
+const COVER_MODELS = ['G_DRY_TALL', 'G_DRY_LOW', 'G_DRY_MAT', 'G_GREEN_1', 'G_GREEN_2', 'G_GREEN_3', 'G_WEED'];
+function CoverField() {
+  const scene = useGLTF(GRASS_FILE).scene, group = useRef(), { camera } = useThree(), last = useRef({ x: 1e9, z: 1e9 }), cache = useRef(new Map());
+  const cap = Math.ceil((2 * COVER_R / CLUMP_CELL) ** 2 * 0.8);
+  const sets = useMemo(() => Object.fromEntries(COVER_MODELS.map(k => [k, partsOf(scene, k).map(p => { p.material.alphaTest = 0; const m = new THREE.InstancedMesh(p.geometry, p.material, cap); m.count = 0; m.frustumCulled = false; m.receiveShadow = true; return { m, p }; })])), [scene, cap]);
+  // tree shade: a coarse grid of every tree trunk, so the grass under trees grows green
+  const shade = useMemo(() => { const g = new Map(); for (const [x, z] of [...TREES, ...valleyTrees()]) { const k = Math.floor(x / 8) + ',' + Math.floor(z / 8); (g.get(k) || g.set(k, []).get(k)).push([x, z]); } return g; }, []);
+  const treeAt = (x, z) => { let best = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const [tx, tz] of shade.get((Math.floor(x / 8) + a) + ',' + (Math.floor(z / 8) + b)) || []) best = Math.max(best, 1 - Math.hypot(x - tx, z - tz) / 6); return best; };
+  const cover = (x, z) => coverAt(x, z, treeAt(x, z));
+  useEffect(() => { const g = group.current; Object.values(sets).flat().forEach(({ m }) => g.add(m)); return () => Object.values(sets).flat().forEach(({ m }) => { g.remove(m); m.dispose(); }); }, [sets]);
+  useFrame(() => {
+    const px = camera.position.x, pz = camera.position.z;
+    if (Math.hypot(px - last.current.x, pz - last.current.z) < COVER_MOVE) return;
+    last.current = { x: px, z: pz };
+    if (cache.current.size > 60000) cache.current.clear();
+    const n = Object.fromEntries(COVER_MODELS.map(k => [k, 0])), c0 = Math.floor((px - COVER_R) / CLUMP_CELL), c1 = Math.floor((px + COVER_R) / CLUMP_CELL), r0 = Math.floor((pz - COVER_R) / CLUMP_CELL), r1 = Math.floor((pz + COVER_R) / CLUMP_CELL);
+    for (let ix = c0; ix <= c1; ix++) for (let iz = r0; iz <= r1; iz++) {
+      const ck = ix * 131072 + iz; let g = cache.current.get(ck);
+      if (g === undefined) { g = clumpAt(ix, iz, cover); if (g) g.y = height(g.x, g.z); cache.current.set(ck, g); }
+      if (!g) continue;
+      const d = Math.hypot(g.x - px, g.z - pz); if (d > COVER_R || n[g.model] >= cap) continue;
+      const s = g.s * Math.min(1, (COVER_R - d) / 10);
+      for (const { m, p } of sets[g.model]) writeInstance(m, n[g.model], p, g.x, g.z, s, g.ry, g.tint, g.y);
+      n[g.model]++;
+    }
+    for (const k of COVER_MODELS) for (const { m } of sets[k]) { m.count = n[k]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
+  });
+  return <group ref={group} />;
+}
+
 /** trees (few, seen from far away), shade plants in 250 m blocks near you, and the grass field */
 export default function Flora() {
   const trees = useGLTF(TREE_FILE).scene, plants = useGLTF(PLANT_FILE).scene, { camera } = useThree();
@@ -92,6 +127,7 @@ export default function Flora() {
     {treeSets.map((t, i) => <Instances key={i} parts={t.parts} items={t.items} shadows />)}
     {blocks.map((bl, i) => <group key={bl.b} ref={el => (blockGroups.current[i] = el)} visible={false}>{bl.sets.map(s => <Instances key={s.k} parts={s.parts} items={s.items} shadows={false} />)}</group>)}
     <GrassField scene={plants} />
+    <React.Suspense fallback={null}><CoverField /></React.Suspense>
   </>;
 }
-useGLTF.preload(TREE_FILE); useGLTF.preload(PLANT_FILE);
+useGLTF.preload(TREE_FILE); useGLTF.preload(PLANT_FILE); useGLTF.preload(GRASS_FILE);

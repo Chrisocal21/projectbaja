@@ -292,3 +292,4 @@ See `docs/GARAGE_BUSINESS_PLAN.md`. No art is needed yet. Later pieces will like
 ## Nov 26: customer vehicles (scratch stand-ins built, real models wanted later)
 - Customers now arrive in a pickup, sedan, van, dirt bike or street motorcycle. All five are simple shape stand-ins (`viewer/bug_viewer/src/worlds/CustomerRides.jsx`).
 - Nov 26 update: the dirt bike and a second (old, blue) pickup now use real models from Chris's asset drop. Still wanted later: real GLB models of a 4-door sedan (~4.7 m), a work van (~4.9 m) and a street motorcycle (~2.2 m), +z forward, ground at y=0, plain paint the game can recolour. Wait for filenames and sizes from Claude before making them.
+- Nov 26 update: Claude added crop fields, grass and windbreak tree rows around the garage valley. Still wanted later: low-poly GLB trees (salt cedar/tamarisk, eucalyptus, fan palm), under about 1,500 triangles each, y up, trunk base at y=0. Wait for filenames from Claude before making them.

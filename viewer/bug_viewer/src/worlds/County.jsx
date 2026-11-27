@@ -37,13 +37,16 @@ import { perfStart, perfEnd } from '../game/perfMetrics.js';
 import { clockHour } from '../game/clock.js';
 import { dayPhase } from './clock.js';
 import { DETAIL_RADIUS } from './drawDistance.js';
-import WildScenery from './WildScenery.jsx';
+import WildScenery, { ValleyTrees } from './WildScenery.jsx';
+import { coverLite, valleyAt } from './cover.js';
+import { CROPS, vnoise } from './groundCover.js';
 
 // ---------------- terrain: 20 x 20 tiles; every tile has a coarse mesh, tiles near you get a fine one ----------------
 const TILE = 300, NT = SIZE / TILE, LO = 24, HI = 120, HI_IN = 430, HI_OUT = 640;
 const MOUNTAIN = new THREE.Color('#8a6a4e'), HIGH = new THREE.Color('#9c7c5e');
 const SHORE = new THREE.Color('#d6c19f'), SILT = new THREE.Color('#d9c9ac'), CLAY = new THREE.Color('#a68162');
 const BASIN = new THREE.Color('#c4b28d'), SOUTH = new THREE.Color('#a46a4b');
+const CROP_COL = Object.fromEntries(Object.entries(CROPS).map(([k, c]) => [k, new THREE.Color(c.ground)])), GREEN_TINT = new THREE.Color('#7d8c4a'), DRY_TINT_G = new THREE.Color('#b8a679');
 const PAVED = new Set(['asphalt', 'concrete', 'curb']), BIO_GROUND = new Set(['meadow', 'dryGrass', 'forestFloor']);   // biome ground keeps its own colours (no desert mountain tint)
 /** time slice for tile building: the generator below gives the frame back whenever this deadline passes (Infinity = run straight through) */
 const BUDGET = { until: Infinity };
@@ -79,6 +82,13 @@ function* tileGen(ix, iz, seg) {   // the same tile, built in slices so streamin
       w[3] += south;
     }
     if (shore > 0) { for (let q = 0; q < 8; q++) w[q] *= 1 - shore; w[0] += shore; }
+    // what grows here (worlds/groundCover.js): crop fields in the valley, greener washes, grassy ground where the grass layer grows thick
+    const cv = paved || sf.key === 'water' ? null : coverLite(x, z, sf.key, slope, core);
+    if (cv && (cv.crop || cv.green > 0.08)) {
+      const g = cv.crop ? (CROPS[cv.crop].grass ? 0.85 : 0) * cv.valley : Math.min(0.6, cv.green * 0.7), d = cv.crop && !CROPS[cv.crop].grass ? 0.8 * cv.valley : 0;
+      if (g > 0) { for (let q = 0; q < 8; q++) w[q] *= 1 - g; w[6] += g; }
+      if (d > 0) { for (let q = 0; q < 8; q++) w[q] *= 1 - d; w[2] += d; }   // plowed / fallow: bare dirt
+    }
     w0.set([w[0], w[1], w[2], w[3]], k * 4); w1.set([w[4], w[5], w[6], w[7]], k * 4);
     misc.set([sf.key === 'playa' ? 1 : sf.key === 'mud' ? 0.6 : 0, core || paved ? 0 : reliefAt(x, z)], k * 2);
     c.set(sf.color).multiplyScalar(1 - Math.min(0.3, slope * 0.25));
@@ -96,6 +106,8 @@ function* tileGen(ix, iz, seg) {   // the same tile, built in slices so streamin
         c.lerp(CLAY, Math.min(1, relief / 5) * (0.15 + 0.27 * band));
       }
     }
+    if (cv?.crop) { c.lerp(CROP_COL[cv.crop], cv.valley * 0.85); c.multiplyScalar(0.94 + vnoise(x, z, 11, 3) * 0.12); }   // a little light and dark across each field
+    else if (cv) { c.lerp(GREEN_TINT, cv.green * 0.45); c.lerp(DRY_TINT_G, cv.dry * 0.15); }
     c.offsetHSL(Math.sin(x * 0.011 + z * 0.007) * 0.01, Math.sin(x * 0.017 - z * 0.013) * 0.04, Math.sin(x * 0.041 + z * 0.036) * 0.03 + (r() - 0.5) * 0.03);
     col.set([c.r, c.g, c.b], k * 3);
   };
@@ -767,7 +779,8 @@ export default function CountyScene() {
     <React.Suspense fallback={null}><Flora /></React.Suspense>
     {REAL && <WildScenery />}
     <React.Suspense fallback={null}><Desert /></React.Suspense>
-    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} roadAt={(x, z) => highways().near(x, z)} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9)} /></React.Suspense>}
+    {REAL && <React.Suspense fallback={null}><RealScenery heightAt={height} surfaceAt={surface} regionAt={border().regionAt} roadAt={(x, z) => highways().near(x, z)} avoid={(x, z) => onCore(x, z) || isRoad(x, z) || highways().isNear(x, z, 9) || valleyAt(x, z) > 0.35} /></React.Suspense>}
+    {REAL && <ValleyTrees />}
     {TOWN.map((b, i) => <Storefront key={i} b={b} />)}
     <Proving />
     <Sites />
