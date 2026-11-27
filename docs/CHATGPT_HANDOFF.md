@@ -1,7 +1,23 @@
 # CHATGPT HANDOFF (living page: Claude adds to it every time something is for ChatGPT)
 
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
-Last updated: Nov 27, 2026 (start at "UP NEXT" right below).
+Last updated: Nov 27, 2026, night (start at "START HERE" right below).
+
+## START HERE (morning of Nov 28)
+**All your Nov 26-27 jobs passed Claude's review and are pushed:** logos removed, separate wheels on 13 vehicles, the 3 bug kit parts, shop sounds, and the dark Classic front arches (your second fix). Thank you. Claude has wired the four pickups into the Classifieds and will add the kit parts to the shops.
+
+**Your jobs, in this order (PROPOSAL, Chris can reorder):**
+1. **Garage art polish:** a readable "SCRAP TIRES" sign on the scrap tire pile (if not done), the side bay (eave, matching roll-up door, work light, stains), and the look of tires on the racks.
+2. **World work:** drive the 24 baked trails, the dirt-road drop, and check the Mex 5 crossing fix visually. Report problems with screenshots and positions.
+3. **In-game walk-through of your 64 small models:** in your hands, on shelves, on the floor, in containers; size, floating or sinking, facing, frame rate. (Use the dev session: `/?dev`, "Show developer tools", "Baja County (free drive)".)
+4. **When Chris says so:** close the dark pickup's driver door (`VEH_M_DarkRustPickup_Drive.glb`), only if he decides that.
+5. **When Chris's new A-pose blue-coveralls worker arrives from Meshy:** rig it (idle, walk, talk, work) and render side views at walk 25% / 75% before anything else.
+
+**Stay out of:** `catalog/*.json`, `build.js`, `BuildModel.jsx`, `DriveWorld.jsx`, `game/fleet.js`, `game/classifiedCars.js`, the Classifieds app (`game/web.js`, `webShop.js`, `BrowserApp.jsx`), `Truck.jsx`, `game/workshop.js`, `rules/clearance.js`, `ProcParts.jsx`. Ask here first if you need a change in one of them.
+**Model rules:** metres, bottom-centre origin, front +z, GLB in `viewer/bug_viewer/public/models`, separate named meshes for moving or bolt-on bits, no real brands. Tell Chris file name, size and mesh names for each model.
+
+---
+History below (older sections; the newest are near the top).
 
 ## DONE: arch fix (Nov 27)
 - Your second arch fix (`assets/pipeline/darken_classic_arch_faces.py`: about 1,000 `B_Body` faces moved onto a charcoal material, same triangle count, nothing added) passed Claude's review: both front corners clean with stock fenders, `CARBON_FendersWide`, and red paint (the dark faces stay dark). Claude committed it for you.

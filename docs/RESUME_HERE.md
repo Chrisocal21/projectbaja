@@ -1,5 +1,45 @@
-# RESUME HERE (rewritten Nov 22, 2026; start-here note Nov 23)
+# RESUME HERE (start page; rewritten Nov 27, 2026, night)
 
+## START HERE (morning of Nov 28)
+Everything below is on `main` and pushed. Tests: **681 pass**; production build clean. Two builders share the repo: **Claude Code** (gameplay, rules, wiring) and **ChatGPT** (art, models, sound, world). Both run `git status` first and commit only their own files.
+
+### What to paste tomorrow
+- **To Claude Code** (Sonnet is enough for job 1): `Read docs/RESUME_HERE.md "START HERE" and do Claude's next job 1. Check git status first.`
+- **To ChatGPT:** `Pull main, read the "START HERE" section at the top of docs/CHATGPT_HANDOFF.md, and do the jobs in order, one at a time. Run git status first, don't edit Claude's files, show me renders, then commit and push only your own files.`
+
+### Done Nov 26-27 (all pushed)
+- **Meshy drop in the game:** 8 customer trucks, 8 people (Dusty, Al, Rosa, two reserved workers, strangers), desert racer tires, the 12 Stage 2 upgrades now fit the Classic, 12 spray-can colours that also paint rims and seats.
+- **People move:** idle, and a talking motion when you stand within 2.5 m. Walk and work motions are broken (bad rig weights), so they are not used.
+- **Lift kits and bigger tires:** 2-inch and 4-inch kits; 31- and 33-inch tire sets that sit wider. 31s need the 2-inch kit, 33s the 4-inch. Lift raises ground clearance and makes the car tip sooner (33s roll on dirt at about 40 mph in a hard turn). Fit with the jack.
+- **Classifieds trucks:** the phone's Classifieds posts 0-2 of four pickups a day; bought ones are driven to Walt's yard in about 6 game hours; walk up, E, drive (own wheels spin and steer).
+- **Logos removed** (no real brands): Dusty's jacket, a pickup's grille badge, the Classic's hubcaps and hood badge.
+- **ChatGPT art:** separate wheels on 13 vehicles (`VEH_M_*_Drive.glb`), 3 bug kit parts (front tube bumper, rear cage, race seat; not in the shops yet), shop sounds, the dark Classic front arches.
+- **Repo:** raw art in `assets/` (2 GB, some files over GitHub's limit) is now ignored by git. **Back up `assets/` yourself** (drive or cloud): it is not on GitHub.
+
+### Chris: please play and give feel notes (none of this is checked by hand yet)
+1. Lift kit + 33s: buy, fit with the jack, drive hard on dirt and rocks. Too tippy? Too slow on climbs?
+2. Buy a Classifieds truck for real (not in a dev session): delivery, getting in, driving, loading cargo in the bed.
+3. Shop sounds: volume and feel (K mutes).
+4. People: does the idle / talk motion look OK up close?
+5. Spray cans on rims and seats.
+
+### Chris: decisions waiting on you
+- **Dark pickup's door:** keep it hanging open (the cheap rough truck) or have ChatGPT close it?
+- **Names for the two hireable workers** (needed before the hiring app).
+- **Meshy:** remake the blue-coveralls worker in an A-pose (arms away from the body, hands out of pockets, feet apart). One model first; it fixes walk/work.
+- **Meshy:** models still missing for Pastor Dale, Deputy Ruiz and the Hollises.
+
+### Claude's next jobs (in order, PROPOSAL)
+1. **Add the 3 bug kit parts to the shops** (front tube bumper, rear cage, race seat) so they can be bought and fitted. Sonnet.
+2. **Cargo in the Classifieds trucks' beds:** crates use the old '84 pickup's spots; check and fix per truck. Sonnet.
+3. **Worker hiring** app for the two workers (needs Chris's names). Sonnet.
+4. **Wire ChatGPT's other 9 `_Drive` vehicles:** race trucks and dune buggy for racing, tow rigs, trail rigs, the two bugs (Classifieds or races). Opus.
+5. **Regearing part** so 33s can climb ledges (taller tires push less at the wheel). Opus.
+
+### ChatGPT's next jobs
+See the "START HERE" section at the top of [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md).
+
+## Work log, Nov 26-27 (details; newest near the top)
 - **People (Nov 26):** `assets/pipeline/export_people.py` -> `PERSON_M_*.glb` (no skeletons, static). Casting table `game/people.js` (PROPOSAL): Dusty (behind the store counter, away while the belt job is open), Al (office porch), Rosa; worker1/worker2 reserved for the two permanent hires (NOT hireable yet, no names: Chris names them); misc = young man, trekker, hi-vis. Pastor Dale, Deputy Ruiz, the Hollises keep the old stand-in until Chris adds models. Not used: T-pose man (needs a rig), first-person hands.
 - **Spray cans (Nov 26):** 12 cans, one per customizer palette colour (`finishJobs.js` CANS), sold in the phone/PC supplies and off-road stores (Dusty still stocks white + black). A can also sprays the **rims** (aftermarket rims only; stock hubcaps refuse) and the **seats**: hold to blend to the can colour over one coat, all four rims / all seats together, no grind step (PROPOSAL). Saved at `home.tint[vehId]`, drawn by BuildModel.
 - **Stage 2 parts on the Classic (Nov 26):** the 12 parts that only fit the Stage 2 body (cut/wide fenders, short hood, open rear deck, tube bumper, rear cage, rockers, trail shocks, 4 carbon) now also fit `classic` with the same GLB and `offset.classic = [0,-0.14,0]` (the Stage 2 body is the Classic raised exactly 0.14 m). So the game's bug can buy and fit them. Still not in the game: Stage 2 body itself, lift, tire size, dash/steering-wheel colours.
@@ -9,14 +49,15 @@
 - **White baja bug kit (Nov 26):** `assets/meshy/white_baja_bug_split_parts.glb` is an exploded sheet of 22 loose pieces (Meshy split). `assets/pipeline/export_bugkit.py` -> `TIRE_DesertRacer.glb` (wheel part4, rim cut off so every game rim fits): wheel set `tire-desert` "Desert racer" on all bug bodies, sold in the web shop like the other tires (grip numbers PROPOSAL). Still usable from the kit: front tube bumper + skid (part11), rear tube cage + plate (part10), bucket race seat (part15). Rest are fragments. The assembled `white_baja_bug_class_.glb` (5.4M tris, sponsor decals to check) is not used yet.
 - **Meshy drop (Nov 26):** raw downloads in `assets/meshy/` (not committed); `assets/pipeline/export_meshy.py` makes `VEH_M_*.glb` (7-90k tris, wheels fused, our own names). Done: 8 trucks are customer rides (`game/custRides.js` `file`). Next: vehicles on the phone Classifieds (parked only until wheels are separate). Saved for racing: dune buggy, two race trucks. Not used yet: green jeep (government-style badge to paint out), workbenches, tool chests, toolboxes, crates, lift stacker, well, cash bag.
 
-Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
+## Older notes (Nov 22-27; some are out of date)
+Background: [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
 
 ## How we work now
 - **The game is simulation-forward (Chris, Nov 22).** No click-and-choose for anything the player does to a vehicle: tires off rims, grinding rust, painting, buffing, hosing dirt off, fitting parts, servicing are all hands-on jobs with tools. Admin and the build-mode swatches are dev tools and are hidden at launch.
 - **One branch: `main`.** Commit and push small, often. Only commit in this repo (`projectbaja`); never in `salvageroad` (it is a read-only reference, merge finished, see [SALVAGE_MERGE_PLAN](./SALVAGE_MERGE_PLAN.md)).
 - **Two builders at once: Claude Code and ChatGPT.** Before editing, run `git status`: files that show as modified and are not yours belong to the other builder, so leave them alone. Whenever something is for ChatGPT, add it to [CHATGPT_HANDOFF](./CHATGPT_HANDOFF.md) (standing rule).
 - Chris plays and judges how it feels. All physics, wear and world numbers are estimates (labelled in code and docs) to tune by feel.
-- Dev server: `npx vite --port 3001` in `viewer/bug_viewer`. Tests: `npm test` (607 pass, Nov 22). `npm run build` fails on a locked `dist/review` folder (EPERM): build to a temp folder instead. Build check: `npx vite build --outDir <tmp> --emptyOutDir`.
+- Dev server: `npx vite --port 3000` in `viewer/bug_viewer`. Tests: `npm test` (681 pass, Nov 27). `npm run build` fails on a locked `dist/review` folder (EPERM): build to a temp folder instead. Build check: `npx vite build --outDir <tmp> --emptyOutDir`.
 
 ## Where things stand (Nov 22)
 All pushed to `main`. Details and numbers are in [REPAIR_AND_WORLD_PLAN](./REPAIR_AND_WORLD_PLAN.md) (the running record) and [PERFORMANCE_WORK](./PERFORMANCE_WORK.md).
