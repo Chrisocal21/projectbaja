@@ -27,6 +27,7 @@ Last updated: Nov 27, 2026 (start at "UP NEXT" right below).
 Hub coordinates are in metres, X left, Y up, Z forward. The DuneBuggy donor has its front tread about 94 mm above the rear contact plane. Allow front suspension droop or adjust front ride setup as part of fitting.
 
 4. **Shop sounds** (older focus list item 4): wrench clicks, angle grinder, welder, table saw, tube bender. Hook off `game.holdBar`; keep K mute and the 50% default.
+   - **Audio wired:** County mounts the existing `ShopWorkEffects` once and it reads `game.holdBar`. Current bolt-on/removal, blueprint and grinder holds select their sound. Welder, saw and bender profiles respond to matching labels or an explicit `shopSound` when their jobs are added. Shared K mute and .5 default are retained. Work position and completion events are still needed for visible particles. Checked label routing and ran the full 681-test suite. In-game listening and balance remain open.
 Run `git status` first; commit only your own files; show Chris renders for anything visual.
 
 ## DO THIS NOW (Nov 26, late; PROPOSAL order). This replaces the older art lists below.

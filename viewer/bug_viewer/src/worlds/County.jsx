@@ -23,6 +23,7 @@ import { SHOP_SIGN } from './shopLayout.js';
 import { planStreetLights } from './streetLights.js';
 import { REAL_PLACES, projectPlace } from '../game/realPlaces.js';
 import Home from './Home.jsx';
+import ShopWorkEffects from '../game/ShopWorkEffects.jsx';
 import RegionalUtilityPoles from './RegionalUtilityPoles.jsx';
 import RegionalPlaceSigns from './RegionalPlaceSigns.jsx';
 import RegionalRoadReflectors from './RegionalRoadReflectors.jsx';
@@ -785,6 +786,7 @@ export default function CountyScene() {
     <Proving />
     <Sites />
     <Home />
+    <ShopWorkEffects />
     {!REAL && <Mesas d0={3500} dr={700} sc={4} n={30} />}
   </>;
 }

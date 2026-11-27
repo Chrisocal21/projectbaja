@@ -76,6 +76,8 @@ export function shopWorkKind(hold) {
   if (/weld/.test(label)) return 'welder';
   if (/saw/.test(label)) return 'saw';
   if (/bend/.test(label)) return 'bender';
-  if (hold.work && /frame|build|assem|bolting|tighten|standing|laying|pulling.*crate/.test(label)) return 'wrench';
+  if (/^(bolting on|taking off)\b/.test(label)) return 'wrench';
+  if (hold.work && /frame|build|assem|bolting|tighten|standing|laying.*(?:boards|shelves|slats|deck)|pulling.*crate/.test(label)
+      && !/traction boards/.test(label)) return 'wrench';
   return null;
 }
