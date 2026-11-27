@@ -223,6 +223,14 @@ The hands-on finish tools (grinder, spray cans, buffer, hose; `src/finishJobs.js
 ## Silt and soft sand (Claude, Nov 22)
 Two new ground types in `src/worlds/kit.js` SURFACES: `silt` (pale powder, `#cbbb9f`) and `softSand` (`#e2cb93`). A car that crawls or spins its wheels on them bogs down (`src/bogDown.js`); the player digs out with a shovel or traction boards. Claude places them off the roads with `src/worlds/softGround.js` (silt patches on open flats and round dry lakebeds, soft sand in deep washes and dune hearts; never within 300 m of Walt's). Things you could do on your side if you want: (1) a few **silt sections on trails** (`trails.json` / `trailRoutes.js` are yours): paint the trail cells with the `silt` surface id for a stretch of 40 to 120 m; real Baja race courses have them. (2) A powdery ground texture for silt in the terrain material (`src/worlds/terrainMaterial.js` maps `silt` and `softSand` to the sand layer for now). (3) Small models for a **shovel** and **traction boards** (orange plastic, about 1.1 x 0.3 m, a pair) if you make tool art; they show as plain items for now.
 
+## Garage polish pass (Nov 26)
+
+The scrap pile already has a canvas-textured readable SCRAP TIRES sign and the worn-tire GLB; preserved. `worlds/Sites.jsx` now mounts new `SideBayDetails.jsx`: head flashing under the main eave, exposed roof-edge fascias, matching roller-door seams and recessed guide tracks, a powered work-light fixture, and subtle engine drips / wheel scuffs. Existing floor, opening and collision sizes are unchanged. [Standalone browser preview](./GARAGE_POLISH_PREVIEW.png) shows the detail component on a simplified bay shell, not an in-game screenshot.
+
+New `worlds/RackTire.jsx` and `rackTireGeometry.js` provide rounded rubber shoulders, three rows of tread blocks and ventilated steel dishes in three draws per wheel. Same bottom-centred `dia`, `width`, `upright`, `cast`, `ud`, `color` interface as `placement/Preview.jsx` TireModel. Geometry remains inside the original footprint. Claude wiring: delegate TireModel to RackTire in Preview.jsx; cargo and placed upright tires then share the art. Items.jsx has its separate tire path; compare that during Claude's walkthrough before deciding whether to share the component. No spacing, item IDs or placement rules changed. Rack integration and evening / power-off readability need an in-game check.
+
+Preview harness: `tools/garage-polish-review.jsx` (bundle with esbuild into dist, serve the game root).
+
 ## Customer people and workshop effects delivered
 
 Chris assigned the 64-model in-game walkthrough to Claude. Customer and effects work adds new files only, apart from this handoff entry.

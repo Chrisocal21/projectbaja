@@ -1,4 +1,5 @@
 import LiftHardware from './LiftHardware.jsx';
+import SideBayDetails from './SideBayDetails.jsx';
 import React, { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { SITES, height } from './county.js';
@@ -179,7 +180,7 @@ function Gable({ z, pts, map }) {
   </mesh>;
 }
 /** Walt's side bay: a lean-to on the shop's east wall where grandma's Bug stands (worlds/sideBay.js). Basic boxes, same skins as the shop. */
-function SideBay({ wall, roof, floor, ply, timber, power }) {
+export function SideBay({ wall, roof, floor, ply, timber, power }) {
   const keepsakes = useMemo(() => canvasTex(416, 336, (g) => {   // a cork board with one photo of grandma's Bug (no invented notes: canon)
     const random = rnd(47);
     g.fillStyle = '#624433'; g.fillRect(0, 0, 416, 336);
@@ -234,6 +235,7 @@ function SideBay({ wall, roof, floor, ply, timber, power }) {
     {[B.x1 - 0.12].map(x => <Box key={x} p={[x, B.hLow / 2, B.z1 - 0.12]} s={[0.16, B.hLow, 0.18]} map={timber} color="#a18b68" />)}
     {Array.from({ length: 4 }, (_, i) => <Box key={i} p={[(D.x0 + D.x1) / 2, D.h + 0.06 + i * 0.11, B.z1 + 0.13]} s={[D.x1 - D.x0 - 0.1, 0.1, 0.045]} color={i % 2 ? '#8d9188' : '#777971'} map={roof} metal={0.32} rough={0.78} />)}
     {[D.x0 - 0.1, D.x1 + 0.1].map(x => <Box key={x} p={[x, D.h / 2, B.z1 + 0.13]} s={[0.12, D.h, 0.15]} color="#59605c" map={roof} metal={0.45} />)}
+    <SideBayDetails power={power} />
     {/* one fluorescent tube, on with the shop's power */}
     <mesh position={[cx, B.hLow - 0.2, 0]}><boxGeometry args={[0.18, 0.08, 5]} /><meshStandardMaterial color={power ? '#fff6dc' : '#6d6a62'} emissive="#fff0c0" emissiveIntensity={power ? 1.4 : 0} /></mesh>
     <pointLight position={[cx, B.hLow - 0.6, 0]} intensity={power ? 16 : 3} distance={12} decay={1.6} color={power ? '#ffeccc' : '#b9a98a'} />
