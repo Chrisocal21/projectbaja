@@ -6,6 +6,7 @@
   "slot": "fenders",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_007_CutBajaFenders",
    "classic-stage2": "STAGE2_PART_007_CutBajaFenders"
   },
   "families": [
@@ -28,6 +29,13 @@
    "metalness": 0,
    "roughness": 0.92,
    "unpainted": true
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
   }
  },
  {
@@ -37,6 +45,7 @@
   "slot": "fenders",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_010_FiberglassWideFenders",
    "classic-stage2": "STAGE2_PART_010_FiberglassWideFenders"
   },
   "families": [
@@ -56,6 +65,13 @@
    "metalness": 0,
    "roughness": 0.92,
    "unpainted": true
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
   }
  },
  {
@@ -65,6 +81,7 @@
   "slot": "hood",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_008_ShortenedFrontHood",
    "classic-stage2": "STAGE2_PART_008_ShortenedFrontHood"
   },
   "families": [
@@ -88,6 +105,13 @@
    "metalness": 0,
    "roughness": 0.92,
    "unpainted": true
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
   }
  },
  {
@@ -152,6 +176,7 @@
   "slot": "rearDeck",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_009_RearEngineOpening",
    "classic-stage2": "STAGE2_PART_009_RearEngineOpening"
   },
   "families": [
@@ -175,6 +200,13 @@
    "metalness": 0,
    "roughness": 0.92,
    "unpainted": true
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
   }
  },
  {
@@ -184,6 +216,7 @@
   "slot": "frontBumper",
   "category": "Protection",
   "bodies": {
+   "classic": "STAGE2_PART_002_FrontTubeBumper",
    "classic-stage2": "STAGE2_PART_002_FrontTubeBumper"
   },
   "families": [
@@ -192,6 +225,13 @@
   "hides": {
    "*": [
     "B_FrontBumper"
+   ]
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
    ]
   }
  },
@@ -202,6 +242,7 @@
   "slot": "rearBumper",
   "category": "Protection",
   "bodies": {
+   "classic": "STAGE2_PART_003_RearEngineCage",
    "classic-stage2": "STAGE2_PART_003_RearEngineCage"
   },
   "families": [
@@ -210,6 +251,13 @@
   "hides": {
    "*": [
     "B_BackBumper"
+   ]
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
    ]
   }
  },
@@ -220,6 +268,7 @@
   "slot": "rockers",
   "category": "Protection",
   "bodies": {
+   "classic": "STAGE2_PART_011_RockerGuards",
    "classic-stage2": "STAGE2_PART_011_RockerGuards"
   },
   "families": [
@@ -228,6 +277,13 @@
   "hides": {
    "*": [
     "B_SideBumper"
+   ]
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
    ]
   }
  },
@@ -238,6 +294,7 @@
   "slot": "suspension",
   "category": "Mechanical",
   "bodies": {
+   "classic": "STAGE2_PART_006_TrailShockSet",
    "classic-stage2": "STAGE2_PART_006_TrailShockSet"
   },
   "families": [
@@ -245,6 +302,13 @@
   ],
   "labels": {
    "classic-stage2": "Raised running gear"
+  },
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
   }
  },
  {
@@ -725,6 +789,7 @@
   "slot": "hood",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_008_ShortenedFrontHood",
    "classic-stage2": "STAGE2_PART_008_ShortenedFrontHood"
   },
   "families": [
@@ -746,7 +811,14 @@
    "roughness": 0.28,
    "weave": true
   },
-  "price": 520
+  "price": 520,
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  }
  },
  {
   "type": "part",
@@ -755,6 +827,7 @@
   "slot": "fenders",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_007_CutBajaFenders",
    "classic-stage2": "STAGE2_PART_007_CutBajaFenders"
   },
   "families": [
@@ -775,7 +848,14 @@
    "roughness": 0.28,
    "weave": true
   },
-  "price": 780
+  "price": 780,
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  }
  },
  {
   "type": "part",
@@ -784,6 +864,7 @@
   "slot": "fenders",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_010_FiberglassWideFenders",
    "classic-stage2": "STAGE2_PART_010_FiberglassWideFenders"
   },
   "families": [
@@ -804,7 +885,14 @@
    "roughness": 0.28,
    "weave": true
   },
-  "price": 820
+  "price": 820,
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  }
  },
  {
   "type": "part",
@@ -813,6 +901,7 @@
   "slot": "rearDeck",
   "category": "Body",
   "bodies": {
+   "classic": "STAGE2_PART_009_RearEngineOpening",
    "classic-stage2": "STAGE2_PART_009_RearEngineOpening"
   },
   "families": [
@@ -834,7 +923,14 @@
    "roughness": 0.28,
    "weave": true
   },
-  "price": 460
+  "price": 460,
+  "offset": {
+   "classic": [
+    0,
+    -0.14,
+    0
+   ]
+  }
  },
  {
   "type": "part",
