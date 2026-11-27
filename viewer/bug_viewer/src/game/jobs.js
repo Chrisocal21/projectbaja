@@ -1,6 +1,6 @@
 // Odd jobs: now and then a local pulls into the yard with a small problem. Nothing big, no timer, no stress - just steady
-// pocket money that keeps you chipping away at the garage. One customer at a time; the next one turns up a few minutes
-// (of play, with the OPEN light on) after the last one leaves.
+// pocket money that keeps you chipping away at the garage. Several can wait at once (custQueue.js maxCustomers), each
+// in their own parking stall; the next one turns up a few minutes (of play, with the OPEN light on) after the last arrived.
 import { game, save, say, addCash } from './store.js';
 import { SITES, toWorld } from '../worlds/county.js';
 import { pickStall, stallsFor } from '../worlds/lot.js';
@@ -9,7 +9,9 @@ import { spawnItem, nameOfItem } from './items.js';
 import { makeOrder, addOrder } from './workRules.js';
 import { custWheel, isCustWheel, custWheelReady } from './custJobs.js';
 import { standingVehicles } from './fleet.js';
-import { upgradeLevel } from './upgrades.js';
+import { upgradeLevel, owned } from './upgrades.js';
+import { maxCustomers, jobPool } from './custQueue.js';
+import { baysAt, garageLevelOf } from '../worlds/garageLevels.js';
 import { payFor, gapScale, afterJob } from './repRules.js';
 
 import { SUPPLIES } from './garageSupplies.js';
@@ -46,22 +48,27 @@ export const JOBS = [
 const FIRST_AFTER = 75, GAP = [200, 380];
 /** the world pose of a customer parked nose-in at a lot stall (see worlds/lot.js) */
 const stallPose = st => { const [x, z] = toWorld(SITES.garage, st.lx, st.lz); return { x, z, h: SITES.garage.rot + Math.atan2(st.fx, st.fz) }; };
-/** vehicles already in the lot, in garage-local metres: your parked cars plus the one you are driving */
-const occupiedNow = () => [...standingVehicles().map(v => v.pose), game.pose].filter(Boolean).map(p => homeLocal(p.x, p.z));
+/** vehicles already in the lot, in garage-local metres: your parked cars, the one you are driving, and customers' cars */
+const occupiedNow = () => [...standingVehicles().map(v => v.pose), game.pose, ...game.jobs].filter(Boolean).map(p => homeLocal(p.x, p.z));
 export const jobById = Object.fromEntries(JOBS.map(j => [j.id, j]));
+/** the waiting customer with this uid, or the one whose panel is open */
+export const waitingJob = (uid = game.jobOpen) => game.jobs.find(w => w.uid === uid) || null;
+/** how many customers can wait right now (bays in the shop + parking upgrades) */
+export const customerRoom = () => maxCustomers(baysAt(garageLevelOf(owned())).length, upgradeLevel('parking'));
 
 /** called every frame while playing: counts play time with the power on, and sends the next customer when it's due */
 export function tickJobs(dt) {
-  if (game.dev || game.paused || game.job || !isOpen()) return;
+  if (game.dev || game.paused || !isOpen() || game.jobs.length >= customerRoom()) return;   // full up: the clock waits until someone leaves
   const h = game.home;
   h.jobClock = (h.jobClock || 0) + dt;
-  const due = h.jobsDone ? h.nextJobAt || GAP[0] : FIRST_AFTER;
+  const due = h.jobsDone || h.custN ? h.nextJobAt || GAP[0] : FIRST_AFTER;
   if (h.jobClock < due) return;
+  const pool = jobPool(JOBS, game.jobs, h.lastJob, hasInGarage); if (!pool.length) return;
   const stall = pickStall(occupiedNow(), Math.random, stallsFor(upgradeLevel('parking'))); if (!stall) return;   // lot full: the customer waits until a stall opens
-  const last = h.lastJob, pool = JOBS.filter(j => j.id !== last && (!j.needsGarage || hasInGarage(j.needsGarage)));
   const j = pool[Math.floor(Math.random() * pool.length)];
-  const pose = stallPose(stall);
-  game.job = { id: j.id, stall: stall.id, ...pose };
+  const pose = stallPose(stall), uid = (h.custN || 0) + 1;
+  h.custN = uid;
+  game.jobs = [...game.jobs, { uid, id: j.id, stall: stall.id, ...pose, look: 1 + Math.floor(Math.random() * 3) }];
   if (j.need.kind === 'custWheel') {   // the customer leaves their wheel on the ground beside the car
     spawnItem('stock', 'wheel', pose.x + Math.cos(pose.h) * 2.2, pose.z - Math.sin(pose.h) * 2.2);
     Object.assign(game.items[game.items.length - 1], custWheel());
@@ -79,8 +86,8 @@ export function jobCheck(j) {
   const what = j.need.kind === 'supply' ? SUPPLIES[j.need.id].name : 'a car battery';
   return it ? { ok: true, item: it } : { ok: false, why: `You need ${what.toLowerCase().startsWith('a ') ? what : `a ${what.toLowerCase()}`} — Dusty's store has them.` };
 }
-export function doJob() {
-  const j = game.job && jobById[game.job.id]; if (!j) return;
+export function doJob(uid = game.jobOpen) {
+  const w = waitingJob(uid), j = w && jobById[w.id]; if (!j) return;
   const c = jobCheck(j); if (!c.ok) return say(c.why);
   if (c.item) game.items = game.items.filter(i => i !== c.item);
   else if (c.stand) game.home = takeStock(game.home, c.stand).home;
@@ -88,5 +95,5 @@ export function doJob() {
   const used = c.item ? nameOfItem(c.item) : c.stand ? standById[c.stand]?.name : j.need.tool ? `your ${j.need.tool}` : '';   // for the work order
   addCash(pay, `Job: ${j.who}`);
   game.home = { ...game.home, jobsDone: (game.home.jobsDone || 0) + 1, lastJob: j.id, rep: a.rep, regulars: a.regulars, workLog: addOrder(game.home.workLog, makeOrder(j, used, pay, game.clock)) };
-  game.job = null; save(); say(`${j.who}: "You're a lifesaver." (+$${pay})${pay > j.pay ? ' Good word gets around: a little extra.' : ''}${a.note ? ' ' + a.note : ''}`);
+  game.jobs = game.jobs.filter(x => x !== w); game.jobOpen = null; save(); say(`${j.who}: "You're a lifesaver." (+$${pay})${pay > j.pay ? ' Good word gets around: a little extra.' : ''}${a.note ? ' ' + a.note : ''}`);
 }

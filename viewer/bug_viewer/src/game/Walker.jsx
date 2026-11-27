@@ -79,7 +79,7 @@ export const promptText = id => {
   if (id === 'crank') return game.cranking ? 'Cranking…' : `Press E — Turn the key${game.crankTries ? ' again' : ''}  ·  G — Get out`;
   if (id === 'box:racecar') return boxItems('racecar').length ? "Press E — Strip grandpa's race car (shocks, rims, race tires)" : "Grandpa's old #7 — nothing left worth taking";
   if (id.startsWith('box:')) { const c = containerById[id.slice(4)], b = game.boxes[c.id]; return `Press E — ${b?.searched ? (boxItems(c.id).length ? 'Look in' : 'Empty:') : 'Search'} the ${CONTAINER_RULES[c.type].label}`; }
-  if (id === 'job') { const j = game.job && jobById[game.job.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
+  if (id.startsWith('job:')) { const w = game.jobs.find(x => x.uid === +id.slice(4)), j = w && jobById[w.id]; return j ? `Press E — Talk to ${j.who} (${j.title.toLowerCase()})` : ''; }
   if (id === 'bench') { const c = cutPrompt(); if (c) return c; }
   if (id.startsWith('item:')) { const j = game.items.find(i => i.uid === +id.slice(5)), hint = j && salvageHint(j); if (hint) return toolInHand()?.kind === 'tool' && hint.startsWith('Hold') ? `${nameOfItem(j)}: ${hint}` : `Press E — Pick up ${nameOfItem(j)}  ·  ${hint}`; }
   if (id.startsWith('bin:')) return binText(+id.slice(4));
@@ -290,7 +290,7 @@ export default function Walker({ world, sun }) {
     if (aimedItem && !(best && !best.startsWith('item:') && best !== 'bench' && bd < aimedD * 0.5)) { best = aimedItem; bd = Math.min(bd, aimedD * 0.5); }
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1, own: true }); }   // own: a tool chest is solid itself, its own circle must not hide it
     if (foot) for (const h of SCRAP_HEAPS) if (!heapTaken(h.id)) consider('heap:' + h.id, h.x, h.z, 2.6, true, 0.6, { r: 1.2, h: 1.0 });
-    if (foot && game.job) consider('job', game.job.x, game.job.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
+    if (foot) for (const w of game.jobs) consider('job:' + w.uid, w.x, w.z, 4.6, false, 0.5, { r: 1.0, h: 1.9 });
     if (foot && held() && isTire(held())) consider('tirepile', tirePileWorld.x, tirePileWorld.z, 3.4, false, 0.8, { r: 1.5, h: 1.4 });   // yard cleanup
     if (foot) consider('trailer', TRAILER_DOOR.x, TRAILER_DOOR.z, 2.6, false, 0.8, { r: 0.9, h: 2.0 });
     if (foot) for (const j of junkWorld) if (!isCleared(j.id)) consider('junk:' + j.id, j.x, j.z, 2.8, true, 0.6, { r: 0.8, h: 0.9 });

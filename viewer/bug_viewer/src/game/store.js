@@ -9,7 +9,8 @@ import { parts, wheelSets, rims, partFits, wheelSetFits, partById, wheelById, ri
 
 import { cajonCatalog, cajonPriceOf } from './cajonParts.js';
 import { supplyName, supplyPrice } from './garageSupplies.js';
-import { parseSave, wrap, CURRENT, sanitizeJob, sanitizeCrates, resumePlan, keysToPrune } from './saveFormat.js';
+import { sanitizeJobs } from './custQueue.js';
+import { parseSave, wrap, CURRENT, sanitizeCrates, resumePlan, keysToPrune } from './saveFormat.js';
 
 export const KEY = 'baja-save-v1';   // the key name is kept for compatibility; the value is now a versioned envelope (saveFormat.js)
 const notices = [];           // load-time warnings, shown now and again when the story starts (the title may not be up yet)
@@ -42,7 +43,7 @@ export const game = {
   toast: null, crates: sanitizeCrates(saved.crates), listeners: new Set(), target: null, wear: saved.wear ?? 0.85,
   items: saved.items || [], boxes: saved.boxes || {}, build: saved.build || null, projects: Array.isArray(saved.projects) ? saved.projects : [], work: null,
   fleet: saved.fleet || { bug: { pose: null } }, active: saved.active || 'bug',
-  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, job: sanitizeJob(saved.job), clock: saved.clock ?? 9,
+  home: saved.home || { cleared: [], power: false, letter: false }, props: saved.props || [], mats: saved.mats || { scrap: 0 }, jobs: sanitizeJobs(saved.jobs, saved.job), clock: saved.clock ?? 9,
   nextUid: { props: saved.nextUid?.props || 1, items: saved.nextUid?.items || 1 }, saveLocked: loaded.locked, resume: resumePlan(saved, saved.fleet?.[saved.active ?? 'bug']?.pose), live: false,
   onFoot: false, dev: false, start: 'plaza', speed: 0, fueled: !!saved.fueled, walkStart: null, walkPose: null, face: { x: 0, z: -1 },
 };
@@ -51,7 +52,7 @@ if (typeof window !== 'undefined') window.__game = game;   // test hook
 export const emit = () => game.listeners.forEach(f => f());
 // Dev sessions (test worlds, free drive) never write the story save (canon: saves are sacred).
 let warnedWrite = false;
-const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, projects: game.projects, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, job: game.job, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
+const buildData = () => ({ cash: game.cash, owned: [...game.owned], unlockAll: game.unlockAll, wear: game.wear, items: game.items, boxes: game.boxes, build: game.build, projects: game.projects, fleet: { ...game.fleet, [game.active]: { ...(game.fleet[game.active] || {}), pose: game.pose ? { x: game.pose.x, z: game.pose.z, h: game.pose.h } : game.fleet[game.active]?.pose || null } }, active: game.active, home: game.home, props: game.props, mats: game.mats, clock: game.clock, nextUid: game.nextUid, jobs: game.jobs, fueled: game.fueled, crates: game.crates, onFoot: game.onFoot, walkPose: game.onFoot ? game.walkPose : null });
 export const writeSave = () => {
   if (game.dev || game.saveLocked) return;
   try { localStorage.setItem(KEY, JSON.stringify(wrap(buildData()))); warnedWrite = false; }
@@ -100,7 +101,7 @@ export function setWear(v) { game.wear = v; WEAR.value = v; persist(); emit(); }
 /** Start the story: grandpa's garage and his old Bug are yours, plus what's left of your savings. Every part has to be found or bought. */
 export function newGame() {
   game.cash = 1500; game.owned.clear(); game.owned.add('car:bug'); game.unlockAll = false; game.crates = {}; game.wear = 0.85; WEAR.value = 0.85;
-  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.projects = []; game.projectOpen = {}; game.home = { cleared: [], power: false, letter: false, lean: 1 }; game.props = []; game.mats = { scrap: 0, wood: 0 }; game.job = null;   // lean: a new game starts with few racks (home.js STARTER_LEAN) game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;
+  game.fleet = { bug: { pose: null } }; game.active = 'bug'; game.projects = []; game.projectOpen = {}; game.home = { cleared: [], power: false, letter: false, lean: 1 }; game.props = []; game.mats = { scrap: 0, wood: 0 }; game.jobs = []; game.jobOpen = null; game.clock = 9; game.nextUid = { props: 1, items: 1 }; game.fueled = false; game.resume = null;   // lean: a new game starts with few racks (home.js STARTER_LEAN)
   persist(); emit();
 }
 export function buyCar(id, price) { if (game.owned.has('car:' + id) || game.cash < price) return false; game.cash -= price; game.owned.add('car:' + id); persist(); emit(); return true; }

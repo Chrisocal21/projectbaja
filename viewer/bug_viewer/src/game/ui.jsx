@@ -3,7 +3,7 @@ import { groupItems } from './invGroups.js';
 import { FRESH, WEAR_PARTS, PART_NAME, partCost, serviced } from '../wear.js';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
-import { SUPPLIES, STORE_ITEMS, jobById, jobCheck } from './jobs.js';
+import { SUPPLIES, STORE_ITEMS, jobById, jobCheck, waitingJob } from './jobs.js';
 import { sellable } from './sell.js';
 import { BUYERS } from './market.js';
 import { LETTER, BUILD_ITEMS, BUILD_CATS, buildById, garageClean, RECIPES, hasInGarage, TRAILER_UPGRADES, trailerHas, trailerWhy } from './home.js';
@@ -231,7 +231,7 @@ function WearService() {
 /** a customer with a small job */
 export function JobPanel({ onDo, onClose }) {
   useGame();
-  const j = game.job && jobById[game.job.id]; if (!j) return null;
+  const w = waitingJob(), j = w && jobById[w.id]; if (!j) return null;
   const c = jobCheck(j);
   return <div className="overlay"><div className="card inv"><h2>{j.title.toUpperCase()}</h2>
     <p><b>{j.who}:</b> "{j.ask}"</p>

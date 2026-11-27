@@ -514,8 +514,8 @@ const COUNTY_WORLD = {
   id: 'county', trunks: (x, z) => { const a = TRUNKS.near(x, z), b = CO.wildTrunksNear(x, z); return b.length ? [...a, ...b] : a; }, waterDepth: CO.waterDepthAt, waterFlow: CO.waterFlowAt, height: CO.groundHeight, surface: CO.surface, half: CO.HALF_DRIVE, bounds: CO.DRIVE_BOUNDS, far: 5200, gates: [], spawns: CO.spawns, area: CO.areaAt,
   get spawn() { return GARAGE_DRIVE; },
   get obstacles() {
-    const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.job?.id || ''}`;
-    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.projects || []).flatMap(p => vehicleCircles(p.pose, defOf(p).length)), ...(game.job ? vehicleCircles(game.job, 5.1) : [])] };
+    const key = `${game.propsV || 0}|${game.props.length}|${(game.projects || []).length}|${game.active}|${Object.keys(game.fleet).join(',')}|${game.jobs.map(w => w.uid).join(',')}`;
+    if (obsCache.key !== key) obsCache = { key, list: [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().flatMap(v => vehicleCircles(v.pose, vehicleType(v.id).length)), ...(game.projects || []).flatMap(p => vehicleCircles(p.pose, defOf(p).length)), ...game.jobs.flatMap(w => vehicleCircles(w, 5.1))] };
     return obsCache.list;
   },
 };

@@ -43,7 +43,7 @@ Suggested ladder: service garage, then desert prep (+ recovery later), then race
 No lore is added: nothing says Walt offered any of these.
 
 ## Build order (one piece at a time)
-1. Several customers, each with a car and a person, waiting in stalls.
+1. Several customers, each with a car and a person, waiting in stalls. **DONE Nov 26.**
 2. Cars drive in and out.
 3. Bay and lift jobs: the car pulls through the door.
 4. Hire one worker who does jobs (Crew app).

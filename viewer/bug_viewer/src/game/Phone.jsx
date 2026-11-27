@@ -14,7 +14,7 @@ import { VEHICLE_TYPES, FOR_SALE, owned as ownsCar } from './fleet.js';
 import { etaText, groupOrders } from './orderlogic.js';
 import { effects } from './upgrades.js';
 import { LETTER } from './home.js';
-import { jobById, jobCheck, SUPPLIES } from './jobs.js';
+import { jobById, jobCheck, SUPPLIES, customerRoom } from './jobs.js';
 import { TOOLS, canCarry, giveToPlayer, dropNearPlayer } from './items.js';
 import { SaveTools } from './update.jsx';
 import ExplorerApp from './ExplorerApp.jsx';
@@ -90,18 +90,18 @@ function StoryLog({ view, setView }) {
     <button onClick={() => setView(null)}>Back</button></div>;
 }
 
-/** the Jobs app (real, PROPOSAL layout): the customer waiting in the lot, what they need, what it pays, and whether you can do it right now */
+/** the Jobs app (real, PROPOSAL layout): every customer waiting in the lot, what they need, what it pays, and whether you can do it right now */
 function JobsApp({ onBack }) {
-  const j = game.job && jobById[game.job.id], done = game.home?.jobsDone || 0;
-  const needName = !j ? '' : j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : j.need.kind === 'custWheel' ? 'Their wheel, patched and aired up' : 'A car battery';
-  const c = j ? jobCheck(j) : null;
+  const done = game.home?.jobsDone || 0, room = customerRoom();
+  const needName = j => j.need.tool ? TOOLS[j.need.tool]?.name || j.need.tool : j.need.kind === 'supply' ? SUPPLIES[j.need.id]?.name : j.need.kind === 'custWheel' ? 'Their wheel, patched and aired up' : 'A car battery';
+  const waiting = game.jobs.map(w => jobById[w.id]).filter(Boolean);
   return <div className="phone-soon"><h3>Jobs</h3>
-    {j ? <>
-      <p><b>{j.who}</b>: {j.title}</p><p style={{ fontStyle: 'italic' }}>"{j.ask}"</p>
-      <p>Needs: <b>{needName}</b> · Pays <b>${j.pay}</b></p>
-      <p>{c.ok ? 'You have it: go to the car in the lot and press E.' : c.why}</p>
-    </> : <p>No customer right now. When a car pulls into the lot, the job shows up here.</p>}
-    <small>Jobs done: {done}</small>
+    {waiting.length ? <div style={{ width: '100%', maxHeight: 300, overflow: 'auto', textAlign: 'left' }}>{waiting.map(j => { const c = jobCheck(j); return <div key={j.id} style={{ padding: '6px 0', borderBottom: '1px solid #ffffff18' }}>
+      <p style={{ margin: 0 }}><b>{j.who}</b>: {j.title}</p><p style={{ margin: 0, fontStyle: 'italic', fontSize: 13 }}>"{j.ask}"</p>
+      <p style={{ margin: 0, fontSize: 13 }}>Needs: <b>{needName(j)}</b> · Pays <b>${j.pay}</b></p>
+      <p style={{ margin: 0, fontSize: 13 }} className={c.ok ? 'ws-good' : 'ws-bad'}>{c.ok ? 'You have it: go to their car in the lot and press E.' : c.why}</p></div>; })}</div>
+      : <p>No customer right now. When a car pulls into the lot, the job shows up here.</p>}
+    <small>Waiting: {waiting.length} of {room} · Jobs done: {done}</small>
     <button onClick={onBack}>Back</button></div>;
 }
 

@@ -7,7 +7,7 @@ import { defOf } from './projects.js';
 import { OBSTACLES as SITE_OBSTACLES } from '../worlds/siteData.js';
 import { clearSpot } from './clearSpot.js';
 
-const circles = () => [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().map(v => v.pose).filter(Boolean).map(po => [po.x, po.z, 2.2]), ...(game.projects || []).map(p => [p.pose.x, p.pose.z, Math.max(2, defOf(p).length / 2)]), ...(game.job ? [[game.job.x, game.job.z, 2.6]] : [])];
+const circles = () => [...SITE_OBSTACLES, ...propObstacles(), ...standingVehicles().map(v => v.pose).filter(Boolean).map(po => [po.x, po.z, 2.2]), ...(game.projects || []).map(p => [p.pose.x, p.pose.z, Math.max(2, defOf(p).length / 2)]), ...game.jobs.map(w => [w.x, w.z, 2.6])];
 
 export function unstuck() {
   if (game.dev || game.paused) return;

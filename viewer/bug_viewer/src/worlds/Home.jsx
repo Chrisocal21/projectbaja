@@ -32,6 +32,7 @@ import { useGLTF, RoundedBox } from '@react-three/drei';
 import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
+import CustomerPerson from './CustomerPerson.jsx';
 import { CAMPER } from './office.js';
 import { STALL, rowsAtLevel } from './lot.js';
 import { propertyTexture } from './propertyTextures.js';
@@ -750,13 +751,17 @@ function TirePile() {
   </group>;
 }
 
-/** the customer car on the driveway (odd jobs) + the clock that sends the next one */
+/** the customers' cars in the lot (odd jobs), each with its owner waiting behind it, + the clock that sends the next one */
 function Customer() {
   useGame();
   const yardT = useRef(0);
   useFrame((_, dt) => { if ((yardT.current += dt) > 0.5) { yardT.current = 0; tickYard(); } tickJobs(Math.min(dt, 0.1)); tickTray(Math.min(dt, 0.1)); tickEngineStand(Math.min(dt, 0.1)); tickBenches(Math.min(dt, 0.1)); });
-  const j = game.job && jobById[game.job.id]; if (!j) return null;
-  return <group position={[game.job.x, groundHeight(game.job.x, game.job.z), game.job.z]} rotation={[0, game.job.h, 0]}><Pickup body={j.car[0]} roof={j.car[1]} primer={j.car[0]} /></group>;
+  return <>{game.jobs.map(w => { const j = jobById[w.id]; if (!j) return null;
+    return <group key={w.uid} position={[w.x, groundHeight(w.x, w.z), w.z]} rotation={[0, w.h, 0]}>
+      <Pickup body={j.car[0]} roof={j.car[1]} primer={j.car[0]} />
+      {/* the owner stands at the back of the car, toward the lane, waiting (PROPOSAL spot) */}
+      <Suspense fallback={null}><CustomerPerson variant={w.look} position={[-0.9, 0, -3.3]} rotation={[0, Math.PI, 0]} /></Suspense>
+    </group>; })}</>;
 }
 
 export default function Home() {

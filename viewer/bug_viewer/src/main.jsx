@@ -152,7 +152,7 @@ function App() {
     game.dev = false;   // a story session writes the save (dev sessions never do)
     if (!cont) { newGame(); seedWorld(); setBuildRaw(normalize(apartBuild({ ...defaultBuild(), stripped: ['wheelRR'], hidden: ['seatDriver'] }))); spawnApartParts(); }   // the Bug starts taken apart, every part on the garage floor (game/teardown.js) else if (game.build) setBuildRaw(normalize(game.build));
     migrateGrid(); ensureBugBay(); ensureStarterFixtures(); ensureShopTires(); ensureWallItemsOnWalls(); ensureLetterItem(); ensureJunkItems(); ensureProjects(); ensureRoadsideWrecks(); ensureRoadsideLoot(); ensureMatFinds(); ensureShelfWheels();   // Walt's wall shelving: movable props, seeded once per save
-    if (game.job && !jobById[game.job.id]) game.job = null;   // a customer from a job that no longer exists
+    game.jobs = (game.jobs || []).filter(w => jobById[w.id]);   // drop customers from jobs that no longer exist
     const saved = cont ? game.fleet[game.active]?.pose : null, at = saved || GARAGE_DRIVE, gh = at.h, rs = cont && saved ? game.resume : null;   // rs: resume exactly (on foot at the saved spot, or in the car)
     const besideCar = { x: at.x + Math.cos(gh) * 2.6, z: at.z - Math.sin(gh) * 2.6, yaw: gh + Math.PI };
     game.live = true; game.resume = null; flushSaveNotices();
@@ -236,7 +236,7 @@ function App() {
     else if (id === 'tirepile') scrapTire();
     else if (id === 'racecar') uncoverRaceCar();
     else if (id === 'crank') crankBug();
-    else if (id === 'job') setPanel('job');
+    else if (id.startsWith('job:')) { game.jobOpen = +id.slice(4); setPanel('job'); }
     else if (id === 'trailer') setPanel('trailer');
     else if (id.startsWith('junk:')) clearJunk(id.slice(5));   // one press of E and the pile is gone
     else if (id.startsWith('bp:')) feedBlueprint(+id.slice(3));   // a blueprint: E puts in the materials you have (game/bpWork.js)
