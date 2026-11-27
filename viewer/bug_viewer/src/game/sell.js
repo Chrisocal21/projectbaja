@@ -16,7 +16,7 @@ const basePrice = it => {
 };
 export const gameHours = () => game.marketHours || 0;
 /** what you are carrying that this buyer will take: [{ it, value, word }] */
-export const sellable = (buyer = 'dusty') => game.items.filter(i => i.loc === 'hand' || i.loc === 'pack')
+export const sellable = (buyer = 'dusty') => game.items.filter(i => (i.loc === 'hand' || i.loc === 'pack') && i.unpaid === undefined)
   .map(it => { const o = offer(it, basePrice(it), buyer, game.home?.market, gameHours()); return { it, value: o.price, word: o.word }; }).filter(r => r.value > 0);
 export function sellItem(uid, buyer = 'dusty') {
   const r = sellable(buyer).find(x => x.it.uid === uid); if (!r) return say(`${BUYERS[buyer]?.short || 'They'} won't take that.`);

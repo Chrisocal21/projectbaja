@@ -40,7 +40,7 @@ import { apartBuild } from './game/teardown.js';
 import { spawnApartParts, ensureShelfWheels } from './game/teardownSpawn.js';
 import { mayStrip } from './game/salvage.js';
 import { ensureProjects, ensureRoadsideWrecks, setProjectBuild, projectOpen } from './game/projects.js';
-import { dustyVisit } from './game/cajonGift.js';
+import { takeGood, ringAtCounter, putBackGood } from './game/dustyShop.js';
 import { defOfBuild, BUG } from './rules/vehicles.js';
 import { planAtMachine } from './game/tireMachine.js';
 import { planFit, planDetach, planDetachUpgrade, planRemove, toggleCover, DEF } from './game/workshop.js';
@@ -225,7 +225,8 @@ function App() {
     else if (id === 'car:enter') { game.open = new Set(); interact('enter'); }
     else if (id === 'car:why') say(game.carPlan?.why || '');
     else if (id === 'warehouse') setPanel('warehouse');
-    else if (id === 'store') { dustyVisit(); game.storeTitle = null; setPanel('store'); }
+    else if (id === 'store') { if (!ringAtCounter()) { game.storeTitle = null; setPanel('store'); } }   // paying by hand; with nothing to pay for, the selling and wash menu
+    else if (id.startsWith('good:')) takeGood(id.slice(5));
     else if (id === 'stshop') { const ns = game.nearStation; if (ns?.site) { openRoadShop(ns.site, ns.brand); setPanel('roadshop'); } }   // the shop at a highway gas station   // the first time you pull up in a running Bug, Dusty has something for you (game/cajonGift.js)
     else if (id.startsWith('veh:')) { const v = id.slice(4), drive = vehicleType(v).kind === 'truck'; game.rebuilding = true; switchTo(v, drive); if (drive) interact('enter'); setTimeout(() => { game.rebuilding = false; try { document.querySelector('canvas')?.requestPointerLock()?.catch?.(() => {}); } catch {} }, 1200); }
     else if (id === 'dealer') setPanel('dealer');
@@ -330,6 +331,7 @@ function App() {
         else if (btn === 0 && recoveryToolInHand() && game.target?.startsWith('car:')) startRecovery();   // shovel or traction boards: hold on a wheel of a bogged car (bogDown.js)
         else if (btn === 0 && finishToolInHand() && game.target?.startsWith('car:')) startFinish();   // grinder, spray can, buffer, hose: hold to work the aimed panel
         else if (btn === 0 && game.target === 'car:fit') startHold('Bolting on…', () => doFit(game.carPlan?.uid), carFitReady());   // hold the left button: the bar fills, then it goes on. A quick tap with it in your hands drops it.
+        else if (btn === 0 && game.target?.startsWith('good:')) takeGood(game.target.slice(5));
         else if (btn === 0 && game.target?.startsWith('bin:')) takeBin(+game.target.slice(4));
         else if (btn === 0 && game.target === 'bench' && startCut()) { /* the grinder at the bench: scrap into steel */ }
         else if (btn === 0 && game.target?.startsWith('item:') && startSalvage(game.target)) { /* junk, with the right tool: taken apart */ }
@@ -339,7 +341,7 @@ function App() {
       }
       if (bm && panelRef.current === null && e.button === 2 && document.pointerLockElement) { if (bm.moving) { game.buildMode = bm.direct ? null : { ...bm, moving: null }; say('Move cancelled: it stays where it was'); } else { game.buildMode = null; say('Build tool put away'); } return; }
       if (bm && panelRef.current === null && e.button === 0 && document.pointerLockElement && bm.x !== undefined) { if (furnishing(bm) && !bm.moving) { const hit = aimedProp(game.props.filter(q => !isPiece(q.id)).map(q => ({ uid: q.uid, x: q.x, z: q.z, r: buildById[q.id]?.pickR ?? buildById[q.id]?.r })), furn.cx, furn.cz, game.face, 7, furn.aim); if (hit) { const q = game.props.find(o => o.uid === hit.uid); game.buildMode = { ...bm, item: q.id, ry: q.ry || 0, moving: { uid: q.uid, x: q.x, z: q.z, ry: q.ry || 0 } }; say(`Picked up the ${buildById[q.id].name.toLowerCase()}: click to set it down, Esc to cancel`); return; } } if (bm.moving) { if (movePropTo(bm.moving.uid, bm.x, bm.z, bm.ry || 0)) game.buildMode = bm.direct ? null : { ...game.buildMode, moving: null }; } else placeProp(bm.item, bm.x, bm.z, bm.ry || 0, bm.mat, asBlueprint(bm)); }
-      if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!hangHeld()) dropHeld(); return; }   // right click: put down what you hold
+      if (!bm && panelRef.current === null && e.button === 2 && game.onFoot && document.pointerLockElement) { if (!putBackGood() && !hangHeld()) dropHeld(); return; }   // right click: put down what you hold
       // left click on foot = pick up the loose item you're looking at (was E). Only while the pointer is locked: the click that re-grabs a lost lock picks nothing up.
       if (!bm && panelRef.current === null && e.button === 0 && game.onFoot && document.pointerLockElement) { if (placementClick()) return; const t = game.target; const it = t?.startsWith('item:') && game.items.find(i => i.uid === +t.slice(5)); if (it && it.kind !== 'shell') grabItem(it.uid); else if (t?.startsWith('heap:')) takeHeap(t.slice(5)); } };   // (a scrap heap is picked through with a click too)
     window.addEventListener('keydown', key); window.addEventListener('wheel', wheel); window.addEventListener('mousedown', click); const holdEnd = () => { const was = game.holdBar; cancelHold(); if (was?.tap && held() && game.onFoot) dropHeld(); }; window.addEventListener('mouseup', holdEnd); const tUp = e => { if (e.code === 'KeyT') cancelHold(); }; window.addEventListener('keyup', tUp); const ctx = e => { if (game.buildMode || panelRef.current === 'build') e.preventDefault(); }; window.addEventListener('contextmenu', ctx);

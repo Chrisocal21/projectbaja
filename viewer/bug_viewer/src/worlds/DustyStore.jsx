@@ -1,7 +1,8 @@
 // The inside and outside of Dusty's store: walls with a real doorway and window, floor, shelves of goods, a counter with a register and a drinks cooler.
-// The goods here are set dressing; they are not yet items you can pick up.
+// The boxes and cans here are set dressing. The things you can buy are DustyGoods.jsx, on the boards listed in dustyGoods.js.
 import React from 'react';
 import { STORE, DOOR, WINDOW, COUNTER, SHELVES, COOLER } from './dustyLayout.js';
+import { REAL_BOARDS } from './dustyGoods.js';
 
 const Box = ({ p, s, color, rough = 0.9, metal = 0, emissive, ei = 0, cast = true }) =>
   <mesh position={p} castShadow={cast} receiveShadow><boxGeometry args={s} /><meshStandardMaterial color={color} roughness={rough} metalness={metal} emissive={emissive || '#000000'} emissiveIntensity={ei} /></mesh>;
@@ -11,13 +12,13 @@ const Span = ({ x, y, z, ...rest }) => <Box p={[(x[0] + x[1]) / 2, (y[0] + y[1])
 const WALL = '#d8cfb4', INSIDE = '#cfc4a6', TRIM = '#4a2f1b', GOODS = ['#c8372b', '#2f5d86', '#e0b020', '#3f6b3a', '#d8d6ce', '#8a5a2a'];
 
 /** a steel shelf unit with rows of boxes and cans on it */
-function Shelf({ s, seed }) {
+function Shelf({ s, seed, bare = [] }) {
   const levels = [0.18, 0.18 + (s.h - 0.3) / 2, s.h - 0.12], n = Math.floor(s.w / 0.34);
   return <group position={[s.x, 0, s.z]}>
     {[-s.w / 2, 0, s.w / 2].map(x => <Box key={x} p={[x, s.h / 2, 0]} s={[0.05, s.h, s.d]} color="#5a6064" metal={0.4} />)}
     {levels.map((y, l) => <group key={y}>
       <Box p={[0, y, 0]} s={[s.w, 0.04, s.d]} color="#8a8f92" metal={0.3} />
-      {Array.from({ length: n }, (_, i) => {
+      {!bare.includes(l) && Array.from({ length: n }, (_, i) => {
         const k = (i * 7 + l * 5 + seed) % 11, x = -s.w / 2 + 0.24 + i * ((s.w - 0.48) / (n - 1)), h = 0.14 + (k % 4) * 0.06, c = GOODS[(i + l * 2 + seed) % GOODS.length];
         if (k === 3) return null;   // a gap on the shelf
         return k % 3 === 0
@@ -59,7 +60,7 @@ export default function DustyStore() {
     <Box p={[COUNTER.x - 0.7, COUNTER.h + 0.2, COUNTER.z]} s={[0.46, 0.28, 0.36]} color="#33383b" metal={0.4} />
     <Box p={[COUNTER.x - 0.7, COUNTER.h + 0.42, COUNTER.z - 0.06]} s={[0.3, 0.16, 0.06]} color="#10241c" emissive="#5bd8a0" ei={0.7} cast={false} />
     <Shelf s={{ x: COUNTER.x, z: z0 + 0.45, w: 2.8, d: 0.45, h: 2.1 }} seed={5} />
-    {SHELVES.map((s, i) => <Shelf key={i} s={s} seed={i * 3} />)}
+    {SHELVES.map((s, i) => <Shelf key={i} s={s} seed={i * 3} bare={REAL_BOARDS.filter(r => r[0] === i).map(r => r[1])} />)}
     {/* drinks cooler */}
     <Box p={[COOLER.x, COOLER.h / 2, COOLER.z]} s={[COOLER.w, COOLER.h, COOLER.d]} color="#d8d6ce" metal={0.3} />
     <Box p={[COOLER.x - COOLER.w / 2 - 0.01, 1.2, COOLER.z]} s={[0.03, 1.7, COOLER.d - 0.3]} color="#1c3a44" emissive="#8fd2e0" ei={0.35} rough={0.2} cast={false} />

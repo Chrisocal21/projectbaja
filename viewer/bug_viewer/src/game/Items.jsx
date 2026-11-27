@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { game, useGame } from './store.js';
 import { sizeOf, nameOfItem, held, toolInHand, dropPoint } from './items.js';
 import ToolModel from './ToolModel.jsx';
+import DustyGoods from '../worlds/DustyGoods.jsx';
 import SmallModel from './SmallModel.jsx';
 import { smallItemFile } from './smallItemFiles.js';
 import { UPGRADE_FIT } from '../rules/vehicles.js';
@@ -167,6 +168,7 @@ export default function Items() {
     {loose.filter(it => it.kind === 'shell').map(it => <group key={it.uid} position={[it.x, groundHeight(it.x, it.z) + 0.02, it.z]} rotation={[0, it.ry || 0, 0]}><React.Suspense fallback={null}><ShellProp bodyId={it.id} /></React.Suspense></group>)}
     {loose.filter(it => it.kind !== 'shell').map(it => <group key={it.uid} position={[it.x, itemY(it), it.z]} rotation={[0, it.ry ?? it.uid * 1.7, 0]}><Crate item={it} /></group>)}
     <Containers />
+    <DustyGoods Item={Crate} />
     <MatFinds />
     <group ref={heldRef} visible={false}>{hand && hand.kind !== 'tool' && <Crate item={hand} scale={FEEL ? 1 : 0.75} />}</group>
     <group ref={markRef} visible={false}><mesh rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#f2a33a" transparent opacity={0.28} depthWrite={false} polygonOffset polygonOffsetFactor={-2} /></mesh><lineSegments rotation={[-Math.PI / 2, 0, 0]} renderOrder={6}><edgesGeometry args={[new THREE.PlaneGeometry(1, 1)]} /><lineBasicMaterial color="#ffd28e" /></lineSegments></group>

@@ -39,7 +39,7 @@ export const sizeOf = (kind, id) => (kind === 'part' ? SLOT_SIZE[partById[id]?.s
 export const SIZE_NAME = { 1: 'small', 2: 'medium', 3: 'large', 4: 'huge' };
 export const FAB_NAMES = { shockHoops: 'Shock hoops (fabricated)' };
 const wheelState = it => (it.kind === 'stock' || it.kind === 'tire') && (it.hole ? ' · punctured' : it.kind === 'stock' && it.id === 'wheel' && Number.isFinite(it.air) && it.air < 0.3 ? ' · flat' : '') || '';   // tire machine: wheels and tires can be punctured or flat
-export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${it.grimy ? 'dirty' : Math.round(it.cond ?? 70) + '%'})` : withTread(baseName(it), it) + wheelState(it) + canTag(it) + canFuelTag(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '');
+export const nameOfItem = it => it.kind === 'epart' ? `${slotOf(it.id)?.name || it.id} (${it.grimy ? 'dirty' : Math.round(it.cond ?? 70) + '%'})` : withTread(baseName(it), it) + wheelState(it) + canTag(it) + canFuelTag(it) + (it.kind === 'stock' && it.id === 'engine' ? engineTag(it) : '') + (it.unpaid !== undefined ? ' (not paid)' : '');
 const baseName = it => it.kind === 'mat' ? matName(it.id, it.n) : it.kind === 'supply' ? SUPPLIES[it.id]?.name || it.id : it.kind === 'memento' ? MEMENTOS[it.id]?.name || it.id : it.kind === 'junk' ? JUNK[it.id]?.name || it.id :it.kind === 'fab' ? FAB_NAMES[it.id] || it.id : it.kind === 'shell' ? "'71 Bug body shell" : it.kind === 'tire' ? `${it.id === 'stock' ? 'Stock' : wheelById[it.id]?.label || 'Custom'} tire` : it.kind === 'stock' ? (it.id === 'wheel' ? (it.set && it.set !== 'stock' ? `${wheelById[it.set]?.label || 'Custom'} wheel` : 'Stock wheel') : it.id === 'engine' ? 'Stock 1600 engine' : STOCK[it.id]?.veh === 'cajon' ? `El Cajon ${STOCK[it.id].name.toLowerCase()}` : `${STOCK[it.id]?.name || it.id} (stock)`) : it.kind === 'tool' ? TOOLS[it.id]?.name || it.id : labelFor((it.kind === 'part' ? partById : it.kind === 'wheel' ? wheelById : rimById)[it.id] || { label: it.id }, game.build?.body);
 export const itemSize = it => sizeOf(it.kind, it.id);
 
@@ -133,6 +133,7 @@ export function grabItem(uidN) {
 /** put something you carry down at your feet */
 export function dropItem(uidN) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
+  if (it.unpaid !== undefined) { game.items = game.items.filter(i => i !== it); save(); return say(`Put back: ${nameOfItem({ ...it, unpaid: undefined })}`); }   // Dusty's: not paid for, so putting it down puts it back on the shelf
   const p = dropPoint(); at(it); Object.assign(it, { loc: 'world', x: p.x, z: p.z, y: 0, ry: p.ry }); commit();
 }
 export const dropHeld = () => dropItem();
@@ -153,6 +154,7 @@ export function holdItem(uidN) {
 }
 export function stowInCar(uidN, veh = game.active) {
   const it = uidN ? game.items.find(i => i.uid === uidN) : held(); if (!it || !['hand', 'pack'].includes(it.loc)) return;
+  if (it.unpaid !== undefined) return say('Pay for it first.');
   const spot = spotFor(it, veh), t = vehicleType(veh);
   if (!spot) return say(t.storage ? `The ${t.name} is full.` : itemSize(it) >= 4 || !hasRack() ? "Won't fit in the Bug. You need a truck for that (Al has one), or a roof rack for smaller parts." : 'The car is full.');
   at(it); it.loc = 'car'; it.spot = spot; it.veh = veh; commit(); say(`${nameOfItem(it)} → ${storageOf(veh)[spot].label}`);

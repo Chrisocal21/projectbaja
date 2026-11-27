@@ -278,3 +278,10 @@ Claude wiring
 - No Items.jsx, BuildModel.jsx, main.jsx, audio.js or gameplay rules were changed.
 
 Validation completed with GLB rig/clip inspection, standalone character rendering and independent bundling of both new React components. In-game customer placement, audio audition and effects placement remain Claude wiring checks.
+
+## Nov 26: Dusty's, shopping by hand (Claude)
+
+- Buying is now by hand: take a real item off its shelf (E or left click), then press E at the counter to pay. Right click puts it back; walking out unpaid puts it back too.
+- Files: `game/dustyRules.js` (pure, tested), `game/dustyShop.js`, `worlds/dustyGoods.js` (shelf spot per product), `worlds/DustyGoods.jsx` (models and price cards).
+- The island shelf is now 1.18 m high (was 1.5) so you look down on the goods.
+- Art wanted: pump, hose, bulb, plug kit and fan belt read poorly on a shelf; retail-pack versions would help. The coloured boxes and cans on the other boards are filler.

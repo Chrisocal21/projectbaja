@@ -7,7 +7,7 @@ export const WINDOW = { x0: -3.6, x1: 5.4, y0: 0.9, y1: 2.6 };
 export const COUNTER = { x: -5.9, z: -13.1, w: 2.6, d: 0.7, h: 1.05 };
 /** shelf runs along x: centre, length, depth */
 export const SHELVES = [
-  { x: 1.8, z: -11.8, w: 6.4, d: 0.7, h: 1.5 },   // the island between the two aisles
+  { x: 1.8, z: -11.8, w: 6.4, d: 0.7, h: 1.18 },   // the island between the two aisles
   { x: 1.8, z: -15.05, w: 8.4, d: 0.6, h: 2.1 },   // along the back wall
 ];
 /** the drinks cooler against the right wall */

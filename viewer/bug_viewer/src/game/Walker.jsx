@@ -6,6 +6,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { game, setPrompt } from './store.js';
 import { lookScale, settings } from './settings.js';
 import { TARGETS } from '../worlds/siteData.js';
+import { GOODS_SPOTS } from '../worlds/dustyGoods.js';
+import { goodPrompt, counterPrompt, tickDustyShop } from './dustyShop.js';
+import { inStore } from './dustyRules.js';
 import { SITES, junctions } from '../worlds/county.js';
 import { stationLayout, siteToWorld } from '../worlds/stationLayout.js';
 import { GAS_BRANDS } from '../worlds/brands.js';
@@ -68,6 +71,8 @@ export const promptText = id => {
   if (!id) return '';
   if (id.startsWith('stand:')) return standText(id.slice(6));
   if (id === 'tirepile') return isScrapTire(held()) ? `Press E — Throw the bald tire on the scrap pile (+$${JUNK_TIRE_PAY})` : 'This one still has rubber: set it on a tire rack';
+  if (id.startsWith('good:')) return goodPrompt(id.slice(5));
+  if (id === 'store') return counterPrompt();
   if (id === 'warehouse') return 'Press E — Salvage & Surplus: sell scrap, tires and parts';
   if (id === 'bug') return `Press E — Look over the Classic Bug ($1,800)`;
   if (id === 'openSwitch') return game.home?.open ? 'Press E — Turn the OPEN light off (close up)' : 'Press E — Turn the OPEN light on (open for business)';
@@ -250,6 +255,7 @@ export default function Walker({ world, sun }) {
       if (L.spots.fix) { const [x, z] = w(...L.spots.fix); consider('stfix', x, z, 5, false, 0.9, { r: 2, h: 2.4 }); }
     }
     if (!nearPump) game.fueled = false;
+    tickDustyShop();   // anything unpaid goes back on the shelf once you are out of the store
     if (foot) { const [wx, wz] = toW(SITES.warehouse, -9.4, 0); consider('warehouse', wx, wz, 3.2, false, 0.8, { r: 0.9, h: 1.5 }); }   // the scrap buyer's counter
     if (foot) for (const st of STANDS) { const [sx, sz] = toW(SITES.garage, st.lx, st.lz); consider('stand:' + st.id, sx, sz, 3.0, false, 0.7, { r: 0.55, h: 1.7 }); }   // Walt's supply stands
     if (foot) for (const q of game.props) if (q.bp) { const it = buildById[q.id]; consider('bp:' + q.uid, q.x, q.z, 3.4, false, 0.4, { box: { hx: (it?.len || 1) / 2 + 0.1, hz: 0.5, h: 2.2, yaw: q.ry || 0 }, own: true }); }   // a blueprint: put materials in, build it by hand (game/bpWork.js)
@@ -271,6 +277,15 @@ export default function Walker({ world, sun }) {
       if (wallBlocks(eye, it.x, it.z, onTop ? wallCache.list.filter(w => Math.hypot(w[0] - it.x, w[1] - it.z) > w[2] + 0.7) : wallCache.list)) continue;
       const d = aimDist(eye, look, { x: it.x, z: it.z, y: s.y + (it.y || 0), h: sz.h, r: sz.r }, 2.4);
       if (d !== null && d < aimedD) { aimedD = d; aimedItem = 'item:' + it.uid; }
+    }
+    // Dusty's goods: only from inside the store; like loose items, the first one the view ray reaches wins
+    if (foot && Math.hypot(px - SITES.gas.x, pz - SITES.gas.z) < 25) {
+      const G2 = SITES.gas, gc = Math.cos(G2.rot), gn = Math.sin(G2.rot), dx = px - G2.x, dz = pz - G2.z;
+      if (inStore(dx * gc - dz * gn, dx * gn + dz * gc)) for (const [what, lx, ly, lz] of GOODS_SPOTS) {
+        const [x, z] = toW(G2, lx, lz); if (Math.hypot(x - px, z - pz) > 2.4) continue;
+        const d = aimDist(eye, look, { x, z, y: G2.y + ly, h: ly < 0.2 ? 0.5 : 0.3, r: 0.32 }, 2.4);
+        if (d !== null && d < aimedD) { aimedD = d; aimedItem = 'good:' + what; }
+      }
     }
     if (aimedItem && !(best && !best.startsWith('item:') && best !== 'bench' && bd < aimedD * 0.5)) { best = aimedItem; bd = Math.min(bd, aimedD * 0.5); }
     if (foot) for (const c of containers) { if (c.id === 'racecar' && raceCarStage() < 2) continue; consider('box:' + c.id, c.x, c.z, c.type === 'car' ? 3.4 : 2.2, c.type !== 'car', 0.55, c.type === 'car' ? { r: 1.3, h: 1.5 } : { r: 0.8, h: 1.1, own: true }); }   // own: a tool chest is solid itself, its own circle must not hide it

@@ -186,7 +186,7 @@ export function StorePanel({ onBuy, onSell, onClose, buyer = 'dusty' }) {
   const sells = sellable(buyer), yard = buyer !== 'dusty';
   const row = (what, label, price, note) => <div key={what} className="inv-row"><span>{label}<small>{note}</small></span><span className="inv-btns"><button disabled={game.cash < price} onClick={() => onBuy(what, price)}>${price}</button></span></div>;
   return <div className="overlay"><div className="card inv"><div className="shop-head"><h2>{yard ? BUYERS[buyer].name.toUpperCase() : (game.storeTitle || "DUSTY'S CORNER STORE")}</h2><span className="cash">${game.cash.toLocaleString()}</span></div>
-    {!yard && STORE_ITEMS.map(r => row(...r))}
+    {!yard && <><p className="hint">To buy something, take it off a shelf and press E here to pay.</p>{STORE_ITEMS.filter(r => r[0] === 'wash').map(r => row(...r))}</>}
     <div className="inv-sec">SELL TO {BUYERS[buyer].short.toUpperCase()} <span>{sells.length ? 'what you are carrying · prices follow how much they already hold' : 'nothing you are carrying interests them'}</span></div>
     {sells.map(({ it, value, word }) => <div key={it.uid} className="inv-row"><span>{nameOfItem(it)}<small>{word}</small></span><span className="inv-btns"><button onClick={() => onSell(it.uid, buyer)}>Sell ${value}</button></span></div>)}
     <div className="menu"><button className="big" onClick={onClose}>Leave (Esc)</button></div></div></div>;
