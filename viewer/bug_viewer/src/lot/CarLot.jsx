@@ -1,3 +1,5 @@
+import Person from '../worlds/Person.jsx';
+import { CAST } from '../game/people.js';
 import React, { useEffect, useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
@@ -147,6 +149,8 @@ export default function LotSite() {
   useGame();
   const owned = !!game.fleet?.pickup84;
   return <>
+    {/* Al waits on the office porch (PROPOSAL spot) */}
+    <Person file={CAST.al} position={[OFFICE.x + 1.2, 0.1, OFFICE.z + 3.7]} rotation={[0, 0.5, 0]} />
     <Ground /><Fence /><Office /><Bunting /><Props /><group position={[TARP.x, 0.06, TARP.z]} rotation={[0, TARP.r, 0]}><Pickup /></group>
     <PriceSign at={[BUG.x + 3.6, BUG.z + 3.4]} rot={-0.45} lines={owned ? [['SOLD', 120, '#fff']] : [["'84 4X4 PICKUP", 52], ['RUNS & DRIVES', 38, '#b2362a'], ['$4,800', 70]]} bg={owned ? '#b2362a' : '#f2e6c0'} />
     <PriceSign at={[TARP.x + 3.6, TARP.z + 3.2]} rot={-0.2} lines={[["'78 HALF-TON", 56], ['NEEDS A MOTOR', 36, '#b2362a'], ['ASK AL', 70]]} />

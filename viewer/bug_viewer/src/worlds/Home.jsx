@@ -34,6 +34,8 @@ import { rimGeometry } from '../Rims.jsx';
 import ProcEngine from '../Engine.jsx';
 import Pickup from '../Pickup.jsx';
 import CustomerPerson from './CustomerPerson.jsx';
+import Person from './Person.jsx';
+import { personFor } from '../game/people.js';
 import CustomerRide from './CustomerRides.jsx';
 import { rideOf, rideLen, paintOf } from '../game/custRides.js';
 import { CAMPER } from './office.js';
@@ -769,7 +771,8 @@ function Customer() {
     return <group key={w.uid} position={[w.x, groundHeight(w.x, w.z), w.z]} rotation={[0, w.h, 0]}>
       <CustomerRide ride={rideOf(w)} body={paintOf(w)[0]} trim={paintOf(w)[1]} />
       {/* the owner stands just behind the vehicle, toward the lane, waiting (PROPOSAL spot) */}
-      <Suspense fallback={null}><CustomerPerson variant={w.look} position={[-0.9, 0, -(rideLen(w) / 2 + 0.75)]} rotation={[0, Math.PI, 0]} /></Suspense>
+      {personFor(w) ? <Person file={personFor(w)} position={[-0.9, 0, -(rideLen(w) / 2 + 0.75)]} rotation={[0, Math.PI, 0]} />
+        : <Suspense fallback={null}><CustomerPerson variant={w.look} position={[-0.9, 0, -(rideLen(w) / 2 + 0.75)]} rotation={[0, Math.PI, 0]} /></Suspense>}
     </group>; })}</>;
 }
 

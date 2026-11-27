@@ -1,5 +1,8 @@
 // The inside and outside of Dusty's store: walls with a real doorway and window, floor, shelves of goods, a counter with a register and a drinks cooler.
 // The boxes and cans here are set dressing. The things you can buy are DustyGoods.jsx, on the boards listed in dustyGoods.js.
+import Person from './Person.jsx';
+import { useGame } from '../game/store.js';
+import { CAST } from '../game/people.js';
 import React from 'react';
 import { STORE, DOOR, WINDOW, COUNTER, SHELVES, COOLER } from './dustyLayout.js';
 import { REAL_BOARDS } from './dustyGoods.js';
@@ -30,6 +33,7 @@ function Shelf({ s, seed, bare = [] }) {
 }
 
 export default function DustyStore() {
+  const away = useGame().jobs?.some(j => j.id === 'belt');   // waiting at your garage right now
   const { x0, x1, z0, z1, h, t } = STORE, front = [z1 - t, z1];
   return <group>
     <Span x={[x0, x1]} y={[0.02, 0.13]} z={[z0, z1]} color="#8f8a7c" cast={false} />   {/* high enough that the forecourt asphalt (drawn with a depth bias) cannot show through */}
@@ -54,6 +58,8 @@ export default function DustyStore() {
     {[-4.5, 0.5, 5].map(x => <Box key={x} p={[x, h - 0.06, -11.9]} s={[1.6, 0.05, 0.5]} color="#fff6dc" emissive="#fff0c0" ei={1.4} cast={false} />)}
     <pointLight position={[-3.5, h - 0.6, -12]} intensity={14} distance={12} decay={1.6} color="#fff0d0" />
     <pointLight position={[3.5, h - 0.6, -12]} intensity={14} distance={12} decay={1.6} color="#fff0d0" />
+    {/* Dusty stands behind the counter (PROPOSAL spot) */}
+    {!away && <Person file={CAST.dusty} position={[COUNTER.x + 0.35, 0.13, COUNTER.z - 0.78]} />}
     {/* counter, register and the wall behind it */}
     <Box p={[COUNTER.x, COUNTER.h / 2, COUNTER.z]} s={[COUNTER.w, COUNTER.h, COUNTER.d]} color="#7a5232" />
     <Box p={[COUNTER.x, COUNTER.h + 0.03, COUNTER.z]} s={[COUNTER.w + 0.12, 0.06, COUNTER.d + 0.12]} color="#b9925e" rough={0.6} />

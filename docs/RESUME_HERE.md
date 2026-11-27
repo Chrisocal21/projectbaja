@@ -1,5 +1,6 @@
 # RESUME HERE (rewritten Nov 22, 2026; start-here note Nov 23)
 
+- **People (Nov 26):** `assets/pipeline/export_people.py` -> `PERSON_M_*.glb` (no skeletons, static). Casting table `game/people.js` (PROPOSAL): Dusty (behind the store counter, away while the belt job is open), Al (office porch), Rosa; worker1/worker2 reserved for the two permanent hires (NOT hireable yet, no names: Chris names them); misc = young man, trekker, hi-vis. Pastor Dale, Deputy Ruiz, the Hollises keep the old stand-in until Chris adds models. Not used: T-pose man (needs a rig), first-person hands.
 - **Meshy drop (Nov 26):** raw downloads in `assets/meshy/` (not committed); `assets/pipeline/export_meshy.py` makes `VEH_M_*.glb` (7-90k tris, wheels fused, our own names). Done: 8 trucks are customer rides (`game/custRides.js` `file`). Next: vehicles on the phone Classifieds (parked only until wheels are separate). Saved for racing: dune buggy, two race trucks. Not used yet: green jeep (government-style badge to paint out), workbenches, tool chests, toolboxes, crates, lift stacker, well, cash bag.
 
 Read this first when picking the work back up. Then [README](./README.md) (which doc is current, which is history) and [CANON](./CANON.md) (locked, never invent lore). Labels: **PROPOSAL** = design guess.
