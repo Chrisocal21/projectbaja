@@ -1,4 +1,5 @@
 import React from 'react';
+import { groupItems } from './invGroups.js';
 import { FRESH, WEAR_PARTS, PART_NAME, partCost, serviced } from '../wear.js';
 import { slots, partById, wheelById, SECTIONS, sectionOfSlot } from '../build.js';
 import { VEHICLE_TYPES, FOR_SALE, activeType, vehicleType } from './fleet.js';
@@ -128,14 +129,16 @@ export function ShopPanel({ bodyId, build, previewOf, renderPreview, onBuy, onUn
   </div></div>;
 }
 
-const Row = ({ it, children }) => <div className="inv-row"><span>{nameOfItem(it)}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : it.spot === 'bed' ? ' · bed' : ''}</small></span><span className="inv-btns">{children}</span></div>;
+const Row = ({ it, n = 1, children }) => <div className="inv-row"><span>{nameOfItem(it)}{n > 1 && <b> ×{n}</b>}<small>{SIZE_NAME[sizeOf(it.kind, it.id)]}{it.spot === 'roof' ? ' · roof' : it.spot === 'bed' ? ' · bed' : ''}</small></span><span className="inv-btns">{children}</span></div>;
+
+const grouped = list => groupItems(list, nameOfItem);
 
 /** what's inside a toolbox / chest / box / crate you just opened */
 export function ContainerPanel({ id, onClose }) {
   useGame();
   const c = containerById[id], list = boxItems(id);
   return <div className="overlay"><div className="card inv"><h2>{CONTAINER_RULES[c.type].label.toUpperCase()}</h2>
-    {list.length ? list.map(it => <Row key={it.uid} it={it}><button onClick={() => takeFromBox(it.uid)}>Take</button></Row>) : <p className="hint">Nothing (else) in here.</p>}
+    {list.length ? grouped(list).map(({ key, it, n }) => <Row key={key} it={it} n={n}><button onClick={() => takeFromBox(it.uid)}>Take{n > 1 ? ' one' : ''}</button></Row>) : <p className="hint">Nothing (else) in here.</p>}
     <div className="menu">{list.length > 1 && <button onClick={() => list.forEach(it => takeFromBox(it.uid))}>Take all</button>}<button className="big" onClick={onClose}>Close (Esc)</button></div>
     <p className="hint">Small parts go in your pack. Anything bigger has to be carried in your hands, one at a time.</p></div></div>;
 }
@@ -154,15 +157,15 @@ export function InventoryBody() {
   return <>
     <div className="inv-sec">HANDS</div>{h ? <Row it={h}>{putIn(h)}{toShelf(h)}<button onClick={() => dropItem(h.uid)}>Put down</button></Row> : <p className="hint">Empty</p>}
     <div className="inv-sec">PACK <span>{used('pack')}/{packCap()} · small and medium things</span></div>
-    {pack.length ? pack.map(it => <Row key={it.uid} it={it}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
+    {pack.length ? grouped(pack).map(({ key, it, n }) => <Row key={key} it={it} n={n}><button onClick={() => holdItem(it.uid)}>Hold</button>{putIn(it)}{toShelf(it)}<button onClick={() => dropItem(it.uid)}>Drop</button></Row>) : <p className="hint">Empty</p>}
     {shown.map(v => { const t = vehicleType(v), near = vehs.includes(v), list = carItems(v);
       return <React.Fragment key={v}>
         <div className="inv-sec">{t.name.toUpperCase()} <span>{Object.entries(storageOf(v)).map(([k, s]) => `${s.label} ${used(k, v)}/${s.cap}`).join(' · ')}{v === 'bug' && !hasRack() ? ' · fit a roof rack for more' : ''}</span></div>
-        {list.length ? list.map(it => <Row key={it.uid} it={it}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
+        {list.length ? grouped(list).map(({ key, it, n }) => <Row key={key} it={it} n={n}>{near ? <><button onClick={() => takeFromCar(it.uid)}>Take</button>{toShelf(it)}</> : <small>walk to it</small>}</Row>) : <p className="hint">Empty</p>}
       </React.Fragment>; })}
     <div className="inv-sec">MATERIALS <span>{tallyText(game.mats)}</span></div>
     <div className="inv-sec">STORAGE ROOM · BACKSTOCK <span>{shelf.length} items{shed ? '' : ' · only reachable in your garage'}</span></div>
-    {shelf.length ? shelf.map(it => <Row key={it.uid} it={it}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
+    {shelf.length ? grouped(shelf).map(({ key, it, n }) => <Row key={key} it={it} n={n}>{shed ? <button onClick={() => takeFromGarage(it.uid)}>Take</button> : <small>at the garage</small>}</Row>) : <p className="hint">Empty</p>}
   </>;
 }
 
