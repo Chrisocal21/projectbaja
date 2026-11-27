@@ -87,7 +87,8 @@ export function setPart(build, slot, id) {
 export const applyPreset = p => normalize({ ...defaultBuild(), ...p.build });
 
 /** mass / CG for the Baja Bug from its fitted parts (other vehicles keep the sim defaults) */
-const massDims = (build, wheelbase, lift = 0) => { const m = build.body && /classic/.test(build.body) ? massModel(build, wheelbase) : null; return m ? { mass: m.mass, cgY: m.cgY + lift, cgFromRear: m.cgFromRear } : {}; };   // a lift (or taller tires) raises the whole car's weight: it tips sooner
+const SPRUNG = 0.85;   // share of the Bug's weight a lift kit raises: the body and all on it, not the wheels, brakes and axles (PROPOSAL)
+const massDims = (build, wheelbase, kit = 0, tireRaise = 0) => { const m = build.body && /classic/.test(build.body) ? massModel(build, wheelbase) : null; return m ? { mass: m.mass, cgY: m.cgY + kit * SPRUNG + tireRaise, cgFromRear: m.cgFromRear } : {}; };   // lifting the car raises its weight: it tips sooner (taller tires raise all of it)
 
 // ---- derived values used by the renderer + the drive world ----
 export function resolve(build) {
@@ -120,7 +121,7 @@ export function resolve(build) {
     rim, rimColor, body, wheelSet: ws, tire, custom, scale, active, masks, channels, mounts, lift, liftable, kitLift: kitLift(build),
     perf,
     dims: { topSpeed: perf.topMph * 0.44704, accelMul: perf.power, tire: ws.grip || { mu: 1, rr: 1, surf: {} }, wheelbase: fl.center[2] - rl.center[2], track: Math.abs(fl.center[0]) * 2, cabEye: [eye[0], eye[1] + lift, eye[2]],
-      ...(massDims(build, fl.center[2] - rl.center[2], lift)),
+      ...(massDims(build, fl.center[2] - rl.center[2], lift - (tire ? (scale - 1) * baseR : 0), tire ? (scale - 1) * baseR : 0)),
       mounts, lift, bellyHeight: (body.id === 'classic-stage2' ? 0.28 : 0.14) + lift,
       offroad: body.id === 'classic-stage2' || active.some(p => p.slot === 'suspension' || p.slot === 'shocks'),
       longTravel: active.some(p => p.slot === 'suspension' || p.slot === 'shocks'), handling: BUGGY },
