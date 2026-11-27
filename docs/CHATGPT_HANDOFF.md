@@ -1,7 +1,15 @@
 # CHATGPT HANDOFF (living page: Claude adds to it every time something is for ChatGPT)
 
 **Standing rule (Chris, Nov 22):** whenever there is something ChatGPT should do or know (a task, a file to avoid, a finding, a decision), Claude adds it here in the same session, under "Open for ChatGPT" or "Coordination". Chris pastes this page into ChatGPT. When ChatGPT finishes a task, move it to "Done" (or delete it).
-Last updated: Nov 26, 2026, evening (new section right below: Chris's Meshy drop is in the game).
+Last updated: Nov 27, 2026 (start at "UP NEXT" right below).
+
+## UP NEXT (Nov 27; PROPOSAL order). Jobs 1 and 2 below are done: thank you. Claude checked them (tests pass, renders look right).
+**Claude is wiring the four `*_Drive.glb` pickups into the Classifieds** (buy, delivered to the yard, drive with turning wheels). Claude centres the DarkRustPickup between its hubs in code (its model centre is 18 cm off because of the open door): don't re-export it for that. Stay out of `DriveWorld.jsx`, `game/fleet.js`, the Classifieds app and Claude's files below while that is in progress.
+1. **Bug kit parts** (old job 3 below): `model_part11` front tube bumper + skid, `model_part10` rear cage + plate, `model_part15` race seat from `assets/meshy/white_baja_bug_split_parts.glb`. GLB only, about 15-25k tris, bottom-centre origin, front +z. List file, size and named meshes here; Claude adds the catalog entries.
+2. **Classic white wheel-well panel** (old job 4 below).
+3. **Separate wheels on the other `VEH_M_*` vehicles**, same method and naming as the pickups, as new `*_Drive.glb` files (keep the originals): GoldTowRig, Wrecker, YellowTrailRig, ExpeditionRig, then the race vehicles (BlackRaceTruck, RedRaceTruck, DuneBuggy) and the two bugs (WhiteBug, CarnivalBug). Hub table here as before.
+4. **Shop sounds** (older focus list item 4): wrench clicks, angle grinder, welder, table saw, tube bender. Hook off `game.holdBar`; keep K mute and the 50% default.
+Run `git status` first; commit only your own files; show Chris renders for anything visual.
 
 ## DO THIS NOW (Nov 26, late; PROPOSAL order). This replaces the older art lists below.
 1. **Paint out real logos** in the committed game models (the repo is public and the game uses no real brands). Known: the jacket patch on `PERSON_M_Shopkeeper` (Dusty), the white bug's sponsor decals, the green jeep's government-style badge. Also check every other `VEH_M_*` and `PERSON_M_*`. Edit the GLB textures; keep file names, clips and skeletons.
