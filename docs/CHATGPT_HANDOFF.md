@@ -24,7 +24,13 @@ All on `main`, pushed. Tests: 673 passing; production build clean. Raw Meshy dow
 
 **Rigging first pass:** The eight existing `PERSON_M_*` GLBs now carry one 13-joint `CharacterRig` each. All include in-place `idle`, `walk` and `talk` clips. Coveralls and Overalls also have a crouch and wrenching gesture loop named `work`. Approximate weights from the existing posed meshes need a visual deformation pass, especially at elbows and knees. The work clip animates the person only. Blender generator is `assets/pipeline/rig_meshy_people.py`; run it against the original static GLBs and export to a separate staging folder. Export sizes in bytes: Coveralls 1297796, GreyTee 826796, HiVis 1096364, Overalls 1197000, Shopkeeper 1059488, Trekker 1077552, Woman 1132908, YoungMan 1076812.
 
-**Wiring for Claude:** In `worlds/Person.jsx`, clone each instance with Three's SkeletonUtils before animation and give it its own mixer. Default to `idle`, crossfade by clip name, and move the world group along the path during `walk`. Worker logic can position a separate wrench to match the right forearm and choose `work` only for the two reserved models. File names and casting keys are unchanged.
+**Claude's review (Nov 26): idle + talk are wired in and pushed; walk + work need another rig pass (yours, art job 1).** Rendered all eight in Blender at rest, walk, talk and work.
+- Rest and talk are clean on all eight. In the game they idle, and talk when the player is within 2.5 m (`game/people.js` `clipFor`, PROPOSAL).
+- **Walk:** GreyTee, YoungMan, Trekker, HiVis and Overalls stretch a large web between the legs; Woman a smaller one. Shopkeeper and Coveralls are mostly OK. Likely cause (not proven): the script picks the leg bones by the sign of x, but these meshes are posed with feet staggered or crossing the centre line, and some legs may be joined in the mesh. Weighting by mesh connectivity (heat weights), or cutting the joined faces, or A-pose sources would likely fix it.
+- **Work:** both workers drag jacket / pocket geometry out behind the back with the arms (hands resting on or in the clothes get arm weights).
+- Check each fix by rendering side view at walk frames 25% and 75%. When fixed, keep the clip names and tell Claude, who adds them to `clipFor`.
+
+**Wiring (done by Claude):** In `worlds/Person.jsx`, clone each instance with Three's SkeletonUtils before animation and give it its own mixer. Default to `idle`, crossfade by clip name, and move the world group along the path during `walk`. Worker logic can position a separate wrench to match the right forearm and choose `work` only for the two reserved models. File names and casting keys are unchanged.
 
 
 ## READ FIRST: catch-up since your last commit (f8979cb, Nov 23)

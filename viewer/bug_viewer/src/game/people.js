@@ -16,6 +16,12 @@ const JOB_CHARACTER = { belt: 'dusty', battery: 'rosa' };
 /** jobs brought by an unnamed stranger: flatwheel is "a young mechanic", tire "a long-haul trucker" */
 const JOB_STRANGER = { flatwheel: 'PERSON_M_YoungMan', tire: 'PERSON_M_HiVis' };
 
+/** you this close (m) and a person talks, otherwise they idle (PROPOSAL) */
+export const TALK_RANGE = 2.5;
+/** The clips the game plays (assets/pipeline/rig_meshy_people.py). `walk` and `work` are in the GLBs but NOT used:
+ * the first-pass weights stretch a web between the legs (walk) and drag the jacket behind the arms (work). Add them here once re-weighted. */
+export const clipFor = dist => (dist < TALK_RANGE ? 'talk' : 'idle');
+
 /** the model file for a waiting customer, or null for a named townsperson who has no model yet (Pastor Dale, Deputy Ruiz, the Hollises):
  * they keep the old stand-in until theirs arrives, so no stranger's face gets their name. */
 export function personFor(w) {
