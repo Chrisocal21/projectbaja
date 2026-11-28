@@ -4,6 +4,7 @@
 // Pure (no React): runs in node for the tests. Axes in body space: +x = the car's left, +y = up, +z = forward. The body origin sits on the ground between the tires.
 import { createEngine, stepEngine, splitDrive } from './drivetrain.js';
 import * as THREE from 'three';
+import { createWheel, stepWheel, stepAirWheel, driveRequests } from './wheelSpin.js';
 import { wheelSteerAngle } from './suspension.js';
 
 export const MASS = 1000, HEAVY = 1.35, G = 9.81 * HEAVY;   // HEAVY: the car falls and presses on its tires 35% harder than real gravity, so it feels planted (acceleration is unchanged: engine force is fixed)
@@ -42,14 +43,14 @@ export function createBody(dims, { x = 0, y = 0, z = 0, h = 0, v = 0, lateralV =
   const shape = bodyShape(dims), q = Q().setFromAxisAngle(UP, h);
   const c = shape.com.clone().applyQuaternion(q).add(V(x, y, z));
   const vel = V(Math.sin(h) * v + Math.cos(h) * lateralV, 0, Math.cos(h) * v - Math.sin(h) * lateralV);
-  return { c, q, vel, w: V(), shape, xs: dims.mounts.map(() => 0), travel: dims.mounts.map(() => 0), samples: dims.mounts.map(m => SAMPLES(m.radius, m.halfWidth ?? 0.14)), contacts: 4, touch: false, slip: 0, wheels: [], load: 0 };
+  return { c, q, vel, w: V(), shape, xs: dims.mounts.map(() => 0), travel: dims.mounts.map(() => 0), samples: dims.mounts.map(m => SAMPLES(m.radius, m.halfWidth ?? 0.14)), spins: dims.mounts.map(createWheel), contacts: 4, touch: false, slip: 0, wheels: [], load: 0 };
 }
 
 export function bodyOrigin(b, out = V()) { return out.copy(b.shape.com).applyQuaternion(b.q).negate().add(b.c); }
 
 const tmpA = V(), tmpB = V(), tmpC = V(), tmpD = V();
 
-/** one fixed step. ctl: { throttle -1..1, brake bool (handbrake), steer rad }; env: { height(x,z), mu, rr, ACC, MAXV, DRG,
+/** one fixed step. ctl: { throttle -1..1, brake bool (handbrake), steer rad, brakeHelp bool (the driver eases off so the pedal cannot lock a wheel) }; env: { height(x,z), mu, rr, ACC, MAXV, DRG,
  *  tireAt?(x, z, wheelIndex) -> { mu, rr, name }: the ground under that wheel (without it every wheel gets env.mu and env.rr) } */
 export function stepBody(b, dims, ctl, env, dt) {
   const cfg = suspensionSpec(dims), { q, c, vel, w, shape } = b, mounts = dims.mounts, hf = env.height;
@@ -92,6 +93,12 @@ export function stepBody(b, dims, ctl, env, dt) {
   const eng = b.eng ??= createEngine(), driven = info.filter(o => o.m.name.startsWith('R')), rearR = driven[0]?.m.radius ?? 0.38;
   const Ftot = stepEngine(eng, ctl, speed, rearR, env.MAXV, MASS * ACC, dt), capOf = o => o.touching ? o.mu * clamp(o.N, 0, 90000) * 1.1 : 0, Fd = {};
   if (Ftot > 0 && driven.length === 2) { const [a, c2] = splitDrive(Ftot, capOf(driven[0]), capOf(driven[1]), env.diff); Fd[driven[0].m.name] = a; Fd[driven[1].m.name] = c2; }
+  // wheel spin (wheelSpin.js): what each driven wheel is asked to push, including torque the ground cannot take
+  const Req = { ...Fd }, diffType = env.diff ?? 'open', throttle = ctl.throttle, braking = throttle < 0 && speed > 0.5, pedal = Math.min(1, Math.abs(throttle)), brakeK = env.brake ?? 1;   // env.brake: wet brakes (fade for a few seconds after a water crossing)
+  if (Ftot > 0 && driven.length === 2) { const [x, y] = driveRequests(Ftot, Fd[driven[0].m.name], Fd[driven[1].m.name], capOf(driven[0]), capOf(driven[1]), diffType); Req[driven[0].m.name] = x; Req[driven[1].m.name] = y; }
+  const reverse = front => (!front && throttle < 0 && !braking ? -MASS * ACC * 0.45 * (speed > -9 ? 1 : 0) / 2 : 0);
+  const pedalForce = front => (braking ? pedal * M * 22 * brakeK * (front ? 0.65 : 0.35) / 2 : 0);   // an analog trigger brakes as hard as you pull it
+  const parkForce = (front, cap) => (!ctl.brake ? 0 : front ? M * 22 * 0.3 * brakeK / 2 : cap * 2 * brakeK);
   b.wheels = info.map(o => {
     const { m } = o;
     const hubW = o.nominal.clone().addScaledVector(up, o.touching ? o.x : -cfg.droop);
@@ -109,25 +116,31 @@ export function stepBody(b, dims, ctl, env, dt) {
       let Fy = -cap * Math.tanh(sa / (front ? HP.fs : rsNow));
       Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
       // longitudinal: engine (rear wheels), brakes (front-biased), handbrake (rear locks), rolling resistance
-      let Fx = 0;
-      const throttle = ctl.throttle, braking = throttle < 0 && speed > 0.5;
-      if (!front && throttle > 0) Fx += Fd[m.name] || 0;
-      if (!front && throttle < 0 && !braking) Fx -= MASS * ACC * 0.45 * (speed > -9 ? 1 : 0) / 2;
-      const sgn = clamp(vl / 0.5, -1, 1);
-      if (braking) Fx -= sgn * M * 22 * (env.brake ?? 1) * (front ? 0.65 : 0.35) / 2;   // env.brake: wet brakes (fade for a few seconds after a water crossing)
-      if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 * (env.brake ?? 1) / 2 : cap * 2 * (env.brake ?? 1));
-      Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * o.rr * (env.rrC?.[m.name] ?? 1) + (throttle === 0 && !front ? 0.02 : 0)) * N;   // env.rrC: a flat tire drags
+      const sgn = clamp(vl / 0.5, -1, 1), rev = reverse(front), pb = pedalForce(front), hb = parkForce(front, cap);
+      const roll = clamp(vl / 0.3, -1, 1) * (0.03 * o.rr * (env.rrC?.[m.name] ?? 1) + (throttle === 0 && !front ? 0.02 : 0)) * N;   // env.rrC: a flat tire drags
+      let Fx = (!front && throttle > 0 ? Fd[m.name] || 0 : 0) + rev - sgn * (pb + hb) - roll;
       const avail = Math.sqrt(Math.max(0, cap * cap - Fy * Fy));
       Fx = clamp(Fx, -avail, avail);
+      // does the tire hold? If the engine or the brakes ask too much, the wheel spins or locks and slides (wheelSpin.js)
+      const brakeAsk = (ctl.brakeHelp ? Math.min(pb, avail) : pb) + (front ? Math.min(hb, avail) : hb);   // the handbrake only ever locks the rear
+      const f = stepWheel(b.spins[o.i], { vl, vs, cap, avail, grip: { fx: Fx, fy: Fy }, drive: (!front && throttle > 0 ? Req[m.name] || 0 : 0) + rev, brake: brakeAsk, r: m.radius, front, dt });
+      if (f.fx !== Fx || f.fy !== Fy) { const stop = Math.abs(vs) * M / 4 / dt * 0.5; Fx = f.fx; Fy = clamp(f.fy, -stop, stop); }
       push(V().addScaledVector(n, N).addScaledVector(wf, Fx).addScaledVector(wl, Fy), cp);
       if (!front) slipMax = Math.max(slipMax, Math.abs(Math.atan(sa)));
       o.vl = vl; o.sa = Math.atan(sa); o.fx = Fx; o.fy = Fy;   // read-outs for telemetry (game/TelemetryHud.jsx)
+    } else {   // in the air: the engine can spin a wheel up and the brakes can stop it (a locked axle is matched below)
+      const front = m.name.startsWith('F');
+      stepAirWheel(b.spins[o.i], { drive: (!front && throttle > 0 && diffType !== 'locker' ? Req[m.name] || 0 : 0) + reverse(front), brake: pedalForce(front) + (ctl.brake ? M * 8 : 0), r: m.radius, front, maxU: env.MAXV * 1.05, dt });
     }
     // wheel travel shown on the car: drops smoothly when airborne instead of snapping
     b.travel[o.i] = o.touching ? o.x : Math.max(-cfg.droop, b.travel[o.i] - dt * 1.2);
     b.travel[o.i] = Math.max(b.travel[o.i], Math.min(cfg.compression, o.needed));
-    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0, sa: o.sa || 0, fx: o.fx || 0, fy: o.fy || 0, cap: o.touching ? o.mu * (env.gripC?.[m.name] ?? 1) * N * (m.name.startsWith('F') ? 1 : rcNow) : 0, mu: o.touching ? o.mu : 0, ground: o.touching ? o.ground : undefined };
+    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0, sa: o.sa || 0, fx: o.fx || 0, fy: o.fy || 0, cap: o.touching ? o.mu * (env.gripC?.[m.name] ?? 1) * N * (m.name.startsWith('F') ? 1 : rcNow) : 0, mu: o.touching ? o.mu : 0, ground: o.touching ? o.ground : undefined, u: b.spins[o.i].u, state: b.spins[o.i].state };
   });
+  if (diffType === 'locker' && throttle > 0) {   // a locked axle: a rear wheel in the air turns at its partner's speed
+    const [i, j] = ['RL', 'RR'].map(n => mounts.findIndex(m => m.name === n)), air = !info[i]?.touching ? i : !info[j]?.touching ? j : -1, other = air === i ? j : i;
+    if (air >= 0 && info[other]?.touching) { b.spins[air].u = b.spins[other].u; b.wheels[air].u = b.spins[air].u; }
+  }
   // ---- the shell: points on the body are spring-damper contacts with sliding friction, so a rolled car rests on its roof or side and scrapes to a stop ----
   let touch = false;
   const groundUnder = hf(c.x, c.z);

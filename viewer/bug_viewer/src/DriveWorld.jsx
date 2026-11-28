@@ -56,6 +56,7 @@ import { createRuts, rutDepth } from './ruts.js';
 import { BUGGY } from './handlingProfiles.js';
 import { createBody, stepBody, readBody, uprightBody, suspensionSpec } from './rigid.js';   // the car is one rigid body: see rigid.js
 import { tireGround, createWheelGround } from './wheelGround.js';
+import { looseness } from './wheelSpin.js';
 
 // ---------- terrain ----------
 const STEER_FADE = 0.026;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
@@ -326,7 +327,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const wg = (st.wg ||= createWheelGround()), stamp = `${world.id}|${psi}|${tr.mu}|${tr.rr}|${game.active}`;
     const lookWheel = (x, z) => tireGround(world.surface(x, z), { wade: world.waterDepth ? Math.min(1.2, world.waterDepth(x, z)) : 0, psi, tire: tr });
     const tireAt = (x, z, i) => { const g = wg.at(i, x, z, stamp, lookWheel); return { mu: g.mu * wfx.grip * bog.mu, rr: g.rr * bog.rr, name: g.name }; };   // wear and sinking are still one number for the whole car
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { tireAt, height: sunk, mu: sf.mu * wfx.grip * bog.mu, rr: sf.rr * bog.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
+    // brakeHelp: while you are steering, your driver eases off the pedal just enough to keep the wheels rolling, so the car still turns; braking in a straight line can lock them (wheelSpin.js)
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull), brakeHelp: Math.abs(steerIn) > 0.15 }, { tireAt, height: sunk, mu: sf.mu * wfx.grip * bog.mu, rr: sf.rr * bog.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);
@@ -374,7 +376,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (rig.current) {
       for (const w of rig.current.wheels) {
         w.steer.position.copy(st.wheels.find(h => h.name === w.name).hub);
-        w.spin.rotation.x += st.v / w.r * dt;
+        w.spin.rotation.x += (st.wheels.find(h => h.name === w.name).u ?? st.v) / w.r * dt;   // each wheel turns at its own speed: you can see it spin or lock
         w.steer.rotation.y = wheelSteerAngle(st.steer, w.name, dims);
       }
       if (rig.current.suspension) updateSuspensionVisual(rig.current.suspension, st.wheels);
@@ -429,9 +431,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
     rc.flash = Math.max(0, rc.flash - dt);
     const f = n => (n ? n.toFixed(1) + 's' : '--');
     game.speed = st.v;
-    { const st = s.current; updateAudio({ on: !game.onFoot && !game.paused && !game.travelling, rpm: st.rpm, throttle: st.thr || 0, speed: st.v, slip: Math.min(1, st.slip || 0), loose: dustiness(st.sfKey), air: st.air, wade: st.wade || 0 }); }
+    { const st = s.current, spinNow = game.onFoot ? 0 : Math.max(0, ...(st.wheels || []).map(looseness)); updateAudio({ on: !game.onFoot && !game.paused && !game.travelling, rpm: st.rpm, throttle: st.thr || 0, speed: Math.max(Math.abs(st.v), spinNow * 14), slip: Math.min(1, Math.max(st.slip || 0, spinNow)), loose: dustiness(st.sfKey), air: st.air, wade: st.wade || 0 }); }
     if (hud.current) {
       const fu = FUEL[game.active] ?? 0, fw = gaugeWord(fu, tankOf(game.active)), fl = [];
+      if ((st.wheels || []).some(w => w.state === 'lock' && looseness(w) > 0.25)) fl.push(['WHEELS LOCKED', 'warn']); else if ((st.wheels || []).some(w => w.state === 'spin' && looseness(w) > 0.25)) fl.push(['WHEELSPIN', 'warn']);
       if (st.slip > 0.14) fl.push(['SLIDING', 'warn']); if (st.air) fl.push(['AIRBORNE', '']); if (st.rolled) fl.push(['ROLLED: R to stand up', 'bad']);
       if (st.impactT > 0) fl.push([st.impact > 8 ? 'HARD LANDING' : 'LANDED', st.impact > 8 ? 'bad' : '']); if (st.bottomT > 0) fl.push(['BOTTOMED OUT', 'warn']);
       if (st.wade > 0.05) fl.push(['WADING ' + Math.round(st.wade * 100) + ' cm', 'warn']); else if (st.wetT > 0) fl.push(['WET BRAKES', 'warn']); if (st.drown > 0) fl.push(['ENGINE DROWNED', 'bad']);
@@ -497,9 +500,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
           if (!w.touching) { rutLast.current[i] = null; }
           if (wading && w.touching && sp > 1) { sprayAcc.current[i] += (6 + sp * 2.2) * dtD; while (sprayAcc.current[i] >= 1) { sprayAcc.current[i] -= 1; const q = group.current.localToWorld(DUST_P.copy(w.hub)); dustFx.emit(q.x + (Math.random() - 0.5) * 0.5, world.height(q.x, q.z) + st.wade * 0.6, q.z + (Math.random() - 0.5) * 0.5, v.x * 0.35 + (Math.random() - 0.5) * 2.4, 1.2 + Math.random() * 2.6, v.z * 0.35 + (Math.random() - 0.5) * 2.4, WATER_C, 0.35, 1.5 + Math.min(1, sp / 20), 0.4, 0.9); } }
           if (!w.touching || dust <= 0) { dustAcc.current[i] = 0; return; }
+          const loose = looseness(w);   // this wheel spinning or locked: more dust and a deeper mark, even from a standstill
           const p = group.current.localToWorld(DUST_P.copy(w.hub)); p.y -= 0.3;
           if (!was) for (let k = 0; k < 7; k++) dustFx.emit(p.x, p.y, p.z, v.x * 0.2 + (Math.random() - 0.5) * 3, 0.8 + Math.random() * 1.6, v.z * 0.2 + (Math.random() - 0.5) * 3, c, 0.7, 3.2, 0.26 * Math.min(1, dust), 1.6);   // landing puff
-          { const depth = rutDepth(st.sfKey), hard = Math.min(1, (st.slip || 0) / 0.3), want = depth + (depth === 0 ? hard * 0.5 : 0);   // paved ground only marks when sliding hard
+          { const depth = rutDepth(st.sfKey), hard = Math.max(loose, Math.min(1, (st.slip || 0) / 0.3)), want = depth + (depth === 0 ? hard * 0.5 : 0);   // paved ground only marks when sliding hard
             if (want > 0.2 && (sp > 1.5 || hard > 0.1)) {
               const gy = world.height(p.x, p.z), L = rutLast.current[i];
               if (!L) rutLast.current[i] = { x: p.x, z: p.z };
@@ -507,8 +511,8 @@ function Vehicle({ children, hud, dims, race, sun }) {
                 if (d > 0.5) { const e = 1, nx = -(world.height(p.x + e, p.z) - world.height(p.x - e, p.z)) / (2 * e), nz = -(world.height(p.x, p.z + e) - world.height(p.x, p.z - e)) / (2 * e), tone = Math.max(0.28, 0.62 - 0.22 * want - 0.18 * hard);
                   rutFx.stamp(p.x, gy, p.z, dx / d, dz / d, nx, 1, nz, 0.3 + 0.1 * hard, Math.min(1.6, d * 1.04), DUST_R.set(st.sfColor || '#a98c5a').multiplyScalar(tone)); rutLast.current[i] = { x: p.x, z: p.z }; } }
             } else rutLast.current[i] = null; }
-          dustAcc.current[i] += rate * dtD;
-          while (dustAcc.current[i] >= 1) { dustAcc.current[i] -= 1; const big = 0.5 + Math.min(1, sp / 30) * 0.9 + slide * 0.6;
+          dustAcc.current[i] += (rate + dust * loose * 28) * dtD;
+          while (dustAcc.current[i] >= 1) { dustAcc.current[i] -= 1; const big = 0.5 + Math.min(1, sp / 30) * 0.9 + Math.max(slide, loose) * 0.6;
             dustFx.emit(p.x + (Math.random() - 0.5) * 0.4, p.y, p.z + (Math.random() - 0.5) * 0.4, v.x * 0.3 + (Math.random() - 0.5) * 1.6, 0.5 + Math.random() * 1.4, v.z * 0.3 + (Math.random() - 0.5) * 1.6, c, 0.5 * big, 2.4 * big + 0.8, Math.min(0.24, 0.08 + 0.12 * dust), 1.1 + Math.min(1, sp / 30) * 0.9); }
         });
       } }

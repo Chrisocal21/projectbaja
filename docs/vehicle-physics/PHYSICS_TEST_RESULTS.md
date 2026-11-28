@@ -2,6 +2,23 @@
 
 Numbers the headless tests print, so changes are measured, not felt. Re-run with `npm test` in `viewer/bug_viewer` (the facility table prints from `src/physicsFacility.test.js`). All inputs are [estimate] (see `catalog/physics.json`). Newest first.
 
+## Nov 28, 2026: milestone 4, wheel spin and lock-up
+
+| Test | Result |
+|---|---|
+| Launch, 1.5 s: tire speed over ground speed | Loose sand 8.0 m/s (the cap); asphalt 0.0 |
+| Braking from 54 km/h on dirt | Pedal down 9.2 m (fronts locked 96% of the stop); brake help 7.8 m; 30% trigger 15.7 m |
+| Braking while turning, 1.2 s | Heading change: locked 1.3 deg, brake help 37.4 deg |
+| Rear-left over a hole | Open diff spins it to 42 m/s with the partner still; locker turns both at 8.5 m/s |
+| Split ground, braking, no help (from milestone 3) | Now swings 42 deg toward the asphalt (was 12): locked wheels hold no line |
+| Split ground, launch, 3 s | Open 14.9 m, locker 21.2 m (the locker's tail steps toward the mud) |
+| Frame rate 30 / 60 / 144 fps | Spread 0.04% |
+| Static pad, skidpad, bump | Unchanged |
+
+Test car (`driveMeasure.js`), before -> after: 0-15 m/s pavement 1.8 -> 1.8 s, dirt 1.9 -> 1.9, sand 4.4 -> 4.2, mud 6.4 -> 6.5. Handbrake stop from 20 m/s (the rears now lock): pavement 14.9 -> 15.9 m, dirt 16.4 -> 17.3, sand 22.3 -> 23.8, mud 33.2 -> 35.7.
+
+In the game, loose sand: launch showed the right-rear tire at 34 km/h with the car at 6; a straight hard stop showed all four LOCK.
+
 ## Nov 28, 2026: milestone 3, ground under each wheel
 
 All earlier facility numbers are identical after the change.

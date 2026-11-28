@@ -85,6 +85,16 @@ Done: the test facility (`src/physicsFacility.test.js`: static pad, frame rate, 
 ## Milestone 3 status (Nov 28)
 Done: each wheel reads its own ground (surface, tire pressure, water depth). `src/wheelGround.js` holds the one grip formula and a short memory (a wheel looks its ground up again after rolling 0.4 m; a county lookup costs about 8 us in the browser). `rigid.js` takes an optional `env.tireAt`; without it the solver is unchanged. Acceptance passes: split-ground braking pulls toward the asphalt and mirrors; the old facility numbers are identical. Still one value for the whole car: sinking (read from the ground under the middle), wear grip, the speed-sensitive steering aid, and the dust and tire sounds. Not checked: whether every painted road edge matches the physics ground edge.
 
+## Milestone 4 status (Nov 28)
+Done (`src/wheelSpin.js`): each wheel has its own tire speed. While the tire holds, the forces are the old gripping forces; when the engine or brakes ask too much, the wheel spins or locks, gives sliding friction (85% of peak) along its slip, and loses sideways grip (a locked tire loses its steering; a spinning one keeps more). Wheels in the air spin up or stop; a locked axle turns them together. Visible wheel speed, dust, ruts, tire noise, WHEELSPIN / WHEELS LOCKED warnings, and F9 columns. Acceptance passes (sand launch spins, hard braking on dirt locks, open diff spins a lifted wheel and the locker does not).
+This is a stick-slip model, not a full slip-ratio tire curve: the curve is milestone 5.
+PROPOSALs to tune by feel (`SPIN` in `wheelSpin.js`):
+- **Brake help:** while you steer, the pedal eases off enough to keep the wheels rolling; braking straight can lock. The handbrake locks only the rear.
+- **engineBite 0.75:** the game's first-gear force is about what the tires can hold even on pavement (it was silently trimmed before). Counting 75% of it toward breakaway keeps pavement hooked up. The engine's force itself is unchanged.
+- **spinAlong 0.35, maxSlip 8 m/s:** how catchable the tail is with spinning rears.
+Not done: engine rpm and gear shifts still follow road speed, so the engine does not rev up during wheelspin.
+Also fixed: the side-slope tip test dropped the car onto each slope, so the bounce decided the result (at 0.002 steps even the old solver tipped the caged car later). It now raises the slope slowly: stock tips at 1.96, caged at 1.74, the same on the old and new solver.
+
 ## Plan: milestones (PROPOSAL; one at a time)
 
 Order after the Nov 28 measurements: 1, 3, 4, 5, then the handoff's open steps (6 geometry and contact damage, 8 diagnosis puzzle), then 6 and 7 here. Milestone 2 is low priority now (frame rate barely matters).

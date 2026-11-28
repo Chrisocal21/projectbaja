@@ -100,6 +100,60 @@ test('split ground, launch: one rear wheel on mud holds an open diff back more t
   assert.ok(locked.dist > open.dist * 1.05, `locker ${locked.dist} vs open ${open.dist}`);
 });
 
+// ---------- milestone 4: wheel spin and lock-up ----------
+const full = { throttle: 1, brake: false, steer: 0 }, hardBrake = { throttle: -1, brake: false, steer: 0 };
+/** step the stock Bug on one surface from v0 m/s, calling each(body, state, i) */
+function run(key, ctl, { v0 = 0, secs = 2, diff, each, height } = {}) {
+  const d = bugDims(), b = createBody(d, { y: 0.3 }), g = under(key), e = { ...envFor('dirt'), diff, tireAt: () => g, ...(height ? { height } : {}) };
+  for (let i = 0; i < 2 / STEP; i++) stepBody(b, d, idle, e, STEP);
+  b.vel.set(0, 0, v0); const z0 = readBody(b, {}).z;
+  for (let i = 0; i < secs / STEP; i++) { stepBody(b, d, ctl, e, STEP); const s = readBody(b, {}); each?.(b, s, i); if (ctl.throttle < 0 && s.v < 0.6) break; }
+  return { ...readBody(b, {}), dist: readBody(b, {}).z - z0, body: b };
+}
+
+test('launch: the rear wheels spin on loose sand and hold on asphalt', () => {
+  const spinOn = key => { let most = 0; run(key, full, { secs: 1.5, each: b => { most = Math.max(most, b.wheels[2].u - b.wheels[2].vl, b.wheels[3].u - b.wheels[3].vl); } }); return most; };
+  const sand = spinOn('sand'), road = spinOn('asphalt');
+  note(`launch wheelspin (tire speed over ground speed, most in 1.5 s): loose sand ${sand.toFixed(1)} m/s, asphalt ${road.toFixed(1)} m/s`);
+  assert.ok(sand > 3, 'sand spins: ' + sand); assert.ok(road < 0.5, 'asphalt holds: ' + road);
+});
+
+test('braking hard on dirt locks the wheels; easing off (brake help) keeps them rolling and stops shorter', () => {
+  const go = ctl => { let locked = 0, n = 0; const r = run('dirt', ctl, { v0: 15, secs: 6, each: (b, s) => { if (s.v > 3) { n++; if (b.wheels[0].state === 'lock' && b.wheels[0].u < 1) locked++; } } }); return { dist: r.dist, share: locked / n }; };
+  const stomp = go(hardBrake), helped = go({ ...hardBrake, brakeHelp: true }), light = go({ throttle: -0.3, brake: false, steer: 0 });
+  note(`braking from 54 km/h on dirt: pedal down ${stomp.dist.toFixed(1)} m (fronts locked ${(stomp.share * 100).toFixed(0)}% of the stop), brake help ${helped.dist.toFixed(1)} m, 30% trigger ${light.dist.toFixed(1)} m`);
+  assert.ok(stomp.share > 0.8, 'fronts lock: ' + stomp.share); assert.equal(helped.share, 0); assert.equal(light.share, 0);
+  assert.ok(helped.dist < stomp.dist, 'rolling stops shorter');
+});
+
+test('locked front wheels do not steer; with brake help the car still turns', () => {
+  const turn = brakeHelp => Math.abs(run('dirt', { throttle: -1, brake: false, steer: 0.25, brakeHelp }, { v0: 15, secs: 1.2 }).h);
+  const locked = turn(false), helped = turn(true);
+  note(`braking while turning, 1.2 s: heading change locked ${(locked * 57.3).toFixed(1)} deg, with brake help ${(helped * 57.3).toFixed(1)} deg`);
+  assert.ok(helped > locked * 2, JSON.stringify([locked, helped]));
+});
+
+test('a rear wheel off the ground: the open diff spins it up, the locker turns it with its partner', () => {
+  const hole = (x, z) => (z < -0.6 && z > -2.2 && x > 0.3 ? -0.9 : 0);   // under the rear-left wheel
+  const lifted = diff => {
+    const d = bugDims(), b = createBody(d, { y: 0.3 }), e = { ...envFor('dirt'), diff, height: hole };
+    for (let i = 0; i < 2 / STEP; i++) stepBody(b, d, { throttle: 0, brake: true, steer: 0 }, e, STEP);   // held on the handbrake so it stays over the hole
+    let u = 0, partner = 0, air = 0;
+    for (let i = 0; i < 0.4 / STEP; i++) { stepBody(b, d, full, e, STEP); const w = b.wheels; if (!w[2].touching) { air++; u = w[2].u; partner = w[3].u; } }
+    return { air, u, partner };
+  };
+  const open = lifted('open'), lock = lifted('locker');
+  note(`rear-left over a hole, full throttle: open diff spins it at ${open.u.toFixed(1)} m/s (partner ${open.partner.toFixed(1)}); locker ${lock.u.toFixed(1)} m/s (partner ${lock.partner.toFixed(1)})`);
+  assert.ok(open.air > 10 && lock.air > 10, JSON.stringify([open, lock]));
+  assert.ok(open.u > open.partner + 3, 'open spins the lifted wheel: ' + JSON.stringify(open)); assert.ok(Math.abs(lock.u - lock.partner) < 0.5, 'locker keeps them together: ' + JSON.stringify(lock));
+});
+
+test('a parked car on the handbrake stays gripping (no lock, no creep from the wheel model)', () => {
+  const r = run('dirt', { throttle: 0, brake: true, steer: 0 }, { secs: 4 });
+  assert.ok(Math.abs(r.v) < 0.05 && Math.abs(r.dist) < 0.1, JSON.stringify([r.v, r.dist]));
+  assert.ok(r.body.wheels.every(w => w.state === ''));
+});
+
 test('wheel ground memory: looks the ground up again only after the wheel rolls on, or the tires or map change', () => {
   const g = createWheelGround(); let n = 0; const look = () => ++n;
   g.at(0, 0, 0, 'a', look); g.at(0, REQUERY * 0.9, 0, 'a', look); assert.equal(n, 1);

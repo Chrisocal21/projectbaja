@@ -41,10 +41,19 @@ test('a heavier car accelerates slower (engine force is fixed)', () => {
   assert.ok(heavy.v < light.v, JSON.stringify([light.v, heavy.v]));
 });
 test('side-slope tip angle: the caged (higher CG) car tips at a lower slope than the stock one', () => {
-  const tipSlope = extra => { for (let slope = 0.2; slope < 1.6; slope += 0.01) {
-    const d = { ...dims, ...extra }, b = createBody(d, { v: 0 }), env = { height: x => x * slope, mu: 5, rr: 1, ACC: 11, MAXV: 40, DRG: 0.01 };
-    for (let i = 0; i < 6 * 120; i++) stepBody(b, d, { throttle: 0, brake: true, steer: 0 }, env, 1 / 120);
-    if (readBody(b).upY < 0.8) return slope; } return 9; };
+  // The hill rises slowly under a parked car (4 s to settle, then 0.02 of slope a second), so this measures the tip itself. (Until Nov 28 the car was
+  // dropped onto each slope and the bounce decided the answer.) "Tipped" = the car's up has left the ground's normal by more than about 35 degrees.
+  const tipSlope = extra => {
+    const d = { ...dims, ...extra }, b = createBody(d, { v: 0 }); let slope = 0;
+    const env = { height: x => x * slope, mu: 5, rr: 1, ACC: 11, MAXV: 40, DRG: 0.01 };
+    for (let i = 0; i < 104 * 120; i++) {
+      slope = Math.max(0, i / 120 - 4) * 0.02;
+      stepBody(b, d, { throttle: 0, brake: true, steer: 0 }, env, 1 / 120);
+      const s = readBody(b, {}), up = new b.vel.constructor(0, 1, 0).applyQuaternion(b.q), n = new b.vel.constructor(-slope, 1, 0).normalize();
+      if (up.dot(n) < 0.82) return slope;
+    }
+    return 9;
+  };
   const s = massModel(stock, WB), c = massModel(caged, WB);
   const a = tipSlope({ mass: s.mass, cgY: s.cgY, cgFromRear: s.cgFromRear }), bb = tipSlope({ mass: c.mass, cgY: c.cgY, cgFromRear: c.cgFromRear });
   console.log('tip slope (rise/run) stock', a.toFixed(2), 'caged', bb.toFixed(2), '| theory', (1.5 / 2 / s.cgY).toFixed(2), (1.5 / 2 / c.cgY).toFixed(2));
