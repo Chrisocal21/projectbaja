@@ -2,6 +2,19 @@
 
 Numbers the headless tests print, so changes are measured, not felt. Re-run with `npm test` in `viewer/bug_viewer` (the facility table prints from `src/physicsFacility.test.js`). All inputs are [estimate] (see `catalog/physics.json`). Newest first.
 
+## Nov 28, 2026: first in-game telemetry read (F9 panel)
+
+Stock Bug, full lock at 75 km/h on scrub (ground grip 0.61):
+
+| Wheel | Load N | Slip angle | Fx N | Fy N | Grip used |
+|---|---|---|---|---|---|
+| FL | 1048 | -33.9 deg | -11 | 641 | 100% |
+| FR | 3402 | -28.7 deg | -83 | 2080 | 100% |
+| RL | 1979 | -9.8 deg | 618 | 1135 | 100% |
+| RR | 4391 | -9.6 deg | 1155 | 2498 | 96% |
+
+Lateral 0.74 g, roll 1.3 deg. Two findings: (1) the car understeers hard at full lock at speed: the fronts are far past their grip peak (about 30 deg of slip) while the rears sit near 10 deg; (2) 0.74 g on 0.61 grip is only possible because gravity is 1.35 x (the tires are pressed 35% harder), so that feel crutch is also a grip bonus of about a third.
+
 ## Nov 28, 2026: facility baseline (milestone 1), before any physics change
 
 Car: the stock Bug as the game resolves it (820 kg, CG 0.50 m, 42/58, track 1.30 m, wheelbase 2.38 m, stock tires r 0.346 m, stock suspension), on dirt.

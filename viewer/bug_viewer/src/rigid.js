@@ -119,12 +119,12 @@ export function stepBody(b, dims, ctl, env, dt) {
       Fx = clamp(Fx, -avail, avail);
       push(V().addScaledVector(n, N).addScaledVector(wf, Fx).addScaledVector(wl, Fy), cp);
       if (!front) slipMax = Math.max(slipMax, Math.abs(Math.atan(sa)));
-      o.vl = vl;
+      o.vl = vl; o.sa = Math.atan(sa); o.fx = Fx; o.fy = Fy;   // read-outs for telemetry (game/TelemetryHud.jsx)
     }
     // wheel travel shown on the car: drops smoothly when airborne instead of snapping
     b.travel[o.i] = o.touching ? o.x : Math.max(-cfg.droop, b.travel[o.i] - dt * 1.2);
     b.travel[o.i] = Math.max(b.travel[o.i], Math.min(cfg.compression, o.needed));
-    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0 };
+    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0, sa: o.sa || 0, fx: o.fx || 0, fy: o.fy || 0, cap: o.touching ? mu * (env.gripC?.[m.name] ?? 1) * N * (m.name.startsWith('F') ? 1 : rcNow) : 0 };
   });
   // ---- the shell: points on the body are spring-damper contacts with sliding friction, so a rolled car rests on its roof or side and scrapes to a stop ----
   let touch = false;

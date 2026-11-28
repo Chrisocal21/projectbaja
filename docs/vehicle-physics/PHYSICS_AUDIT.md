@@ -79,6 +79,9 @@ Claude Code, Nov 28, 2026. Audit of what the repo has, a staged plan, and Chris'
 | 31 Roadmap | Phases 1-3 mostly there; 4-6 partly |
 | 32 Fidelity | Level 1 done, parts of Level 2 |
 
+## Milestone 1 status (Nov 28)
+Done: the test facility (`src/physicsFacility.test.js`: static pad, frame rate, skidpad, single-wheel bump) and the in-game telemetry panel (`game/TelemetryHud.jsx`, F9 or `?telemetry`; per-wheel load, travel, slip angle, Fx, Fy and grip used, read from `rigid.js` without changing it). Still to add to the facility: slalom, side slope on the real Bug, washboard, split-mu (after milestone 3).
+
 ## Plan: milestones (PROPOSAL; one at a time)
 
 Order after the Nov 28 measurements: 1, 3, 4, 5, then the handoff's open steps (6 geometry and contact damage, 8 diagnosis puzzle), then 6 and 7 here. Milestone 2 is low priority now (frame rate barely matters).

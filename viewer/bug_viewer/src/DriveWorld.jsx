@@ -15,6 +15,7 @@ import { piecePower } from './game/engineRules.js';   // worn engine pieces cost
 import { exitHit } from './game/regions.js';
 import { lookScale } from './game/settings.js';
 import PerfHud from './game/PerfHud.jsx';
+import TelemetryHud from './game/TelemetryHud.jsx';
 import Governor from './game/Governor.jsx';
 import Discoveries from './game/Discoveries.jsx';
 import GameObjects from './game/GameObjects.jsx';
@@ -273,6 +274,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
     const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.5;   // 1.5 = base off-road tire grip (was 1.25: more grip, Nov 21); psiFx: tire pressure (physics.json)
     const wade = world.waterDepth ? Math.min(1.2, world.waterDepth(st.x, st.z)) : 0; st.wade = wade;   // in a creek or river: water drags the car and the tires slip
     const sf = { name: wade > 0.05 ? 'Water crossing' : sf0.name, mu: tmu * (1 - 0.4 * Math.min(1, wade / 0.4)), rr: sf0.rr * psiFx.rr * tr.rr * (1 + 6 * Math.min(1, wade / 0.5)) }, grip = tmu / 0.7; st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
+    st.surfName = sf.name; st.mu = sf.mu;   // for the telemetry panel (game/TelemetryHud.jsx)
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
       Object.assign(st, spawnState()); race.current = newRace(); k.reset = false;
@@ -580,6 +582,7 @@ export default function DriveWorld({ children, hud, dims = DEFAULT_DIMS, worldId
     {world.id === 'county' && <Items />}{world.id === 'county' && <DeliveryTruck />}
     {world.id === 'county' && <Fleet />}
     <PerfHud />
+    <TelemetryHud />
     <Governor />
     {world.id === 'county' && <Discoveries />}
   </WorldCtx.Provider>;
