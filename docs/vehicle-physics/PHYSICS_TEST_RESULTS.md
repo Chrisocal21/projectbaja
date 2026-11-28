@@ -2,6 +2,16 @@
 
 Numbers the headless tests print, so changes are measured, not felt. Re-run with `npm test` in `viewer/bug_viewer` (the facility table prints from `src/physicsFacility.test.js`). All inputs are [estimate] (see `catalog/physics.json`). Newest first.
 
+## Nov 28, 2026: milestone 3, ground under each wheel
+
+All earlier facility numbers are identical after the change.
+
+| Test | Result |
+|---|---|
+| Split ground, braking from 54 km/h | Left wheels asphalt, right wheels sand: pulls 11.8 deg and 0.44 m toward the asphalt. Mirrored: -11.8 deg, -0.44 m. All asphalt: 0.0 deg. |
+| Split ground, launch, right rear in mud, 3 s | Open diff 15.8 m, locker 26.1 m. |
+| In the game, county road edge | Left wheels read Asphalt (grip 1.08), right wheels Loose sand (0.34); the Bug turned toward the road under braking. |
+
 ## Nov 28, 2026: first in-game telemetry read (F9 panel)
 
 Stock Bug, full lock at 75 km/h on scrub (ground grip 0.61):

@@ -55,6 +55,7 @@ import { steerAssist, speedFov, steerStep, steerRate } from './handling.js';
 import { createRuts, rutDepth } from './ruts.js';
 import { BUGGY } from './handlingProfiles.js';
 import { createBody, stepBody, readBody, uprightBody, suspensionSpec } from './rigid.js';   // the car is one rigid body: see rigid.js
+import { tireGround, createWheelGround } from './wheelGround.js';
 
 // ---------- terrain ----------
 const STEER_FADE = 0.026;   // was 0.004 -> 0.02 -> 0.035: at 100 km/h the max wheel angle is about 0.35 rad (PROPOSAL, tune by feel)
@@ -271,9 +272,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
   const sim = dt => {   // one fixed physics step
     const k = game.onFoot ? PARK : keys.current, st = s.current;   // a parked car sits on its handbrake
     { const ex = !game.travelling && !game.onFoot && exitHit(world.id, st.x, st.z, game.dev); if (ex) { game.travelling = true; game.arrive = { ...ex.arrive, v: st.v, to: ex.to }; window.dispatchEvent(new CustomEvent('baja-travel', { detail: { to: ex.to } })); } }   // region exit (game/regions.js): drive into it and the next region loads
-    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psiFx = pressureEffect(game.home?.tirePsi ?? TIRE.streetPsi, sf0.key), tmu = sf0.mu * psiFx.grip * tr.mu * (tr.surf[sf0.gk || sf0.key] ?? 1) * 1.5;   // 1.5 = base off-road tire grip (was 1.25: more grip, Nov 21); psiFx: tire pressure (physics.json)
+    const tr = dims.tire || { mu: 1, rr: 1, surf: {} }, sf0 = world.surface(st.x, st.z), psi = game.home?.tirePsi ?? TIRE.streetPsi;
     const wade = world.waterDepth ? Math.min(1.2, world.waterDepth(st.x, st.z)) : 0; st.wade = wade;   // in a creek or river: water drags the car and the tires slip
-    const sf = { name: wade > 0.05 ? 'Water crossing' : sf0.name, mu: tmu * (1 - 0.4 * Math.min(1, wade / 0.4)), rr: sf0.rr * psiFx.rr * tr.rr * (1 + 6 * Math.min(1, wade / 0.5)) }, grip = tmu / 0.7; st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
+    const sf = tireGround(sf0, { wade, psi, tire: tr }), psiFx = sf.fx;   // the ground under the car's middle: HUD, steering aid, sinking (each wheel reads its own below)
+    st.surface = sf.name; st.sfKey = sf0.key; st.sfColor = sf0.color; const v0 = st.v;
     st.surfName = sf.name; st.mu = sf.mu;   // for the telemetry panel (game/TelemetryHud.jsx)
     if (k.reset && st.rolled && st.rb) { uprightBody(st.rb, dims); k.reset = false; st.rolledT = 0; }   // R on a rolled car: the crew stands it back up where it lies
     if (k.reset) {
@@ -321,7 +323,10 @@ function Vehicle({ children, hud, dims, race, sun }) {
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
     if (!st.rb) st.rb = createBody(dims, st);
     const rb = st.rb;
-    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { height: sunk, mu: sf.mu * wfx.grip * bog.mu, rr: sf.rr * bog.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
+    const wg = (st.wg ||= createWheelGround()), stamp = `${world.id}|${psi}|${tr.mu}|${tr.rr}|${game.active}`;
+    const lookWheel = (x, z) => tireGround(world.surface(x, z), { wade: world.waterDepth ? Math.min(1.2, world.waterDepth(x, z)) : 0, psi, tire: tr });
+    const tireAt = (x, z, i) => { const g = wg.at(i, x, z, stamp, lookWheel); return { mu: g.mu * wfx.grip * bog.mu, rr: g.rr * bog.rr, name: g.name }; };   // wear and sinking are still one number for the whole car
+    stepBody(rb, dims, { throttle, brake: !!k.Space, steer: st.steer + (game.onFoot ? 0 : wfx.pull) }, { tireAt, height: sunk, mu: sf.mu * wfx.grip * bog.mu, rr: sf.rr * bog.rr, ACC: ACC * wfx.power * (game.active === 'bug' ? piecePower(game.build?.engineParts) : 1), MAXV, DRG, diff: game.home?.diff, damp: wfx.damp, dampC: wfx.dampC, gripC: wfx.gripC, rrC: wfx.rrC, brake: wetK }, dt);
     if (game.onFoot && rb.contacts >= 3 && rb.vel.length() < 0.15 && rb.w.length() < 0.15) { rb.vel.set(0, 0, 0); rb.w.set(0, 0, 0); }   // parked: sit still
     if (wade > 0.05 && world.waterFlow && !game.onFoot) { const fl = world.waterFlow(st.x, st.z); if (fl) { const a = 1.6 * fl.k * Math.min(1, wade / 0.5) * dt; rb.vel.x += fl.x * a; rb.vel.z += fl.z * a; } }   // the current pushes the car downstream (rivers harder than creeks)
     readBody(rb, st);

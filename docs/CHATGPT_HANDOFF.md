@@ -4,7 +4,7 @@
 Last updated: Nov 27, 2026, night (start at "START HERE" right below).
 
 ## Physics (Nov 28): Claude owns it; please stay out
-Claude reviewed and committed your controller rumble and grip-aware steering limit (f857c41: 681 tests, build, in-game drive OK). Thanks. The physics spec is now in the repo (`docs/vehicle-physics/VEHICLE_PHYSICS_ENGINEERING.md`) and Claude wrote the Section 37 audit and plan (`docs/vehicle-physics/PHYSICS_AUDIT.md`), waiting on Chris. Until he decides, **don't edit** `rigid.js`, `suspension.js`, `drivetrain.js`, `vehiclePhysics.js`, `handling.js`, `handlingProfiles.js`, `bogDown.js`, `wear.js`, `DriveWorld.jsx`, `game/gamepad.js` or `vehicle/`. Ideas for them go here as notes.
+Claude reviewed and committed your controller rumble and grip-aware steering limit (f857c41: 681 tests, build, in-game drive OK). Thanks. The physics spec is now in the repo (`docs/vehicle-physics/VEHICLE_PHYSICS_ENGINEERING.md`) and Claude wrote the Section 37 audit and plan (`docs/vehicle-physics/PHYSICS_AUDIT.md`), waiting on Chris. Until he decides, **don't edit** `rigid.js`, `suspension.js`, `drivetrain.js`, `vehiclePhysics.js`, `handling.js`, `handlingProfiles.js`, `bogDown.js`, `wear.js`, `wheelGround.js`, `DriveWorld.jsx`, `game/gamepad.js` or `vehicle/`. Ideas for them go here as notes.
 
 ## START HERE (morning of Nov 28)
 **All your Nov 26-27 jobs passed Claude's review and are pushed:** logos removed, separate wheels on 13 vehicles, the 3 bug kit parts, shop sounds, and the dark Classic front arches (your second fix). Thank you. Claude has wired the four pickups into the Classifieds and will add the kit parts to the shops.

@@ -82,6 +82,9 @@ Claude Code, Nov 28, 2026. Audit of what the repo has, a staged plan, and Chris'
 ## Milestone 1 status (Nov 28)
 Done: the test facility (`src/physicsFacility.test.js`: static pad, frame rate, skidpad, single-wheel bump) and the in-game telemetry panel (`game/TelemetryHud.jsx`, F9 or `?telemetry`; per-wheel load, travel, slip angle, Fx, Fy and grip used, read from `rigid.js` without changing it). Still to add to the facility: slalom, side slope on the real Bug, washboard, split-mu (after milestone 3).
 
+## Milestone 3 status (Nov 28)
+Done: each wheel reads its own ground (surface, tire pressure, water depth). `src/wheelGround.js` holds the one grip formula and a short memory (a wheel looks its ground up again after rolling 0.4 m; a county lookup costs about 8 us in the browser). `rigid.js` takes an optional `env.tireAt`; without it the solver is unchanged. Acceptance passes: split-ground braking pulls toward the asphalt and mirrors; the old facility numbers are identical. Still one value for the whole car: sinking (read from the ground under the middle), wear grip, the speed-sensitive steering aid, and the dust and tire sounds. Not checked: whether every painted road edge matches the physics ground edge.
+
 ## Plan: milestones (PROPOSAL; one at a time)
 
 Order after the Nov 28 measurements: 1, 3, 4, 5, then the handoff's open steps (6 geometry and contact damage, 8 diagnosis puzzle), then 6 and 7 here. Milestone 2 is low priority now (frame rate barely matters).

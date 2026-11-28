@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { createBody, stepBody, readBody, G } from './rigid.js';
 import { massModel } from './vehiclePhysics.js';
 import { envFor } from './driveMeasure.js';
+import { tireGround, createWheelGround, REQUERY } from './wheelGround.js';
+import { SURFACES } from './worlds/kit.js';
 
 const STEP = 1 / 120, R0 = 0.345717;
 /** the Bug's drive dims as build.js resolve() makes them (stock wheels, no parts), optionally on bigger tires / a lift kit */
@@ -60,6 +62,49 @@ test('single-wheel bump: only the front-left rides up, and the car settles again
   note(`single-wheel bump 12 cm at 4 m/s: max travel FL ${fl.toFixed(3)} m, FR ${fr.toFixed(3)} m; afterwards roll ${(s.roll * 57.3).toFixed(2)} deg`);
   assert.ok(fl > fr + 0.03, JSON.stringify([fl, fr]));
   assert.ok(Math.abs(s.roll) < 0.02 && s.upY > 0.99);
+});
+
+// ---------- milestone 3: each tire reads its own ground ----------
+const STOCK_TIRE = { mu: 1, rr: 1, surf: {} };
+const under = key => { const g = tireGround({ ...SURFACES[key], key }, { psi: 30, tire: STOCK_TIRE }); return { mu: g.mu, rr: g.rr, name: g.name }; };
+/** drive at v0, then apply ctl for secs; ground(i) = what wheel i stands on (0 FL, 1 FR, 2 RL, 3 RR; left = +x) */
+function onGround(ground, { v0 = 0, secs = 4, ctl, diff } = {}) {
+  const d = bugDims(), b = createBody(d, { y: 0.3 }), e = { ...envFor('dirt'), diff, tireAt: (x, z, i) => ground(i) };
+  for (let i = 0; i < 2 / STEP; i++) stepBody(b, d, idle, e, STEP);
+  b.vel.set(0, 0, v0); const z0 = readBody(b, {}).z;
+  for (let i = 0; i < secs / STEP; i++) { stepBody(b, d, ctl, e, STEP); if (ctl.throttle < 0 && readBody(b, {}).v < 0.6) break; }
+  const s = readBody(b, {}); return { ...s, dist: s.z - z0, wheels: b.wheels };
+}
+
+test('per-wheel ground: giving every wheel the same ground drives exactly like the one-ground car', () => {
+  const d = bugDims(), plain = envFor('dirt'), each = { ...plain, tireAt: () => ({ mu: plain.mu, rr: plain.rr }) };
+  const [a, b] = [plain, each].map(e => { const car = createBody(d, { y: 0.3 }); for (let i = 0; i < 6 / STEP; i++) stepBody(car, d, { throttle: 1, brake: false, steer: i > 3 / STEP ? 0.15 : 0 }, e, STEP); return readBody(car, {}); });
+  assert.equal(a.x, b.x); assert.equal(a.z, b.z); assert.equal(a.h, b.h);
+});
+
+test('split ground, braking: left wheels on asphalt and right wheels on sand pulls toward the asphalt side, and mirrors', () => {
+  const brake = { throttle: -1, brake: false, steer: 0 };
+  const left = onGround(i => under(i % 2 === 0 ? 'asphalt' : 'sand'), { v0: 15, secs: 6, ctl: brake });
+  const right = onGround(i => under(i % 2 === 0 ? 'sand' : 'asphalt'), { v0: 15, secs: 6, ctl: brake });
+  const both = onGround(() => under('asphalt'), { v0: 15, secs: 6, ctl: brake });
+  note(`split-mu braking from 54 km/h: asphalt left pulls ${(left.h * 57.3).toFixed(1)} deg / ${left.x.toFixed(2)} m, asphalt right ${(right.h * 57.3).toFixed(1)} deg / ${right.x.toFixed(2)} m, all asphalt ${(both.h * 57.3).toFixed(1)} deg`);
+  assert.ok(left.h > 0.03 && left.x > 0, 'pulls left toward the asphalt: ' + left.h);
+  assert.ok(right.h < -0.03 && right.x < 0, 'pulls right toward the asphalt: ' + right.h);
+  assert.ok(Math.abs(both.h) < 0.01, 'even ground brakes straight: ' + both.h);
+});
+
+test('split ground, launch: one rear wheel on mud holds an open diff back more than a locker', () => {
+  const ground = i => under(i === 3 ? 'mud' : 'dirt'), go = { throttle: 1, brake: false, steer: 0 };
+  const open = onGround(ground, { secs: 3, ctl: go, diff: 'open' }), locked = onGround(ground, { secs: 3, ctl: go, diff: 'locker' });
+  note(`split launch, right rear in mud, 3 s: open diff ${open.dist.toFixed(1)} m, locker ${locked.dist.toFixed(1)} m`);
+  assert.ok(locked.dist > open.dist * 1.05, `locker ${locked.dist} vs open ${open.dist}`);
+});
+
+test('wheel ground memory: looks the ground up again only after the wheel rolls on, or the tires or map change', () => {
+  const g = createWheelGround(); let n = 0; const look = () => ++n;
+  g.at(0, 0, 0, 'a', look); g.at(0, REQUERY * 0.9, 0, 'a', look); assert.equal(n, 1);
+  g.at(0, REQUERY * 1.1, 0, 'a', look); assert.equal(n, 2);
+  g.at(0, REQUERY * 1.1, 0, 'b', look); g.at(1, 0, 0, 'b', look); assert.equal(n, 4);
 });
 
 test('print the facility table (for PHYSICS_TEST_RESULTS.md)', () => { console.log('\n' + out.join('\n')); });

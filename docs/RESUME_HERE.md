@@ -22,6 +22,7 @@ Everything below is on `main` and pushed. Tests: **681 pass**; production build 
 3. Shop sounds: volume and feel (K mutes).
 4. People: does the idle / talk motion look OK up close?
 5. Spray cans on rims and seats.
+6. Physics, ground per wheel: put two wheels on the road and two off it, brake and launch. Press F9 to see each wheel's ground. Does the ground it reports match what you see?
 
 ### Chris: decisions waiting on you
 - **Dark pickup's door:** keep it hanging open (the cheap rough truck) or have ChatGPT close it?
@@ -29,8 +30,8 @@ Everything below is on `main` and pushed. Tests: **681 pass**; production build 
 - **Meshy:** remake the blue-coveralls worker in an A-pose (arms away from the body, hands out of pockets, feet apart). One model first; it fixes walk/work.
 - **Meshy:** models still missing for Pastor Dale, Deputy Ruiz and the Hollises.
 
-### Physics plan (Nov 28): waiting on Chris
-**Physics is Claude's job (Chris, Nov 28).** Active task: `docs/vehicle-physics/BAJA_PHYSICS_MECHANICS_HANDOFF.md`; results: `docs/vehicle-physics/PHYSICS_TEST_RESULTS.md`. Milestone 1 done Nov 28 (test facility + F9 telemetry panel). The physics spec is saved at `docs/vehicle-physics/VEHICLE_PHYSICS_ENGINEERING.md`. Claude's Section 37 audit, 7-step plan and 5 questions are in [PHYSICS_AUDIT](./vehicle-physics/PHYSICS_AUDIT.md). Answer the questions and say which milestone to start (Claude's rec: milestone 1, telemetry + test facility, on Opus).
+### Physics plan (Nov 28)
+**Physics is Claude's job (Chris, Nov 28).** Active task: `docs/vehicle-physics/BAJA_PHYSICS_MECHANICS_HANDOFF.md`; results: `docs/vehicle-physics/PHYSICS_TEST_RESULTS.md`. Milestones 1 (test facility + F9 telemetry panel) and 3 (ground under each wheel) done Nov 28. Next (Claude's rec): milestone 4, wheel spin (wheelspin and lock-up). The physics spec is saved at `docs/vehicle-physics/VEHICLE_PHYSICS_ENGINEERING.md`. Claude's Section 37 audit, 7-step plan and 5 questions are in [PHYSICS_AUDIT](./vehicle-physics/PHYSICS_AUDIT.md). Chris answered the 5 questions on Nov 28 (recorded in the audit). Say "go" to start milestone 4 (Opus, high effort).
 
 ### Claude's next jobs (in order, PROPOSAL)
 1. **Add the 3 bug kit parts to the shops** (front tube bumper, rear cage, race seat) so they can be bought and fitted. Sonnet.

@@ -49,7 +49,8 @@ export function bodyOrigin(b, out = V()) { return out.copy(b.shape.com).applyQua
 
 const tmpA = V(), tmpB = V(), tmpC = V(), tmpD = V();
 
-/** one fixed step. ctl: { throttle -1..1, brake bool (handbrake), steer rad }; env: { height(x,z), mu, rr, ACC, MAXV, DRG } */
+/** one fixed step. ctl: { throttle -1..1, brake bool (handbrake), steer rad }; env: { height(x,z), mu, rr, ACC, MAXV, DRG,
+ *  tireAt?(x, z, wheelIndex) -> { mu, rr, name }: the ground under that wheel (without it every wheel gets env.mu and env.rr) } */
 export function stepBody(b, dims, ctl, env, dt) {
   const cfg = suspensionSpec(dims), { q, c, vel, w, shape } = b, mounts = dims.mounts, hf = env.height;
   const M = shape.mass;   // this car's mass (from its fitted parts); engine force and air drag stay fixed so a heavier car is slower
@@ -70,7 +71,8 @@ export function stepBody(b, dims, ctl, env, dt) {
     let sup = -Infinity;
     if (up.y > 0.05) for (const s of b.samples[i]) { const p = tmpA.copy(s).applyQuaternion(wq); sup = Math.max(sup, hf(nominal.x + p.x, nominal.z + p.z) - p.y); }
     const needed = up.y > 0.05 ? (sup + 0.005 - nominal.y) / up.y : -1;
-    return { m, i, wq, nominal, needed, x: clamp(needed, -cfg.droop, cfg.compression), touching: needed >= -cfg.droop - 0.002 };
+    const touching = needed >= -cfg.droop - 0.002, g = touching && env.tireAt ? env.tireAt(nominal.x, nominal.z, i) : null;   // each tire reads its own ground
+    return { m, i, wq, nominal, needed, x: clamp(needed, -cfg.droop, cfg.compression), touching, mu: g?.mu ?? mu, rr: g?.rr ?? env.rr, ground: g?.name };
   });
   // ---- spring + damper + bump stop + anti-roll bar: the load each tire carries ----
   for (const o of info) {
@@ -88,7 +90,7 @@ export function stepBody(b, dims, ctl, env, dt) {
   let contacts = 0, slipMax = 0, loadSum = 0;
   // drivetrain: engine + gearbox + heat (drivetrain.js), then the differential splits the drive force over the two rear wheels by how much each can grip
   const eng = b.eng ??= createEngine(), driven = info.filter(o => o.m.name.startsWith('R')), rearR = driven[0]?.m.radius ?? 0.38;
-  const Ftot = stepEngine(eng, ctl, speed, rearR, env.MAXV, MASS * ACC, dt), capOf = o => o.touching ? mu * clamp(o.N, 0, 90000) * 1.1 : 0, Fd = {};
+  const Ftot = stepEngine(eng, ctl, speed, rearR, env.MAXV, MASS * ACC, dt), capOf = o => o.touching ? o.mu * clamp(o.N, 0, 90000) * 1.1 : 0, Fd = {};
   if (Ftot > 0 && driven.length === 2) { const [a, c2] = splitDrive(Ftot, capOf(driven[0]), capOf(driven[1]), env.diff); Fd[driven[0].m.name] = a; Fd[driven[1].m.name] = c2; }
   b.wheels = info.map(o => {
     const { m } = o;
@@ -102,7 +104,7 @@ export function stepBody(b, dims, ctl, env, dt) {
       const vc = V().copy(w).cross(tmpB.copy(cp).sub(c)).add(vel);
       const wf = V(0, 0, 1).applyQuaternion(o.wq); wf.addScaledVector(n, -wf.dot(n)).normalize();
       const wl = V().crossVectors(n, wf);
-      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = mu * (env.gripC?.[m.name] ?? 1) * N * (front ? 1 : rcNow);   // env.gripC: a flat tire grips less
+      const vl = vc.dot(wf), vs = vc.dot(wl), front = m.name.startsWith('F'), cap = o.mu * (env.gripC?.[m.name] ?? 1) * N * (front ? 1 : rcNow);   // env.gripC: a flat tire grips less
       const sa = vs / Math.max(Math.abs(vl), 0.8);   // tan of the slip angle (floored so it behaves at a standstill)
       let Fy = -cap * Math.tanh(sa / (front ? HP.fs : rsNow));
       Fy = clamp(Fy, -Math.abs(vs) * M / 4 / dt * 0.5, Math.abs(vs) * M / 4 / dt * 0.5);   // never ask for more than stops the sideways slide in one step
@@ -114,7 +116,7 @@ export function stepBody(b, dims, ctl, env, dt) {
       const sgn = clamp(vl / 0.5, -1, 1);
       if (braking) Fx -= sgn * M * 22 * (env.brake ?? 1) * (front ? 0.65 : 0.35) / 2;   // env.brake: wet brakes (fade for a few seconds after a water crossing)
       if (ctl.brake) Fx -= sgn * (front ? M * 22 * 0.3 * (env.brake ?? 1) / 2 : cap * 2 * (env.brake ?? 1));
-      Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * env.rr * (env.rrC?.[m.name] ?? 1) + (throttle === 0 && !front ? 0.02 : 0)) * N;   // env.rrC: a flat tire drags
+      Fx -= clamp(vl / 0.3, -1, 1) * (0.03 * o.rr * (env.rrC?.[m.name] ?? 1) + (throttle === 0 && !front ? 0.02 : 0)) * N;   // env.rrC: a flat tire drags
       const avail = Math.sqrt(Math.max(0, cap * cap - Fy * Fy));
       Fx = clamp(Fx, -avail, avail);
       push(V().addScaledVector(n, N).addScaledVector(wf, Fx).addScaledVector(wl, Fy), cp);
@@ -124,7 +126,7 @@ export function stepBody(b, dims, ctl, env, dt) {
     // wheel travel shown on the car: drops smoothly when airborne instead of snapping
     b.travel[o.i] = o.touching ? o.x : Math.max(-cfg.droop, b.travel[o.i] - dt * 1.2);
     b.travel[o.i] = Math.max(b.travel[o.i], Math.min(cfg.compression, o.needed));
-    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0, sa: o.sa || 0, fx: o.fx || 0, fy: o.fy || 0, cap: o.touching ? mu * (env.gripC?.[m.name] ?? 1) * N * (m.name.startsWith('F') ? 1 : rcNow) : 0 };
+    return { name: m.name, hub: V(...m.center).addScaledVector(UP, b.travel[o.i]), travel: b.travel[o.i], touching: o.touching, load: N, vl: o.vl || 0, sa: o.sa || 0, fx: o.fx || 0, fy: o.fy || 0, cap: o.touching ? o.mu * (env.gripC?.[m.name] ?? 1) * N * (m.name.startsWith('F') ? 1 : rcNow) : 0, mu: o.touching ? o.mu : 0, ground: o.touching ? o.ground : undefined };
   });
   // ---- the shell: points on the body are spring-damper contacts with sliding friction, so a rolled car rests on its roof or side and scrapes to a stop ----
   let touch = false;
