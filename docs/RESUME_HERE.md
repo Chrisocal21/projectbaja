@@ -29,6 +29,9 @@ Everything below is on `main` and pushed. Tests: **681 pass**; production build 
 - **Meshy:** remake the blue-coveralls worker in an A-pose (arms away from the body, hands out of pockets, feet apart). One model first; it fixes walk/work.
 - **Meshy:** models still missing for Pastor Dale, Deputy Ruiz and the Hollises.
 
+### Physics plan (Nov 28): waiting on Chris
+The physics spec is saved at `docs/vehicle-physics/VEHICLE_PHYSICS_ENGINEERING.md`. Claude's Section 37 audit, 7-step plan and 5 questions are in [PHYSICS_AUDIT](./vehicle-physics/PHYSICS_AUDIT.md). Answer the questions and say which milestone to start (Claude's rec: milestone 1, telemetry + test facility, on Opus).
+
 ### Claude's next jobs (in order, PROPOSAL)
 1. **Add the 3 bug kit parts to the shops** (front tube bumper, rear cage, race seat) so they can be bought and fitted. Sonnet.
 2. **Cargo in the Classifieds trucks' beds:** crates use the old '84 pickup's spots; check and fix per truck. Sonnet.
