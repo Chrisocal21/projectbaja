@@ -1,12 +1,32 @@
 # Physics audit (Section 37 of VEHICLE_PHYSICS_ENGINEERING.md)
 
-Claude Code, Nov 28, 2026. Read-only audit of what the repo has today, a staged plan, and questions for Chris. **Nothing below has been built yet; each milestone waits for Chris's go.**
+Claude Code, Nov 28, 2026. Audit of what the repo has, a staged plan, and Chris's decisions. Measured numbers: [PHYSICS_TEST_RESULTS](./PHYSICS_TEST_RESULTS.md).
+
+## Chris's decisions (Nov 28; "your rec")
+- The active task is [BAJA_PHYSICS_MECHANICS_HANDOFF](./BAJA_PHYSICS_MECHANICS_HANDOFF.md) (now in the repo); this spec is the long-term reference.
+- Gearbox: keep the 5-speed automatic for now; a manual option comes later.
+- Feel crutches (1.35 x gravity, extra yaw damping, 1.5 x grip): keep them until telemetry can show what each does; then remove one at a time behind a dev switch, with Chris driving before / after.
+- Dev "pro" mode: retire it after its tire curve is ported into `rigid.js`.
+- **Physics is Claude's job.** ChatGPT stays out of the physics files.
+
+## The handoff's steps against the repo
+| Step | Status |
+|---|---|
+| 1 Audit | Done (this page). |
+| 2 Vehicle spec data | Done: `catalog/physics.json` (820 kg, CG 0.5 m, 42/58, source notes), mass and CG from fitted parts (`massModel`); a cage raises CG (tested). |
+| 3 Surfaces and tires | Done: surface table in the handoff's ranges (tested), one traction budget, tire pressure by hand (gauge, chuck, 12 V pump), tire size as gearing (tested). |
+| 4 Suspension | Done: per-corner spring, separate bump / rebound damping, travel and lift separate, bump stop, bottom-out wear; parts change it (long travel, lift kit). |
+| 5 Drivetrain and engine | Done: torque curve, gears, final drive, open / LSD / locker, air-cooled heat with warning, derate and damage. Built engines not unlocked (Chris's call). |
+| 6 Geometry and obstacles | Partly: tip limit done; approach / departure / breakover angles not computed; contact damage only to tires (rock strike), not to the part that touched. |
+| 7 Wear and failure | Partly: four wear numbers plus per-corner damper and tire failures with clues; no per-part condition for every part, no axle / CV or clutch failures. |
+| 8 Mechanic skills | Partly: tools, look-over clues, tire jobs, engine pieces; no symptom-to-cause diagnosis, tune-up procedures or torque specs. |
+| 9 Prove it | 5 of 6 pass as automated tests; the diagnosis puzzle is missing (see results page). |
 
 ## The audit (20 items)
 
 1. **Vehicle architecture.** One custom rigid-body car, `src/rigid.js` (`createBody` / `stepBody`), driven from `DriveWorld.jsx` (`Vehicle`). Dimensions come from `build.js resolve().dims` (Bug, from fitted parts) or `game/fleet.js` (trucks, El Cajon, Classifieds trucks). A second, separate solver lives in `src/vehicle/` (`sim.js`, `tire.js`, `config.js`): a flat-ground planar car used only by the dev "pro" mode (`ProDrive.jsx`).
 2. **Physics engine.** None installed. `package.json` has only three 0.170 for maths and rendering; all physics is hand-written JS.
-3. **Timestep.** `STEP = 1/120` (`suspension.js`), but `DriveWorld` splits each frame into 1-5 sub-steps of up to 1.6 x STEP sized from the frame time. **Not a fixed accumulator** and no render interpolation, so results depend a little on frame rate.
+3. **Timestep.** `STEP = 1/120` (`suspension.js`); `DriveWorld` splits each frame into 1-5 sub-steps of up to 1.6 x STEP. Not a fixed accumulator, but simulated time stays exact: measured spread between 30, 60 and 144 fps is 0.03% (results page). No render interpolation.
 4. **Wheel contact.** Per wheel, 9 sample points around the tire's side profile and across its width against the height field; the highest one sets the spring compression. Ground normal from height differences 0.35 m apart. Better than a single ray.
 5. **Suspension.** Per corner spring-damper with progressive rate (`1 + 6 frac^3`), separate bump / rebound damping, a near-solid bump stop, an anti-roll bar per axle (force from left-right travel difference), and per-car presets (stock / offroad / long-travel) in `suspensionSpec`. Static preload is fixed at 21% / 29% of weight per front / rear wheel, not derived from the centre of mass.
 6. **Tire model.** Lateral: `cap x tanh(slip / stiffness)` per axle (`handlingProfiles.js`), inside a friction circle shared with the longitudinal force. No load sensitivity, no slip ratio, no relaxation length. Grip = surface x tire set x pressure x wear x the game's 1.5 multiplier.
@@ -32,7 +52,7 @@ Claude Code, Nov 28, 2026. Read-only audit of what the repo has today, a staged 
 | 4 Core rules | Partially implemented (Rule 1 crutches listed in item 14) |
 | 5 Units | Implemented (SI inside, mph / °C at the UI) |
 | 6 Physics engine | Not applicable (custom solver, no library) |
-| 7 Timestep | Partially implemented (sub-steps, no fixed accumulator or interpolation) |
+| 7 Timestep | Partially implemented (sub-steps keep time exact, 0.03% spread across frame rates; no interpolation) |
 | 8 Chassis | Partially implemented (mass / CG / inertia from parts; preload not from CG) |
 | 9 Wheels | Partially implemented (contact yes; no spin state, slip ratio or inertia) |
 | 10 Suspension | Partially implemented (spring, damper, bump stop, anti-roll; no motion ratio or axle coupling) |
@@ -59,7 +79,9 @@ Claude Code, Nov 28, 2026. Read-only audit of what the repo has today, a staged 
 | 31 Roadmap | Phases 1-3 mostly there; 4-6 partly |
 | 32 Fidelity | Level 1 done, parts of Level 2 |
 
-## Plan: milestones (PROPOSAL; one at a time, each waits for Chris's go)
+## Plan: milestones (PROPOSAL; one at a time)
+
+Order after the Nov 28 measurements: 1, 3, 4, 5, then the handoff's open steps (6 geometry and contact damage, 8 diagnosis puzzle), then 6 and 7 here. Milestone 2 is low priority now (frame rate barely matters).
 
 1. **Measure first: telemetry + test facility.** A dev per-wheel panel (load, travel, slip, surface, rpm, gear) and headless tests: static pad, skidpad, slalom, side slope, single-wheel bump, washboard. Results written to `PHYSICS_TEST_RESULTS.md`. *Accept:* on the static pad the four tire loads add up to the car's weight within 5%; every test prints numbers and runs in `npm test`.
 2. **Fixed timestep.** A 120 Hz accumulator with render interpolation. *Accept:* the same scripted run at 30, 60 and 144 fps ends within 1% in distance and speed.
