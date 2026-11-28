@@ -11,12 +11,28 @@ const down = {}, fire = (type, code) => window.dispatchEvent(new KeyboardEvent(t
 const set = (code, on) => { if (!!down[code] === on) return; down[code] = on; fire(on ? 'keydown' : 'keyup', code); };
 const mouse = (btn, on) => { const k = 'm' + btn; if (!!down[k] === on) return; down[k] = on; window.dispatchEvent(new MouseEvent(on ? 'mousedown' : 'mouseup', { button: btn, bubbles: true })); };
 let started = false;
+let motor = null, nextPulse = 0;
+const roughness = { rock: 0.65, gravel: 0.48, dirt: 0.28, looseDirt: 0.32, sand: 0.16, scrub: 0.38, meadow: 0.16, dryGrass: 0.22, forestFloor: 0.35, playa: 0.14, mud: 0.2 };
+
+export function terrainPulse(surface, speed, contacts, impact, compression) {
+  if (!motor || !contacts || game.onFoot || document.hidden) return;
+  const rolling = (roughness[surface] || 0) * Math.min(1, Math.abs(speed) / 12);
+  const hit = Math.min(0.95, impact / 12);
+  const now = performance.now();
+  if ((rolling < 0.025 && hit < 0.12) || (now < nextPulse && hit < 0.12)) return;
+  nextPulse = now + 90;
+  try {
+    motor.playEffect('dual-rumble', { duration: 105, startDelay: 0,
+      weakMagnitude: rolling, strongMagnitude: Math.min(1, hit + rolling * Math.min(1, compression)) })?.catch(() => {});
+  } catch { /* Some controllers expose a motor without dual-rumble support. */ }
+}
 
 export function startGamepad() {
   if (started || typeof window === 'undefined') return; started = true;
   const tick = () => {
     requestAnimationFrame(tick);
     const p = (navigator.getGamepads?.() || []).find(x => x && x.connected);
+    motor = p?.vibrationActuator?.playEffect ? p.vibrationActuator : null;
     if (!p) { if (pad.on) { pad.on = false; pad.steer = pad.throttle = pad.lookX = pad.lookY = 0; for (const c of Object.keys(down)) if (down[c]) { if (c[0] === 'm') mouse(+c[1], false); else set(c, false); } } return; }
     pad.on = true;
     const b = i => !!p.buttons[i]?.pressed, ax = i => p.axes[i] || 0, tv = i => p.buttons[i]?.value || 0;

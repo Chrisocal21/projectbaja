@@ -47,7 +47,7 @@ import { PLACEMENT } from './placement/flag.js';
 import { OBSTACLES as SITE_OBSTACLES, BUG_SPOT, GARAGE_DRIVE } from './worlds/siteData.js';
 import { STEP, createVehicleState, buildWheelRig, updateSuspensionVisual, wheelSteerAngle } from './suspension.js';
 import { SURFACE_DATA, STD_ROLL, pressureEffect, TIRE } from './vehiclePhysics.js';
-import { pad } from './game/gamepad.js';
+import { pad, terrainPulse } from './game/gamepad.js';
 import { createDust, dustiness } from './dust.js';
 import { updateAudio, thump, clunk } from './audio.js';
 import { steerAssist, speedFov, steerStep, steerRate } from './handling.js';
@@ -309,7 +309,11 @@ function Vehicle({ children, hud, dims, race, sun }) {
     if (sk.n < 0.2) st.stuckSaid = false;
     const steerIn = Math.max(-1, Math.min(1, (k.KeyA || k.ArrowLeft ? 1 : 0) - (k.KeyD || k.ArrowRight ? 1 : 0) + (game.onFoot ? 0 : pad.steer)));   // keyboard, or the controller stick (analog)
     // --- steering: the wheel angle fades with speed; what the car does with it is up to the tires ---
-    const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE);
+    const frontGrip = sf.mu * wfx.grip * bog.mu;
+    // The speed-sensitive steering aid uses installed tire grip and chassis length.
+    // Keep parking lock available even on a loose surface.
+    const authority = Math.max(0.7, Math.min(1.35, Math.sqrt(frontGrip * dims.wheelbase / 2.4)));
+    const maxSteer = 0.7 / (1 + Math.abs(st.v) * STEER_FADE / authority);
     st.aid = (st.aid || 0) + ((game.onFoot ? 0 : steerAssist(st.lateralV, st.v, steerIn)) - (st.aid || 0)) * Math.min(1, dt * 3.5);   // the catch-a-slide help, smoothed so it can't ring against the car
     st.steer = steerStep(st.steer, steerIn * maxSteer + st.aid, dt, steerRate(steerIn !== 0, st.v, pad.on && !game.onFoot && Math.abs(pad.steer) > 0, psiFx.steerLag));   // hands on the wheel: limited turning rate, eased, no overshoot
     // --- the car is one rigid body (rigid.js): spring-damper wheels, friction-circle tires, a shell that lies on the ground when it rolls ---
@@ -324,6 +328,7 @@ function Vehicle({ children, hud, dims, race, sun }) {
       st.cool = Math.max(0, (st.cool || 0) - dt);
       if (imp > 4.5 && !game.onFoot) { WEAR[game.active] = onHit(onLanding(wr, imp, wmods), { imp, corner: (rb.wheels || []).reduce((a, w) => (!a || w.travel > a.travel ? w : a), null)?.name, rock: sf0.key === 'rock', pinch: psiFx.pinch }); thump(imp);   // a hard hit can blow the damper or puncture the tire at that corner
          st.impact = imp; st.impactT = 1.3; shake.current = Math.min(1, Math.max(shake.current, imp / 11)); game.home = { ...game.home, stress: { ...(game.home.stress || {}), landings: ((game.home.stress || {}).landings || 0) + 1, hardest: Math.max((game.home.stress || {}).hardest || 0, +imp.toFixed(1)) } }; }
+      if (pad.on && !game.onFoot) terrainPulse(sf0.key || sf0.gk, st.v, rb.contacts, imp, Math.max(...rb.travel) / full);
       const bottom = rb.travel.some(t => t > full * 0.96);
       if (bottom && !st.cool && !game.onFoot) { WEAR[game.active] = onBottomOut(WEAR[game.active] || wr, wmods); clunk(); st.cool = 0.5; st.bottomT = 1.0; shake.current = Math.max(shake.current, 0.35); game.home = { ...game.home, stress: { ...(game.home.stress || {}), bottomOuts: ((game.home.stress || {}).bottomOuts || 0) + 1 } }; }
       st.impactT = Math.max(0, (st.impactT || 0) - dt); st.bottomT = Math.max(0, (st.bottomT || 0) - dt);
